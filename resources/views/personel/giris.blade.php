@@ -48,8 +48,9 @@
             </div>
         @endif
 
-        <form class="mt-8 space-y-6" action="{{ route('personel.giris.post') }}" method="POST">
+        <form id="personel-giris-form" class="mt-8 space-y-6" action="{{ route('personel.giris.post') }}" method="POST">
             @csrf
+            @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'personel-giris-form', 'recaptchaAction' => 'personel_giris'])
             <div class="space-y-4">
                 <div>
                     <label for="e_posta" class="block text-xs font-semibold text-[#4B5563] mb-1.5">E-posta Adresi</label>

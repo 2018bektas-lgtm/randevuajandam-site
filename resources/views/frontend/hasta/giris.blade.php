@@ -46,8 +46,9 @@
             @endif
 
             <!-- Form -->
-            <form action="{{ route('frontend.hasta.giris.post') }}" method="POST" class="space-y-4">
+            <form id="hasta-giris-form" action="{{ route('frontend.hasta.giris.post') }}" method="POST" class="space-y-4">
                 @csrf
+                @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'hasta-giris-form', 'recaptchaAction' => 'hasta_giris'])
                 
                 <!-- Email -->
                 <div class="space-y-1">

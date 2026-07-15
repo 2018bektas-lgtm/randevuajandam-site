@@ -249,8 +249,9 @@
         @endif
 
         <!-- Form -->
-        <form action="{{ route('yonetim.giris.post') }}" method="POST" class="space-y-5">
+        <form id="yonetici-giris-form" action="{{ route('yonetim.giris.post') }}" method="POST" class="space-y-5">
             @csrf
+            @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'yonetici-giris-form', 'recaptchaAction' => 'yonetici_giris'])
 
             <!-- Email Input -->
             <div>

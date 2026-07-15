@@ -20,7 +20,9 @@ Route::prefix('yonetim')->name('yonetim.')->group(function () {
     // Giriş yapmamış yöneticiler için
     Route::middleware('guest:yonetici')->group(function () {
         Route::get('/giris', [YonetimController::class, 'girisFormu'])->name('giris');
-        Route::post('/giris', [YonetimController::class, 'girisYap'])->name('giris.post');
+        Route::post('/giris', [YonetimController::class, 'girisYap'])
+            ->middleware('recaptcha:yonetici_giris')
+            ->name('giris.post');
     });
 
     // Giriş yapmış yöneticiler için

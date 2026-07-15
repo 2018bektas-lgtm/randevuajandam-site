@@ -1,3 +1,4 @@
+@once
 {{-- reCAPTCHA v3 — ana platform --}}
 @php
     $rcService = app(\App\Services\RecaptchaService::class);
@@ -31,3 +32,4 @@ window.raRecaptchaSiteKey = '';
 window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
 </script>
 @endif
+@endonce

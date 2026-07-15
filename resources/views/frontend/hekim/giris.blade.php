@@ -243,8 +243,9 @@
         @endif
 
         <!-- Form -->
-        <form action="{{ route('frontend.hekim.giris.post') }}" method="POST" class="space-y-5">
+        <form id="hekim-giris-form" action="{{ route('frontend.hekim.giris.post') }}" method="POST" class="space-y-5">
             @csrf
+            @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'hekim-giris-form', 'recaptchaAction' => 'hekim_giris'])
 
             <!-- Email Input -->
             <div>

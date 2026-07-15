@@ -77,8 +77,9 @@
                 </div>
             @endif
 
-            <form action="{{ route('password.email') }}" method="POST" class="space-y-5">
+            <form id="sifre-sifirlama-form" action="{{ route('password.email') }}" method="POST" class="space-y-5">
                 @csrf
+                @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'sifre-sifirlama-form', 'recaptchaAction' => 'sifre_sifirlama'])
                 <input type="hidden" name="type" value="{{ $type }}">
                 
                 <div>

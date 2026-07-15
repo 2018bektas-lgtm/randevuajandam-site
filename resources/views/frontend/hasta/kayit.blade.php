@@ -37,8 +37,9 @@
             @endif
 
             <!-- Form -->
-            <form action="{{ route('frontend.hasta.kayit.post') }}" method="POST" class="space-y-4">
+            <form id="hasta-kayit-form" action="{{ route('frontend.hasta.kayit.post') }}" method="POST" class="space-y-4">
                 @csrf
+                @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'hasta-kayit-form', 'recaptchaAction' => 'hasta_kayit'])
                 
                 <div class="grid grid-cols-2 gap-4">
                     <!-- Name -->

@@ -39,10 +39,12 @@ use Illuminate\Support\Facades\Route;
 // Password Reset Routes
 Route::get('/sifremi-unuttum', [\App\Http\Controllers\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('/sifremi-unuttum', [\App\Http\Controllers\ForgotPasswordController::class, 'sendResetLinkEmail'])
-    ->middleware('throttle:5,1')
+    ->middleware(['throttle:5,1', 'recaptcha:sifre_sifirlama'])
     ->name('password.email');
 Route::get('/sifre-sifirla/{token}', [\App\Http\Controllers\ForgotPasswordController::class, 'showResetForm'])->name('password.reset');
-Route::post('/sifre-sifirla', [\App\Http\Controllers\ForgotPasswordController::class, 'reset'])->name('password.update');
+Route::post('/sifre-sifirla', [\App\Http\Controllers\ForgotPasswordController::class, 'reset'])
+    ->middleware('recaptcha:sifre_guncelleme')
+    ->name('password.update');
 
 // 2FA challenge (şifre sonrası, henüz oturum yok)
 Route::get('/2fa', [\App\Http\Controllers\TwoFactorController::class, 'challengeForm'])->name('two-factor.challenge');
@@ -58,9 +60,13 @@ Route::get('/blog', [HekimController::class, 'bloglarListesi'])->name('frontend.
 // Patient Guest Routes (Hasta Ziyaretçi Rotaları)
 Route::middleware('guest:hasta')->group(function () {
     Route::get('/kayit-ol', [HastaController::class, 'kayitFormu'])->name('frontend.hasta.kayit');
-    Route::post('/kayit-ol', [HastaController::class, 'kayitOl'])->name('frontend.hasta.kayit.post');
+    Route::post('/kayit-ol', [HastaController::class, 'kayitOl'])
+        ->middleware('recaptcha:hasta_kayit')
+        ->name('frontend.hasta.kayit.post');
     Route::get('/giris', [HastaController::class, 'girisFormu'])->name('frontend.hasta.giris');
-    Route::post('/giris', [HastaController::class, 'girisYap'])->name('frontend.hasta.giris.post');
+    Route::post('/giris', [HastaController::class, 'girisYap'])
+        ->middleware('recaptcha:hasta_giris')
+        ->name('frontend.hasta.giris.post');
 });
 
 // Misafir randevu (kayıt zorunlu değil)
@@ -116,14 +122,18 @@ Route::middleware('auth:hasta')->group(function () {
 Route::middleware('guest:doktor')->group(function () {
     // Registration
     Route::get('/hekim/kayit-ol', [PaketController::class, 'kayitFormu'])->name('frontend.hekim.kayit');
-    Route::post('/hekim/kayit-ol', [PaketController::class, 'kayitOl'])->name('frontend.hekim.kayit.post');
+    Route::post('/hekim/kayit-ol', [PaketController::class, 'kayitOl'])
+        ->middleware('recaptcha:hekim_kayit')
+        ->name('frontend.hekim.kayit.post');
     Route::get('/hekim/klinik/kayit-ol', function () {
         return redirect()->route('frontend.hekim.kayit');
     });
 
     // Login
     Route::get('/hekim/giris', [HekimController::class, 'girisFormu'])->name('frontend.hekim.giris');
-    Route::post('/hekim/giris', [HekimController::class, 'girisYap'])->name('frontend.hekim.giris.post');
+    Route::post('/hekim/giris', [HekimController::class, 'girisYap'])
+        ->middleware('recaptcha:hekim_giris')
+        ->name('frontend.hekim.giris.post');
 });
 
 // Doctor Auth Routes (Without membership check)
@@ -420,7 +430,9 @@ Route::post('/klinik/davet/{token}/reddet', [KlinikController::class, 'davetRedd
 
 // Personel Auth Routes
 Route::get('/personel/giris', [PersonelAuthController::class, 'girisFormu'])->name('personel.giris');
-Route::post('/personel/giris', [PersonelAuthController::class, 'girisYap'])->name('personel.giris.post');
+Route::post('/personel/giris', [PersonelAuthController::class, 'girisYap'])
+    ->middleware('recaptcha:personel_giris')
+    ->name('personel.giris.post');
 Route::post('/personel/cikis', [PersonelAuthController::class, 'cikisYap'])->name('personel.cikis');
 
 // Personel Dashboard & Operations (Authenticated)

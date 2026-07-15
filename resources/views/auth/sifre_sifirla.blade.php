@@ -61,8 +61,9 @@
                 </div>
             @endif
 
-            <form action="{{ route('password.update') }}" method="POST" class="space-y-5">
+            <form id="sifre-guncelleme-form" action="{{ route('password.update') }}" method="POST" class="space-y-5">
                 @csrf
+                @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'sifre-guncelleme-form', 'recaptchaAction' => 'sifre_guncelleme'])
                 <input type="hidden" name="token" value="{{ $token }}">
                 <input type="hidden" name="type" value="{{ $type }}">
                 

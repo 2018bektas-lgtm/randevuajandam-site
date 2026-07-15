@@ -230,6 +230,7 @@
 
         <form action="{{ route('frontend.hekim.kayit.post') }}" method="POST" id="wizardForm" class="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm">
             @csrf
+            @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'wizardForm', 'recaptchaAction' => 'hekim_kayit'])
             
             <!-- ADIM 1: HESAP BİLGİLERİ -->
             <div id="step1" class="wizard-step space-y-6">
