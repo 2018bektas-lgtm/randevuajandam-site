@@ -13,7 +13,7 @@ return new class extends Migration
                 $table->string('recaptcha_site_key', 100)->nullable()->after('google_ads_id');
             }
             if (! Schema::hasColumn('site_ayarlari', 'recaptcha_secret_key')) {
-                $table->string('recaptcha_secret_key', 100)->nullable()->after('recaptcha_site_key');
+                $table->text('recaptcha_secret_key')->nullable()->after('recaptcha_site_key');
             }
             if (! Schema::hasColumn('site_ayarlari', 'recaptcha_enabled')) {
                 $table->boolean('recaptcha_enabled')->default(true)->after('recaptcha_secret_key');
