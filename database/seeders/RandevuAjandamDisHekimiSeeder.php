@@ -83,8 +83,8 @@ class RandevuAjandamDisHekimiSeeder extends Seeder
                     'mesai_baslangic' => '09:00:00',
                     'mesai_bitis' => $gun === 6 ? '14:00:00' : '18:00:00',
                     'ogle_arasi_aktif_mi' => $gun <= 5,
-                    'ogle_baslangic' => $gun <= 5 ? '12:30:00' : null,
-                    'ogle_bitis' => $gun <= 5 ? '13:30:00' : null,
+                    'ogle_baslangic' => '12:30:00',
+                    'ogle_bitis' => '13:30:00',
                 ]
             );
         }
