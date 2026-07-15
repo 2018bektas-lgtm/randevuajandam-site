@@ -279,54 +279,6 @@
             </button>
         </form>
 
-        <!-- Hızlı Test Girişleri -->
-        <div class="mt-6 bg-[#FAF8F5] border border-[#E7B58A]/30 rounded-2xl p-4 space-y-3">
-            <h4 class="text-xs font-bold text-[#C96A2B] uppercase tracking-wider font-display flex items-center gap-1.5">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path>
-                </svg>
-                Hızlı Test Girişleri
-            </h4>
-            <div class="space-y-2">
-                <!-- Klinik Sahibi -->
-                <button type="button" onclick="hizliDoldur('canan@test.com', 'sifre123')" 
-                        class="w-full flex flex-col text-left p-2.5 rounded-xl border border-dashed border-[#E5E7EB] hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all cursor-pointer group select-none">
-                    <span class="text-xs font-bold text-[#1F2937] font-display flex items-center gap-1.5 flex-wrap">
-                        Doç. Dr. Canan Dağdeviren 
-                        <span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-sans uppercase font-extrabold">Klinik Sahibi</span>
-                    </span>
-                    <span class="text-[10px] text-[#6B7280] mt-1 font-mono font-medium">canan@test.com / sifre123</span>
-                </button>
-                
-                <!-- Klinik Doktoru -->
-                <button type="button" onclick="hizliDoldur('ozgur@test.com', 'sifre123')" 
-                        class="w-full flex flex-col text-left p-2.5 rounded-xl border border-dashed border-[#E5E7EB] hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all cursor-pointer group select-none">
-                    <span class="text-xs font-bold text-[#1F2937] font-display flex items-center gap-1.5 flex-wrap">
-                        Uzm. Dr. Özgür Demir 
-                        <span class="text-[9px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-sans uppercase font-extrabold">Klinik Üyesi</span>
-                    </span>
-                    <span class="text-[10px] text-[#6B7280] mt-1 font-mono font-medium">ozgur@test.com / sifre123</span>
-                </button>
-                
-                <!-- Davet Bekleyen Doktor -->
-                <button type="button" onclick="hizliDoldur('ahmet@test.com', 'sifre123')" 
-                        class="w-full flex flex-col text-left p-2.5 rounded-xl border border-dashed border-[#E5E7EB] hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all cursor-pointer group select-none">
-                    <span class="text-xs font-bold text-[#1F2937] font-display flex items-center gap-1.5 flex-wrap">
-                        Prof. Dr. Ahmet Yılmaz 
-                        <span class="text-[9px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-sans uppercase font-extrabold">Davet Bekliyor</span>
-                    </span>
-                    <span class="text-[10px] text-[#6B7280] mt-1 font-mono font-medium">ahmet@test.com / sifre123</span>
-                </button>
-            </div>
-        </div>
-
-        <script>
-            function hizliDoldur(eposta, sifre) {
-                document.getElementById('e_posta').value = eposta;
-                document.getElementById('sifre').value = sifre;
-            }
-        </script>
-
         <!-- Back to Homepage & Personnel Redirect -->
         <div class="w-full flex items-center justify-between mt-6 select-none">
             <a href="/" class="text-xs font-bold text-[#6B7280] hover:text-[#C96A2B] transition-colors font-display flex items-center gap-1.5">
