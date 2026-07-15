@@ -16,8 +16,7 @@ class RandevuAjandamDisHekimiSeeder extends Seeder
     {
         $doktor = Doktor::query()->where('e_posta', 'hekim@randevuajandam.com')->firstOrFail();
         $brans = Brans::query()->firstOrCreate(
-            ['ad' => 'Genel Diş Hekimliği'],
-            ['aktif_mi' => true]
+            ['ad' => 'Genel Diş Hekimliği']
         );
 
         $doktor->update([
