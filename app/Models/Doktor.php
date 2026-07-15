@@ -106,6 +106,11 @@ class Doktor extends Authenticatable
         'two_factor_recovery_codes',
     ];
 
+    public function routeNotificationForMail(): string
+    {
+        return $this->e_posta;
+    }
+
     /**
      * Get the password for the doctor.
      */

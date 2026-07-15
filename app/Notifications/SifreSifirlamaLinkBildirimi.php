@@ -41,7 +41,6 @@ class SifreSifirlamaLinkBildirimi extends Notification
         $isim = property_exists($notifiable, 'ad_soyad') ? $notifiable->ad_soyad : ($notifiable->ad ?? 'Kullanıcı');
 
         return (new MailMessage)
-            ->to($notifiable->e_posta)
             ->subject('Şifre Sıfırlama Talebi - Randevu Ajandam')
             ->greeting('Merhaba ' . $isim . ',')
             ->line('Hesabınız için bir şifre sıfırlama talebi aldık.')

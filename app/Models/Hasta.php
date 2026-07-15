@@ -29,6 +29,11 @@ class Hasta extends Authenticatable
         'remember_token',
     ];
 
+    public function routeNotificationForMail(): string
+    {
+        return $this->e_posta;
+    }
+
     public function getAuthPassword(): string
     {
         return $this->sifre;
