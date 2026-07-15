@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Panel / auth — arama motorlarına kapalı
+Disallow: /hekim/
+Disallow: /yonetim/
+Disallow: /personel/
+Disallow: /profil
+Disallow: /randevu-yonet/
+
+Sitemap: /sitemap.xml

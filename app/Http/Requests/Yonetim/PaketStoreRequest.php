@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Http\Requests\Yonetim;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class PaketStoreRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    public function rules(): array
+    {
+        return [
+            'ad' => ['required', 'string', 'max:255'],
+            'tur' => ['required', 'in:bireysel,klinik'],
+            'aciklama' => ['nullable', 'string'],
+            'aylik_fiyat' => ['required', 'numeric', 'min:0'],
+            'aylik_indirimli_fiyat' => ['nullable', 'numeric', 'min:0'],
+            'yillik_fiyat' => ['required', 'numeric', 'min:0'],
+            'yillik_indirimli_fiyat' => ['nullable', 'numeric', 'min:0'],
+            'ozellikler' => ['required', 'array', 'min:1'],
+            'ozellikler.*' => ['required', 'string', 'max:255'],
+            'aktif_mi' => ['nullable', 'boolean'],
+            'max_doktor_sayisi' => ['nullable', 'integer', 'min:1'],
+            'max_personel_sayisi' => ['nullable', 'integer', 'min:1'],
+            'merkezi_finans_mi' => ['nullable', 'boolean'],
+            'toplu_randevu_mi' => ['nullable', 'boolean'],
+            'raporlama_mi' => ['nullable', 'boolean'],
+            'hasta_havuzu_mi' => ['nullable', 'boolean'],
+            'sira' => ['nullable', 'integer'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'ad.required' => 'Paket adı alanı zorunludur.',
+            'tur.required' => 'Paket türü seçimi zorunludur.',
+            'aylik_fiyat.required' => 'Aylık fiyat alanı zorunludur.',
+            'aylik_fiyat.numeric' => 'Lütfen geçerli bir aylık fiyat girin.',
+            'aylik_indirimli_fiyat.numeric' => 'Lütfen geçerli bir aylık indirimli fiyat girin.',
+            'yillik_fiyat.required' => 'Yıllık fiyat alanı zorunludur.',
+            'yillik_fiyat.numeric' => 'Lütfen geçerli bir yıllık fiyat girin.',
+            'yillik_indirimli_fiyat.numeric' => 'Lütfen geçerli bir yıllık indirimli fiyat girin.',
+            'ozellikler.required' => 'Lütfen en az bir paket özelliği ekleyin.',
+        ];
+    }
+}
