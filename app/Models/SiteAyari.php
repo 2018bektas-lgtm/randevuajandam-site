@@ -43,6 +43,7 @@ class SiteAyari extends Model
     {
         return [
             'recaptcha_enabled' => 'boolean',
+            'recaptcha_secret_key' => 'encrypted',
             'iyzico_api_key' => 'encrypted',
             'iyzico_secret_key' => 'encrypted',
         ];
