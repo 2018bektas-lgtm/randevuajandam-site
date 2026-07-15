@@ -52,7 +52,7 @@ class RandevuAjandamDisHekimiSeeder extends Seeder
         }
 
         foreach ([
-            ['baslik' => 'Diş Sağlığını Korumak İçin 5 Günlük Alışkanlık', 'icerik' => '<p>Düzenli fırçalama, diş ipi kullanımı, dengeli beslenme ve rutin kontroller ağız sağlığının temelini oluşturur.</p>', 'resim' => 'https://images.unsplash.com/photo-1606265752439-1f18756aa2f5?auto=format&fit=crop&w=1000&q=80'],
+            ['baslik' => 'Diş Sağlığını Korumak İçin 5 Günlük Alışkanlık', 'icerik' => '<p>Düzenli fırçalama, diş ipi kullanımı, dengeli beslenme ve rutin kontroller ağız sağlığının temelini oluşturur.</p>', 'resim' => 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1000&q=80'],
             ['baslik' => 'Diş Taşı Temizliği Neden Önemlidir?', 'icerik' => '<p>Profesyonel temizlik, diş eti sağlığını destekler ve günlük bakımın ulaşamadığı birikimlerin uzaklaştırılmasına yardımcı olur.</p>', 'resim' => 'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&w=1000&q=80'],
             ['baslik' => 'Estetik Dolgu Hakkında Merak Edilenler', 'icerik' => '<p>Kompozit dolgular, uygun vakalarda diş rengiyle uyumlu ve doğal görünümlü bir restorasyon seçeneği sunar.</p>', 'resim' => 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1000&q=80'],
         ] as $blog) {
