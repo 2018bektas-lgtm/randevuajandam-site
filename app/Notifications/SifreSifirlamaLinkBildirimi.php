@@ -3,11 +3,10 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class SifreSifirlamaLinkBildirimi extends Notification implements ShouldQueue
+class SifreSifirlamaLinkBildirimi extends Notification
 {
     use Queueable;
 
@@ -34,10 +33,15 @@ class SifreSifirlamaLinkBildirimi extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $url = route('password.reset', ['token' => $this->token, 'type' => $this->type]);
+        $url = route('password.reset', [
+            'token' => $this->token,
+            'type' => $this->type,
+            'email' => $notifiable->e_posta,
+        ]);
         $isim = property_exists($notifiable, 'ad_soyad') ? $notifiable->ad_soyad : ($notifiable->ad ?? 'Kullanıcı');
 
         return (new MailMessage)
+            ->to($notifiable->e_posta)
             ->subject('Şifre Sıfırlama Talebi - Randevu Ajandam')
             ->greeting('Merhaba ' . $isim . ',')
             ->line('Hesabınız için bir şifre sıfırlama talebi aldık.')

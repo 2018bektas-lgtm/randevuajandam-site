@@ -38,7 +38,9 @@ use Illuminate\Support\Facades\Route;
 
 // Password Reset Routes
 Route::get('/sifremi-unuttum', [\App\Http\Controllers\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-Route::post('/sifremi-unuttum', [\App\Http\Controllers\ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::post('/sifremi-unuttum', [\App\Http\Controllers\ForgotPasswordController::class, 'sendResetLinkEmail'])
+    ->middleware('throttle:5,1')
+    ->name('password.email');
 Route::get('/sifre-sifirla/{token}', [\App\Http\Controllers\ForgotPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/sifre-sifirla', [\App\Http\Controllers\ForgotPasswordController::class, 'reset'])->name('password.update');
 

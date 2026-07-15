@@ -36,7 +36,7 @@ class ForgotPasswordController extends Controller
             'type' => 'required|in:hekim,hasta,yonetici',
         ]);
 
-        $email = $request->e_posta;
+        $email = mb_strtolower(trim($request->e_posta));
         $type = $request->type;
 
         // Find the user depending on type
@@ -50,7 +50,7 @@ class ForgotPasswordController extends Controller
         }
 
         if (!$user) {
-            return back()->withErrors(['e_posta' => 'Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.'])->withInput();
+            return back()->with('basarili', 'Hesabınız varsa şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.');
         }
 
         // Generate token
@@ -64,6 +64,7 @@ class ForgotPasswordController extends Controller
         // Save to password_reset_tokens
         DB::table('password_reset_tokens')->insert([
             'email' => $email,
+            'account_type' => $type,
             'token' => Hash::make($token), // store hashed token
             'created_at' => now(),
         ]);
@@ -104,13 +105,14 @@ class ForgotPasswordController extends Controller
             'sifre.confirmed' => 'Şifre tekrarı uyuşmuyor.',
         ]);
 
-        $email = $request->e_posta;
+        $email = mb_strtolower(trim($request->e_posta));
         $type = $request->type;
         $token = $request->token;
 
         // Retrieve the token record from db
         $record = DB::table('password_reset_tokens')
             ->where('email', $email)
+            ->where('account_type', $type)
             ->first();
 
         if (!$record || !Hash::check($token, $record->token)) {
@@ -119,7 +121,10 @@ class ForgotPasswordController extends Controller
 
         // Check token expiration (60 minutes)
         if (now()->subMinutes(60)->gt($record->created_at)) {
-            DB::table('password_reset_tokens')->where('email', $email)->delete();
+            DB::table('password_reset_tokens')
+                ->where('email', $email)
+                ->where('account_type', $type)
+                ->delete();
             return back()->withErrors(['e_posta' => 'Şifre sıfırlama bağlantısının süresi dolmuş. Lütfen yeni bir talep oluşturun.'])->withInput();
         }
 
@@ -146,7 +151,10 @@ class ForgotPasswordController extends Controller
         ]);
 
         // Delete the token
-        DB::table('password_reset_tokens')->where('email', $email)->delete();
+        DB::table('password_reset_tokens')
+            ->where('email', $email)
+            ->where('account_type', $type)
+            ->delete();
 
         return redirect()->route($redirectRoute)->with('basarili', 'Şifreniz başarıyla sıfırlandı. Yeni şifrenizle giriş yapabilirsiniz.');
     }
