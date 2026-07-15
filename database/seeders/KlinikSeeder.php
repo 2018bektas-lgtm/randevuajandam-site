@@ -23,10 +23,8 @@ class KlinikSeeder extends Seeder
             ]
         );
 
-        Paket::where('tur', 'klinik')->delete();
-
         // Klinik Başlangıç — web YOK
-        $baslangic = Paket::create([
+        $baslangic = Paket::updateOrCreate(['ad' => 'Klinik Başlangıç', 'tur' => 'klinik'], [
             'ad' => 'Klinik Başlangıç',
             'tur' => 'klinik',
             'aciklama' => 'Küçük klinikler ve muayenehaneler için ideal başlangıç paketi.',
@@ -56,7 +54,7 @@ class KlinikSeeder extends Seeder
         $baslangic->sistemOzellikleri()->sync([]);
 
         // Klinik Profesyonel — web YOK
-        $profesyonel = Paket::create([
+        $profesyonel = Paket::updateOrCreate(['ad' => 'Klinik Profesyonel', 'tur' => 'klinik'], [
             'ad' => 'Klinik Profesyonel',
             'tur' => 'klinik',
             'aciklama' => 'Orta ölçekli klinikler ve tıp merkezleri için gelişmiş özellikler.',
@@ -87,7 +85,7 @@ class KlinikSeeder extends Seeder
         $profesyonel->sistemOzellikleri()->sync([]);
 
         // Klinik Kurumsal — ÖZEL WEB SİTESİ DAHİL (tek paket; klinik_web_sitesi yetkisi)
-        $kurumsal = Paket::create([
+        $kurumsal = Paket::updateOrCreate(['ad' => 'Klinik Kurumsal', 'tur' => 'klinik'], [
             'ad' => 'Klinik Kurumsal',
             'tur' => 'klinik',
             'aciklama' => 'Sınırsız hekim/personel + özel klinik web sitesi: kurumsal domain, çok hekimli vitrin, CMS ve online randevu tek pakette.',
