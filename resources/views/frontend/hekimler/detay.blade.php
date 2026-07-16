@@ -503,8 +503,8 @@
                             const galleryImages = [
                                 @foreach($doktor->galeriler as $galeri)
                                     {
-                                        src: "{{ asset($galeri->resim_yolu) }}",
-                                        caption: "{{ addslashes($galeri->baslik) }}"
+                                        src: @json(asset($galeri->resim_yolu)),
+                                        caption: @json($galeri->baslik)
                                     },
                                 @endforeach
                             ];
@@ -1183,7 +1183,7 @@
                 attribution: '&copy; <a href="https://maps.google.com">Google Maps</a>'
             }).addTo(detailMap);
 
-            var title = "{{ ($doktor->unvan ? $doktor->unvan . ' ' : '') . $doktor->ad_soyad }}";
+            var title = @json(($doktor->unvan ? $doktor->unvan . ' ' : '') . $doktor->ad_soyad);
             L.marker([lat, lng]).addTo(detailMap)
                 .bindPopup('<div class="text-xs font-bold font-display">' + title + '</div><div class="text-[10px] text-gray-500 mt-1">Muayenehane</div>')
                 .openPopup();
@@ -1216,7 +1216,7 @@
             btnMap.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 text-[#4B5563] hover:text-[#111827] font-display uppercase tracking-wider";
             btnStreet.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 bg-white text-[#C96A2B] shadow-sm font-display uppercase tracking-wider";
         }
-    }
+    };
 
     window.switchProfileTab = function(tabId) {
         // Hide all tab contents
@@ -1247,7 +1247,7 @@
                 detailMap.invalidateSize();
             }, 100);
         }
-    }
+    };
 
     // reCAPTCHA v3 — misafir randevu formu
     (function () {
