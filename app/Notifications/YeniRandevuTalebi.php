@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Randevu;
+use App\Notifications\Channels\ExpoPushChannel;
 use App\Notifications\Channels\SmsChannel;
 use App\Support\BildirimSablonu;
 use Illuminate\Bus\Queueable;
@@ -23,7 +24,7 @@ class YeniRandevuTalebi extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        $channels = [];
+        $channels = ['database', ExpoPushChannel::class];
         $ayarlar = $this->randevu->doktor->randevuAyari;
 
         if ($ayarlar) {
@@ -38,6 +39,42 @@ class YeniRandevuTalebi extends Notification implements ShouldQueue
         }
 
         return $channels;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        $vars = BildirimSablonu::varsFromRandevu($this->randevu);
+
+        return [
+            'type' => 'yeni_randevu',
+            'randevu_id' => $this->randevu->id,
+            'title' => 'Yeni randevu talebi',
+            'body' => ($vars['hasta'] ?? 'Hasta').' · '.($vars['tarih'] ?? '').' '.($vars['saat'] ?? ''),
+            'hasta' => $vars['hasta'] ?? null,
+            'tarih' => $vars['tarih'] ?? null,
+            'saat' => $vars['saat'] ?? null,
+        ];
+    }
+
+    /**
+     * @return array{title: string, body: string, data: array<string, mixed>}
+     */
+    public function toExpoPush(object $notifiable): array
+    {
+        $arr = $this->toArray($notifiable);
+
+        return [
+            'title' => (string) $arr['title'],
+            'body' => (string) $arr['body'],
+            'data' => [
+                'type' => 'yeni_randevu',
+                'randevu_id' => (string) $this->randevu->id,
+                'deep_link' => 'randevuajandam-doktor://appointment/'.$this->randevu->id,
+            ],
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -6,6 +6,7 @@ use App\Models\Il;
 use App\Models\Ilce;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
 class IlIlceSeeder extends Seeder
 {
@@ -20,10 +21,10 @@ class IlIlceSeeder extends Seeder
         }
 
         // Clean tables to prevent duplicates
-        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Schema::disableForeignKeyConstraints();
         Ilce::truncate();
         Il::truncate();
-        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        Schema::enableForeignKeyConstraints();
 
         $json = File::get($jsonPath);
         $cities = json_decode($json, true);

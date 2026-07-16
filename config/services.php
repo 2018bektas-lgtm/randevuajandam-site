@@ -52,6 +52,13 @@ return [
         'partner_id' => env('HOSTINGER_PARTNER_ID', ''),
         'base_url' => env('HOSTINGER_BASE_URL', 'https://api.hostinger.com/v1'),
         'allow_mock' => env('HOSTINGER_ALLOW_MOCK', false),
+        // Optional DNS target hints shown in mobile/web setup wizard
+        'dns_a_record' => env('DNS_A_RECORD', ''),
+        'dns_cname_target' => env('DNS_CNAME_TARGET', 'proxy.randevuajandam.com'),
+    ],
+
+    'expo_push' => [
+        'enabled' => env('EXPO_PUSH_ENABLED', true),
     ],
 
 ];

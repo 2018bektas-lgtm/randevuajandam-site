@@ -17,6 +17,7 @@ use App\Models\KlinikDavetiye;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 class DoktorSeeder extends Seeder
 {
@@ -26,7 +27,7 @@ class DoktorSeeder extends Seeder
     public function run(): void
     {
         // Temizleme işlemleri (Pivot tablo ve ana tablo)
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Schema::disableForeignKeyConstraints();
         DB::table('doktor_brans')->truncate();
         DB::table('bloglar')->truncate();
         DB::table('hizmetler')->truncate();
@@ -38,7 +39,7 @@ class DoktorSeeder extends Seeder
         DB::table('klinikler')->truncate();
         DB::table('klinik_davetiyeleri')->truncate();
         Doktor::truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        Schema::enableForeignKeyConstraints();
 
         // Paketleri çekelim
         $bireyselBaslangic = Paket::where('tur', 'bireysel')->where('ad', 'like', '%Başlangıç%')->first();

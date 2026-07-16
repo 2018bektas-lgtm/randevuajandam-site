@@ -39,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'klinik.yetki' => KlinikYetkiMiddleware::class,
             'klinik.paket' => KlinikPaketOzellikMiddleware::class,
             'hasta.mobile' => \App\Http\Middleware\HastaMobileToken::class,
+            'doktor.mobile' => \App\Http\Middleware\DoktorMobileToken::class,
             'recaptcha' => \App\Http\Middleware\VerifyRecaptcha::class,
         ]);
 
