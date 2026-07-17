@@ -38,10 +38,26 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Web'den doğrudan servis edilen dosyalar.
+         * Hostinger vb. paylaşımlı hostingde storage:link / symlink çalışmayabilir;
+         * bu yüzden root = public_path() → asset('uploads/profil/x.jpg') 404 vermez.
+         * Eski dosyalar storage/app/public altında kaldıysa: php artisan uploads:publish
+         */
         'public' => [
             'driver' => 'local',
+            'root' => public_path(),
+            'url' => rtrim((string) env('APP_URL', ''), '/'),
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        /** Eski Laravel konumu (yedek / migrasyon kaynağı) */
+        'public_storage' => [
+            'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => rtrim((string) env('APP_URL', ''), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -74,12 +90,8 @@ return [
     */
 
     'links' => [
-        // Laravel varsayılan: /storage/... → storage/app/public
+        // Opsiyonel: /storage/... URL'leri için (uploads artık public/ altında)
         public_path('storage') => storage_path('app/public'),
-        // Eski URL'ler: /uploads/profil/... (asset('uploads/...'))
-        // store('uploads/profil','public') dosyayı storage/app/public/uploads altına yazar;
-        // tarayıcı /uploads/... ister → bu link 404'ü çözer.
-        public_path('uploads') => storage_path('app/public/uploads'),
     ],
 
 ];
