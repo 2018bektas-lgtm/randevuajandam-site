@@ -71,7 +71,10 @@ class YeniRandevuTalebi extends Notification implements ShouldQueue
             'body' => (string) $arr['body'],
             'data' => [
                 'type' => 'yeni_randevu',
+                'screen' => 'calendar',
                 'randevu_id' => (string) $this->randevu->id,
+                'appointment_id' => (string) $this->randevu->id,
+                'channelId' => 'randevu',
                 'deep_link' => 'randevuajandam-doktor://appointment/'.$this->randevu->id,
             ],
         ];

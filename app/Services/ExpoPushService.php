@@ -58,6 +58,9 @@ class ExpoPushService
                 'body' => $body,
                 'data' => $data,
                 'priority' => 'high',
+                // Android heads-up when app backgrounded
+                'channelId' => $data['channelId'] ?? 'randevu',
+                'ttl' => 3600,
             ];
         }
 
