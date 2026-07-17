@@ -51,16 +51,21 @@ class ExpoPushService
     {
         $messages = [];
         foreach ($tokens as $token) {
+            // Expo Push: title+body = "notification" mesajı (kilit ekranı / tray).
+            // Sadece data gönderilirse Android'de sessiz kalabilir — title/body zorunlu.
             $messages[] = [
                 'to' => $token,
                 'sound' => 'default',
                 'title' => $title,
-                'body' => $body,
+                'body' => $body !== '' ? $body : $title,
                 'data' => $data,
+                // high = FCM priority high → Doze / kilit ekranı için gerekli
                 'priority' => 'high',
-                // Android heads-up when app backgrounded
-                'channelId' => $data['channelId'] ?? 'randevu',
+                // Mobilde setNotificationChannelAsync('randevu') ile eşleşmeli
+                'channelId' => (string) ($data['channelId'] ?? 'randevu'),
                 'ttl' => 3600,
+                // iOS için; Android'de zararsız
+                'mutableContent' => true,
             ];
         }
 

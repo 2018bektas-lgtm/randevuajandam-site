@@ -98,7 +98,11 @@ class RandevuIptalEdildi extends Notification implements ShouldQueue
             'body' => (string) $arr['body'],
             'data' => [
                 'type' => 'randevu_iptal',
+                'screen' => 'calendar',
                 'randevu_id' => (string) $this->randevu->id,
+                'appointment_id' => (string) $this->randevu->id,
+                // Expo Android channel (mobil: setNotificationChannelAsync "randevu")
+                'channelId' => 'randevu',
                 'deep_link' => 'randevuajandam-doktor://appointment/'.$this->randevu->id,
             ],
         ];

@@ -1452,6 +1452,174 @@ class MobileDoctorPortalController extends Controller
         return response()->json(['success' => true, 'data' => $balances]);
     }
 
+    /**
+     * Full patient ledger for this doctor.
+     */
+    public function patientAccount(Request $request, int $hastaId): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $hasta = $this->resolveFinanceHasta($doktor, $hastaId);
+
+        $odemeler = $doktor->odemeler()
+            ->where('hasta_id', $hasta->id)
+            ->with(['hizmet:id,ad', 'finansKategori:id,ad', 'kalemler'])
+            ->orderByDesc('odeme_tarihi')
+            ->orderByDesc('id')
+            ->get();
+
+        $aktif = $odemeler->where('durum', '!=', 'iptal');
+        $toplamBorc = (float) $aktif->sum('tutar');
+        $toplamOdenen = (float) $aktif->sum('odenen_tutar');
+
+        $faturalar = $odemeler->map(function ($o) {
+            $payload = $this->paymentPayload($o);
+            $payload['kalan'] = max(0, (float) $o->tutar - (float) $o->odenen_tutar);
+            $payload['hasta_id'] = $o->hasta_id;
+
+            return $payload;
+        })->values();
+
+        $acik = $faturalar->filter(fn ($f) => in_array($f['durum'], ['beklemede', 'kismi_odeme'], true))->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'hasta' => [
+                    'id' => $hasta->id,
+                    'ad' => $hasta->ad,
+                    'soyad' => $hasta->soyad,
+                    'ad_soyad' => trim($hasta->ad.' '.$hasta->soyad),
+                    'telefon' => $hasta->telefon,
+                    'e_posta' => $hasta->e_posta,
+                ],
+                'ozet' => [
+                    'toplam_borc' => $toplamBorc,
+                    'toplam_odenen' => $toplamOdenen,
+                    'kalan_bakiye' => $toplamBorc - $toplamOdenen,
+                    'fatura_sayisi' => $odemeler->count(),
+                    'acik_fatura_sayisi' => $acik->count(),
+                ],
+                'faturalar' => $faturalar,
+                'acik_faturalar' => $acik,
+            ],
+        ]);
+    }
+
+    public function patientCollect(Request $request, int $hastaId): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $hasta = $this->resolveFinanceHasta($doktor, $hastaId);
+
+        $validated = $request->validate([
+            'odeme_id' => ['required', 'integer', 'exists:odemeler,id'],
+            'tutar' => ['required', 'numeric', 'min:0.01'],
+            'tarih' => ['required', 'date'],
+            'odeme_yontemi' => ['required', 'in:nakit,kredi_karti,havale,online'],
+            'not' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $odeme = $doktor->odemeler()
+            ->where('hasta_id', $hasta->id)
+            ->where('id', $validated['odeme_id'])
+            ->firstOrFail();
+
+        if (in_array($odeme->durum, ['iptal', 'odendi'], true)) {
+            return response()->json(['success' => false, 'message' => 'Bu fatura tahsilata kapalı.'], 422);
+        }
+
+        $kalan = max(0, (float) $odeme->tutar - (float) $odeme->odenen_tutar);
+        if ((float) $validated['tutar'] > $kalan + 0.001) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tahsilat kalan bakiyeden büyük olamaz ('.number_format($kalan, 2, ',', '.').' ₺).',
+            ], 422);
+        }
+
+        $odeme->kalemler()->create([
+            'tutar' => $validated['tutar'],
+            'tarih' => $validated['tarih'],
+            'odeme_yontemi' => $validated['odeme_yontemi'],
+            'not' => $validated['not'] ?? 'Hasta hesabından tahsilat',
+        ]);
+        if (method_exists($odeme, 'odenenTutariGuncelle')) {
+            $odeme->odenenTutariGuncelle();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tahsilat kaydedildi.',
+            'data' => $this->paymentPayload($odeme->fresh(['hasta', 'hizmet', 'finansKategori', 'kalemler'])),
+        ], 201);
+    }
+
+    public function patientAddDebt(Request $request, int $hastaId): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $hasta = $this->resolveFinanceHasta($doktor, $hastaId);
+
+        $validated = $request->validate([
+            'tutar' => ['required', 'numeric', 'min:0.01'],
+            'odeme_tarihi' => ['required', 'date'],
+            'hizmet_id' => ['nullable', 'integer', 'exists:hizmetler,id'],
+            'finans_kategori_id' => ['nullable', 'integer', 'exists:finans_kategoriler,id'],
+            'aciklama' => ['nullable', 'string', 'max:1000'],
+            'ilk_odeme_tutar' => ['nullable', 'numeric', 'min:0'],
+            'ilk_odeme_yontemi' => ['nullable', 'in:nakit,kredi_karti,havale,online'],
+        ]);
+
+        $ilk = (float) ($validated['ilk_odeme_tutar'] ?? 0);
+        $durum = 'beklemede';
+        if ($ilk >= (float) $validated['tutar']) {
+            $durum = 'odendi';
+        } elseif ($ilk > 0) {
+            $durum = 'kismi_odeme';
+        }
+
+        $odeme = $doktor->odemeler()->create([
+            'hasta_id' => $hasta->id,
+            'hizmet_id' => $validated['hizmet_id'] ?? null,
+            'finans_kategori_id' => $validated['finans_kategori_id'] ?? null,
+            'tutar' => $validated['tutar'],
+            'odenen_tutar' => $ilk,
+            'odeme_yontemi' => $validated['ilk_odeme_yontemi'] ?? 'nakit',
+            'durum' => $durum,
+            'aciklama' => $validated['aciklama'] ?? null,
+            'odeme_tarihi' => $validated['odeme_tarihi'],
+        ]);
+
+        if ($ilk > 0) {
+            $odeme->kalemler()->create([
+                'tutar' => $ilk,
+                'tarih' => $validated['odeme_tarihi'],
+                'odeme_yontemi' => $validated['ilk_odeme_yontemi'] ?? 'nakit',
+                'not' => 'İlk ödeme',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Borç kaydı oluşturuldu.',
+            'data' => $this->paymentPayload($odeme->load(['hasta', 'hizmet', 'kalemler'])),
+        ], 201);
+    }
+
+    private function resolveFinanceHasta($doktor, int $hastaId): \App\Models\Hasta
+    {
+        $hasta = \App\Models\Hasta::query()
+            ->whereKey($hastaId)
+            ->where(function ($q) use ($doktor) {
+                $q->whereHas('randevular', fn ($r) => $r->where('doktor_id', $doktor->id))
+                    ->orWhereHas('odemeler', fn ($o) => $o->where('doktor_id', $doktor->id));
+            })
+            ->first();
+
+        if (! $hasta) {
+            abort(404, 'Hasta hesabı bulunamadı.');
+        }
+
+        return $hasta;
+    }
+
     // ── Profile / password / about ─────────────────────────────
 
     public function updatePassword(Request $request): JsonResponse

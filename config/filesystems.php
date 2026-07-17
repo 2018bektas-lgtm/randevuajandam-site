@@ -74,7 +74,12 @@ return [
     */
 
     'links' => [
+        // Laravel varsayılan: /storage/... → storage/app/public
         public_path('storage') => storage_path('app/public'),
+        // Eski URL'ler: /uploads/profil/... (asset('uploads/...'))
+        // store('uploads/profil','public') dosyayı storage/app/public/uploads altına yazar;
+        // tarayıcı /uploads/... ister → bu link 404'ü çözer.
+        public_path('uploads') => storage_path('app/public/uploads'),
     ],
 
 ];

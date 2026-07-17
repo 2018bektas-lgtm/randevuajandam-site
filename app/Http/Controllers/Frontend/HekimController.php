@@ -127,6 +127,19 @@ class HekimController extends Controller
      */
     public function doktorlarListesi(Request $request, ?string $il_slug = null, ?string $ilce_slug = null, ?string $brans_slug = null)
     {
+        // Header spotlight: ?brans=diyetisyen (slug) → uzmanlik filtresi
+        if ($request->filled('brans') && ! $request->filled('uzmanlik')) {
+            $bransKey = (string) $request->input('brans');
+            $bransFromQuery = Brans::query()
+                ->where(function ($q) use ($bransKey) {
+                    $q->where('slug', $bransKey)->orWhere('ad', $bransKey);
+                })
+                ->first();
+            if ($bransFromQuery) {
+                $request->merge(['uzmanlik' => $bransFromQuery->ad]);
+            }
+        }
+
         if ($il_slug) {
             $ilModel = Il::where('slug', $il_slug)->firstOrFail();
             $request->merge(['il' => $ilModel->id]);
@@ -316,6 +329,97 @@ class HekimController extends Controller
         }
 
         return view('frontend.hekimler.index', compact('doktorlar', 'uzmanliklar', 'unvanlar', 'iller', 'klinikler', 'toplamDoktorSayisi', 'toplamKlinikSayisi'));
+    }
+
+    /**
+     * Header spotlight JSON arama: /doktorlar/arama?q=
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function spotlightArama(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $results = [];
+
+        $branslar = Brans::query()
+            ->where(function ($query) use ($q) {
+                $query->where('ad', 'like', "%{$q}%")
+                    ->orWhere('slug', 'like', "%{$q}%");
+            })
+            ->orderBy('ad')
+            ->limit(5)
+            ->get();
+
+        foreach ($branslar as $b) {
+            $results[] = [
+                'name' => $b->ad,
+                'subtitle' => 'Branş',
+                'url' => route('frontend.hekimler', ['brans' => $b->slug]),
+                'icon' => '🏥',
+            ];
+        }
+
+        $doktorlar = Doktor::platformdaListelenen()
+            ->where('tur', 'bireysel')
+            ->with(['branslar', 'il', 'ilce'])
+            ->where(function ($query) use ($q) {
+                $query->where('ad_soyad', 'like', "%{$q}%")
+                    ->orWhere('uzmanlik_alani', 'like', "%{$q}%")
+                    ->orWhereHas('branslar', function ($sq) use ($q) {
+                        $sq->where('ad', 'like', "%{$q}%");
+                    });
+            })
+            ->orderBy('ad_soyad')
+            ->limit(8)
+            ->get();
+
+        foreach ($doktorlar as $d) {
+            $bransAd = $d->branslar->first()?->ad ?? ($d->uzmanlik_alani ?: 'Hekim');
+            $results[] = [
+                'name' => trim(($d->unvan ? $d->unvan.' ' : '').$d->ad_soyad),
+                'subtitle' => $bransAd.($d->il?->ad ? ' · '.$d->il->ad : ''),
+                'url' => $d->profil_url ?? route('frontend.hekimler', ['arama' => $d->ad_soyad]),
+                'icon' => '👨‍⚕️',
+            ];
+        }
+
+        $klinikler = \App\Models\Klinik::query()
+            ->where('aktif_mi', true)
+            ->with(['il', 'ilce'])
+            ->where(function ($query) use ($q) {
+                $query->where('ad', 'like', "%{$q}%")
+                    ->orWhere('aciklama', 'like', "%{$q}%");
+            })
+            ->orderBy('ad')
+            ->limit(5)
+            ->get();
+
+        foreach ($klinikler as $k) {
+            $results[] = [
+                'name' => $k->ad,
+                'subtitle' => 'Klinik'.($k->il?->ad ? ' · '.$k->il->ad : ''),
+                'url' => route('frontend.klinik.profil', [
+                    'il_slug' => $k->il->slug ?? 'il',
+                    'ilce_slug' => $k->ilce->slug ?? 'ilce',
+                    'klinik_slug' => $k->slug,
+                ]),
+                'icon' => '🏥',
+            ];
+        }
+
+        // Her zaman "tüm sonuçlarda ara" satırı
+        $results[] = [
+            'name' => '“'.$q.'” için tüm sonuçlar',
+            'subtitle' => 'Doktor listesinde göster',
+            'url' => route('frontend.hekimler', ['arama' => $q]),
+            'icon' => '🔍',
+        ];
+
+        return response()->json($results);
     }
 
     /**

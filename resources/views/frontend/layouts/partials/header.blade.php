@@ -260,16 +260,16 @@
             <div id="spotlightQuickLinks" class="space-y-2">
                 <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-display">Popüler Branşlar</h4>
                 <div class="grid grid-cols-2 gap-2">
-                    <a href="/hekimler?brans=dis-hekimi" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all text-xs font-semibold text-slate-700 font-display">
+                    <a href="{{ route('frontend.hekimler', ['brans' => 'dis-hekimi']) }}" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all text-xs font-semibold text-slate-700 font-display">
                         🦷 Diş Hekimi
                     </a>
-                    <a href="/hekimler?brans=diyetisyen" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all text-xs font-semibold text-slate-700 font-display">
+                    <a href="{{ route('frontend.hekimler', ['brans' => 'diyetisyen']) }}" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all text-xs font-semibold text-slate-700 font-display">
                         🍎 Diyetisyen
                     </a>
-                    <a href="/hekimler?brans=psikolog" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all text-xs font-semibold text-slate-700 font-display">
+                    <a href="{{ route('frontend.hekimler', ['brans' => 'psikolog']) }}" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all text-xs font-semibold text-slate-700 font-display">
                         🧠 Psikolog
                     </a>
-                    <a href="/hekimler?brans=kadin-dogum" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all text-xs font-semibold text-slate-700 font-display">
+                    <a href="{{ route('frontend.hekimler', ['brans' => 'kadin-dogum']) }}" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all text-xs font-semibold text-slate-700 font-display">
                         👶 Kadın Doğum
                     </a>
                 </div>
@@ -372,9 +372,12 @@
                     return;
                 }
 
-                // Fetch dynamic search results via AJAX
-                fetch(`/hekimler/arama?q=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
+                // Canlı arama (JSON)
+                fetch(`{{ url('/doktorlar/arama') }}?q=${encodeURIComponent(query)}`)
+                    .then(res => {
+                        if (!res.ok) throw new Error('arama failed');
+                        return res.json();
+                    })
                     .then(data => {
                         list.innerHTML = '';
                         if (data && data.length > 0) {
@@ -385,11 +388,11 @@
                                 el.innerHTML = `
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center text-xs font-bold text-[#C96A2B]">
-                                            \${item.icon || '👨‍⚕️'}
+                                            ${item.icon || '👨‍⚕️'}
                                         </div>
                                         <div>
-                                            <span class="block text-xs font-bold text-slate-800 font-display">\${item.name}</span>
-                                            <span class="block text-[10px] text-slate-400">\${item.subtitle}</span>
+                                            <span class="block text-xs font-bold text-slate-800 font-display">${item.name}</span>
+                                            <span class="block text-[10px] text-slate-400">${item.subtitle || ''}</span>
                                         </div>
                                     </div>
                                     <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-[#C96A2B] transition-colors" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -399,9 +402,12 @@
                                 list.appendChild(el);
                             });
                         } else {
+                            // Sonuç yoksa liste sayfasına git linki
+                            const listUrl = `{{ route('frontend.hekimler') }}?arama=${encodeURIComponent(query)}`;
                             list.innerHTML = `
-                                <div class="text-center py-4 text-xs text-slate-400">
-                                    Aramanızla eşleşen hekim, klinik veya branş bulunamadı.
+                                <div class="text-center py-4 space-y-2">
+                                    <p class="text-xs text-slate-400">Canlı sonuç bulunamadı.</p>
+                                    <a href="${listUrl}" class="inline-block text-xs font-bold text-[#C96A2B] hover:underline">Tüm sonuçlarda ara →</a>
                                 </div>
                             `;
                         }
@@ -411,52 +417,34 @@
                         resultsContainer.classList.remove('hidden');
                     })
                     .catch(() => {
-                        // Fallback static match logic if route doesn't exist yet or fails
-                        const localDatabase = [
-                            { name: "Doç. Dr. Canan Dağdeviren", subtitle: "Klinik Sahibi / Kardiyoloji", url: "/hekimler", icon: "👩‍⚕️" },
-                            { name: "Uzm. Dr. Özgür Demir", subtitle: "Klinik Üyesi / Dahiliye", url: "/hekimler", icon: "👨‍⚕️" },
-                            { name: "Prof. Dr. Ahmet Yılmaz", subtitle: "Davet Bekliyor / Nöroloji", url: "/hekimler", icon: "👨‍⚕️" },
-                            { name: "Balkan Klinik", subtitle: "Klinik / İzmir", url: "/hekimler", icon: "🏥" }
-                        ];
-
-                        const filtered = localDatabase.filter(item =>
-                            item.name.toLowerCase().includes(query) ||
-                            item.subtitle.toLowerCase().includes(query)
-                        );
-
-                        list.innerHTML = '';
-                        if (filtered.length > 0) {
-                            filtered.forEach(item => {
-                                const el = document.createElement('a');
-                                el.href = item.url;
-                                el.className = "flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all group";
-                                el.innerHTML = `
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center text-xs font-bold text-[#C96A2B]">
-                                            \${item.icon}
-                                        </div>
-                                        <div>
-                                            <span class="block text-xs font-bold text-slate-800 font-display">\${item.name}</span>
-                                            <span class="block text-[10px] text-slate-400">\${item.subtitle}</span>
-                                        </div>
-                                    </div>
-                                    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-[#C96A2B] transition-colors" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
-                                    </svg>
-                                `;
-                                list.appendChild(el);
-                            });
-                        } else {
-                            list.innerHTML = `
-                                <div class="text-center py-4 text-xs text-slate-400">
-                                    Aramanızla eşleşen sonuç bulunamadı.
+                        // API yoksa doktor listesine yönlendiren tek satır
+                        const listUrl = `{{ route('frontend.hekimler') }}?arama=${encodeURIComponent(query)}`;
+                        list.innerHTML = `
+                            <a href="${listUrl}" class="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-[#C96A2B] hover:bg-[#FFF7ED] transition-all group">
+                                <div>
+                                    <span class="block text-xs font-bold text-slate-800 font-display">“${query}” için ara</span>
+                                    <span class="block text-[10px] text-slate-400">Doktor listesinde göster</span>
                                 </div>
-                            `;
-                        }
+                                <svg class="w-3.5 h-3.5 text-[#C96A2B]" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
+                                </svg>
+                            </a>
+                        `;
                         quickLinks.classList.add('hidden');
                         defaultMsg.classList.add('hidden');
                         resultsContainer.classList.remove('hidden');
                     });
+            });
+
+            // Enter → doktor listesi arama
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const q = input.value.trim();
+                    if (q.length > 0) {
+                        window.location.href = `{{ route('frontend.hekimler') }}?arama=${encodeURIComponent(q)}`;
+                    }
+                }
             });
         }
     });

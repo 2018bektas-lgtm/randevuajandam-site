@@ -16,7 +16,7 @@
             <a href="{{ route('hekim.finans.giderler') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.giderler') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">
                 💸 Gider Kayıtları
             </a>
-            <a href="{{ route('hekim.finans.hasta-bakiyeleri') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.hasta-bakiyeleri') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">
+            <a href="{{ route('hekim.finans.hasta-bakiyeleri') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.hasta-bakiyeleri') || request()->routeIs('hekim.finans.hasta-hesap') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">
                 👥 Hasta Bakiyeleri
             </a>
         </div>
@@ -77,13 +77,12 @@
                                 @endif
                             </td>
                             <td class="p-4 text-center">
-                                <div class="flex items-center justify-center gap-3">
-                                    <a href="{{ route('hekim.finans.gelirler', ['hasta_id' => $hasta->id]) }}" class="inline-flex items-center gap-1 text-xs font-bold text-[#C96A2B] hover:underline" title="Detaylı İşlemler">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        </svg>
-                                        Gelir Geçmişi
+                                <div class="flex items-center justify-center gap-3 flex-wrap">
+                                    <a href="{{ route('hekim.finans.hasta-hesap', $hasta->id) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#C96A2B] text-white text-xs font-bold hover:bg-[#b05c24]" title="Hasta hesabı">
+                                        Hesap sayfası
+                                    </a>
+                                    <a href="{{ route('hekim.finans.gelirler', ['hasta_id' => $hasta->id]) }}" class="inline-flex items-center gap-1 text-xs font-bold text-[#C96A2B] hover:underline" title="Gelir listesi">
+                                        Gelirler
                                     </a>
                                 </div>
                             </td>

@@ -9,6 +9,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class HekimFinansController extends Controller
 {
@@ -482,6 +483,191 @@ class HekimFinansController extends Controller
             });
 
         return view('hekim.finans.hasta_bakiyeleri', compact('doktor', 'hastalar'));
+    }
+
+    /**
+     * Patient ledger for this doctor: balances + invoices + payment lines.
+     */
+    public function hastaHesap(int $hastaId)
+    {
+        /** @var Doktor $doktor */
+        $doktor = Auth::guard('doktor')->user();
+        $hasta = $this->resolveHastaForDoktor($doktor, $hastaId);
+
+        $odemeler = $doktor->odemeler()
+            ->where('hasta_id', $hasta->id)
+            ->with(['hizmet', 'finansKategori', 'kalemler', 'randevu'])
+            ->orderByDesc('odeme_tarihi')
+            ->orderByDesc('id')
+            ->get();
+
+        $aktif = $odemeler->where('durum', '!=', 'iptal');
+        $toplamBorc = (float) $aktif->sum('tutar');
+        $toplamOdenen = (float) $aktif->sum('odenen_tutar');
+        $kalanBakiye = $toplamBorc - $toplamOdenen;
+
+        $acikFaturalar = $odemeler
+            ->whereIn('durum', ['beklemede', 'kismi_odeme'])
+            ->values();
+
+        $hizmetler = $doktor->hizmetler()->orderBy('ad')->get();
+        $gelirKategorileri = $doktor->finansKategoriler()->gelir()->aktif()->orderBy('ad')->get();
+
+        // Timeline: fatura + kalem hareketleri
+        $hareketler = collect();
+        foreach ($odemeler as $odeme) {
+            $hareketler->push([
+                'tip' => 'borc',
+                'tarih' => $odeme->odeme_tarihi?->format('Y-m-d') ?? $odeme->created_at?->format('Y-m-d'),
+                'baslik' => $odeme->hizmet?->ad
+                    ?? ($odeme->aciklama ?: 'Borç / hizmet kaydı'),
+                'aciklama' => $odeme->aciklama,
+                'tutar' => (float) $odeme->tutar,
+                'odenen' => (float) $odeme->odenen_tutar,
+                'kalan' => max(0, (float) $odeme->tutar - (float) $odeme->odenen_tutar),
+                'durum' => $odeme->durum,
+                'odeme_id' => $odeme->id,
+                'kalemler' => $odeme->kalemler,
+            ]);
+        }
+        $hareketler = $hareketler->sortByDesc('tarih')->values();
+
+        return view('hekim.finans.hasta_hesap', compact(
+            'doktor',
+            'hasta',
+            'odemeler',
+            'toplamBorc',
+            'toplamOdenen',
+            'kalanBakiye',
+            'acikFaturalar',
+            'hizmetler',
+            'gelirKategorileri',
+            'hareketler',
+        ));
+    }
+
+    /**
+     * Collect partial/full payment against a patient's open invoice.
+     */
+    public function hastaTahsilat(Request $request, int $hastaId)
+    {
+        /** @var Doktor $doktor */
+        $doktor = Auth::guard('doktor')->user();
+        $hasta = $this->resolveHastaForDoktor($doktor, $hastaId);
+
+        $validated = $request->validate([
+            'odeme_id' => 'required|integer|exists:odemeler,id',
+            'tutar' => 'required|numeric|min:0.01',
+            'tarih' => 'required|date',
+            'odeme_yontemi' => 'required|in:nakit,kredi_karti,havale,online',
+            'not' => 'nullable|string|max:500',
+        ], [
+            'odeme_id.required' => 'Hangi açık faturaya tahsilat yapılacağını seçin.',
+            'tutar.required' => 'Tahsilat tutarı zorunludur.',
+        ]);
+
+        $odeme = $doktor->odemeler()
+            ->where('hasta_id', $hasta->id)
+            ->where('id', $validated['odeme_id'])
+            ->firstOrFail();
+
+        if (in_array($odeme->durum, ['iptal', 'odendi'], true)) {
+            throw ValidationException::withMessages([
+                'odeme_id' => 'Bu fatura tahsilata kapalı (ödendi veya iptal).',
+            ]);
+        }
+
+        $kalan = max(0, (float) $odeme->tutar - (float) $odeme->odenen_tutar);
+        if ((float) $validated['tutar'] > $kalan + 0.001) {
+            throw ValidationException::withMessages([
+                'tutar' => 'Tahsilat tutarı kalan bakiyeden ('.number_format($kalan, 2, ',', '.').' ₺) büyük olamaz.',
+            ]);
+        }
+
+        $odeme->kalemler()->create([
+            'tutar' => $validated['tutar'],
+            'tarih' => $validated['tarih'],
+            'odeme_yontemi' => $validated['odeme_yontemi'],
+            'not' => $validated['not'] ?? 'Hasta hesabından tahsilat',
+        ]);
+        $odeme->odenenTutariGuncelle();
+
+        return redirect()
+            ->route('hekim.finans.hasta-hesap', $hasta->id)
+            ->with('basarili', 'Tahsilat kaydedildi. Kalan bakiye güncellendi.');
+    }
+
+    /**
+     * Add a new debt (invoice) on the patient account.
+     */
+    public function hastaBorcEkle(Request $request, int $hastaId)
+    {
+        /** @var Doktor $doktor */
+        $doktor = Auth::guard('doktor')->user();
+        $hasta = $this->resolveHastaForDoktor($doktor, $hastaId);
+
+        $validated = $request->validate([
+            'tutar' => 'required|numeric|min:0.01',
+            'odeme_tarihi' => 'required|date',
+            'hizmet_id' => 'nullable|exists:hizmetler,id',
+            'finans_kategori_id' => 'nullable|exists:finans_kategoriler,id',
+            'aciklama' => 'nullable|string|max:1000',
+            'ilk_odeme_tutar' => 'nullable|numeric|min:0',
+            'ilk_odeme_yontemi' => 'nullable|in:nakit,kredi_karti,havale,online',
+        ]);
+
+        $ilk = (float) ($validated['ilk_odeme_tutar'] ?? 0);
+        $durum = 'beklemede';
+        if ($ilk >= (float) $validated['tutar']) {
+            $durum = 'odendi';
+        } elseif ($ilk > 0) {
+            $durum = 'kismi_odeme';
+        }
+
+        $odeme = $doktor->odemeler()->create([
+            'hasta_id' => $hasta->id,
+            'hizmet_id' => $validated['hizmet_id'] ?? null,
+            'finans_kategori_id' => $validated['finans_kategori_id'] ?? null,
+            'tutar' => $validated['tutar'],
+            'odenen_tutar' => $ilk,
+            'odeme_yontemi' => $validated['ilk_odeme_yontemi'] ?? 'nakit',
+            'durum' => $durum,
+            'aciklama' => $validated['aciklama'] ?? null,
+            'odeme_tarihi' => $validated['odeme_tarihi'],
+        ]);
+
+        if ($ilk > 0) {
+            $odeme->kalemler()->create([
+                'tutar' => $ilk,
+                'tarih' => $validated['odeme_tarihi'],
+                'odeme_yontemi' => $validated['ilk_odeme_yontemi'] ?? 'nakit',
+                'not' => 'İlk ödeme',
+            ]);
+        }
+
+        return redirect()
+            ->route('hekim.finans.hasta-hesap', $hasta->id)
+            ->with('basarili', 'Borç kaydı oluşturuldu.');
+    }
+
+    /**
+     * Ensure patient is linked to this doctor via appointment or payment.
+     */
+    protected function resolveHastaForDoktor(Doktor $doktor, int $hastaId): Hasta
+    {
+        $hasta = Hasta::query()
+            ->whereKey($hastaId)
+            ->where(function ($q) use ($doktor) {
+                $q->whereHas('randevular', fn ($r) => $r->where('doktor_id', $doktor->id))
+                    ->orWhereHas('odemeler', fn ($o) => $o->where('doktor_id', $doktor->id));
+            })
+            ->first();
+
+        if (! $hasta) {
+            abort(404, 'Bu hastaya ait hesap bu hekim için bulunamadı.');
+        }
+
+        return $hasta;
     }
 
     /**

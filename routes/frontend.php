@@ -56,6 +56,12 @@ Route::post('/2fa/iptal', [\App\Http\Controllers\TwoFactorController::class, 'ch
 
 Route::get('/paketler', [PaketController::class, 'index'])->name('frontend.paketler');
 Route::get('/doktorlar', [HekimController::class, 'doktorlarListesi'])->name('frontend.hekimler');
+Route::get('/doktorlar/arama', [HekimController::class, 'spotlightArama'])->name('frontend.doktorlar.arama');
+// Eski /hekimler URL'leri (query string korunur) → /doktorlar
+Route::get('/hekimler', function (\Illuminate\Http\Request $request) {
+    return redirect()->route('frontend.hekimler', $request->query(), 301);
+});
+Route::get('/hekimler/arama', [HekimController::class, 'spotlightArama']);
 Route::get('/blog', [HekimController::class, 'bloglarListesi'])->name('frontend.blog.index');
 
 // Yasal sayfalar (mobil + mağaza incelemesi)
@@ -297,6 +303,9 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
         Route::post('/kategoriler/{id}/toggle', [HekimFinansKategoriController::class, 'toggleAktif'])->name('kategoriler.toggle');
 
         Route::get('/hasta-bakiyeleri', [HekimFinansController::class, 'hastaBakiyeleri'])->name('hasta-bakiyeleri');
+        Route::get('/hasta/{hastaId}', [HekimFinansController::class, 'hastaHesap'])->name('hasta-hesap')->whereNumber('hastaId');
+        Route::post('/hasta/{hastaId}/tahsilat', [HekimFinansController::class, 'hastaTahsilat'])->name('hasta-tahsilat')->whereNumber('hastaId');
+        Route::post('/hasta/{hastaId}/borc', [HekimFinansController::class, 'hastaBorcEkle'])->name('hasta-borc')->whereNumber('hastaId');
         Route::get('/rapor/pdf', [HekimFinansController::class, 'raporPdf'])->name('rapor-pdf');
     });
 

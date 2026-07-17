@@ -212,6 +212,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/finance/categories/{id}/toggle', [MobileDoctorPortalController::class, 'toggleFinanceCategory'])->whereNumber('id');
             Route::delete('/finance/categories/{id}', [MobileDoctorPortalController::class, 'destroyFinanceCategory'])->whereNumber('id');
             Route::get('/finance/balances', [MobileDoctorPortalController::class, 'patientBalances']);
+            Route::get('/finance/patients/{hastaId}', [MobileDoctorPortalController::class, 'patientAccount'])->whereNumber('hastaId');
+            Route::post('/finance/patients/{hastaId}/collect', [MobileDoctorPortalController::class, 'patientCollect'])->whereNumber('hastaId');
+            Route::post('/finance/patients/{hastaId}/debt', [MobileDoctorPortalController::class, 'patientAddDebt'])->whereNumber('hastaId');
         });
     });
 
