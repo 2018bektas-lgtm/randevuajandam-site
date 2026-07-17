@@ -342,7 +342,7 @@ class HastaController extends Controller
             return redirect()->back()->with('hata', 'Bu randevu için zaten yorum yapmışsınız.');
         }
 
-        Yorum::create([
+        $yorum = Yorum::create([
             'hasta_id' => $hasta->id,
             'doktor_id' => $randevu->doktor_id,
             'randevu_id' => $randevu->id,
@@ -350,6 +350,15 @@ class HastaController extends Controller
             'yorum' => $validated['yorum'],
             'onay_durumu' => 'beklemede',
         ]);
+
+        try {
+            $doktor = $randevu->doktor ?? Doktor::find($randevu->doktor_id);
+            if ($doktor) {
+                $doktor->notify(new \App\Notifications\YeniYorumBildirimi($yorum));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Yorum doktor bildirimi hatası: '.$e->getMessage());
+        }
 
         return redirect()->back()->with('basarili', 'Yorumunuz başarıyla gönderildi. Onaylandıktan sonra yayınlanacaktır.');
     }

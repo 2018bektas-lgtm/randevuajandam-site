@@ -103,6 +103,177 @@ class MobileDoctorController extends Controller
         return $this->authenticatedResponse($doktor, $challenge['device'] ?? null, $request->ip());
     }
 
+    /**
+     * Public: registration form options (unvan, branş, iller).
+     */
+    public function registerMeta(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'unvanlar' => class_exists(\App\Models\Unvan::class)
+                    ? \App\Models\Unvan::query()->orderBy('ad')->get(['id', 'ad'])
+                    : [],
+                'branslar' => \App\Models\Brans::query()->orderBy('ad')->get(['id', 'ad']),
+                'iller' => \App\Models\Il::query()->orderBy('ad')->get(['id', 'ad']),
+            ],
+        ]);
+    }
+
+    public function registerMetaIlceler(Request $request): JsonResponse
+    {
+        $ilId = (int) $request->input('il_id');
+        $ilceler = $ilId > 0
+            ? \App\Models\Ilce::query()->where('il_id', $ilId)->orderBy('ad')->get(['id', 'ad', 'il_id'])
+            : [];
+
+        return response()->json(['success' => true, 'data' => ['ilceler' => $ilceler]]);
+    }
+
+    /**
+     * Public: doctor self-registration (native app form).
+     */
+    public function register(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ad_soyad' => ['required', 'string', 'max:255'],
+            'e_posta' => ['required', 'email', 'max:255', 'unique:doktorlar,e_posta'],
+            'sifre' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+            ],
+            'telefon' => ['required', 'string', 'max:50'],
+            'unvan' => ['required', 'string', 'max:100'],
+            'il_id' => ['required', 'integer', 'exists:iller,id'],
+            'ilce_id' => ['required', 'integer', 'exists:ilceler,id'],
+            'branslar' => ['required', 'array', 'min:1'],
+            'branslar.*' => ['integer', 'exists:branslar,id'],
+            'mezuniyet' => ['nullable', 'array'],
+            'mezuniyet.*' => ['nullable', 'string', 'max:255'],
+            'biyografi' => ['nullable', 'string', 'max:5000'],
+            'device' => ['nullable', 'string', 'max:120'],
+        ], [
+            'e_posta.unique' => 'Bu e-posta adresi zaten kayıtlı.',
+            'sifre.confirmed' => 'Şifre tekrarı uyuşmuyor.',
+            'branslar.required' => 'En az bir branş seçmelisiniz.',
+        ]);
+
+        $bransIsimleri = \App\Models\Brans::whereIn('id', $data['branslar'])->pluck('ad')->toArray();
+        $mezuniyet = array_values(array_filter($data['mezuniyet'] ?? [], fn ($v) => $v !== null && trim((string) $v) !== ''));
+
+        $doktor = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $bransIsimleri, $mezuniyet) {
+            $doktor = Doktor::create([
+                'ad_soyad' => $data['ad_soyad'],
+                'e_posta' => mb_strtolower(trim($data['e_posta'])),
+                'sifre' => Hash::make($data['sifre']),
+                'telefon' => $data['telefon'],
+                'il_id' => $data['il_id'],
+                'ilce_id' => $data['ilce_id'],
+                'unvan' => $data['unvan'],
+                'uzmanlik_alani' => implode(', ', $bransIsimleri),
+                'mezuniyet' => $mezuniyet,
+                'biyografi' => $data['biyografi'] ?? null,
+                'tur' => 'bireysel',
+                'paket_id' => null,
+                'aktif_mi' => true,
+            ]);
+            $doktor->branslar()->attach($data['branslar']);
+
+            return $doktor;
+        });
+
+        return $this->authenticatedResponse($doktor, $data['device'] ?? 'mobile-register', $request->ip());
+    }
+
+    /**
+     * Public: request password reset email (hekim).
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'e_posta' => ['required', 'email'],
+        ]);
+        $email = mb_strtolower(trim($data['e_posta']));
+        $key = 'mobile-doktor-forgot:'.$email.'|'.$request->ip();
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return response()->json(['success' => false, 'message' => 'Çok fazla deneme. Lütfen bekleyin.'], 429);
+        }
+        RateLimiter::hit($key, 600);
+
+        $user = Doktor::where('e_posta', $email)->first();
+        // Always same message (anti-enumeration)
+        $msg = 'Hesabınız varsa şifre sıfırlama bağlantısı e-posta adresinize gönderildi.';
+
+        if ($user) {
+            $token = Str::random(60);
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+                ->where('email', $email)
+                ->where('account_type', 'hekim')
+                ->delete();
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')->insert([
+                'email' => $email,
+                'account_type' => 'hekim',
+                'token' => Hash::make($token),
+                'created_at' => now(),
+            ]);
+            try {
+                $user->notify(new \App\Notifications\SifreSifirlamaLinkBildirimi($token, 'hekim'));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Mobile forgot password mail: '.$e->getMessage());
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => $msg]);
+    }
+
+    /**
+     * Public: reset password with token from email.
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'e_posta' => ['required', 'email'],
+            'token' => ['required', 'string'],
+            'sifre' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'sifre.confirmed' => 'Şifre tekrarı uyuşmuyor.',
+            'sifre.min' => 'Şifre en az 8 karakter olmalıdır.',
+        ]);
+
+        $email = mb_strtolower(trim($data['e_posta']));
+        $record = \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $email)
+            ->where('account_type', 'hekim')
+            ->first();
+
+        if (! $record || ! Hash::check($data['token'], $record->token)) {
+            return response()->json(['success' => false, 'message' => 'Geçersiz veya süresi dolmuş bağlantı.'], 422);
+        }
+        if (now()->subMinutes(60)->gt($record->created_at)) {
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+                ->where('email', $email)
+                ->where('account_type', 'hekim')
+                ->delete();
+
+            return response()->json(['success' => false, 'message' => 'Bağlantının süresi dolmuş. Yeni talep oluşturun.'], 422);
+        }
+
+        $user = Doktor::where('e_posta', $email)->first();
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Kullanıcı bulunamadı.'], 422);
+        }
+
+        $user->update(['sifre' => Hash::make($data['sifre'])]);
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $email)
+            ->where('account_type', 'hekim')
+            ->delete();
+
+        return response()->json(['success' => true, 'message' => 'Şifreniz güncellendi. Giriş yapabilirsiniz.']);
+    }
+
     public function me(Request $request): JsonResponse
     {
         /** @var Doktor $doktor */
@@ -201,6 +372,113 @@ class MobileDoctorController extends Controller
             'success' => true,
             'data' => $this->appointmentPayload($randevu, true),
         ]);
+    }
+
+    /**
+     * Online görüşme oturumu — mobil uygulama içi (WebView / native) için.
+     */
+    public function meetingSession(Request $request, int $id): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $randevu = $doktor->randevular()->with(['hasta', 'hizmet', 'doktor'])->findOrFail($id);
+
+        if (! method_exists($randevu, 'isOnline') || ! $randevu->isOnline()) {
+            return response()->json(['success' => false, 'message' => 'Bu randevu online görüşme değil.'], 422);
+        }
+        if ($randevu->durum !== 'onaylandi') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Görüşme için randevunun onaylı olması gerekir.',
+                'data' => ['can_join' => false, 'durum' => $randevu->durum],
+            ], 422);
+        }
+
+        $meet = app(\App\Services\MeetingRoomService::class);
+        $randevu = $meet->ensureRoom($randevu);
+        $canJoin = $meet->canJoin($randevu);
+        $window = $meet->joinWindow($randevu);
+
+        $hostPeerId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $randevu->meeting_room_id) ?: ('ra'.$randevu->id);
+        $hostPeerId = substr($hostPeerId, 0, 60);
+        $signalUrl = url('/api/mobile/v1/doctor/appointments/'.$randevu->id.'/meeting/signal');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'randevu_id' => $randevu->id,
+                'can_join' => $canJoin,
+                'online_mi' => true,
+                'role' => 'hekim',
+                'display_name' => (string) ($doktor->ad_soyad ?? 'Hekim'),
+                'room' => $randevu->meeting_room_id,
+                'host_peer_id' => $hostPeerId,
+                'ice_servers' => $meet->iceServers(),
+                'peerjs' => config('gorusme.peerjs', [
+                    'host' => '0.peerjs.com',
+                    'port' => 443,
+                    'path' => '/',
+                    'secure' => true,
+                    'key' => 'peerjs',
+                ]),
+                'signal_url' => $signalUrl,
+                'window' => $window ? [
+                    'baslangic' => $window[0]->toIso8601String(),
+                    'bitis' => $window[1]->toIso8601String(),
+                ] : null,
+                'hasta_adi' => trim(($randevu->hasta->ad ?? $randevu->ad).' '.($randevu->hasta->soyad ?? $randevu->soyad)),
+                'tarih' => $randevu->tarih instanceof \DateTimeInterface
+                    ? $randevu->tarih->format('Y-m-d')
+                    : (string) $randevu->tarih,
+                'saat' => substr((string) $randevu->saat, 0, 5),
+            ],
+        ]);
+    }
+
+    /**
+     * WebRTC DIY signal (hekim) — native / in-app room uses this instead of website pages.
+     */
+    public function meetingSignal(Request $request, int $id): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $randevu = $doktor->randevular()->findOrFail($id);
+
+        if (! method_exists($randevu, 'isOnline') || ! $randevu->isOnline()) {
+            return response()->json(['success' => false, 'message' => 'Bu randevu online görüşme değil.'], 422);
+        }
+
+        $meet = app(\App\Services\MeetingRoomService::class);
+        $randevu = $meet->ensureRoom($randevu);
+
+        if (! $meet->canJoin($randevu)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Görüşme penceresi kapalı.',
+                'can_join' => false,
+            ], 403);
+        }
+
+        $roomId = (string) $randevu->meeting_room_id;
+        $role = 'hekim';
+
+        if ($request->isMethod('get')) {
+            return response()->json([
+                'success' => true,
+                'state' => $meet->getSignalState($roomId),
+            ]);
+        }
+
+        $payload = $request->validate([
+            'type' => ['required', 'string', 'in:ping,offer,answer,ice,hangup,reset'],
+            'sdp' => ['nullable', 'string'],
+            'candidate' => ['nullable', 'array'],
+            'name' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $state = $meet->applySignal($roomId, $role, $payload);
+
+        return response()->json(['success' => true, 'state' => $state]);
     }
 
     /**
@@ -548,11 +826,17 @@ class MobileDoctorController extends Controller
                 ->get(['id', 'ad', 'il_id']);
         }
 
+        $unvanlar = [];
+        if (class_exists(\App\Models\Unvan::class)) {
+            $unvanlar = \App\Models\Unvan::query()->orderBy('ad')->get(['id', 'ad']);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
                 'iller' => $iller,
                 'ilceler' => $ilceler,
+                'unvanlar' => $unvanlar,
             ],
         ]);
     }
@@ -757,7 +1041,8 @@ class MobileDoctorController extends Controller
                     'yillik_indirimli_fiyat' => $p->yillik_indirimli_fiyat,
                     'features' => $features,
                     'aktif_paket_mi' => $current && (int) $current->id === (int) $p->id,
-                    'odeme_url' => url('/hekim/paket-ode?paket_id='.$p->id),
+                    'ucretsiz_mi' => (float) ($p->aylik_indirimli_fiyat ?? $p->aylik_fiyat ?? 0) <= 0
+                        && (float) ($p->yillik_indirimli_fiyat ?? $p->yillik_fiyat ?? 0) <= 0,
                 ];
             });
 
@@ -771,8 +1056,227 @@ class MobileDoctorController extends Controller
                 ] : null,
                 'uyelik' => $membership,
                 'items' => $items,
-                'paket_sec_url' => url('/hekim/paket-sec'),
-                'klinik_gecis_url' => url('/hekim/klinik/gecis'),
+            ],
+        ]);
+    }
+
+    /**
+     * Save package preference from onboarding (does not activate paid/clinic packages).
+     */
+    public function preferPackage(Request $request): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $data = $request->validate([
+            'paket_id' => ['required', 'integer', 'exists:paketler,id'],
+            'odeme_periyodu' => ['nullable', 'in:aylik,yillik'],
+            'package_key' => ['nullable', 'string', 'max:80'],
+            'tur' => ['nullable', 'string', 'in:bireysel,klinik'],
+        ]);
+
+        $paket = \App\Models\Paket::where('aktif_mi', true)->findOrFail($data['paket_id']);
+        $payload = [
+            'paket_id' => (int) $paket->id,
+            'paket_ad' => $paket->ad,
+            'tur' => $paket->tur ?? ($data['tur'] ?? 'bireysel'),
+            'odeme_periyodu' => $data['odeme_periyodu'] ?? 'aylik',
+            'package_key' => $data['package_key'] ?? null,
+            'saved_at' => now()->toIso8601String(),
+        ];
+
+        \Illuminate\Support\Facades\Cache::put(
+            'mobil_paket_tercihi_'.$doktor->id,
+            $payload,
+            now()->addDays(90)
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Paket tercihi kaydedildi.',
+            'data' => $payload,
+        ]);
+    }
+
+    /**
+     * Confirm App Store / Play / RevenueCat purchase and activate membership.
+     */
+    public function confirmIapPurchase(Request $request): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $data = $request->validate([
+            'paket_id' => ['required', 'integer', 'exists:paketler,id'],
+            'odeme_periyodu' => ['required', 'in:aylik,yillik'],
+            'product_id' => ['required', 'string', 'max:191'],
+            'transaction_id' => ['nullable', 'string', 'max:191'],
+            'app_user_id' => ['nullable', 'string', 'max:191'],
+            'receipt' => ['nullable', 'string'],
+            'platform' => ['nullable', 'string', 'in:ios,android'],
+        ]);
+
+        $paket = \App\Models\Paket::where('aktif_mi', true)->findOrFail($data['paket_id']);
+        if (method_exists($paket, 'klinikPaketiMi') && $paket->klinikPaketiMi()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Klinik paketleri IAP ile mobilden aktifleştirilemez.',
+            ], 422);
+        }
+
+        $iap = app(\App\Services\MobileIapService::class);
+        $periodPrice = $data['odeme_periyodu'] === 'yillik'
+            ? (float) $paket->yillik_fiyat
+            : (float) $paket->aylik_fiyat;
+        $discounted = $data['odeme_periyodu'] === 'yillik'
+            ? $paket->yillik_indirimli_fiyat
+            : $paket->aylik_indirimli_fiyat;
+        $tutar = $discounted !== null && (float) $discounted > 0 ? (float) $discounted : $periodPrice;
+
+        if ($tutar <= 0) {
+            $iap->activate($doktor, $paket, $data['odeme_periyodu'], [
+                'source' => 'free',
+                'transaction_id' => $data['transaction_id'] ?? null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ücretsiz paket aktifleştirildi.',
+                'data' => $this->membershipPayload($doktor->fresh()),
+            ]);
+        }
+
+        $verify = $iap->verifyPurchase([
+            'paket_id' => (int) $paket->id,
+            'period' => $data['odeme_periyodu'],
+            'product_id' => $data['product_id'],
+            'transaction_id' => $data['transaction_id'] ?? '',
+            'app_user_id' => $data['app_user_id'] ?? ('doktor_'.$doktor->id),
+        ]);
+
+        if (! ($verify['ok'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => $verify['message'] ?? 'Satın alma doğrulanamadı.',
+                'data' => [
+                    'iap_ready' => (bool) config('services.revenuecat.secret_key'),
+                    'fallback' => 'havale',
+                ],
+            ], 422);
+        }
+
+        $iap->activate($doktor, $paket, $data['odeme_periyodu'], [
+            'source' => 'store',
+            'transaction_id' => $data['transaction_id'] ?? null,
+            'platform' => $data['platform'] ?? null,
+            'product_id' => $data['product_id'],
+        ]);
+
+        if (class_exists(\App\Models\UyelikOdeme::class)) {
+            try {
+                \App\Models\UyelikOdeme::create([
+                    'doktor_id' => $doktor->id,
+                    'paket_id' => $paket->id,
+                    'odeme_yontemi' => 'iap',
+                    'odeme_periyodu' => $data['odeme_periyodu'],
+                    'tutar' => $tutar,
+                    'durum' => 'onaylandi',
+                    'havale_referans' => $data['transaction_id'] ?? $data['product_id'],
+                ]);
+            } catch (\Throwable) {
+                /* optional audit row */
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mağaza aboneliği doğrulandı, paket aktif.',
+            'data' => $this->membershipPayload($doktor->fresh()),
+        ]);
+    }
+
+    /**
+     * Activate package natively: free trial or bank transfer request.
+     */
+    public function subscribePackage(Request $request): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $data = $request->validate([
+            'paket_id' => ['required', 'integer', 'exists:paketler,id'],
+            'odeme_periyodu' => ['required', 'in:aylik,yillik'],
+            'odeme_yontemi' => ['nullable', 'in:havale,ucretsiz'],
+            'havale_referans' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $paket = \App\Models\Paket::where('aktif_mi', true)->findOrFail($data['paket_id']);
+        if (method_exists($paket, 'klinikPaketiMi') && $paket->klinikPaketiMi()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Klinik paketleri mobil uygulamadan başlatılamaz. Bireysel paket seçin veya klinik kaydını web panelinden tamamlayın.',
+            ], 422);
+        }
+
+        $periodPrice = $data['odeme_periyodu'] === 'yillik'
+            ? (float) $paket->yillik_fiyat
+            : (float) $paket->aylik_fiyat;
+        $discounted = $data['odeme_periyodu'] === 'yillik'
+            ? $paket->yillik_indirimli_fiyat
+            : $paket->aylik_indirimli_fiyat;
+        $tutar = $discounted !== null && (float) $discounted > 0 ? (float) $discounted : $periodPrice;
+        $isFree = $tutar <= 0;
+
+        if ($isFree) {
+            $baslangic = now();
+            $bitis = $data['odeme_periyodu'] === 'yillik'
+                ? $baslangic->copy()->addYear()
+                : $baslangic->copy()->addMonth();
+            $doktor->update([
+                'paket_id' => $paket->id,
+                'odeme_periyodu' => $data['odeme_periyodu'],
+                'uyelik_baslangic' => $baslangic,
+                'uyelik_bitis' => $bitis,
+                'iyzico_subscription_status' => 'ACTIVE',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ücretsiz paket aktifleştirildi.',
+                'data' => $this->membershipPayload($doktor->fresh()),
+            ]);
+        }
+
+        // Paid: only bank transfer (havale) from mobile — no embedded web checkout
+        if (($data['odeme_yontemi'] ?? 'havale') !== 'havale') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mobil uygulamada ücretli paket için havale/EFT kullanın. Kart ödemesi web panelinden yapılır.',
+            ], 422);
+        }
+        if (empty($data['havale_referans'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Havale referansını girin.',
+            ], 422);
+        }
+
+        if (class_exists(\App\Models\UyelikOdeme::class)) {
+            \App\Models\UyelikOdeme::create([
+                'doktor_id' => $doktor->id,
+                'paket_id' => $paket->id,
+                'odeme_yontemi' => 'havale',
+                'odeme_periyodu' => $data['odeme_periyodu'],
+                'tutar' => $tutar,
+                'durum' => 'beklemede',
+                'havale_referans' => $data['havale_referans'],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Havale talebiniz alındı. Onay sonrası paketiniz aktifleşir.',
+            'data' => [
+                'tutar' => $tutar,
+                'odeme_periyodu' => $data['odeme_periyodu'],
+                'durum' => 'beklemede',
             ],
         ]);
     }
@@ -812,8 +1316,8 @@ class MobileDoctorController extends Controller
             ->map(fn ($n) => [
                 'id' => $n->id,
                 'type' => $n->data['type'] ?? class_basename($n->type),
-                'title' => $n->data['title'] ?? 'Bildirim',
-                'body' => $n->data['body'] ?? '',
+                'title' => $n->data['title'] ?? $n->data['baslik'] ?? 'Bildirim',
+                'body' => $n->data['body'] ?? $n->data['mesaj'] ?? '',
                 'data' => $n->data,
                 'read_at' => $n->read_at?->toIso8601String(),
                 'created_at' => $n->created_at?->toIso8601String(),
@@ -840,6 +1344,41 @@ class MobileDoctorController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Bildirimler okundu işaretlendi.']);
+    }
+
+    public function destroyNotification(Request $request, string $id): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $notification = $doktor->notifications()->where('id', $id)->first();
+        if (! $notification) {
+            return response()->json(['success' => false, 'message' => 'Bildirim bulunamadı.'], 404);
+        }
+        $notification->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bildirim silindi.',
+            'data' => [
+                'unread' => $doktor->unreadNotifications()->count(),
+            ],
+        ]);
+    }
+
+    public function destroyAllNotifications(Request $request): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $deleted = $doktor->notifications()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tüm bildirimler silindi.',
+            'data' => [
+                'deleted' => (int) $deleted,
+                'unread' => 0,
+            ],
+        ]);
     }
 
     public function patients(Request $request): JsonResponse
@@ -1323,10 +1862,12 @@ class MobileDoctorController extends Controller
                     $randevu = $meet->ensureRoom($randevu);
                 }
                 $payload['join_url'] = url('/hekim/gorusme/'.$randevu->id);
+                $payload['join_app_url'] = url('/hekim/gorusme/'.$randevu->id.'/app');
                 $payload['can_join'] = $meet->canJoin($randevu);
                 $payload['platform_join_url'] = $meet->platformJoinUrl($randevu);
             } catch (\Throwable) {
                 $payload['join_url'] = url('/hekim/gorusme/'.$randevu->id);
+                $payload['join_app_url'] = url('/hekim/gorusme/'.$randevu->id.'/app');
             }
         }
 

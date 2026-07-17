@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Models\Doktor;
 use App\Models\Randevu;
+use App\Notifications\Channels\ExpoPushChannel;
 use App\Notifications\Channels\SmsChannel;
 use App\Support\BildirimSablonu;
 use Illuminate\Bus\Queueable;
@@ -30,21 +32,76 @@ class RandevuIptalEdildi extends Notification implements ShouldQueue
         $channels = [];
         $ayarlar = $this->randevu->doktor->randevuAyari;
 
-        if ($this->iptalEden === 'doktor') {
-            $channels[] = 'mail';
-            if ($ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
-                $channels[] = SmsChannel::class;
-            }
-        } else {
+        // Hasta iptal etti → doktora: uygulama içi + push (+ isteğe bağlı e-posta/SMS)
+        if ($this->iptalEden === 'hasta' && $notifiable instanceof Doktor) {
+            $channels[] = 'database';
+            $channels[] = ExpoPushChannel::class;
             if ($ayarlar && $ayarlar->email_bildirimleri) {
                 $channels[] = 'mail';
             }
             if ($ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
                 $channels[] = SmsChannel::class;
             }
+
+            return $channels;
+        }
+
+        // Doktor iptal etti → hastaya: e-posta (+ isteğe bağlı SMS)
+        if ($this->iptalEden === 'doktor') {
+            $channels[] = 'mail';
+            if ($ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
+                $channels[] = SmsChannel::class;
+            }
+
+            return $channels;
+        }
+
+        // Eski/fallback davranış
+        if ($ayarlar && $ayarlar->email_bildirimleri) {
+            $channels[] = 'mail';
+        }
+        if ($ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
+            $channels[] = SmsChannel::class;
         }
 
         return $channels;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        $vars = BildirimSablonu::varsFromRandevu($this->randevu);
+
+        return [
+            'type' => 'randevu_iptal',
+            'randevu_id' => $this->randevu->id,
+            'title' => 'Randevu iptal edildi',
+            'body' => ($vars['hasta'] ?? 'Hasta').' randevusunu iptal etti · '.($vars['tarih'] ?? '').' '.($vars['saat'] ?? ''),
+            'hasta' => $vars['hasta'] ?? null,
+            'tarih' => $vars['tarih'] ?? null,
+            'saat' => $vars['saat'] ?? null,
+            'iptal_eden' => $this->iptalEden,
+        ];
+    }
+
+    /**
+     * @return array{title: string, body: string, data: array<string, mixed>}
+     */
+    public function toExpoPush(object $notifiable): array
+    {
+        $arr = $this->toArray($notifiable);
+
+        return [
+            'title' => (string) $arr['title'],
+            'body' => (string) $arr['body'],
+            'data' => [
+                'type' => 'randevu_iptal',
+                'randevu_id' => (string) $this->randevu->id,
+                'deep_link' => 'randevuajandam-doktor://appointment/'.$this->randevu->id,
+            ],
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

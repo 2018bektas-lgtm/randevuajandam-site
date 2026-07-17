@@ -156,9 +156,13 @@ class MobileDoctorClinicController extends Controller
         ]);
 
         try {
-            Notification::route('mail', $eposta)->notify(new KlinikDavetBildirimi($davetiye));
+            if ($invited) {
+                $invited->notify(new KlinikDavetBildirimi($davetiye));
+            } else {
+                Notification::route('mail', $eposta)->notify(new KlinikDavetBildirimi($davetiye));
+            }
         } catch (\Throwable $e) {
-            logger()->error('Klinik davet e-postası gönderilemedi: '.$e->getMessage());
+            logger()->error('Klinik davet bildirimi gönderilemedi: '.$e->getMessage());
         }
 
         return response()->json(['success' => true, 'message' => 'Davetiye gönderildi.'], 201);

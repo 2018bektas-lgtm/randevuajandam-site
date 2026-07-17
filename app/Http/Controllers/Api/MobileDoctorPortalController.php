@@ -44,6 +44,51 @@ class MobileDoctorPortalController extends Controller
     {
         $doktor = $this->doktor($request);
         $bugun = Carbon::today()->toDateString();
+        $haftaBaslangic = Carbon::today()->startOfWeek(Carbon::MONDAY)->toDateString();
+        $haftaBitis = Carbon::today()->endOfWeek(Carbon::SUNDAY)->toDateString();
+        $simdiSaat = Carbon::now()->format('H:i:s');
+
+        $bugunAktif = $doktor->randevular()
+            ->whereDate('tarih', $bugun)
+            ->whereIn('durum', ['beklemede', 'onaylandi'])
+            ->count();
+
+        $bugunTamamlanan = $doktor->randevular()
+            ->whereDate('tarih', $bugun)
+            ->where('durum', 'tamamlandi')
+            ->count();
+
+        $bugunIptal = $doktor->randevular()
+            ->whereDate('tarih', $bugun)
+            ->where('durum', 'iptal')
+            ->count();
+
+        $haftaRandevu = $doktor->randevular()
+            ->whereBetween('tarih', [$haftaBaslangic, $haftaBitis])
+            ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
+            ->count();
+
+        $sonraki = $doktor->randevular()
+            ->with(['hasta:id,ad,soyad,telefon', 'hizmet:id,ad,sure'])
+            ->where(function ($q) use ($bugun, $simdiSaat) {
+                $q->whereDate('tarih', '>', $bugun)
+                    ->orWhere(function ($q2) use ($bugun, $simdiSaat) {
+                        $q2->whereDate('tarih', $bugun)->where('saat', '>=', $simdiSaat);
+                    });
+            })
+            ->whereIn('durum', ['beklemede', 'onaylandi'])
+            ->orderBy('tarih')
+            ->orderBy('saat')
+            ->first();
+
+        $yorumBekleyen = 0;
+        if (method_exists($doktor, 'yorumlar')) {
+            try {
+                $yorumBekleyen = (int) $doktor->yorumlar()->where('onay_durumu', 'beklemede')->count();
+            } catch (\Throwable) {
+                $yorumBekleyen = 0;
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -51,12 +96,14 @@ class MobileDoctorPortalController extends Controller
                 'toplam_randevu' => $doktor->randevular()->count(),
                 'kayitli_hasta' => $doktor->randevular()->whereNotNull('hasta_id')->distinct('hasta_id')->count('hasta_id'),
                 'bekleyen_talep' => $doktor->randevular()->where('durum', 'beklemede')->count(),
-                'bugun_randevu' => $doktor->randevular()
-                    ->whereDate('tarih', $bugun)
-                    ->whereIn('durum', ['beklemede', 'onaylandi'])
-                    ->count(),
+                'bugun_randevu' => $bugunAktif,
+                'bugun_tamamlanan' => $bugunTamamlanan,
+                'bugun_iptal' => $bugunIptal,
+                'hafta_randevu' => $haftaRandevu,
                 'bekleme_listesi' => BeklemeListesi::where('doktor_id', $doktor->id)->where('durum', 'beklemede')->count(),
+                'yorum_bekleyen' => $yorumBekleyen,
                 'randevuya_acik_mi' => (bool) ($doktor->randevuAyari?->aktif_mi ?? true),
+                'sonraki_randevu' => $sonraki ? $this->simpleAppointment($sonraki) : null,
                 'paket' => $doktor->paket ? [
                     'id' => $doktor->paket->id,
                     'ad' => $doktor->paket->ad ?? $doktor->paket->name ?? null,

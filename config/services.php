@@ -61,4 +61,24 @@ return [
         'enabled' => env('EXPO_PUSH_ENABLED', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Mobile IAP (App Store / Play + RevenueCat)
+    |--------------------------------------------------------------------------
+    | Product IDs: com.randevuajandam.doktor.pkg.{paket_id}.monthly|yearly
+    | When REVENUECAT_SECRET_KEY is set, confirmIap verifies subscriber entitlement.
+    | REVENUECAT_WEBHOOK_SECRET validates Authorization header on webhook.
+    | MOBILE_IAP_TRUST_CLIENT=true is only for staging (trust client transaction_id).
+    */
+    'mobile_iap' => [
+        'trust_client' => (bool) env('MOBILE_IAP_TRUST_CLIENT', false),
+        'product_prefix' => env('MOBILE_IAP_PRODUCT_PREFIX', 'com.randevuajandam.doktor.pkg.'),
+    ],
+
+    'revenuecat' => [
+        'secret_key' => env('REVENUECAT_SECRET_KEY'),
+        'webhook_secret' => env('REVENUECAT_WEBHOOK_SECRET'),
+        'project_id' => env('REVENUECAT_PROJECT_ID'),
+    ],
+
 ];

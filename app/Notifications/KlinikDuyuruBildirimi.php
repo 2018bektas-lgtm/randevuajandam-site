@@ -3,46 +3,40 @@
 namespace App\Notifications;
 
 use App\Models\KlinikDuyuru;
+use App\Notifications\Concerns\NotifiesDoktorApp;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class KlinikDuyuruBildirimi extends Notification
 {
+    use NotifiesDoktorApp;
     use Queueable;
 
-    protected $duyuru;
+    public function __construct(public KlinikDuyuru $duyuru) {}
 
     /**
-     * Create a new notification instance.
-     */
-    public function __construct(KlinikDuyuru $duyuru)
-    {
-        $this->duyuru = $duyuru;
-    }
-
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
+     * @return array<int, string|class-string>
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return $this->doktorAppChannels();
     }
 
     /**
-     * Get the array representation of the notification.
-     *
      * @return array<string, mixed>
      */
     public function toArray(object $notifiable): array
     {
         return [
+            'type' => 'klinik_duyuru',
             'duyuru_id' => $this->duyuru->id,
+            'title' => 'Klinik duyurusu',
+            'body' => (string) $this->duyuru->baslik,
             'baslik' => $this->duyuru->baslik,
+            'mesaj' => 'Yeni klinik duyurusu: '.$this->duyuru->baslik,
             'onem_derecesi' => $this->duyuru->onem_derecesi,
-            'mesaj' => 'Yeni acil klinik duyurusu: ' . $this->duyuru->baslik,
             'link' => route('hekim.klinik.uye.duyurular'),
+            'deep_link' => 'randevuajandam-doktor://clinic',
         ];
     }
 }

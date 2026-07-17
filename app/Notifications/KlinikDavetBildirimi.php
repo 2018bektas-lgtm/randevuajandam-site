@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Models\Doktor;
 use App\Models\KlinikDavetiye;
+use App\Notifications\Concerns\NotifiesDoktorApp;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -10,33 +12,51 @@ use Illuminate\Notifications\Notification;
 
 class KlinikDavetBildirimi extends Notification implements ShouldQueue
 {
+    use NotifiesDoktorApp;
     use Queueable;
 
-    /**
-     * Create a new notification instance.
-     */
     public function __construct(
         public KlinikDavetiye $davetiye
     ) {}
 
     /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
+     * @return array<int, string|class-string>
      */
     public function via(object $notifiable): array
     {
+        // Anonymous mail route: mail only. Registered doctor: app + mail.
+        if ($notifiable instanceof Doktor) {
+            return $this->doktorAppChannels(['mail']);
+        }
+
         return ['mail'];
     }
 
     /**
-     * Get the mail representation of the notification.
+     * @return array<string, mixed>
      */
+    public function toArray(object $notifiable): array
+    {
+        $this->davetiye->loadMissing(['klinik', 'davetEden']);
+        $klinikAd = $this->davetiye->klinik->ad ?? 'Klinik';
+
+        return [
+            'type' => 'klinik_davet',
+            'davetiye_id' => $this->davetiye->id,
+            'title' => 'Klinik daveti',
+            'body' => $klinikAd.' sizi ekibe davet etti',
+            'baslik' => 'Klinik daveti',
+            'mesaj' => $klinikAd.' kliniğinden davetiniz var.',
+            'deep_link' => 'randevuajandam-doktor://overview',
+        ];
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
-        $klinikAd = $this->davetiye->klinik->ad;
-        $davetEdenAd = $this->davetiye->davetEden->ad_soyad;
-        $davetEdenUnvan = $this->davetiye->davetEden->unvan ? $this->davetiye->davetEden->unvan.' ' : '';
+        $this->davetiye->loadMissing(['klinik', 'davetEden']);
+        $klinikAd = $this->davetiye->klinik->ad ?? 'Klinik';
+        $davetEdenAd = $this->davetiye->davetEden->ad_soyad ?? 'Hekim';
+        $davetEdenUnvan = $this->davetiye->davetEden?->unvan ? $this->davetiye->davetEden->unvan.' ' : '';
 
         $url = route('frontend.hekim.klinik.davet.kabul', ['token' => $this->davetiye->token]);
 

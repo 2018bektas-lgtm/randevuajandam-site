@@ -2,48 +2,46 @@
 
 namespace App\Notifications;
 
-use App\Models\Doktor;
+use App\Notifications\Concerns\NotifiesDoktorApp;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class DoktorDavetReddettiBildirimi extends Notification
 {
+    use NotifiesDoktorApp;
     use Queueable;
 
-    protected $doktor;
-    protected $eposta;
+    public function __construct(
+        protected mixed $doktor,
+        protected mixed $eposta
+    ) {}
 
     /**
-     * Create a new notification instance.
-     */
-    public function __construct($doktor, $eposta)
-    {
-        $this->doktor = $doktor;
-        $this->eposta = $eposta;
-    }
-
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
+     * @return array<int, string|class-string>
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return $this->doktorAppChannels();
     }
 
     /**
-     * Get the array representation of the notification.
-     *
      * @return array<string, mixed>
      */
     public function toArray(object $notifiable): array
     {
-        $name = $this->doktor ? (($this->doktor->unvan ? $this->doktor->unvan . ' ' : '') . $this->doktor->ad_soyad) : $this->eposta;
+        $name = $this->doktor
+            ? (($this->doktor->unvan ? $this->doktor->unvan.' ' : '').$this->doktor->ad_soyad)
+            : (string) $this->eposta;
+
         return [
-            'doktor_id' => $this->doktor ? $this->doktor->id : null,
-            'mesaj' => $name . ' gönderdiğiniz klinik davetini reddetti.',
+            'type' => 'davet_red',
+            'doktor_id' => $this->doktor->id ?? null,
+            'title' => 'Davet reddedildi',
+            'body' => $name.' klinik davetini reddetti',
+            'baslik' => 'Davet reddedildi',
+            'mesaj' => $name.' gönderdiğiniz klinik davetini reddetti.',
             'link' => route('hekim.klinik.doktorlar'),
+            'deep_link' => 'randevuajandam-doktor://clinic',
         ];
     }
 }

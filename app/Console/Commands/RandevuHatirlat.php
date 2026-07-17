@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Randevu;
 use App\Notifications\RandevuHatirlatma;
+use App\Notifications\RandevuHatirlatmaDoktor;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +23,7 @@ class RandevuHatirlat extends Command
      *
      * @var string
      */
-    protected $description = 'Onaylı randevular için hastalara 1 gün ve 2 saat öncesinden hatırlatma e-postası ve SMS gönderir';
+    protected $description = 'Onaylı randevular için hasta ve doktora 1 gün / 2 saat hatırlatma gönderir';
 
     /**
      * Execute the console command.
@@ -58,14 +59,26 @@ class RandevuHatirlat extends Command
 
         $count = 0;
         foreach ($randevular as $randevu) {
+            $sent = false;
             if ($randevu->hasta) {
                 try {
                     $randevu->hasta->notify(new RandevuHatirlatma($randevu, '1 gün'));
-                    $randevu->update(['hatirlatma_1gun_gonderildi' => true]);
-                    $count++;
+                    $sent = true;
                 } catch (\Exception $e) {
-                    Log::error('1 Günlük randevu hatırlatma hatası (Randevu ID: '.$randevu->id.'): '.$e->getMessage());
+                    Log::error('1 Günlük hasta hatırlatma hatası (Randevu ID: '.$randevu->id.'): '.$e->getMessage());
                 }
+            }
+            if ($randevu->doktor) {
+                try {
+                    $randevu->doktor->notify(new RandevuHatirlatmaDoktor($randevu, '1 gün'));
+                    $sent = true;
+                } catch (\Exception $e) {
+                    Log::error('1 Günlük doktor hatırlatma hatası (Randevu ID: '.$randevu->id.'): '.$e->getMessage());
+                }
+            }
+            if ($sent) {
+                $randevu->update(['hatirlatma_1gun_gonderildi' => true]);
+                $count++;
             }
         }
 
@@ -98,14 +111,26 @@ class RandevuHatirlat extends Command
 
             // If appointment is starting within 120 minutes (2 hours) and has not passed
             if ($diffInMinutes > 0 && $diffInMinutes <= 120) {
+                $sent = false;
                 if ($randevu->hasta) {
                     try {
                         $randevu->hasta->notify(new RandevuHatirlatma($randevu, '2 saat'));
-                        $randevu->update(['hatirlatma_2saat_gonderildi' => true]);
-                        $count++;
+                        $sent = true;
                     } catch (\Exception $e) {
-                        Log::error('2 Saatlik randevu hatırlatma hatası (Randevu ID: '.$randevu->id.'): '.$e->getMessage());
+                        Log::error('2 Saatlik hasta hatırlatma hatası (Randevu ID: '.$randevu->id.'): '.$e->getMessage());
                     }
+                }
+                if ($randevu->doktor) {
+                    try {
+                        $randevu->doktor->notify(new RandevuHatirlatmaDoktor($randevu, '2 saat'));
+                        $sent = true;
+                    } catch (\Exception $e) {
+                        Log::error('2 Saatlik doktor hatırlatma hatası (Randevu ID: '.$randevu->id.'): '.$e->getMessage());
+                    }
+                }
+                if ($sent) {
+                    $randevu->update(['hatirlatma_2saat_gonderildi' => true]);
+                    $count++;
                 }
             }
         }

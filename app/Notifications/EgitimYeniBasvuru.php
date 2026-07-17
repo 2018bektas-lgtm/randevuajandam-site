@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\EgitimBasvuru;
+use App\Notifications\Concerns\NotifiesDoktorApp;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -10,13 +11,37 @@ use Illuminate\Notifications\Notification;
 
 class EgitimYeniBasvuru extends Notification implements ShouldQueue
 {
+    use NotifiesDoktorApp;
     use Queueable;
 
     public function __construct(public EgitimBasvuru $basvuru) {}
 
+    /**
+     * @return array<int, string|class-string>
+     */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return $this->doktorAppChannels(['mail']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        $this->basvuru->loadMissing('egitim');
+        $egitim = $this->basvuru->egitim?->baslik ?? 'Eğitim';
+
+        return [
+            'type' => 'egitim_basvuru',
+            'basvuru_id' => $this->basvuru->id,
+            'egitim_id' => $this->basvuru->egitim_id,
+            'title' => 'Yeni eğitim başvurusu',
+            'body' => $egitim.' · '.$this->basvuru->ad_soyad,
+            'baslik' => 'Yeni eğitim başvurusu',
+            'mesaj' => $this->basvuru->ad_soyad.' başvurdu: '.$egitim,
+            'deep_link' => 'randevuajandam-doktor://education-apps',
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

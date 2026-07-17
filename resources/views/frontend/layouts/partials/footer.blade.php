@@ -38,10 +38,11 @@
             <div>
                 <h4 class="text-white font-bold font-display text-sm tracking-wider uppercase mb-4">Hızlı Menü</h4>
                 <ul class="space-y-2.5 text-xs text-slate-400">
-                    <li><a href="#" class="hover:text-[#E7B58A] transition-colors">Hakkımızda</a></li>
-                    <li><a href="#" class="hover:text-[#E7B58A] transition-colors">İletişim</a></li>
-                    <li><a href="#" class="hover:text-[#E7B58A] transition-colors">Kullanım Koşulları</a></li>
-                    <li><a href="#" class="hover:text-[#E7B58A] transition-colors">Gizlilik Politikası</a></li>
+                    <li><a href="{{ route('frontend.paketler') }}" class="hover:text-[#E7B58A] transition-colors">Paketler</a></li>
+                    <li><a href="{{ route('frontend.hekimler') }}" class="hover:text-[#E7B58A] transition-colors">Hekimler</a></li>
+                    <li><a href="{{ route('frontend.legal.kullanim') }}" class="hover:text-[#E7B58A] transition-colors">Kullanım Koşulları</a></li>
+                    <li><a href="{{ route('frontend.legal.gizlilik') }}" class="hover:text-[#E7B58A] transition-colors">Gizlilik Politikası</a></li>
+                    <li><a href="{{ route('frontend.legal.kvkk') }}" class="hover:text-[#E7B58A] transition-colors">KVKK</a></li>
                 </ul>
             </div>
 

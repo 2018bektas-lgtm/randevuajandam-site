@@ -175,6 +175,20 @@ class AppointmentBookingService
         if ($paket && ! is_null($paket->max_randevu_sayisi)) {
             $count = $doktor->randevular()->count();
             if ($count >= $paket->max_randevu_sayisi) {
+                // Doktoru günde bir kez uyar (spam engeli)
+                try {
+                    $cacheKey = 'doktor-paket-limit-notify:'.$doktor->id.':'.now()->toDateString();
+                    if (! \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                        $doktor->notify(new \App\Notifications\PaketLimitBildirimi(
+                            (int) $paket->max_randevu_sayisi,
+                            (int) $count
+                        ));
+                        \Illuminate\Support\Facades\Cache::put($cacheKey, 1, now()->endOfDay());
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Paket limit bildirimi: '.$e->getMessage());
+                }
+
                 throw new InvalidArgumentException('Bu hekimin randevu limiti dolmuştur. Lütfen hekimle iletişime geçin.');
             }
         }
@@ -379,12 +393,33 @@ class AppointmentBookingService
                         throw new InvalidArgumentException('Seçilen saat dilimi doludur.');
                     }
 
+                    $eskiTarih = $randevu->tarih instanceof \DateTimeInterface
+                        ? $randevu->tarih->format('Y-m-d')
+                        : substr((string) $randevu->tarih, 0, 10);
+                    $eskiSaat = substr((string) $randevu->saat, 0, 5);
+
                     $randevu->update([
                         'tarih' => $tarih,
                         'saat' => $saat,
                     ]);
 
-                    return $randevu->fresh();
+                    $fresh = $randevu->fresh(['hasta', 'doktor', 'hizmet']);
+
+                    // Hekim ertelediğinde hastayı bilgilendir
+                    try {
+                        if ($fresh?->hasta) {
+                            $fresh->hasta->notify(new \App\Notifications\RandevuErtelemeBildirimi(
+                                $fresh,
+                                $eskiTarih,
+                                $eskiSaat,
+                                'hasta'
+                            ));
+                        }
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Randevu erteleme hasta bildirimi: '.$e->getMessage());
+                    }
+
+                    return $fresh;
                 });
             });
         } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {

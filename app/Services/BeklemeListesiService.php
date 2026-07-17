@@ -6,7 +6,9 @@ use App\Models\BeklemeListesi;
 use App\Models\Doktor;
 use App\Models\Hasta;
 use App\Models\Randevu;
+use App\Notifications\BeklemeListesiKayitBildirimi;
 use App\Notifications\BeklemeListesiSlotAcildi;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 
@@ -53,7 +55,7 @@ class BeklemeListesiService
         /** @var Hasta|null $hasta */
         $hasta = $data['hasta'] ?? null;
 
-        return BeklemeListesi::create([
+        $kayit = BeklemeListesi::create([
             'doktor_id' => $doktor->id,
             'hasta_id' => $hasta?->id,
             'hizmet_id' => $hizmetId,
@@ -66,6 +68,16 @@ class BeklemeListesiService
             'not' => $data['not'] ?? null,
             'durum' => 'beklemede',
         ]);
+
+        try {
+            $doktor->notify(new BeklemeListesiKayitBildirimi($kayit));
+        } catch (\Throwable $e) {
+            Log::warning('Bekleme listesi doktor bildirimi hatası: '.$e->getMessage(), [
+                'kayit_id' => $kayit->id,
+            ]);
+        }
+
+        return $kayit;
     }
 
     /**

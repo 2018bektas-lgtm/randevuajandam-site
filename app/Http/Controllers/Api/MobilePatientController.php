@@ -621,13 +621,17 @@ class MobilePatientController extends Controller
     {
         /** @var Hasta $hasta */
         $hasta = $request->attributes->get('auth_hasta');
-        $randevu = $hasta->randevular()->findOrFail($id);
+        $randevu = $hasta->randevular()->with(['doktor.randevuAyari', 'hasta', 'hizmet'])->findOrFail($id);
 
         if (! in_array($randevu->durum, ['beklemede', 'onaylandi'], true)) {
             return response()->json(['success' => false, 'message' => 'Bu randevu iptal edilemez.'], 422);
         }
 
+        $eskiDurum = $randevu->durum;
         $randevu->update(['durum' => 'iptal']);
+
+        // auth_hasta attribute is set by HastaMobileToken — listener resolves "hasta" cancel
+        \App\Events\RandevuDurumuDegisti::dispatch($randevu->fresh(['doktor.randevuAyari', 'hasta', 'hizmet']), $eskiDurum, 'iptal');
 
         return response()->json(['success' => true, 'message' => 'Randevu iptal edildi.']);
     }

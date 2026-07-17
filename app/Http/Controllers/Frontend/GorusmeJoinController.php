@@ -51,6 +51,26 @@ class GorusmeJoinController extends Controller
         return $this->renderJoin($request, $randevu, 'hekim');
     }
 
+    /**
+     * Mobil uygulama WebView — bearer access_token ile hekim görüşme odası (tarayıcıya çıkmadan).
+     */
+    public function hekimJoinApp(Request $request, int $id): View|Response|RedirectResponse
+    {
+        $doktor = $this->resolveDoktorFromMobileToken($request);
+        if (! $doktor) {
+            abort(401, 'Geçersiz veya eksik mobil oturum.');
+        }
+
+        // WebView sinyal isteklerinde session cookie kullanabilsin
+        Auth::guard('doktor')->login($doktor);
+
+        $randevu = Randevu::with(['doktor', 'hizmet', 'hasta'])
+            ->where('doktor_id', $doktor->id)
+            ->findOrFail($id);
+
+        return $this->renderJoin($request, $randevu, 'hekim');
+    }
+
     public function signalByToken(Request $request, string $token): JsonResponse
     {
         if ($this->tooMany($request, 'sig:'.$token, 120)) {
@@ -67,7 +87,7 @@ class GorusmeJoinController extends Controller
 
     public function signalById(Request $request, int $id): JsonResponse
     {
-        $doktor = Auth::guard('doktor')->user();
+        $doktor = Auth::guard('doktor')->user() ?? $this->resolveDoktorFromMobileToken($request);
         if (! $doktor) {
             return response()->json(['success' => false, 'message' => 'Oturum gerekli.'], 401);
         }
@@ -78,6 +98,33 @@ class GorusmeJoinController extends Controller
         }
 
         return $this->handleSignal($request, $randevu, 'hekim');
+    }
+
+    /**
+     * Bearer, X-Doktor-Token veya ?access_token=
+     */
+    protected function resolveDoktorFromMobileToken(Request $request): ?\App\Models\Doktor
+    {
+        $plain = (string) ($request->bearerToken()
+            ?: $request->header('X-Doktor-Token', '')
+            ?: $request->query('access_token', ''));
+        $plain = trim($plain);
+        if ($plain === '') {
+            return null;
+        }
+
+        $row = \App\Models\DoktorApiToken::findByPlainToken($plain);
+        if (! $row) {
+            return null;
+        }
+        $row->loadMissing('doktor');
+        $doktor = $row->doktor;
+        if (! $row->isValid() || ! $doktor || ! $doktor->aktif_mi) {
+            return null;
+        }
+        $row->forceFill(['last_used_at' => now()])->save();
+
+        return $doktor;
     }
 
     protected function handleSignal(Request $request, Randevu $randevu, string $role): JsonResponse

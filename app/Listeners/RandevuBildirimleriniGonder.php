@@ -49,13 +49,14 @@ class RandevuBildirimleriniGonder
 
         // 2. If status changed to canceled (iptal), notify the other party
         if ($event->yeniDurum === 'iptal') {
-            if (Auth::guard('hasta')->check()) {
-                // Patient canceled, notify the doctor
+            $iptalEden = $this->resolveIptalEden();
+
+            if ($iptalEden === 'hasta') {
                 if ($doktor) {
                     $doktor->notify(new RandevuIptalEdildi($randevu, 'hasta'));
                 }
             } else {
-                // Doctor or Administrator canceled, notify the patient
+                // Doctor, staff or admin canceled → notify patient
                 if ($hasta) {
                     $hasta->notify(new RandevuIptalEdildi($randevu, 'doktor'));
                 }
@@ -70,5 +71,28 @@ class RandevuBildirimleriniGonder
                 ]);
             }
         }
+    }
+
+    /**
+     * Who cancelled: web session, mobile token middleware, or default doctor-side.
+     */
+    private function resolveIptalEden(): string
+    {
+        if (Auth::guard('hasta')->check() || request()->attributes->get('auth_hasta')) {
+            return 'hasta';
+        }
+
+        if (
+            Auth::guard('doktor')->check()
+            || request()->attributes->get('auth_doktor')
+            || Auth::guard('yonetici')->check()
+            || request()->attributes->get('auth_personel')
+        ) {
+            return 'doktor';
+        }
+
+        // Unknown context (queued job without request auth): prefer notifying doctor
+        // only when we cannot tell — safer default for web guest cancels is rare.
+        return 'doktor';
     }
 }

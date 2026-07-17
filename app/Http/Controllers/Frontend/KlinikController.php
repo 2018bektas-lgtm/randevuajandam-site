@@ -119,11 +119,15 @@ class KlinikController extends Controller
             'son_kullanma_tarihi' => now()->addDays(7),
         ]);
 
-        // Send Notification Mail
+        // Send notification: registered doctor → app + mail; otherwise mail only
         try {
-            Notification::route('mail', $eposta)->notify(new KlinikDavetBildirimi($davetiye));
+            if ($invitedDoktor) {
+                $invitedDoktor->notify(new KlinikDavetBildirimi($davetiye));
+            } else {
+                Notification::route('mail', $eposta)->notify(new KlinikDavetBildirimi($davetiye));
+            }
         } catch (\Exception $e) {
-            logger()->error('Klinik davet e-postası gönderilemedi: '.$e->getMessage());
+            logger()->error('Klinik davet bildirimi gönderilemedi: '.$e->getMessage());
         }
 
         return back()->with('basari', 'Davetiye başarıyla gönderildi.');

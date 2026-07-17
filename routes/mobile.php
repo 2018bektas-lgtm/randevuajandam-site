@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\MobilePatientController;
 use App\Http\Controllers\Api\MobileDoctorController;
 use App\Http\Controllers\Api\MobileDoctorPortalController;
 use App\Http\Controllers\Api\MobileDoctorClinicController;
+use App\Http\Controllers\Api\MobileStaffController;
+use App\Http\Controllers\Api\MobileAppPublicController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,14 +18,24 @@ Route::prefix('v1')->group(function () {
     Route::prefix('doctor')->group(function () {
         Route::post('/auth/login', [MobileDoctorController::class, 'login'])->middleware('throttle:12,1');
         Route::post('/auth/two-factor', [MobileDoctorController::class, 'verifyTwoFactor'])->middleware('throttle:12,1');
+        Route::get('/auth/register-meta', [MobileDoctorController::class, 'registerMeta'])->middleware('throttle:30,1');
+        Route::get('/auth/register-meta/ilceler', [MobileDoctorController::class, 'registerMetaIlceler'])->middleware('throttle:60,1');
+        Route::post('/auth/register', [MobileDoctorController::class, 'register'])->middleware('throttle:8,1');
+        Route::post('/auth/forgot-password', [MobileDoctorController::class, 'forgotPassword'])->middleware('throttle:8,1');
+        Route::post('/auth/reset-password', [MobileDoctorController::class, 'resetPassword'])->middleware('throttle:8,1');
 
         Route::middleware('doktor.mobile')->group(function () {
+            Route::post('/packages/subscribe', [MobileDoctorController::class, 'subscribePackage']);
+            Route::post('/packages/prefer', [MobileDoctorController::class, 'preferPackage']);
+            Route::post('/packages/iap-confirm', [MobileDoctorController::class, 'confirmIapPurchase']);
             // Auth / profile basics
             Route::get('/auth/me', [MobileDoctorController::class, 'me']);
             Route::post('/auth/logout', [MobileDoctorController::class, 'logout']);
             Route::post('/auth/device', [MobileDoctorController::class, 'registerDevice']);
             Route::get('/notifications', [MobileDoctorController::class, 'notifications']);
             Route::post('/notifications/read', [MobileDoctorController::class, 'markNotificationsRead']);
+            Route::delete('/notifications', [MobileDoctorController::class, 'destroyAllNotifications']);
+            Route::delete('/notifications/{id}', [MobileDoctorController::class, 'destroyNotification']);
             Route::get('/profile', [MobileDoctorController::class, 'profile']);
             Route::put('/profile', [MobileDoctorController::class, 'updateProfile']);
             Route::get('/meta', [MobileDoctorController::class, 'meta']);
@@ -108,6 +120,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('/appointments/{id}', [MobileDoctorController::class, 'destroyAppointment'])->whereNumber('id');
             Route::post('/appointments/{id}/reschedule', [MobileDoctorController::class, 'rescheduleAppointment'])->whereNumber('id');
             Route::post('/appointments/{id}/status', [MobileDoctorController::class, 'updateAppointmentStatus'])->whereNumber('id');
+            Route::get('/appointments/{id}/meeting', [MobileDoctorController::class, 'meetingSession'])->whereNumber('id');
+            Route::match(['get', 'post'], '/appointments/{id}/meeting/signal', [MobileDoctorController::class, 'meetingSignal'])->whereNumber('id');
             Route::get('/requests', [MobileDoctorPortalController::class, 'requests']);
 
             // Patients
@@ -200,6 +214,40 @@ Route::prefix('v1')->group(function () {
             Route::get('/finance/balances', [MobileDoctorPortalController::class, 'patientBalances']);
         });
     });
+
+    // Klinik personel (sekreter / resepsiyon / muhasebe) — aynı mobil uygulama
+    Route::prefix('staff')->group(function () {
+        Route::post('/auth/login', [MobileStaffController::class, 'login'])->middleware('throttle:12,1');
+
+        Route::middleware('personel.mobile')->group(function () {
+            Route::get('/auth/me', [MobileStaffController::class, 'me']);
+            Route::post('/auth/logout', [MobileStaffController::class, 'logout']);
+            Route::post('/auth/device', [MobileStaffController::class, 'registerDevice']);
+            Route::put('/auth/password', [MobileStaffController::class, 'updatePassword']);
+            Route::get('/dashboard', [MobileStaffController::class, 'dashboard']);
+            Route::get('/doctors', [MobileStaffController::class, 'doctors']);
+            Route::get('/appointments', [MobileStaffController::class, 'appointments']);
+            Route::get('/doctor-meta', [MobileStaffController::class, 'doctorMeta']);
+            Route::post('/appointments', [MobileStaffController::class, 'storeAppointment']);
+            Route::post('/appointments/{id}/reschedule', [MobileStaffController::class, 'rescheduleAppointment'])->whereNumber('id');
+            Route::put('/appointments/{id}', [MobileStaffController::class, 'updateAppointment'])->whereNumber('id');
+            Route::post('/appointments/{id}/cancel', [MobileStaffController::class, 'cancelAppointment'])->whereNumber('id');
+            Route::get('/requests', [MobileStaffController::class, 'requests']);
+            Route::post('/requests/{id}/approve', [MobileStaffController::class, 'approveRequest'])->whereNumber('id');
+            Route::post('/requests/{id}/reject', [MobileStaffController::class, 'rejectRequest'])->whereNumber('id');
+            Route::get('/patients', [MobileStaffController::class, 'patients']);
+            Route::post('/patients', [MobileStaffController::class, 'storePatient']);
+            Route::get('/patients/{id}', [MobileStaffController::class, 'showPatient'])->whereNumber('id');
+            Route::get('/payments', [MobileStaffController::class, 'payments']);
+            Route::post('/payments', [MobileStaffController::class, 'storePayment']);
+            Route::delete('/payments/{id}', [MobileStaffController::class, 'destroyPayment'])->whereNumber('id');
+        });
+    });
+
+    // Public app helpers (onboarding rating feedback + package catalog for IAP)
+    Route::post('/app/rating-feedback', [MobileAppPublicController::class, 'ratingFeedback'])->middleware('throttle:12,1');
+    Route::get('/app/packages-catalog', [MobileAppPublicController::class, 'packagesCatalog'])->middleware('throttle:30,1');
+    Route::post('/app/revenuecat-webhook', [MobileAppPublicController::class, 'revenueCatWebhook'])->middleware('throttle:120,1');
 
     Route::post('/auth/login', [MobilePatientController::class, 'login'])->middleware('throttle:12,1');
     Route::post('/auth/register', [MobilePatientController::class, 'register'])->middleware('throttle:8,1');

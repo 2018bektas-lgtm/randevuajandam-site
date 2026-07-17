@@ -18,6 +18,7 @@ use App\Http\Controllers\Frontend\KlinikDuyuruController;
 use App\Http\Controllers\Frontend\KlinikHastaController;
 use App\Http\Controllers\Frontend\KlinikProfilController;
 use App\Http\Controllers\Frontend\KlinikRandevuController;
+use App\Http\Controllers\Frontend\LegalController;
 use App\Http\Controllers\Frontend\PaketController;
 use App\Http\Controllers\Frontend\PersonelAuthController;
 use App\Http\Controllers\Frontend\PersonelHastaController;
@@ -56,6 +57,11 @@ Route::post('/2fa/iptal', [\App\Http\Controllers\TwoFactorController::class, 'ch
 Route::get('/paketler', [PaketController::class, 'index'])->name('frontend.paketler');
 Route::get('/doktorlar', [HekimController::class, 'doktorlarListesi'])->name('frontend.hekimler');
 Route::get('/blog', [HekimController::class, 'bloglarListesi'])->name('frontend.blog.index');
+
+// Yasal sayfalar (mobil + mağaza incelemesi)
+Route::get('/gizlilik-politikasi', [LegalController::class, 'gizlilik'])->name('frontend.legal.gizlilik');
+Route::get('/kullanim-kosullari', [LegalController::class, 'kullanim'])->name('frontend.legal.kullanim');
+Route::get('/kvkk', [LegalController::class, 'kvkk'])->name('frontend.legal.kvkk');
 
 // Patient Guest Routes (Hasta Ziyaretçi Rotaları)
 Route::middleware('guest:hasta')->group(function () {
@@ -157,6 +163,10 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     Route::get('/hekim/gorusme/{id}', [\App\Http\Controllers\Frontend\GorusmeJoinController::class, 'hekimJoin'])
         ->whereNumber('id')
         ->name('hekim.gorusme.join');
+    // Mobil uygulama içi WebView (access_token ile, tarayıcıya çıkmadan)
+    Route::get('/hekim/gorusme/{id}/app', [\App\Http\Controllers\Frontend\GorusmeJoinController::class, 'hekimJoinApp'])
+        ->whereNumber('id')
+        ->name('hekim.gorusme.app');
     Route::match(['get', 'post'], '/hekim/gorusme/{id}/signal', [\App\Http\Controllers\Frontend\GorusmeJoinController::class, 'signalById'])
         ->whereNumber('id')
         ->middleware('throttle:120,1')

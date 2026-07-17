@@ -3,45 +3,42 @@
 namespace App\Notifications;
 
 use App\Models\Doktor;
+use App\Notifications\Concerns\NotifiesDoktorApp;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class DoktorKatildiBildirimi extends Notification
 {
+    use NotifiesDoktorApp;
     use Queueable;
 
-    protected $doktor;
+    public function __construct(public Doktor $doktor) {}
 
     /**
-     * Create a new notification instance.
-     */
-    public function __construct(Doktor $doktor)
-    {
-        $this->doktor = $doktor;
-    }
-
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
+     * @return array<int, string|class-string>
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return $this->doktorAppChannels();
     }
 
     /**
-     * Get the array representation of the notification.
-     *
      * @return array<string, mixed>
      */
     public function toArray(object $notifiable): array
     {
+        $ad = ($this->doktor->unvan ? $this->doktor->unvan.' ' : '').$this->doktor->ad_soyad;
+
         return [
+            'type' => 'doktor_katildi',
             'doktor_id' => $this->doktor->id,
             'doktor_ad_soyad' => $this->doktor->ad_soyad,
-            'mesaj' => ($this->doktor->unvan ? $this->doktor->unvan . ' ' : '') . $this->doktor->ad_soyad . ' kliniğinize katıldı!',
+            'title' => 'Yeni hekim katıldı',
+            'body' => $ad.' kliniğinize katıldı',
+            'baslik' => 'Yeni hekim katıldı',
+            'mesaj' => $ad.' kliniğinize katıldı!',
             'link' => route('hekim.klinik.doktorlar'),
+            'deep_link' => 'randevuajandam-doktor://clinic',
         ];
     }
 }
