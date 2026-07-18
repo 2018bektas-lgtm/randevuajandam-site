@@ -332,6 +332,64 @@ class HekimController extends Controller
     }
 
     /**
+     * Public day slots for profile booking wizard (bos + dolu).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function publicSlots(Request $request, int $id, \App\Services\SlotService $slotService)
+    {
+        $doktor = Doktor::platformdaListelenen()->findOrFail($id);
+        $request->validate(['tarih' => ['required', 'date_format:Y-m-d']]);
+
+        $tarih = \Carbon\Carbon::parse($request->string('tarih')->toString())->startOfDay();
+        $periyot = $slotService->getPeriyot($doktor);
+
+        $randevular = $doktor->randevular()
+            ->whereDate('tarih', $tarih->toDateString())
+            ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
+            ->get();
+
+        $izinler = method_exists($doktor, 'izinler')
+            ? $doktor->izinler()->get()
+            : collect();
+
+        $gunluk = $slotService->generateGunlukSlotlar($doktor, $tarih, $randevular, $izinler, $periyot);
+
+        $slots = collect($gunluk)
+            ->filter(fn ($s) => is_array($s))
+            ->map(function ($s) {
+                $saat = substr((string) ($s['saat_string'] ?? $s['saat_baslangic'] ?? ''), 0, 5);
+                $durum = (string) ($s['durum'] ?? 'bos');
+
+                return [
+                    'saat' => $saat,
+                    'durum' => $durum,
+                    'musait' => $durum === 'bos',
+                    'etiket' => match ($durum) {
+                        'bos' => 'Müsait',
+                        'dolu' => 'Dolu',
+                        'ogle' => 'Öğle',
+                        'izin' => 'İzin',
+                        default => $durum,
+                    },
+                ];
+            })
+            ->filter(fn ($s) => $s['saat'] !== '')
+            // Öğle aralarını listede gösterme (sadece dolu + müsait + izin)
+            ->filter(fn ($s) => $s['durum'] !== 'ogle')
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'tarih' => $tarih->toDateString(),
+                'slots' => $slots,
+                'kapali' => $slots->isEmpty(),
+            ],
+        ]);
+    }
+
+    /**
      * Header spotlight JSON arama: /doktorlar/arama?q=
      *
      * @return \Illuminate\Http\JsonResponse
@@ -440,9 +498,19 @@ class HekimController extends Controller
             $q->where('branslar.id', $brans->id);
         });
 
-        $doktor = $query->with(['paket', 'il', 'ilce', 'bloglar' => function ($q) {
-            $q->where('aktif_mi', true)->latest();
-        }])->firstOrFail();
+        $doktor = $query->with([
+            'paket',
+            'il',
+            'ilce',
+            'branslar',
+            'hizmetler',
+            'calismaSaatleri',
+            'randevuAyari',
+            'galeriler',
+            'bloglar' => function ($q) {
+                $q->where('aktif_mi', true)->latest();
+            },
+        ])->firstOrFail();
 
         if (! $doktor->isListedOnPlatform()) {
             abort(404, 'Bu hekim profili platform vitrininde yayınlanmıyor.');

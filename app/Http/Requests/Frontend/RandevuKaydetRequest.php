@@ -29,6 +29,7 @@ class RandevuKaydetRequest extends FormRequest
             'tarih' => ['required', 'date', 'after_or_equal:today'],
             'saat' => ['required', 'date_format:H:i'],
             'not' => ['nullable', 'string', 'max:1000'],
+            'gorusme_tipi' => ['nullable', 'in:yuz_yuze,online'],
         ];
     }
 

@@ -227,6 +227,7 @@ class HastaController extends Controller
                 'saat' => $request->saat,
                 'not' => $request->not,
                 'durum' => $onayTipi,
+                'gorusme_tipi' => $request->input('gorusme_tipi', 'yuz_yuze'),
             ]);
         } catch (InvalidArgumentException $e) {
             return redirect()->back()->withInput()->with('hata', $e->getMessage());

@@ -242,6 +242,9 @@
             <div class="absolute right-0 bottom-0 top-0 w-1/4 bg-gradient-to-l from-[#FFF7ED]/20 to-transparent pointer-events-none"></div>
         </div>
 
+        {{-- Kimlik kartı ile sekmeler arasında: adım adım randevu sihirbazı --}}
+        @include('frontend.hekimler.partials.randevu_wizard', ['doktor' => $doktor])
+
         <!-- Details & Booking Layout Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -713,217 +716,22 @@
 
             </div>
 
-            <!-- Right Column: Booking Form and Timetable -->
+            <!-- Right Column: shortcut + timetable -->
             <div class="space-y-8">
 
                 @if($doktor->randevuya_acik_mi)
-                    @if(Auth::guard('hasta')->check())
-                        <!-- Online Booking Form (Real) -->
-                        <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-md relative overflow-hidden">
-                            <h3 class="text-sm font-bold uppercase tracking-wider text-[#1F2937] font-display border-b border-slate-100 pb-3.5 mb-4">
-                                Online Randevu Planla
-                            </h3>
-
-                            @if(session('basarili'))
-                                <div class="p-3 mb-4 bg-emerald-50 border border-emerald-100 rounded-xl text-[11px] text-emerald-700 font-medium">
-                                    {{ session('basarili') }}
-                                </div>
-                            @endif
-
-                            @if(session('hata'))
-                                <div class="p-3 mb-4 bg-red-50 border border-red-100 rounded-xl text-[11px] text-red-700 font-medium">
-                                    {{ session('hata') }}
-                                </div>
-                            @endif
-
-                            <form action="{{ route('frontend.hasta.randevu.kaydet') }}" method="POST" class="space-y-4">
-                                @csrf
-                                <input type="hidden" name="doktor_id" value="{{ $doktor->id }}">
-
-                                <!-- Select Service -->
-                                @if($doktor->hizmetler->isNotEmpty())
-                                    <div class="space-y-1">
-                                        <label for="p_hizmet" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Almak İstediğiniz Hizmet</label>
-                                        <select id="p_hizmet" name="hizmet_id" required
-                                                class="w-full px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
-                                            <option value="" disabled selected>Hizmet Seçin...</option>
-                                            @foreach($doktor->hizmetler as $hizmet)
-                                                @if($hizmet->aktif_mi)
-                                                    <option value="{{ $hizmet->id }}" {{ old('hizmet_id') == $hizmet->id ? 'selected' : '' }}>{{ $hizmet->ad }} ({{ $hizmet->sure }} dk)</option>
-                                                @endif
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                @endif
-
-                                <!-- Confirm Patient Data -->
-                                <div class="p-3 bg-slate-50 border border-slate-100 rounded-2xl space-y-1 text-xs">
-                                    <p class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider font-display">Randevu Sahibi</p>
-                                    <p class="font-bold text-[#111827]">{{ Auth::guard('hasta')->user()->ad_soyad }}</p>
-                                    <p class="text-[10px] text-[#6B7280]">{{ Auth::guard('hasta')->user()->telefon }} • {{ Auth::guard('hasta')->user()->e_posta }}</p>
-                                </div>
-
-                                <!-- Date -->
-                                <div class="space-y-1">
-                                    <label for="p_tarih" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Tercih Edilen Tarih</label>
-                                    <input type="date" name="tarih" id="p_tarih" required value="{{ old('tarih', date('Y-m-d', strtotime('+1 day'))) }}" min="{{ date('Y-m-d') }}"
-                                           class="w-full px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
-                                </div>
-
-                                <!-- Time Slot -->
-                                <div class="space-y-1">
-                                    <label for="p_saat" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Tercih Edilen Saat</label>
-                                    <select name="saat" id="p_saat" required
-                                            class="w-full px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
-                                        <option value="" disabled selected>Önce Tarih Seçin...</option>
-                                    </select>
-                                </div>
-
-                                <!-- Notes -->
-                                <div class="space-y-1">
-                                    <label for="p_not" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Şikayet / Not (Opsiyonel)</label>
-                                    <textarea id="p_not" name="not" rows="2" placeholder="Şikayetiniz veya belirtmek istediğiniz notlar..."
-                                              class="w-full px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all resize-none">{{ old('not') }}</textarea>
-                                </div>
-
-                                <!-- Submit Button -->
-                                <button type="submit"
-                                        class="w-full py-3.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
-                                    Randevu Talebi Oluştur
-                                </button>
-                            </form>
+                    <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-md relative overflow-hidden text-center space-y-3">
+                        <div class="w-11 h-11 mx-auto rounded-2xl bg-[#FFF7ED] border border-[#E7B58A]/40 text-[#C96A2B] flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
                         </div>
-                    @else
-                        <!-- Guest booking (no account required) -->
-                        <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-md relative overflow-hidden">
-                            <h3 class="text-sm font-bold uppercase tracking-wider text-[#1F2937] font-display border-b border-slate-100 pb-3.5 mb-4">
-                                Misafir Randevu (Kayıt Yok)
-                            </h3>
-                            <p class="text-[11px] text-[#6B7280] mb-4 leading-relaxed">
-                                Hesap oluşturmadan randevu talebi bırakabilirsiniz. İsterseniz sonra hesap açıp randevularınızı yönetebilirsiniz.
-                            </p>
-
-                            @if(session('basarili'))
-                                <div class="p-3 mb-4 bg-emerald-50 border border-emerald-100 rounded-xl text-[11px] text-emerald-700 font-medium">
-                                    {{ session('basarili') }}
-                                </div>
-                            @endif
-                            @if(session('hata'))
-                                <div class="p-3 mb-4 bg-red-50 border border-red-100 rounded-xl text-[11px] text-red-700 font-medium">
-                                    {{ session('hata') }}
-                                </div>
-                            @endif
-
-                            <form action="{{ route('frontend.hasta.randevu.misafir') }}" method="POST" class="space-y-4" id="misafir-randevu-form">
-                                @csrf
-                                <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
-                                <input type="hidden" name="doktor_id" value="{{ $doktor->id }}">
-                                {{-- Honeypot --}}
-                                <div class="hidden" aria-hidden="true">
-                                    <input type="text" name="{{ config('randevu.honeypot_field', 'website_url') }}" value="" tabindex="-1" autocomplete="off">
-                                </div>
-
-                                @if($doktor->hizmetler->isNotEmpty())
-                                    <div class="space-y-1">
-                                        <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet</label>
-                                        <select name="hizmet_id" required
-                                                class="w-full px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] text-xs">
-                                            <option value="" disabled selected>Hizmet Seçin...</option>
-                                            @foreach($doktor->hizmetler as $hizmet)
-                                                @if($hizmet->aktif_mi)
-                                                    <option value="{{ $hizmet->id }}" @selected(old('hizmet_id') == $hizmet->id)>{{ $hizmet->ad }} ({{ $hizmet->sure }} dk)</option>
-                                                @endif
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                @endif
-
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="space-y-1">
-                                        <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Ad</label>
-                                        <input type="text" name="ad" required value="{{ old('ad') }}"
-                                               class="w-full px-3.5 py-2 rounded-xl border border-[#E5E7EB] text-xs focus:border-[#C96A2B] focus:outline-none">
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Soyad</label>
-                                        <input type="text" name="soyad" required value="{{ old('soyad') }}"
-                                               class="w-full px-3.5 py-2 rounded-xl border border-[#E5E7EB] text-xs focus:border-[#C96A2B] focus:outline-none">
-                                    </div>
-                                </div>
-
-                                <div class="space-y-1">
-                                    <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Telefon</label>
-                                    <input type="tel" name="telefon" required value="{{ old('telefon') }}" placeholder="05xx xxx xx xx"
-                                           class="w-full px-3.5 py-2 rounded-xl border border-[#E5E7EB] text-xs focus:border-[#C96A2B] focus:outline-none">
-                                </div>
-
-                                <div class="space-y-1">
-                                    <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">E-posta (opsiyonel)</label>
-                                    <input type="email" name="e_posta" value="{{ old('e_posta') }}"
-                                           class="w-full px-3.5 py-2 rounded-xl border border-[#E5E7EB] text-xs focus:border-[#C96A2B] focus:outline-none">
-                                </div>
-
-                                <div class="space-y-1">
-                                    <label for="g_tarih" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Tarih</label>
-                                    <input type="date" name="tarih" id="g_tarih" required value="{{ old('tarih', date('Y-m-d', strtotime('+1 day'))) }}" min="{{ date('Y-m-d') }}"
-                                           class="w-full px-3.5 py-2 rounded-xl border border-[#E5E7EB] text-xs focus:border-[#C96A2B] focus:outline-none">
-                                </div>
-
-                                <div class="space-y-1">
-                                    <label for="g_saat" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Saat</label>
-                                    <select name="saat" id="g_saat" required
-                                            class="w-full px-3.5 py-2 rounded-xl border border-[#E5E7EB] text-xs focus:border-[#C96A2B] focus:outline-none">
-                                        <option value="" disabled selected>Önce tarih seçin...</option>
-                                    </select>
-                                </div>
-
-                                <div class="space-y-1">
-                                    <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Not (opsiyonel)</label>
-                                    <textarea name="not" rows="2" class="w-full px-3.5 py-2 rounded-xl border border-[#E5E7EB] text-xs focus:border-[#C96A2B] focus:outline-none resize-none">{{ old('not') }}</textarea>
-                                </div>
-
-                                @php $onlineGorusmeAcik = $doktor->aktifPaket()?->hasFeature('online_gorusme'); @endphp
-                                @if($onlineGorusmeAcik)
-                                    <div class="space-y-2 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-                                        <span class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Görüşme türü</span>
-                                        <label class="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
-                                            <input type="radio" name="gorusme_tipi" value="yuz_yuze" @checked(old('gorusme_tipi', 'yuz_yuze') === 'yuz_yuze') class="text-[#C96A2B]">
-                                            Yüz yüze
-                                        </label>
-                                        <label class="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
-                                            <input type="radio" name="gorusme_tipi" value="online" @checked(old('gorusme_tipi') === 'online') class="text-[#C96A2B]">
-                                            Online — sitemiz üzerinden görüntülü (Zoom yok)
-                                        </label>
-                                        <p class="text-[10px] text-slate-500 leading-relaxed">Online seçerseniz onay sonrası görüşme odası otomatik açılır; katılım linki SMS/e-posta ve randevu yönetim sayfanızda yer alır.</p>
-                                    </div>
-                                @else
-                                    <input type="hidden" name="gorusme_tipi" value="yuz_yuze">
-                                @endif
-
-                                <label class="flex items-start gap-2 text-[11px] text-slate-600 cursor-pointer">
-                                    <input type="checkbox" name="kvkk_onay" value="1" required class="mt-0.5">
-                                    <span>Kişisel verilerimin randevu amacıyla işlenmesini kabul ediyorum.</span>
-                                </label>
-
-                                <button type="submit"
-                                        class="w-full py-3.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all font-display">
-                                    Randevu Talebi Oluştur
-                                </button>
-                            </form>
-
-                            <div class="pt-4 mt-4 border-t border-slate-100 flex flex-col gap-2">
-                                <p class="text-[10px] text-center text-slate-400">Zaten hesabınız var mı?</p>
-                                <a href="{{ route('frontend.hasta.giris') }}" class="w-full py-2.5 border border-[#E5E7EB] hover:bg-slate-50 text-[#1F2937] font-bold text-xs uppercase tracking-wider rounded-xl text-center font-display">
-                                    Giriş Yap
-                                </a>
-                            </div>
-                        </div>
-                    @endif
-
-                    <!-- Bekleme listesi (uygun slot yoksa / iptal sonrası) -->
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-[#1F2937] font-display">Randevu Al</h3>
+                        <p class="text-[11px] text-[#6B7280] leading-relaxed">Hizmet, tarih ve saati adım adım seçmek için üstteki randevu alanını kullanın.</p>
+                        <a href="#randevu-wizard" class="inline-flex w-full items-center justify-center py-3 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider font-display transition-all">
+                            Randevu Adımlarına Git
+                        </a>
+                    </div>
                     @include('frontend.hekimler.partials.bekleme_listesi_form', ['doktor' => $doktor])
                 @else
-                    <!-- Online Booking Closed / Contact Info Widget -->
                     <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-md relative overflow-hidden text-center space-y-4">
                         <div class="w-12 h-12 bg-amber-50 text-[#C96A2B] rounded-2xl flex items-center justify-center mx-auto border border-[#E7B58A]/30">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -931,9 +739,7 @@
                             </svg>
                         </div>
                         <div class="space-y-1">
-                            <h3 class="text-sm font-bold uppercase tracking-wider text-[#1F2937] font-display">
-                                Randevu Al
-                            </h3>
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-[#1F2937] font-display">Randevu Al</h3>
                             <p class="text-xs text-[#6B7280] leading-relaxed">
                                 Hekimimiz online randevu alımına geçici olarak kapalıdır. Randevu bilgisi ve detaylar için lütfen iletişime geçiniz.
                             </p>
@@ -942,9 +748,6 @@
                             <p class="text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">İLETİŞİME GEÇ</p>
                             @if($doktor->telefon)
                                 <a href="tel:{{ $doktor->telefon }}" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all font-display">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.622l1.5-1.5a2.25 2.25 0 013.182 0l1.287 1.287a2.25 2.25 0 010 3.182l-1.07 1.07a11.94 11.94 0 005.176 5.176l1.07-1.07a2.25 2.25 0 013.182 0l1.287 1.287a2.25 2.25 0 010 3.182l-2.872 2.872a2.25 2.25 0 01-3.182 0C5.172 18.828 2.25 11.895 2.25 6.622z"></path>
-                                    </svg>
                                     {{ $doktor->telefon }}
                                 </a>
                             @endif
@@ -953,7 +756,6 @@
                             </a>
                         </div>
                     </div>
-
                     @include('frontend.hekimler.partials.bekleme_listesi_form', ['doktor' => $doktor])
                 @endif
 
@@ -1061,87 +863,10 @@
             container.classList.add('scale-95', 'opacity-0');
             setTimeout(() => {
                 modal.classList.add('hidden');
-                document.getElementById('randevuForm').reset();
+                const f = document.getElementById('randevuForm');
+                if (f) f.reset();
             }, 300);
         }
-    }
-
-    const calismaSaatleri = @json($doktor->calismaSaatleri);
-    const periyot = {{ $doktor->randevuAyari ? $doktor->randevuAyari->randevu_periyodu : 30 }};
-
-    function generateTimeSlotsFor(dateInputId, saatSelectId) {
-        const dateInput = document.getElementById(dateInputId);
-        const saatSelect = document.getElementById(saatSelectId);
-        if (!dateInput || !saatSelect) return;
-
-        const selectedDateVal = dateInput.value;
-        if (!selectedDateVal) {
-            saatSelect.innerHTML = '<option value="" disabled selected>Önce Tarih Seçin...</option>';
-            return;
-        }
-
-        const selectedDate = new Date(selectedDateVal);
-        let dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-        let dbDay = dayOfWeek === 0 ? 7 : dayOfWeek; // 1 = Pazartesi, 7 = Pazar
-
-        const cs = calismaSaatleri.find(item => Number(item.gun) === Number(dbDay));
-
-        if (!cs || !cs.aktif_mi) {
-            saatSelect.innerHTML = '<option value="" disabled selected>Hekim Bu Gün Çalışmamaktadır</option>';
-            return;
-        }
-
-        function timeToMins(timeStr) {
-            const parts = timeStr.split(':');
-            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-        }
-
-        function minsToTime(mins) {
-            const h = Math.floor(mins / 60).toString().padStart(2, '0');
-            const m = (mins % 60).toString().padStart(2, '0');
-            return `${h}:${m}`;
-        }
-
-        const startMins = timeToMins(cs.mesai_baslangic);
-        const endMins = timeToMins(cs.mesai_bitis);
-        const lunchStart = cs.ogle_arasi_aktif_mi && cs.ogle_baslangic ? timeToMins(cs.ogle_baslangic) : null;
-        const lunchEnd = cs.ogle_arasi_aktif_mi && cs.ogle_bitis ? timeToMins(cs.ogle_bitis) : null;
-
-        let current = startMins;
-        saatSelect.innerHTML = '<option value="" disabled selected>Saat Seçin...</option>';
-
-        while (current < endMins) {
-            let slotEnd = current + periyot;
-            if (slotEnd > endMins) {
-                break;
-            }
-
-            let isLunch = false;
-            if (lunchStart !== null && lunchEnd !== null) {
-                if (current >= lunchStart && current < lunchEnd) {
-                    isLunch = true;
-                }
-            }
-
-            if (!isLunch) {
-                const timeStr = minsToTime(current);
-                const opt = document.createElement('option');
-                opt.value = timeStr;
-                opt.textContent = timeStr;
-                saatSelect.appendChild(opt);
-            }
-
-            current += periyot;
-        }
-
-        if (saatSelect.options.length <= 1) {
-            saatSelect.innerHTML = '<option value="" disabled selected>Bu Güne Müsait Saat Bulunmuyor</option>';
-        }
-    }
-
-    function generateTimeSlots() {
-        generateTimeSlotsFor('p_tarih', 'p_saat');
-        generateTimeSlotsFor('g_tarih', 'g_saat');
     }
 
     // Close on overlay click
@@ -1154,18 +879,6 @@
                 }
             });
         }
-
-        const dateInput = document.getElementById('p_tarih');
-        if (dateInput) {
-            dateInput.addEventListener('change', function () { generateTimeSlotsFor('p_tarih', 'p_saat'); });
-            generateTimeSlotsFor('p_tarih', 'p_saat');
-        }
-        const guestDate = document.getElementById('g_tarih');
-        if (guestDate) {
-            guestDate.addEventListener('change', function () { generateTimeSlotsFor('g_tarih', 'g_saat'); });
-            generateTimeSlotsFor('g_tarih', 'g_saat');
-        }
-
     });
 
     // Detail page map initialization
@@ -1249,27 +962,5 @@
         }
     };
 
-    // reCAPTCHA v3 — misafir randevu formu
-    (function () {
-        var form = document.getElementById('misafir-randevu-form');
-        if (!form) return;
-        form.addEventListener('submit', function (e) {
-            if (form.dataset.rcOk === '1') return;
-            e.preventDefault();
-            var tokenInput = document.getElementById('recaptcha_token');
-            var btn = form.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; btn.dataset.old = btn.textContent; btn.textContent = 'Doğrulanıyor…'; }
-            var done = function (token) {
-                if (tokenInput) tokenInput.value = token || '';
-                form.dataset.rcOk = '1';
-                form.submit();
-            };
-            if (typeof window.raGetRecaptchaToken === 'function') {
-                window.raGetRecaptchaToken('randevu').then(done).catch(function () { done(''); });
-            } else {
-                done('');
-            }
-        });
-    })();
 </script>
 @endsection
