@@ -57,45 +57,54 @@ class BektasOzcetinSeeder extends Seeder
 
         $profilPath = $this->ensureImage('uploads/profil/bektas_ozcetin_profil.jpg', [201, 106, 43], 'Bektaş Özçetin');
 
-        $doktor = Doktor::query()->updateOrCreate(
-            ['e_posta' => $email],
-            [
-                'ad_soyad' => $adSoyad,
-                'sifre' => $sifre,
-                'telefon' => $telefon,
-                'il_id' => $istanbul?->id,
-                'ilce_id' => $ilce?->id,
-                'tur' => 'bireysel',
-                'klinik_adi' => 'Özçetin Sağlık Danışmanlığı',
-                'paket_id' => $paket?->id,
-                'odeme_periyodu' => 'yillik',
-                'uyelik_baslangic' => now()->subMonth(),
-                'uyelik_bitis' => now()->addYear(),
-                'aktif_mi' => true,
-                'platformda_gorunur' => true,
-                'unvan' => 'Uzm. Dr.',
-                'uzmanlik_alani' => 'Aile Hekimliği, İç Hastalıkları',
-                'mezuniyet' => [
-                    'İstanbul Üniversitesi İstanbul Tıp Fakültesi (2008)',
-                    'Aile Hekimliği Uzmanlığı - İstanbul (2013)',
-                    'İç Hastalıkları Yan Dal Programı (2016)',
-                ],
-                'biyografi' => '<p><strong>Uzm. Dr. Bektaş Özçetin</strong>, koruyucu hekimlik ve hasta odaklı yaklaşımıyla bireysel sağlık takibinde hizmet verir.</p>'
-                    .'<p>Kronik hastalık yönetimi, check-up planlaması ve yaşam tarzı danışmanlığı alanlarında kapsamlı değerlendirme sunar. '
-                    .'Randevu Ajandam üzerinden online randevu alabilir, yüz yüze veya online görüşme tercih edebilirsiniz.</p>'
-                    .'<p>Her hastanın ihtiyacını dinlemek, anlaşılır bilgilendirme yapmak ve sürdürülebilir bir sağlık planı oluşturmak önceliğimizdir.</p>',
-                'adres' => 'Caferağa Mah. Moda Cad. No:42, Kadıköy / İstanbul',
-                'enlem' => 40.9878,
-                'boylam' => 29.0255,
-                'profil_resmi' => $profilPath,
-                'instagram' => 'bektasozcetin',
-                'facebook' => 'bektasozcetin',
-                'twitter' => 'bektasozcetin',
-                'linkedin' => 'bektas-ozcetin',
-                'youtube' => '',
-                'web_sitesi' => 'https://randevuajandam.com',
-            ]
-        );
+        $payload = [
+            'ad_soyad' => $adSoyad,
+            'sifre' => $sifre,
+            'telefon' => $telefon,
+            'il_id' => $istanbul?->id,
+            'ilce_id' => $ilce?->id,
+            'tur' => 'bireysel',
+            'klinik_adi' => 'Özçetin Sağlık Danışmanlığı',
+            'paket_id' => $paket?->id,
+            'odeme_periyodu' => 'yillik',
+            'uyelik_baslangic' => now()->subMonth(),
+            'uyelik_bitis' => now()->addYear(),
+            'aktif_mi' => true,
+            'platformda_gorunur' => true,
+            'unvan' => 'Uzm. Dr.',
+            'uzmanlik_alani' => 'Aile Hekimliği, İç Hastalıkları',
+            'mezuniyet' => [
+                'İstanbul Üniversitesi İstanbul Tıp Fakültesi (2008)',
+                'Aile Hekimliği Uzmanlığı - İstanbul (2013)',
+                'İç Hastalıkları Yan Dal Programı (2016)',
+            ],
+            'biyografi' => '<p><strong>Uzm. Dr. Bektaş Özçetin</strong>, koruyucu hekimlik ve hasta odaklı yaklaşımıyla bireysel sağlık takibinde hizmet verir.</p>'
+                .'<p>Kronik hastalık yönetimi, check-up planlaması ve yaşam tarzı danışmanlığı alanlarında kapsamlı değerlendirme sunar. '
+                .'Randevu Ajandam üzerinden online randevu alabilir, yüz yüze veya online görüşme tercih edebilirsiniz.</p>'
+                .'<p>Her hastanın ihtiyacını dinlemek, anlaşılır bilgilendirme yapmak ve sürdürülebilir bir sağlık planı oluşturmak önceliğimizdir.</p>',
+            'adres' => 'Caferağa Mah. Moda Cad. No:42, Kadıköy / İstanbul',
+            'enlem' => 40.9878,
+            'boylam' => 29.0255,
+            'profil_resmi' => $profilPath,
+            'instagram' => 'bektasozcetin',
+            'facebook' => 'bektasozcetin',
+            'twitter' => 'bektasozcetin',
+            'linkedin' => 'bektas-ozcetin',
+            'youtube' => '',
+            'web_sitesi' => 'https://randevuajandam.com',
+        ];
+
+        // Soft-deleted kayıt da unique e_posta tutar → withTrashed ile bul / restore et
+        $doktor = Doktor::withTrashed()->where('e_posta', $email)->first();
+        if ($doktor) {
+            if ($doktor->trashed()) {
+                $doktor->restore();
+            }
+            $doktor->fill($payload);
+            $doktor->save();
+        } else {
+            $doktor = Doktor::query()->create(array_merge(['e_posta' => $email], $payload));
+        }
 
         $bransIds = [];
         foreach (['Aile Hekimliği', 'Dahiliye (İç Hastalıkları)', 'Genel Pratisyen'] as $bransAd) {
