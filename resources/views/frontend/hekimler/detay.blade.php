@@ -245,11 +245,8 @@
         {{-- Kimlik kartı ile sekmeler arasında: adım adım randevu sihirbazı --}}
         @include('frontend.hekimler.partials.randevu_wizard', ['doktor' => $doktor])
 
-        <!-- Details & Booking Layout Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            <!-- Left Column: Bio and Education -->
-            <div class="lg:col-span-2 space-y-6">
+        <!-- Details: Hakkımda / Hizmetler / Blog vb. (tam genişlik) -->
+        <div class="space-y-6">
 
                 @php
                     $aktifFaqs = $doktor->faqs()->aktif()->orderBy('sira')->get();
@@ -713,74 +710,6 @@
                         @endif
                     </div>
                 @endif
-
-            </div>
-
-            <!-- Right Column: shortcut + timetable -->
-            <div class="space-y-8">
-
-                @if($doktor->randevuya_acik_mi)
-                    <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-md relative overflow-hidden text-center space-y-3">
-                        <div class="w-11 h-11 mx-auto rounded-2xl bg-[#FFF7ED] border border-[#E7B58A]/40 text-[#C96A2B] flex items-center justify-center">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
-                        </div>
-                        <h3 class="text-sm font-bold uppercase tracking-wider text-[#1F2937] font-display">Randevu Al</h3>
-                        <p class="text-[11px] text-[#6B7280] leading-relaxed">Hizmet, tarih ve saati adım adım seçmek için üstteki randevu alanını kullanın.</p>
-                        <a href="#randevu-wizard" class="inline-flex w-full items-center justify-center py-3 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider font-display transition-all">
-                            Randevu Adımlarına Git
-                        </a>
-                    </div>
-                    @include('frontend.hekimler.partials.bekleme_listesi_form', ['doktor' => $doktor])
-                @else
-                    <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-md relative overflow-hidden text-center space-y-4">
-                        <div class="w-12 h-12 bg-amber-50 text-[#C96A2B] rounded-2xl flex items-center justify-center mx-auto border border-[#E7B58A]/30">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z"></path>
-                            </svg>
-                        </div>
-                        <div class="space-y-1">
-                            <h3 class="text-sm font-bold uppercase tracking-wider text-[#1F2937] font-display">Randevu Al</h3>
-                            <p class="text-xs text-[#6B7280] leading-relaxed">
-                                Hekimimiz online randevu alımına geçici olarak kapalıdır. Randevu bilgisi ve detaylar için lütfen iletişime geçiniz.
-                            </p>
-                        </div>
-                        <div class="pt-4 border-t border-slate-100 space-y-2">
-                            <p class="text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">İLETİŞİME GEÇ</p>
-                            @if($doktor->telefon)
-                                <a href="tel:{{ $doktor->telefon }}" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all font-display">
-                                    {{ $doktor->telefon }}
-                                </a>
-                            @endif
-                            <a href="mailto:{{ $doktor->e_posta }}" class="flex items-center justify-center gap-2 px-4 py-2.5 border border-[#E5E7EB] hover:bg-slate-50 text-[#1F2937] font-bold text-xs uppercase tracking-wider rounded-xl transition-all font-display">
-                                E-Posta ile İletişim
-                            </a>
-                        </div>
-                    </div>
-                    @include('frontend.hekimler.partials.bekleme_listesi_form', ['doktor' => $doktor])
-                @endif
-
-                <!-- Timetable card -->
-                <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-sm">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#1F2937] font-display border-b border-slate-100 pb-3 mb-4">
-                        Haftalık Çalışma Saatleri
-                    </h3>
-                    <div class="space-y-2 text-xs">
-                        @foreach($doktor->calismaSaatleri->sortBy('gun') as $cs)
-                            <div class="flex justify-between py-1 {{ !$loop->last ? 'border-b border-slate-50' : '' }}">
-                                <span class="text-[#6B7280]">{{ $cs->gun_adi }}</span>
-                                @if($cs->aktif_mi)
-                                    <span class="font-semibold text-[#111827]">
-                                        {{ substr($cs->mesai_baslangic, 0, 5) }} - {{ substr($cs->mesai_bitis, 0, 5) }}
-                                    </span>
-                                @else
-                                    <span class="font-bold text-red-500 uppercase">Kapalı</span>
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-            </div>
 
         </div>
 
