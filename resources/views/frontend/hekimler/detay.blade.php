@@ -273,9 +273,9 @@
                         </button>
                     @endif
                     @if($yayinEgitimler->isNotEmpty())
-                        <a href="{{ $egitimListeUrl }}" class="whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold border-transparent text-[#4B5563] hover:text-[#C96A2B] hover:border-slate-300">
+                        <button onclick="switchProfileTab('egitimler')" id="tab-btn-egitimler" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
                             Eğitimler
-                        </a>
+                        </button>
                     @endif
                     @if($doktor->galeriler->isNotEmpty())
                         <button onclick="switchProfileTab('galeri')" id="tab-btn-galeri" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
@@ -392,10 +392,10 @@
                                         <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/30 flex flex-col justify-between hover:border-[#E7B58A]/60 hover:shadow-sm transition-all duration-300 relative group/hizmet">
                                             <div class="flex items-start gap-4">
                                                 @if($hizmet->resim_url)
-                                                    <img src="{{ $hizmet->resim_url }}" alt="{{ $hizmet->ad }}" class="w-14 h-14 object-cover rounded-xl border border-slate-200/60 shadow-sm shrink-0">
+                                                    <img src="{{ $hizmet->resim_url }}" alt="{{ $hizmet->ad }}" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl border border-slate-200/60 shadow-sm shrink-0">
                                                 @else
-                                                    <div class="w-14 h-14 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center shrink-0 border border-[#E7B58A]/20">
-                                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center shrink-0 border border-[#E7B58A]/20">
+                                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                                         </svg>
                                                     </div>
@@ -430,6 +430,74 @@
                     </div>
                 @endif
 
+                <!-- Tab: Eğitimler -->
+                @if($yayinEgitimler->isNotEmpty())
+                    <div id="tab-content-egitimler" class="profile-tab-content space-y-8 hidden">
+                        <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 md:p-8 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <h3 class="text-lg font-bold font-display text-[#111827]">Eğitimler</h3>
+                                <span class="text-xs text-[#C96A2B] font-bold font-display uppercase tracking-wider bg-[#FFF7ED] px-2.5 py-1 rounded-full">
+                                    {{ $yayinEgitimler->count() }} Eğitim
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                @foreach($yayinEgitimler as $egitim)
+                                    <a href="{{ $egitim->url }}" class="p-4 rounded-2xl border border-slate-100 bg-slate-50/30 flex flex-col justify-between hover:border-[#E7B58A]/60 hover:shadow-sm transition-all duration-300 relative group/egitim block">
+                                        <div class="flex items-start gap-4">
+                                            @if($egitim->kapak)
+                                                <img src="{{ asset('storage/'.$egitim->kapak) }}" alt="{{ $egitim->baslik }}" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl border border-slate-200/60 shadow-sm shrink-0">
+                                            @else
+                                                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center shrink-0 border border-[#E7B58A]/20">
+                                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"></path>
+                                                    </svg>
+                                                </div>
+                                            @endif
+                                            <div class="space-y-0.5 flex-1 min-w-0">
+                                                @if($egitim->tip)
+                                                    <p class="text-[10px] font-semibold text-[#C96A2B] font-display uppercase tracking-wider">{{ $egitim->tip }}</p>
+                                                @endif
+                                                <h4 class="text-xs font-bold text-[#111827] font-display line-clamp-2 group-hover/egitim:text-[#C96A2B] transition-colors">
+                                                    {{ $egitim->baslik }}
+                                                </h4>
+                                                @if($egitim->ozet)
+                                                    <div class="text-[11px] text-[#6B7280] leading-relaxed mt-1.5 line-clamp-2">
+                                                        {{ strip_tags($egitim->ozet) }}
+                                                    </div>
+                                                @endif
+                                                <p class="text-[10px] text-[#6B7280] font-medium mt-1.5">
+                                                    {{ $egitim->baslangic_at?->format('d.m.Y') ?? 'Tarih yakında' }}
+                                                    @if($egitim->fiyat !== null && (float)$egitim->fiyat > 0)
+                                                        · {{ number_format((float)$egitim->fiyat, 0, ',', '.') }} ₺
+                                                    @endif
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="mt-4 pt-3 border-t border-slate-100/60 flex items-center justify-end">
+                                            <span class="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#C96A2B] group-hover/egitim:text-[#B55A20] font-display uppercase tracking-wider">
+                                                Detayları İncele
+                                                <svg class="w-3.5 h-3.5 transition-transform group-hover/egitim:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+                            @if($egitimListeUrl)
+                                <div class="pt-2 text-center">
+                                    <a href="{{ $egitimListeUrl }}" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#6B7280] hover:text-[#C96A2B] font-display transition-colors">
+                                        Tüm eğitimleri gör
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Tab 3: Galeri -->
                 @if($doktor->galeriler->isNotEmpty())
                     <div id="tab-content-galeri" class="profile-tab-content space-y-8 hidden">
@@ -459,33 +527,47 @@
                         </div>
 
                         <!-- Custom Premium Lightbox Modal -->
-                        <div id="galleryLightbox" class="fixed inset-0 z-[150] bg-slate-950/95 backdrop-blur-md hidden flex-col justify-between p-6 select-none transition-opacity duration-300">
+                        <div id="galleryLightbox"
+                             class="gallery-lightbox fixed inset-0 z-[150] flex-col justify-between p-4 sm:p-6 select-none"
+                             role="dialog"
+                             aria-modal="true"
+                             aria-label="Galeri görüntüleyici"
+                             style="display: none;">
+                            <div class="gallery-lightbox-backdrop absolute inset-0 bg-slate-950/95 backdrop-blur-md" onclick="closeLightbox()"></div>
+
                             <!-- Header -->
-                            <div class="flex justify-between items-center z-10">
-                                <span class="text-xs font-bold text-slate-400 font-display uppercase tracking-widest"><span id="lightboxIndex">1</span> / {{ $doktor->galeriler->count() }}</span>
-                                <button onclick="closeLightbox()" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer outline-none">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <div class="relative z-10 flex justify-between items-center">
+                                <span class="text-xs font-bold text-slate-400 font-display uppercase tracking-widest bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
+                                    <span id="lightboxIndex">1</span> / {{ $doktor->galeriler->count() }}
+                                </span>
+                                <button type="button"
+                                        onclick="closeLightbox()"
+                                        class="inline-flex items-center gap-2 text-white bg-white/10 hover:bg-white/20 border border-white/15 px-3.5 py-2 rounded-2xl transition-all duration-200 cursor-pointer outline-none hover:scale-105 active:scale-95"
+                                        title="Kapat (Esc)"
+                                        aria-label="Kapat">
+                                    <span class="text-[11px] font-bold font-display uppercase tracking-wider hidden sm:inline">Kapat</span>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
 
                             <!-- Image Display Container -->
-                            <div class="flex-1 flex items-center justify-center relative my-4">
+                            <div class="relative z-10 flex-1 flex items-center justify-center my-3 sm:my-4 min-h-0">
                                 <!-- Prev Button -->
-                                <button onclick="prevLightboxImage()" class="absolute left-0 md:left-4 p-3 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/15 transition-all cursor-pointer outline-none select-none z-10" title="Önceki">
+                                <button type="button" onclick="prevLightboxImage()" class="absolute left-0 md:left-4 p-3 rounded-2xl bg-white/10 border border-white/15 text-white hover:bg-white/20 transition-all duration-200 cursor-pointer outline-none select-none z-10 hover:scale-105 active:scale-95" title="Önceki">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                                     </svg>
                                 </button>
 
                                 <!-- Image -->
-                                <div class="max-w-[90%] max-h-[75vh] flex items-center justify-center overflow-hidden rounded-2xl border border-white/5 shadow-2xl">
-                                    <img id="lightboxImage" src="" alt="" class="max-w-full max-h-[75vh] object-contain select-none pointer-events-none">
+                                <div class="gallery-lightbox-frame max-w-[92%] max-h-[75vh] flex items-center justify-center overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+                                    <img id="lightboxImage" src="" alt="" class="gallery-lightbox-img max-w-full max-h-[75vh] object-contain select-none pointer-events-none">
                                 </div>
 
                                 <!-- Next Button -->
-                                <button onclick="nextLightboxImage()" class="absolute right-0 md:right-4 p-3 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/15 transition-all cursor-pointer outline-none select-none z-10" title="Sonraki">
+                                <button type="button" onclick="nextLightboxImage()" class="absolute right-0 md:right-4 p-3 rounded-2xl bg-white/10 border border-white/15 text-white hover:bg-white/20 transition-all duration-200 cursor-pointer outline-none select-none z-10 hover:scale-105 active:scale-95" title="Sonraki">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                                     </svg>
@@ -493,10 +575,38 @@
                             </div>
 
                             <!-- Footer Caption -->
-                            <div class="text-center z-10">
-                                <p id="lightboxCaption" class="text-sm font-medium text-white max-w-xl mx-auto truncate font-sans px-4"></p>
+                            <div class="relative z-10 text-center pb-1">
+                                <p id="lightboxCaption" class="text-sm font-medium text-white/90 max-w-xl mx-auto truncate font-sans px-4"></p>
                             </div>
                         </div>
+
+                        <style>
+                            .gallery-lightbox {
+                                opacity: 0;
+                                pointer-events: none;
+                                transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+                            }
+                            .gallery-lightbox.is-open {
+                                opacity: 1;
+                                pointer-events: auto;
+                            }
+                            .gallery-lightbox-frame {
+                                transform: scale(0.92) translateY(12px);
+                                opacity: 0;
+                                transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+                            }
+                            .gallery-lightbox.is-open .gallery-lightbox-frame {
+                                transform: scale(1) translateY(0);
+                                opacity: 1;
+                            }
+                            .gallery-lightbox-img {
+                                transition: opacity 0.28s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+                            }
+                            .gallery-lightbox-img.is-switching {
+                                opacity: 0;
+                                transform: scale(0.97);
+                            }
+                        </style>
 
                         <!-- Lightbox Script -->
                         <script>
@@ -510,6 +620,7 @@
                             ];
 
                             let currentImgIndex = 0;
+                            let lightboxClosing = false;
                             const lightboxEl = document.getElementById('galleryLightbox');
                             const lightboxImg = document.getElementById('lightboxImage');
                             const lightboxCap = document.getElementById('lightboxCaption');
@@ -517,45 +628,67 @@
 
                             function openLightbox(index) {
                                 currentImgIndex = index;
-                                updateLightboxImage();
-                                lightboxEl.classList.remove('hidden');
-                                lightboxEl.classList.add('flex');
-                                document.body.style.overflow = 'hidden'; // Lock body scroll
+                                lightboxClosing = false;
+                                updateLightboxImage(false);
+                                lightboxEl.style.display = 'flex';
+                                // force reflow for enter animation
+                                void lightboxEl.offsetWidth;
+                                lightboxEl.classList.add('is-open');
+                                document.body.style.overflow = 'hidden';
                             }
 
                             function closeLightbox() {
-                                lightboxEl.classList.add('hidden');
-                                lightboxEl.classList.remove('flex');
-                                document.body.style.overflow = ''; // Unlock body scroll
+                                if (lightboxClosing || !lightboxEl.classList.contains('is-open')) return;
+                                lightboxClosing = true;
+                                lightboxEl.classList.remove('is-open');
+                                setTimeout(function() {
+                                    lightboxEl.style.display = 'none';
+                                    document.body.style.overflow = '';
+                                    lightboxClosing = false;
+                                }, 350);
                             }
 
-                            function updateLightboxImage() {
+                            function updateLightboxImage(animate) {
                                 const imgData = galleryImages[currentImgIndex];
-                                if (imgData) {
+                                if (!imgData) return;
+
+                                const apply = function() {
                                     lightboxImg.src = imgData.src;
                                     lightboxCap.innerText = imgData.caption || 'Klinik Fotoğrafı';
                                     lightboxIdx.innerText = currentImgIndex + 1;
+                                    lightboxImg.classList.remove('is-switching');
+                                };
+
+                                if (animate) {
+                                    lightboxImg.classList.add('is-switching');
+                                    setTimeout(apply, 160);
+                                } else {
+                                    apply();
                                 }
                             }
 
                             function nextLightboxImage() {
                                 currentImgIndex = (currentImgIndex + 1) % galleryImages.length;
-                                updateLightboxImage();
+                                updateLightboxImage(true);
                             }
 
                             function prevLightboxImage() {
                                 currentImgIndex = (currentImgIndex - 1 + galleryImages.length) % galleryImages.length;
-                                updateLightboxImage();
+                                updateLightboxImage(true);
                             }
 
-                            // Close lightbox on Escape key
                             document.addEventListener('keydown', function(e) {
-                                if (!lightboxEl.classList.contains('hidden')) {
-                                    if (e.key === 'Escape') closeLightbox();
-                                    if (e.key === 'ArrowRight') nextLightboxImage();
-                                    if (e.key === 'ArrowLeft') prevLightboxImage();
-                                }
+                                if (!lightboxEl.classList.contains('is-open')) return;
+                                if (e.key === 'Escape') closeLightbox();
+                                if (e.key === 'ArrowRight') nextLightboxImage();
+                                if (e.key === 'ArrowLeft') prevLightboxImage();
                             });
+
+                            // Expose for inline onclick
+                            window.openLightbox = openLightbox;
+                            window.closeLightbox = closeLightbox;
+                            window.nextLightboxImage = nextLightboxImage;
+                            window.prevLightboxImage = prevLightboxImage;
                         </script>
                     </div>
                 @endif
