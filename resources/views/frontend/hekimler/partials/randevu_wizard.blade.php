@@ -56,50 +56,40 @@
 
             <div id="rw-summary" class="rw-summary" hidden></div>
 
-            {{-- 1 Hizmet --}}
+            {{-- 1 Hizmet — minimal grid (mobil 2 / tablet 3 / geniş 4) --}}
             <div class="rw-panel" data-panel="1">
                 <div class="rw-svc-grid">
                     @foreach($aktifHizmetler as $hizmet)
                         @php
                             $hasImg = !empty($hizmet->resim);
                             $sure = (int) ($hizmet->sure ?? 0);
-                            $ucret = $hizmet->ucret ?? $hizmet->fiyat ?? null;
+                            $ucret = $hizmet->fiyat ?? null;
                         @endphp
                         <button type="button"
                                 class="rw-svc rw-hizmet-card"
                                 data-id="{{ $hizmet->id }}"
                                 data-ad="{{ $hizmet->ad }}"
                                 data-sure="{{ $sure }}">
+                            <span class="rw-svc-radio" aria-hidden="true"></span>
                             <span class="rw-svc-media" aria-hidden="true">
                                 @if($hasImg)
                                     <img src="{{ asset($hizmet->resim) }}" alt="" class="rw-svc-img">
                                 @else
                                     <span class="rw-svc-icon">
-                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
                                     </span>
                                 @endif
                             </span>
-                            <span class="rw-svc-content">
-                                <span class="rw-svc-top">
-                                    <span class="rw-svc-name">{{ $hizmet->ad }}</span>
-                                    <span class="rw-svc-radio" aria-hidden="true"></span>
-                                </span>
-                                @if($hizmet->aciklama)
-                                    <span class="rw-svc-desc">{{ Str::limit(strip_tags($hizmet->aciklama), 72) }}</span>
+                            <span class="rw-svc-name">{{ $hizmet->ad }}</span>
+                            <span class="rw-svc-tags">
+                                @if($sure > 0)
+                                    <span class="rw-tag">{{ $sure }} dk</span>
                                 @endif
-                                <span class="rw-svc-tags">
-                                    @if($sure > 0)
-                                        <span class="rw-tag">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
-                                            {{ $sure }} dk
-                                        </span>
-                                    @endif
-                                    @if($ucret !== null && $ucret !== '' && is_numeric($ucret))
-                                        <span class="rw-tag rw-tag-soft">{{ number_format((float) $ucret, 0, ',', '.') }} ₺</span>
-                                    @endif
-                                </span>
+                                @if($ucret !== null && $ucret !== '' && is_numeric($ucret))
+                                    <span class="rw-tag rw-tag-soft">{{ number_format((float) $ucret, 0, ',', '.') }} ₺</span>
+                                @endif
                             </span>
                         </button>
                     @endforeach
@@ -341,66 +331,86 @@
 
 .rw-panel[hidden] { display: none !important; }
 
-/* ── Modern service tiles ── */
+/* ── Minimal service tiles: 2 / 3 / 4 columns ── */
 .rw-svc-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
 }
 @media (min-width: 640px) {
-    .rw-svc-grid { grid-template-columns: 1fr 1fr; }
+    .rw-svc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
 }
+@media (min-width: 960px) {
+    .rw-svc-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+}
+
 .rw-svc {
+    position: relative;
     display: flex;
-    align-items: stretch;
-    gap: 0.85rem;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.55rem;
     width: 100%;
-    text-align: left;
-    padding: 0.85rem;
-    border-radius: 1.15rem;
+    min-height: 8.5rem;
+    padding: 1rem 0.7rem 0.85rem;
+    border-radius: 1.1rem;
     border: 1.5px solid #ECEFF3;
     background: #fff;
     color: inherit;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-    position: relative;
-    overflow: hidden;
-}
-.rw-svc::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255, 247, 237, 0.55) 0%, transparent 55%);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    pointer-events: none;
+    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
 }
 .rw-svc:hover {
     border-color: #E7B58A;
-    box-shadow: 0 8px 24px rgba(201, 106, 43, 0.08);
-    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(201, 106, 43, 0.09);
+    transform: translateY(-2px);
 }
-.rw-svc:hover::before { opacity: 1; }
 .rw-svc.is-selected {
     border-color: #C96A2B;
-    background: linear-gradient(160deg, #FFF7ED 0%, #fff 60%);
-    box-shadow: 0 0 0 1px #C96A2B, 0 10px 28px rgba(201, 106, 43, 0.12);
+    background: linear-gradient(180deg, #FFF7ED 0%, #fff 70%);
+    box-shadow: 0 0 0 1px #C96A2B, 0 12px 28px rgba(201, 106, 43, 0.12);
 }
-.rw-svc.is-selected::before { opacity: 1; }
+
+.rw-svc-radio {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.55rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    border: 2px solid #D1D5DB;
+    background: #fff;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.rw-svc.is-selected .rw-svc-radio {
+    border-color: #C96A2B;
+    background: #C96A2B;
+    box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.14);
+}
+.rw-svc.is-selected .rw-svc-radio::after {
+    content: '';
+    position: absolute;
+    left: 0.22rem;
+    top: 0.06rem;
+    width: 0.24rem;
+    height: 0.42rem;
+    border: solid #fff;
+    border-width: 0 1.8px 1.8px 0;
+    transform: rotate(45deg);
+}
 
 .rw-svc-media {
-    width: 3.4rem;
-    height: 3.4rem;
-    border-radius: 0.95rem;
-    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.85rem;
     overflow: hidden;
     background: linear-gradient(145deg, #FFF7ED, #FFE8D2);
     border: 1px solid rgba(231, 181, 138, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
-    z-index: 1;
+    flex-shrink: 0;
 }
 .rw-svc-img {
     width: 100%;
@@ -415,92 +425,51 @@
     justify-content: center;
 }
 .rw-svc.is-selected .rw-svc-media {
-    border-color: rgba(201, 106, 43, 0.45);
-    box-shadow: 0 4px 12px rgba(201, 106, 43, 0.15);
+    border-color: rgba(201, 106, 43, 0.5);
+    box-shadow: 0 4px 10px rgba(201, 106, 43, 0.14);
 }
 
-.rw-svc-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    min-width: 0;
-    flex: 1;
-    position: relative;
-    z-index: 1;
-    padding: 0.1rem 0;
-}
-.rw-svc-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.5rem;
-}
 .rw-svc-name {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 700;
     color: #0F172A;
     line-height: 1.3;
     letter-spacing: -0.01em;
-}
-.rw-svc-radio {
-    width: 1.15rem;
-    height: 1.15rem;
-    border-radius: 999px;
-    border: 2px solid #D1D5DB;
-    flex-shrink: 0;
-    margin-top: 0.1rem;
-    background: #fff;
-    position: relative;
-    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-}
-.rw-svc.is-selected .rw-svc-radio {
-    border-color: #C96A2B;
-    background: #C96A2B;
-    box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.15);
-}
-.rw-svc.is-selected .rw-svc-radio::after {
-    content: '';
-    position: absolute;
-    left: 0.28rem;
-    top: 0.1rem;
-    width: 0.28rem;
-    height: 0.5rem;
-    border: solid #fff;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-.rw-svc-desc {
-    font-size: 0.72rem;
-    color: #64748B;
-    line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    max-width: 100%;
+    padding: 0 0.15rem;
 }
+
 .rw-svc-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem;
-    margin-top: 0.15rem;
+    justify-content: center;
+    gap: 0.3rem;
+    margin-top: auto;
 }
 .rw-tag {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.22rem 0.55rem;
+    padding: 0.18rem 0.48rem;
     border-radius: 999px;
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: 700;
     color: #C96A2B;
     background: #FFF7ED;
     border: 1px solid rgba(231, 181, 138, 0.4);
 }
-.rw-tag svg { flex-shrink: 0; opacity: 0.9; }
 .rw-tag-soft {
-    color: #475569;
+    color: #64748B;
     background: #F8FAFC;
     border-color: #E2E8F0;
+}
+
+@media (max-width: 380px) {
+    .rw-svc { min-height: 7.75rem; padding: 0.85rem 0.55rem 0.7rem; }
+    .rw-svc-name { font-size: 0.75rem; }
 }
 
 /* Görüşme kartları (daha sade) */
