@@ -155,9 +155,10 @@ class HekimController extends Controller
             $request->merge(['uzmanlik' => $bransModel->ad]);
         }
 
+        // Liste için hafif eager-load (slot hesaplama asenkron; calismaSaatleri burada yüklenmez)
         $query = Doktor::platformdaListelenen()
             ->where('tur', 'bireysel')
-            ->with(['paket', 'branslar', 'il', 'ilce', 'randevuAyari', 'calismaSaatleri']);
+            ->with(['paket:id,ad', 'branslar:id,ad,slug', 'il:id,ad,slug', 'ilce:id,ad,slug']);
 
         // Search filter
         if ($request->filled('arama')) {
@@ -259,13 +260,7 @@ class HekimController extends Controller
         } else {
             $doktorlar = $query->paginate(12)->withQueryString();
             $toplamDoktorSayisi = $doktorlar->total();
-
-            // En yakın müsait randevu (15 dk cache; max 21 gün tarama)
-            $slotService = app(\App\Services\SlotService::class);
-            foreach ($doktorlar as $d) {
-                $next = $slotService->findNextAvailable($d, 21);
-                $d->setAttribute('en_yakin_randevu', $next);
-            }
+            // En yakın slot: sayfa boyamasını yavaşlatmasın diye AJAX ile yüklenir
         }
 
         // Get filter options from cache (refreshed every 24 hours)
@@ -341,6 +336,51 @@ class HekimController extends Controller
         }
 
         return view('frontend.hekimler.index', compact('doktorlar', 'uzmanliklar', 'unvanlar', 'iller', 'klinikler', 'toplamDoktorSayisi', 'toplamKlinikSayisi'));
+    }
+
+    /**
+     * Toplu "en yakın müsait" (liste kartları — async).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function nextSlotsBatch(Request $request, \App\Services\SlotService $slotService)
+    {
+        $ids = collect(explode(',', (string) $request->query('ids', '')))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->take(24)
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return response()->json(['data' => (object) []]);
+        }
+
+        $doktorlar = Doktor::platformdaListelenen()
+            ->whereIn('id', $ids)
+            ->with(['randevuAyari', 'calismaSaatleri'])
+            ->get()
+            ->keyBy('id');
+
+        $data = [];
+        foreach ($ids as $id) {
+            $d = $doktorlar->get($id);
+            if (! $d || ! $d->randevuya_acik_mi) {
+                $data[$id] = null;
+
+                continue;
+            }
+            $next = $slotService->findNextAvailable($d, 14);
+            $data[$id] = $next ? [
+                'label' => $next['label'] ?? null,
+                'tarih' => $next['tarih'] ?? null,
+                'saat' => $next['saat'] ?? null,
+            ] : null;
+        }
+
+        return response()
+            ->json(['data' => $data])
+            ->header('Cache-Control', 'private, max-age=60');
     }
 
     /**

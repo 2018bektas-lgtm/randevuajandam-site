@@ -111,6 +111,9 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet"></noscript>
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
+{{-- Kritik CSS/JS'i mümkün olduğunca erken; fontlar async --}}
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<meta http-equiv="x-dns-prefetch-control" content="on">
 
 <style>
     body {

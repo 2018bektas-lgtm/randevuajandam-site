@@ -912,6 +912,9 @@
             .then(data => {
                 // Update doctor cards listing container
                 $('#resultsListContainer').html(data.html);
+                if (typeof window.loadNextSlots === 'function') {
+                    window.loadNextSlots();
+                }
 
                 // Update dynamic tab badge counts
                 $('#badgeDoctorsCount').text(data.toplamDoktorSayisi);
@@ -963,6 +966,44 @@
 
         // Expose fetchDoctorsData globally
         window.fetchDoctorsData = fetchDoctorsData;
+
+        // En yakın slot: sayfa boyandıktan sonra toplu AJAX (TTFB'yi şişirmez)
+        window.loadNextSlots = function () {
+            const nodes = document.querySelectorAll('[data-next-slot]');
+            if (!nodes.length) return;
+            const ids = Array.from(nodes).map(function (n) { return n.getAttribute('data-next-slot'); }).filter(Boolean);
+            if (!ids.length) return;
+            fetch(@json(route('frontend.doktorlar.next_slots')) + '?ids=' + encodeURIComponent(ids.join(',')), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (payload) {
+                const data = payload.data || {};
+                nodes.forEach(function (el) {
+                    const id = el.getAttribute('data-next-slot');
+                    const row = data[id];
+                    if (row && row.label) {
+                        el.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#FFF7ED] border border-[#E7B58A]/35 text-[10px] font-bold text-[#C96A2B] font-display';
+                        el.textContent = 'En yakın: ' + row.label;
+                    } else {
+                        el.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-400 font-display';
+                        el.textContent = 'Yakın müsait slot yok';
+                    }
+                });
+            })
+            .catch(function () {
+                nodes.forEach(function (el) {
+                    el.textContent = '';
+                    el.classList.add('hidden');
+                });
+            });
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () { window.loadNextSlots(); });
+        } else {
+            window.loadNextSlots();
+        }
 
         // Dynamic Clear Filters click handler
         $(document).on('click', '.clear-filters-btn', function(e) {

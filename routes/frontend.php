@@ -57,6 +57,9 @@ Route::post('/2fa/iptal', [\App\Http\Controllers\TwoFactorController::class, 'ch
 Route::get('/paketler', [PaketController::class, 'index'])->name('frontend.paketler');
 Route::get('/doktorlar', [HekimController::class, 'doktorlarListesi'])->name('frontend.hekimler');
 Route::get('/doktorlar/arama', [HekimController::class, 'spotlightArama'])->name('frontend.doktorlar.arama');
+Route::get('/doktorlar/en-yakin-slotlar', [HekimController::class, 'nextSlotsBatch'])
+    ->middleware('throttle:60,1')
+    ->name('frontend.doktorlar.next_slots');
 Route::get('/doktorlar/{id}/slotlar', [HekimController::class, 'publicSlots'])
     ->whereNumber('id')
     ->middleware('throttle:60,1')

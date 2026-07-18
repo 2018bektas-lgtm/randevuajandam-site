@@ -85,7 +85,8 @@
                     <!-- Left Side / Top Side: Portrait Image -->
                     <div class="doctor-portrait relative w-32 h-44 rounded-2xl overflow-hidden bg-gradient-to-br from-[#FFF7ED] to-[#FFFBEB] border border-slate-100 group-hover:border-[#E7B58A]/35 shadow-inner shrink-0 mx-auto sm:mx-0">
                         @if($doktor->profil_resmi)
-                            <img src="{{ asset($doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}" 
+                            <img src="{{ asset($doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}"
+                                 loading="lazy" decoding="async" width="128" height="176"
                                  class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500 ease-out">
                         @else
                             <div class="w-full h-full flex items-center justify-center font-extrabold font-display text-3xl text-[#C96A2B] select-none opacity-80 group-hover:scale-105 transition-transform duration-500 ease-out">
@@ -128,20 +129,12 @@
                                 </div>
                             @endif
 
-                            {{-- En yakın müsait randevu --}}
-                            @if(!empty($doktor->en_yakin_randevu['label']))
-                                <div class="flex items-center gap-1.5 mt-1.5">
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#FFF7ED] border border-[#E7B58A]/35 text-[10px] font-bold text-[#C96A2B] font-display">
-                                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
-                                        </svg>
-                                        En yakın: {{ $doktor->en_yakin_randevu['label'] }}
-                                    </span>
-                                </div>
-                            @elseif($doktor->randevuya_acik_mi)
-                                <div class="flex items-center gap-1.5 mt-1.5">
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-400 font-display">
-                                        Yakın müsait slot yok
+                            {{-- En yakın slot: sayfa açılışında AJAX (sunucu TTFB için senkron hesap yok) --}}
+                            @if($doktor->randevuya_acik_mi)
+                                <div class="flex items-center gap-1.5 mt-1.5 min-h-[22px]" data-next-slot-wrap="{{ $doktor->id }}">
+                                    <span data-next-slot="{{ $doktor->id }}"
+                                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-400 font-display">
+                                        Slot kontrol ediliyor…
                                     </span>
                                 </div>
                             @endif
