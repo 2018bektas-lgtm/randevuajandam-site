@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Frontend;
 
+use App\Rules\NoProfanity;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -25,7 +26,7 @@ class YorumKaydetRequest extends FormRequest
         return [
             'randevu_id' => ['required', 'integer', 'exists:randevular,id'],
             'puan' => ['required', 'integer', 'min:1', 'max:5'],
-            'yorum' => ['required', 'string', 'min:10', 'max:1000'],
+            'yorum' => ['required', 'string', 'min:10', 'max:1000', new NoProfanity],
         ];
     }
 

@@ -273,8 +273,8 @@ class HastaController extends Controller
             'ad' => ['required', 'string', 'max:100'],
             'soyad' => ['required', 'string', 'max:100'],
             'telefon' => ['required', 'string', 'max:30'],
-            'e_posta' => ['nullable', 'email', 'max:255'],
-            'not' => ['nullable', 'string', 'max:1000'],
+            'e_posta' => ['required', 'email', 'max:255'],
+            'not' => ['nullable', 'string', 'max:1000', new \App\Rules\NoProfanity],
             'gorusme_tipi' => ['nullable', 'in:yuz_yuze,online'],
             'kvkk_onay' => ['accepted'],
             'recaptcha_token' => ['nullable', 'string'],
@@ -283,6 +283,8 @@ class HastaController extends Controller
             'ad.required' => 'Ad zorunludur.',
             'soyad.required' => 'Soyad zorunludur.',
             'telefon.required' => 'Telefon zorunludur.',
+            'e_posta.required' => 'E-posta adresi zorunludur.',
+            'e_posta.email' => 'Geçerli bir e-posta adresi giriniz.',
         ]);
 
         $doktor = Doktor::findOrFail($validated['doktor_id']);
@@ -295,7 +297,7 @@ class HastaController extends Controller
                 'ad' => $validated['ad'],
                 'soyad' => $validated['soyad'],
                 'telefon' => $validated['telefon'],
-                'e_posta' => $validated['e_posta'] ?? null,
+                'e_posta' => $validated['e_posta'],
                 'not' => $validated['not'] ?? null,
                 'gorusme_tipi' => $validated['gorusme_tipi'] ?? 'yuz_yuze',
             ]);

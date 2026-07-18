@@ -43,6 +43,14 @@ class AppointmentBookingService
     {
         $this->assertPackageAppointmentLimit($doktor);
 
+        $email = trim((string) ($payload['e_posta'] ?? ''));
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('E-posta adresi zorunludur.');
+        }
+        if (str_contains(mb_strtolower($email), '@randevu.local')) {
+            throw new InvalidArgumentException('Geçerli bir e-posta adresi giriniz.');
+        }
+
         $gorusmeTipi = ($payload['gorusme_tipi'] ?? 'yuz_yuze') === 'online' ? 'online' : 'yuz_yuze';
         if ($gorusmeTipi === 'online') {
             $paket = $doktor->aktifPaket();
@@ -55,7 +63,7 @@ class AppointmentBookingService
             'ad' => $payload['ad'],
             'soyad' => $payload['soyad'],
             'telefon' => $payload['telefon'],
-            'e_posta' => $payload['e_posta'] ?? null,
+            'e_posta' => $email,
         ]);
 
         $durum = $payload['durum'] ?? $this->resolveDefaultStatus($doktor);
@@ -70,7 +78,7 @@ class AppointmentBookingService
             'ad' => $payload['ad'],
             'soyad' => $payload['soyad'],
             'telefon' => $this->normalizePhone($payload['telefon']),
-            'e_posta' => $payload['e_posta'] ?? $hasta->e_posta,
+            'e_posta' => $email,
             'durum' => $durum,
             'gorusme_tipi' => $gorusmeTipi,
             'skip_schedule_validation' => (bool) ($payload['skip_schedule_validation'] ?? false),

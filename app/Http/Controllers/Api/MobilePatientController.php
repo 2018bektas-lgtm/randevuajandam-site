@@ -350,7 +350,7 @@ class MobilePatientController extends Controller
                     'puan' => $y->puan,
                     'yorum' => $y->yorum,
                     'doktor_yaniti' => $y->doktor_yaniti,
-                    'hasta' => $y->hasta ? trim(($y->hasta->ad ?? '').' '.mb_substr((string) ($y->hasta->soyad ?? ''), 0, 1).'.') : 'Hasta',
+                    'hasta' => $y->hasta?->maskeli_ad ?? 'Hasta',
                     'tarih' => optional($y->created_at)?->format('Y-m-d'),
                 ])->values(),
             ]),

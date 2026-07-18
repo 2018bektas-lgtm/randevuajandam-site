@@ -67,7 +67,7 @@
                         <div class="pb-6 border-b border-[#F5F5F4] last:border-b-0 last:pb-0 space-y-2">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold text-[#111827]">{{ $yorum->hasta->ad_soyad ?? 'Gizli Hasta' }}</span>
+                                    <span class="text-xs font-bold text-[#111827]">{{ $yorum->hasta->maskeli_ad ?? 'Hasta' }}</span>
                                     <span class="text-xs text-amber-500 font-bold">★ {{ $yorum->puan }}</span>
                                 </div>
                                 <span class="text-[10px] text-[#6B7280]">{{ $yorum->created_at->format('d.m.Y') }}</span>

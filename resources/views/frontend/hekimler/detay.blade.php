@@ -818,7 +818,7 @@
                                                         {{ mb_strtoupper(mb_substr($yorum->hasta->ad, 0, 1)) }}{{ mb_strtoupper(mb_substr($yorum->hasta->soyad, 0, 1)) }}
                                                     </div>
                                                     <div>
-                                                        <p class="text-xs font-bold text-[#111827] font-display">{{ $yorum->hasta->ad }} {{ mb_substr($yorum->hasta->soyad, 0, 1) }}.</p>
+                                                        <p class="text-xs font-bold text-[#111827] font-display">{{ $yorum->hasta->maskeli_ad ?? 'Hasta' }}</p>
                                                         <p class="text-[10px] text-[#6B7280]">{{ $yorum->created_at->translatedFormat('d M Y') }}</p>
                                                     </div>
                                                 </div>

@@ -193,8 +193,8 @@
                             <input id="rw-tel" type="tel" name="telefon" value="{{ old('telefon') }}" required placeholder="05xx xxx xx xx" autocomplete="tel">
                         </div>
                         <div class="rw-field">
-                            <label for="rw-mail">E-posta <em>(opsiyonel)</em></label>
-                            <input id="rw-mail" type="email" name="e_posta" value="{{ old('e_posta') }}" autocomplete="email">
+                            <label for="rw-mail">E-posta</label>
+                            <input id="rw-mail" type="email" name="e_posta" value="{{ old('e_posta') }}" required autocomplete="email" placeholder="ornek@email.com">
                         </div>
                     </div>
                 @endif

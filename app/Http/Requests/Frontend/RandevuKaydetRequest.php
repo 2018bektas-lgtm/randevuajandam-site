@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Frontend;
 
+use App\Rules\NoProfanity;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,7 +29,7 @@ class RandevuKaydetRequest extends FormRequest
             ],
             'tarih' => ['required', 'date', 'after_or_equal:today'],
             'saat' => ['required', 'date_format:H:i'],
-            'not' => ['nullable', 'string', 'max:1000'],
+            'not' => ['nullable', 'string', 'max:1000', new NoProfanity],
             'gorusme_tipi' => ['nullable', 'in:yuz_yuze,online'],
         ];
     }

@@ -52,6 +52,26 @@ class Hasta extends Authenticatable
         return $this->ad.' '.$this->soyad;
     }
 
+    /**
+     * Public-facing masked name (e.g. "Ayşe Y.") — full surname never shown on public pages.
+     */
+    public function getMaskeliAdAttribute(): string
+    {
+        $ad = trim((string) ($this->ad ?? ''));
+        $soyad = trim((string) ($this->soyad ?? ''));
+
+        if ($ad === '' && $soyad === '') {
+            return 'Hasta';
+        }
+
+        $first = $ad !== '' ? $ad : 'Hasta';
+        if ($soyad === '') {
+            return $first;
+        }
+
+        return $first.' '.mb_strtoupper(mb_substr($soyad, 0, 1), 'UTF-8').'.';
+    }
+
     public function randevular(): HasMany
     {
         return $this->hasMany(Randevu::class, 'hasta_id');

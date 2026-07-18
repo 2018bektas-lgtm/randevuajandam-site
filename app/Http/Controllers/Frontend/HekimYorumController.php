@@ -49,7 +49,7 @@ class HekimYorumController extends Controller
         $doktor = Auth::guard('doktor')->user();
 
         $request->validate([
-            'doktor_yaniti' => ['required', 'string', 'min:5', 'max:500'],
+            'doktor_yaniti' => ['required', 'string', 'min:5', 'max:500', new \App\Rules\NoProfanity],
         ], [
             'doktor_yaniti.required' => 'Yanıt alanı zorunludur.',
             'doktor_yaniti.min' => 'Yanıt en az 5 karakter olmalıdır.',
