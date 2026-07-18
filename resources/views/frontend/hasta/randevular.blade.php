@@ -250,7 +250,7 @@
                     <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Yorumunuz</label>
                     <textarea name="yorum" rows="4" required minlength="10" maxlength="1000" placeholder="Deneyiminizi paylaşın... (en az 10 karakter)"
                               class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] text-xs focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] placeholder-gray-400 resize-none transition-all"></textarea>
-                    <p class="text-[10px] text-[#6B7280]">Yorumunuz onaylandıktan sonra yayınlanacaktır.</p>
+                    <p class="text-[10px] text-[#6B7280]">Yorumunuz platform yönetimi onayından sonra, adınız A*** O*** formatında maskelenerek yayınlanır. Hekimler yorumları panellerinden onaylayamaz.</p>
                 </div>
             </div>
 

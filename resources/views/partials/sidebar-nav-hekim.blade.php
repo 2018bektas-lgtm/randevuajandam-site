@@ -4,7 +4,6 @@
     $hasHakkimda = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('hakkimda');
     $hasBlog = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('blog');
     $hasTalepler = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('randevu_talepleri');
-    $hasYorum = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('yorum');
     $hasFaq = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('faq');
     $hasFinans = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('finans');
     $hasGaleri = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('galeri');
@@ -52,7 +51,6 @@
                     'label' => 'Egitim basvurulari',
                     'locked' => ! $hasEgitimler,
                 ],
-                ['href' => $hasYorum ? route('hekim.yorumlar.index') : $paketYukseltUrl, 'match' => 'hekim.yorumlar.*', 'label' => 'Hasta Yorumlari', 'locked' => ! $hasYorum],
                 ['href' => $hasFaq ? route('hekim.faqs.index') : $paketYukseltUrl, 'match' => 'hekim.faqs.*', 'label' => 'SSS', 'locked' => ! $hasFaq],
                 ['href' => $hasGaleri ? route('hekim.galeriler.index') : $paketYukseltUrl, 'match' => 'hekim.galeriler.*', 'label' => 'Fotograf Galerisi', 'locked' => ! $hasGaleri],
             ],

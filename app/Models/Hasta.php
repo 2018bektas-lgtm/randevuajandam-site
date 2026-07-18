@@ -53,23 +53,29 @@ class Hasta extends Authenticatable
     }
 
     /**
-     * Public-facing masked name (e.g. "Ayşe Y.") — full surname never shown on public pages.
+     * Public-facing masked name (e.g. "A*** O***") — privacy-first on public pages.
+     * Full names remain available only in admin / clinical panels.
      */
     public function getMaskeliAdAttribute(): string
     {
-        $ad = trim((string) ($this->ad ?? ''));
-        $soyad = trim((string) ($this->soyad ?? ''));
+        $parts = array_values(array_filter([
+            $this->maskNamePart((string) ($this->ad ?? '')),
+            $this->maskNamePart((string) ($this->soyad ?? '')),
+        ]));
 
-        if ($ad === '' && $soyad === '') {
-            return 'Hasta';
+        return $parts !== [] ? implode(' ', $parts) : 'Hasta';
+    }
+
+    protected function maskNamePart(string $name): string
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return '';
         }
 
-        $first = $ad !== '' ? $ad : 'Hasta';
-        if ($soyad === '') {
-            return $first;
-        }
+        $first = mb_strtoupper(mb_substr($name, 0, 1), 'UTF-8');
 
-        return $first.' '.mb_strtoupper(mb_substr($soyad, 0, 1), 'UTF-8').'.';
+        return $first.'***';
     }
 
     public function randevular(): HasMany

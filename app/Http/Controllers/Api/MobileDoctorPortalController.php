@@ -81,14 +81,8 @@ class MobileDoctorPortalController extends Controller
             ->orderBy('saat')
             ->first();
 
+        // Yorum moderasyonu yalnızca platform yönetiminde.
         $yorumBekleyen = 0;
-        if (method_exists($doktor, 'yorumlar')) {
-            try {
-                $yorumBekleyen = (int) $doktor->yorumlar()->where('onay_durumu', 'beklemede')->count();
-            } catch (\Throwable) {
-                $yorumBekleyen = 0;
-            }
-        }
 
         return response()->json([
             'success' => true,
@@ -554,80 +548,41 @@ class MobileDoctorPortalController extends Controller
         return response()->json(['success' => true, 'message' => 'Blog silindi.']);
     }
 
-    // ── Reviews ────────────────────────────────────────────────
+    // ── Reviews (platform-moderated only; doctors cannot list / approve / reply) ──
+
+    protected function reviewsForbidden(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Hasta yorumları platform yönetimi tarafından bağımsız denetlenir. Hekim uygulamasında yorum listesi, onay veya silme bulunmaz. Onaylanan yorumlar herkese açık profilde görünür.',
+            'data' => [],
+            'meta' => [
+                'platform_moderated' => true,
+                'toplam' => 0,
+                'beklemede' => 0,
+                'onaylandi' => 0,
+            ],
+        ], 403);
+    }
 
     public function reviews(Request $request): JsonResponse
     {
-        $doktor = $this->doktor($request);
-        $query = $doktor->yorumlar()->with(['hasta:id,ad,soyad', 'randevu.hizmet:id,ad'])->latest();
-
-        if ($request->filled('durum')) {
-            $query->where('onay_durumu', $request->string('durum')->value());
-        }
-
-        $yorumlar = $query->limit(100)->get()->map(fn ($y) => [
-            'id' => $y->id,
-            'puan' => $y->puan,
-            'yorum' => $y->yorum,
-            'doktor_yaniti' => $y->doktor_yaniti,
-            'onay_durumu' => $y->onay_durumu,
-            'hasta_adi' => trim(($y->hasta->ad ?? '').' '.($y->hasta->soyad ?? '')),
-            'hizmet' => $y->randevu?->hizmet?->ad,
-            'created_at' => $y->created_at?->toIso8601String(),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'data' => $yorumlar,
-            'meta' => [
-                'toplam' => $doktor->yorumlar()->count(),
-                'beklemede' => $doktor->yorumlar()->where('onay_durumu', 'beklemede')->count(),
-                'onaylandi' => $doktor->yorumlar()->where('onay_durumu', 'onaylandi')->count(),
-                'ortalama_puan' => $doktor->ortalama_puan,
-            ],
-        ]);
+        return $this->reviewsForbidden();
     }
 
     public function replyReview(Request $request, int $id): JsonResponse
     {
-        $doktor = $this->doktor($request);
-        $data = $request->validate([
-            'doktor_yaniti' => ['required', 'string', 'min:5', 'max:500'],
-        ]);
-
-        $yorum = $doktor->yorumlar()->findOrFail($id);
-        $yorum->update(['doktor_yaniti' => $data['doktor_yaniti']]);
-
-        return response()->json(['success' => true, 'message' => 'Yanıt kaydedildi.']);
+        return $this->reviewsForbidden();
     }
 
     public function moderateReview(Request $request, int $id): JsonResponse
     {
-        $doktor = $this->doktor($request);
-        $data = $request->validate([
-            'onay_durumu' => ['required', 'in:beklemede,onaylandi,reddedildi'],
-        ]);
-
-        $yorum = $doktor->yorumlar()->findOrFail($id);
-        $yorum->update(['onay_durumu' => $data['onay_durumu']]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Yorum durumu güncellendi.',
-            'data' => [
-                'id' => $yorum->id,
-                'onay_durumu' => $yorum->onay_durumu,
-            ],
-        ]);
+        return $this->reviewsForbidden();
     }
 
     public function destroyReview(Request $request, int $id): JsonResponse
     {
-        $doktor = $this->doktor($request);
-        $yorum = $doktor->yorumlar()->findOrFail($id);
-        $yorum->delete();
-
-        return response()->json(['success' => true, 'message' => 'Yorum silindi.']);
+        return $this->reviewsForbidden();
     }
 
     // ── Gallery ────────────────────────────────────────────────

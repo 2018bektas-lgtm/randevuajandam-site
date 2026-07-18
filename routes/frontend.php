@@ -278,11 +278,9 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     Route::get('/hekim/randevu-ayarlari/hizli-kapat-slotlar', [HekimRandevuController::class, 'hizliKapatSlotlar'])->name('hekim.randevu.hizli-kapat-slotlar');
     Route::post('/hekim/randevu-ayarlari/hizli-kapat', [HekimRandevuController::class, 'hizliKapatKaydet'])->name('hekim.randevu.hizli-kapat.post');
 
-    // Review Management - Feature check
-    Route::middleware(['paket.yetki:yorum'])->group(function () {
-        Route::get('/hekim/yorumlar', [HekimYorumController::class, 'index'])->name('hekim.yorumlar.index');
-        Route::post('/hekim/yorumlar/{id}/yanitla', [HekimYorumController::class, 'yanitla'])->name('hekim.yorumlar.yanitla');
-    });
+    // Yorum moderasyonu yalnızca site yönetimi — hekim paneli kapalı (yönlendirme)
+    Route::get('/hekim/yorumlar', [HekimYorumController::class, 'index'])->name('hekim.yorumlar.index');
+    Route::post('/hekim/yorumlar/{id}/yanitla', [HekimYorumController::class, 'yanitla'])->name('hekim.yorumlar.yanitla');
 
     // Finance Management - Feature check
     Route::middleware(['paket.yetki:finans'])->prefix('hekim/finans')->name('hekim.finans.')->group(function () {

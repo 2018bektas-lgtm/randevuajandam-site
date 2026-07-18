@@ -815,7 +815,7 @@
                                             <div class="flex items-center justify-between">
                                                 <div class="flex items-center gap-2.5">
                                                     <div class="w-8 h-8 rounded-full bg-[#FFF7ED] border border-[#E7B58A]/30 text-[#C96A2B] flex items-center justify-center text-[10px] font-bold font-display">
-                                                        {{ mb_strtoupper(mb_substr($yorum->hasta->ad, 0, 1)) }}{{ mb_strtoupper(mb_substr($yorum->hasta->soyad, 0, 1)) }}
+                                                        {{ mb_strtoupper(mb_substr($yorum->hasta->ad ?? 'H', 0, 1)) }}{{ mb_strtoupper(mb_substr($yorum->hasta->soyad ?? '', 0, 1)) }}
                                                     </div>
                                                     <div>
                                                         <p class="text-xs font-bold text-[#111827] font-display">{{ $yorum->hasta->maskeli_ad ?? 'Hasta' }}</p>

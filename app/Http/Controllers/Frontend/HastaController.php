@@ -345,7 +345,7 @@ class HastaController extends Controller
             return redirect()->back()->with('hata', 'Bu randevu için zaten yorum yapmışsınız.');
         }
 
-        $yorum = Yorum::create([
+        Yorum::create([
             'hasta_id' => $hasta->id,
             'doktor_id' => $randevu->doktor_id,
             'randevu_id' => $randevu->id,
@@ -354,16 +354,9 @@ class HastaController extends Controller
             'onay_durumu' => 'beklemede',
         ]);
 
-        try {
-            $doktor = $randevu->doktor ?? Doktor::find($randevu->doktor_id);
-            if ($doktor) {
-                $doktor->notify(new \App\Notifications\YeniYorumBildirimi($yorum));
-            }
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Yorum doktor bildirimi hatası: '.$e->getMessage());
-        }
+        // Hekime bildirim yok: yorumlar yalnızca platform yönetimi tarafından denetlenir (adil moderasyon).
 
-        return redirect()->back()->with('basarili', 'Yorumunuz başarıyla gönderildi. Onaylandıktan sonra yayınlanacaktır.');
+        return redirect()->back()->with('basarili', 'Yorumunuz alındı. Platform yönetimi onayladıktan sonra herkese açık profilde yayınlanacaktır.');
     }
 
     /**

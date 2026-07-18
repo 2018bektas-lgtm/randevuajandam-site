@@ -6,6 +6,12 @@
 @section('icerik')
 <div class="space-y-8">
 
+    <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 leading-relaxed">
+        <strong class="font-bold font-display">Adil moderasyon:</strong>
+        Yorumları yalnızca platform yönetimi onaylar veya reddeder. Hekimler panelde yorum göremez, seçici onay yapamaz.
+        Yayında hasta adı <span class="font-mono font-semibold">A*** O***</span> formatında maskelenir. Küfür ve hakaret içeren metinler reddedilmelidir; samimi eleştiriler yayınlanmalıdır.
+    </div>
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm">
