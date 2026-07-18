@@ -8,6 +8,7 @@ use App\Models\Doktor;
 use App\Models\Egitim;
 use App\Models\Il;
 use App\Models\Ilce;
+use App\Rules\TurkishMobilePhone;
 use App\Services\EgitimBasvuruService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,13 +60,16 @@ class PublicEgitimController extends Controller
             'egitim_id' => ['required', 'exists:egitimler,id'],
             'ad' => ['required', 'string', 'max:100'],
             'soyad' => ['required', 'string', 'max:100'],
-            'telefon' => ['required', 'string', 'max:40'],
+            'telefon' => ['required', 'string', new TurkishMobilePhone],
             'e_posta' => ['nullable', 'email', 'max:255'],
             'kvkk_onay' => ['accepted'],
             'alan' => ['nullable', 'array'],
         ], [
             'kvkk_onay.accepted' => 'KVKK onayını işaretlemelisiniz.',
+            'telefon.required' => 'Telefon zorunludur.',
         ]);
+
+        $telefon = TurkishMobilePhone::normalize($validated['telefon']);
 
         $egitim = Egitim::with('formAlanlari')->findOrFail($validated['egitim_id']);
         if (! $egitim->basvuruAlinabilirMi()) {
@@ -92,7 +96,7 @@ class PublicEgitimController extends Controller
             $service->basvur($egitim, [
                 'ad' => $validated['ad'],
                 'soyad' => $validated['soyad'],
-                'telefon' => $validated['telefon'],
+                'telefon' => $telefon,
                 'e_posta' => $validated['e_posta'] ?? null,
                 'cevaplar' => $cevaplar,
                 'kvkk_onay' => true,
