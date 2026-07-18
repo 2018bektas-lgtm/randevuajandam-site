@@ -78,6 +78,19 @@ fi
 
 rm -f .env.bak 2>/dev/null || true
 
+echo "==> Storage dirs (file session/cache için zorunlu)"
+mkdir -p storage/framework/sessions \
+         storage/framework/views \
+         storage/framework/cache/data \
+         storage/framework/testing \
+         storage/logs \
+         storage/app/public \
+         bootstrap/cache
+touch storage/framework/sessions/.gitignore \
+      storage/framework/views/.gitignore \
+      storage/framework/cache/data/.gitignore \
+      storage/logs/.gitignore 2>/dev/null || true
+
 echo "==> Storage link / permissions"
 php artisan storage:link 2>/dev/null || true
 chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
