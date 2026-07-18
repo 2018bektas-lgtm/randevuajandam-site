@@ -16,36 +16,32 @@
 @endphp
 
 @if($doktor->randevuya_acik_mi && $aktifHizmetler->isNotEmpty())
-<section id="randevu-wizard" class="mb-10 scroll-mt-24">
-    <div class="bg-white border border-[#E5E7EB]/80 rounded-[1.75rem] shadow-[0_4px_24px_rgba(15,23,42,0.04)] overflow-hidden">
-
-        {{-- Minimal top bar --}}
-        <div class="px-5 md:px-7 pt-5 pb-4 flex items-center justify-between gap-4">
-            <div class="min-w-0">
-                <h2 class="text-base md:text-lg font-extrabold font-display text-[#111827] tracking-tight">Randevu al</h2>
-                <p class="text-[11px] text-slate-400 mt-0.5" id="rw-step-caption">Hizmet seçin</p>
+<section id="randevu-wizard" class="rw">
+    <div class="rw-shell">
+        <header class="rw-head">
+            <div>
+                <h2 class="rw-title">Randevu al</h2>
+                <p class="rw-caption" id="rw-step-caption">Hizmet seçin</p>
             </div>
-            <div class="flex items-center gap-1.5 shrink-0" id="rw-dots" aria-hidden="true">
+            <div class="rw-dots" id="rw-dots" aria-hidden="true">
                 @for($i = 1; $i <= 4; $i++)
-                    <span class="rw-dot h-1.5 rounded-full transition-all duration-300 {{ $i === 1 ? 'w-6 bg-[#C96A2B]' : 'w-1.5 bg-slate-200' }}" data-dot="{{ $i }}"></span>
+                    <span class="rw-dot{{ $i === 1 ? ' is-active' : '' }}" data-dot="{{ $i }}"></span>
                 @endfor
             </div>
-        </div>
-
-        <div class="h-px bg-slate-100"></div>
+        </header>
 
         @if(session('basarili') || session('hata'))
-            <div class="px-5 md:px-7 pt-4">
+            <div class="rw-flash">
                 @if(session('basarili'))
-                    <div class="px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 text-[12px] font-medium">{{ session('basarili') }}</div>
+                    <div class="rw-flash-ok">{{ session('basarili') }}</div>
                 @endif
                 @if(session('hata'))
-                    <div class="px-3 py-2.5 rounded-xl bg-red-50 text-red-700 text-[12px] font-medium">{{ session('hata') }}</div>
+                    <div class="rw-flash-err">{{ session('hata') }}</div>
                 @endif
             </div>
         @endif
 
-        <form action="{{ $formAction }}" method="POST" id="rw-form" class="p-5 md:p-7">
+        <form action="{{ $formAction }}" method="POST" id="rw-form" class="rw-body">
             @csrf
             <input type="hidden" name="doktor_id" value="{{ $doktor->id }}">
             <input type="hidden" name="hizmet_id" id="rw-hizmet-id" value="{{ old('hizmet_id') }}">
@@ -53,112 +49,95 @@
             <input type="hidden" name="saat" id="rw-saat" value="{{ old('saat') }}">
             @unless($hastaAuth)
                 <input type="hidden" name="recaptcha_token" id="rw-recaptcha-token" value="">
-                <div class="hidden" aria-hidden="true">
+                <div class="rw-hp" aria-hidden="true">
                     <input type="text" name="{{ config('randevu.honeypot_field', 'website_url') }}" value="" tabindex="-1" autocomplete="off">
                 </div>
             @endunless
 
-            {{-- Chip summary --}}
-            <div id="rw-summary" class="mb-5 hidden flex-wrap gap-1.5"></div>
+            <div id="rw-summary" class="rw-summary" hidden></div>
 
-            {{-- ═══ 1 HİZMET ═══ --}}
+            {{-- 1 Hizmet --}}
             <div class="rw-panel" data-panel="1">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div class="rw-cards">
                     @foreach($aktifHizmetler as $hizmet)
-                        <button type="button"
-                                class="rw-card rw-hizmet-card text-left p-4 rounded-2xl border border-slate-150 bg-[#FAFAFA] hover:border-[#E7B58A] hover:bg-[#FFFBF5] transition-all"
+                        <button type="button" class="rw-card rw-hizmet-card"
                                 data-id="{{ $hizmet->id }}"
                                 data-ad="{{ $hizmet->ad }}"
                                 data-sure="{{ $hizmet->sure }}">
-                            <div class="flex items-center gap-3">
-                                <span class="rw-card-check w-5 h-5 rounded-full border-2 border-slate-200 shrink-0 flex items-center justify-center transition-all">
-                                    <svg class="w-3 h-3 text-white opacity-0 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                                </span>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-[13px] font-bold text-[#111827] font-display leading-snug">{{ $hizmet->ad }}</p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">{{ $hizmet->sure }} dakika</p>
-                                </div>
-                            </div>
+                            <span class="rw-check" aria-hidden="true"></span>
+                            <span class="rw-card-body">
+                                <span class="rw-card-title">{{ $hizmet->ad }}</span>
+                                <span class="rw-card-meta">{{ $hizmet->sure }} dakika</span>
+                            </span>
                         </button>
                     @endforeach
                 </div>
-                <p id="rw-err-1" class="hidden mt-3 text-[11px] text-red-500">Bir hizmet seçin</p>
+                <p id="rw-err-1" class="rw-err" hidden>Bir hizmet seçin</p>
             </div>
 
-            {{-- ═══ 2 TAKVİM ═══ --}}
-            <div class="rw-panel hidden" data-panel="2">
-                <div class="max-w-md mx-auto">
-                    <div class="flex items-center justify-between mb-4">
-                        <button type="button" id="rw-cal-prev" class="w-9 h-9 rounded-xl border border-slate-150 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-[#C96A2B] transition-all" aria-label="Önceki ay">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+            {{-- 2 Takvim --}}
+            <div class="rw-panel" data-panel="2" hidden>
+                <div class="rw-cal">
+                    <div class="rw-cal-nav">
+                        <button type="button" id="rw-cal-prev" class="rw-icon-btn" aria-label="Önceki ay">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
                         </button>
-                        <p id="rw-cal-title" class="text-sm font-bold font-display text-[#111827] tracking-tight"></p>
-                        <button type="button" id="rw-cal-next" class="w-9 h-9 rounded-xl border border-slate-150 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-[#C96A2B] transition-all" aria-label="Sonraki ay">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                        <p id="rw-cal-title" class="rw-cal-title"></p>
+                        <button type="button" id="rw-cal-next" class="rw-icon-btn" aria-label="Sonraki ay">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
                         </button>
                     </div>
-
-                    <div class="grid grid-cols-7 gap-1 mb-1.5">
+                    <div class="rw-cal-weekdays">
                         @foreach(['Pt','Sa','Ça','Pe','Cu','Ct','Pz'] as $d)
-                            <div class="text-center text-[10px] font-bold text-slate-300 uppercase tracking-wider py-1">{{ $d }}</div>
+                            <span>{{ $d }}</span>
                         @endforeach
                     </div>
-                    <div id="rw-cal-grid" class="grid grid-cols-7 gap-1.5"></div>
-
-                    <div class="mt-4 flex flex-wrap gap-3 text-[10px] text-slate-400">
-                        <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-md bg-[#FFF7ED] border border-[#E7B58A]"></span> Seçilebilir</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-md bg-slate-50 border border-slate-100"></span> Kapalı / geçmiş</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-md bg-[#C96A2B]"></span> Seçili</span>
+                    <div id="rw-cal-grid" class="rw-cal-grid"></div>
+                    <div class="rw-legend">
+                        <span><i class="rw-lg-on"></i> Açık</span>
+                        <span><i class="rw-lg-off"></i> Kapalı</span>
+                        <span><i class="rw-lg-sel"></i> Seçili</span>
                     </div>
                 </div>
-                <p id="rw-err-2" class="hidden mt-3 text-[11px] text-red-500 text-center">Takvimden bir gün seçin</p>
+                <p id="rw-err-2" class="rw-err" hidden>Takvimden bir gün seçin</p>
             </div>
 
-            {{-- ═══ 3 SAAT ═══ --}}
-            <div class="rw-panel hidden" data-panel="3">
-                <p class="text-[12px] text-slate-500 mb-3">
-                    <span id="rw-saat-tarih-label" class="font-semibold text-[#C96A2B]"></span>
-                    · müsait saatler
+            {{-- 3 Saat --}}
+            <div class="rw-panel" data-panel="3" hidden>
+                <p class="rw-sub">
+                    <strong id="rw-saat-tarih-label"></strong> için saatler
                 </p>
-                <div id="rw-slots-loading" class="hidden py-10 text-center text-[12px] text-slate-400">Yükleniyor…</div>
-                <div id="rw-slots-empty" class="hidden py-10 text-center space-y-2">
-                    <p class="text-[12px] text-slate-500">Bu günde müsait saat yok.</p>
-                    <button type="button" class="rw-goto-date text-[12px] font-bold text-[#C96A2B]">Başka gün seç</button>
+                <div id="rw-slots-loading" class="rw-empty" hidden>Yükleniyor…</div>
+                <div id="rw-slots-empty" class="rw-empty" hidden>
+                    <p>Bu günde müsait saat yok.</p>
+                    <button type="button" class="rw-link rw-goto-date">Başka gün seç</button>
                 </div>
-                <div id="rw-slots-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2"></div>
-                <div class="mt-3 flex flex-wrap gap-3 text-[10px] text-slate-400">
-                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-md bg-[#FFFBEB] border border-[#E7B58A]"></span> Müsait</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-md bg-slate-100 line-through"></span> Dolu</span>
+                <div id="rw-slots-grid" class="rw-slots"></div>
+                <div class="rw-legend">
+                    <span><i class="rw-lg-on"></i> Müsait</span>
+                    <span><i class="rw-lg-busy"></i> Dolu</span>
                 </div>
-                <p id="rw-err-3" class="hidden mt-3 text-[11px] text-red-500">Müsait bir saat seçin</p>
+                <p id="rw-err-3" class="rw-err" hidden>Müsait bir saat seçin</p>
             </div>
 
-            {{-- ═══ 4 BİLGİ + GÖRÜŞME ═══ --}}
-            <div class="rw-panel hidden" data-panel="4">
+            {{-- 4 Bilgi --}}
+            <div class="rw-panel" data-panel="4" hidden>
                 @if($onlineGorusmeAcik)
-                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 font-display">Görüşme türü</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-5">
-                        <button type="button" class="rw-card rw-gorusme-card text-left p-4 rounded-2xl border border-slate-150 bg-[#FAFAFA] hover:border-[#E7B58A] hover:bg-[#FFFBF5] transition-all is-selected" data-value="yuz_yuze">
-                            <div class="flex items-center gap-3">
-                                <span class="rw-card-check w-5 h-5 rounded-full border-2 border-[#C96A2B] bg-[#C96A2B] shrink-0 flex items-center justify-center">
-                                    <svg class="w-3 h-3 text-white opacity-100" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                                </span>
-                                <div>
-                                    <p class="text-[13px] font-bold text-[#111827] font-display">Yüz yüze</p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">Muayenehanede</p>
-                                </div>
-                            </div>
+                    <p class="rw-label">Görüşme türü</p>
+                    <div class="rw-cards rw-cards-2 mb">
+                        <button type="button" class="rw-card rw-gorusme-card is-selected" data-value="yuz_yuze">
+                            <span class="rw-check" aria-hidden="true"></span>
+                            <span class="rw-card-body">
+                                <span class="rw-card-title">Yüz yüze</span>
+                                <span class="rw-card-meta">Muayenehanede</span>
+                            </span>
                         </button>
-                        <button type="button" class="rw-card rw-gorusme-card text-left p-4 rounded-2xl border border-slate-150 bg-[#FAFAFA] hover:border-[#E7B58A] hover:bg-[#FFFBF5] transition-all" data-value="online">
-                            <div class="flex items-center gap-3">
-                                <span class="rw-card-check w-5 h-5 rounded-full border-2 border-slate-200 shrink-0 flex items-center justify-center">
-                                    <svg class="w-3 h-3 text-white opacity-0" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                                </span>
-                                <div>
-                                    <p class="text-[13px] font-bold text-[#111827] font-display">Online</p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">Görüntülü görüşme</p>
-                                </div>
-                            </div>
+                        <button type="button" class="rw-card rw-gorusme-card" data-value="online">
+                            <span class="rw-check" aria-hidden="true"></span>
+                            <span class="rw-card-body">
+                                <span class="rw-card-title">Online</span>
+                                <span class="rw-card-meta">Görüntülü görüşme</span>
+                            </span>
                         </button>
                     </div>
                     <input type="hidden" name="gorusme_tipi" id="rw-gorusme" value="{{ old('gorusme_tipi', 'yuz_yuze') }}">
@@ -167,181 +146,583 @@
                 @endif
 
                 @if($hastaAuth)
-                    <div class="mb-4 px-4 py-3.5 rounded-2xl bg-[#FAFAFA] border border-slate-100">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Randevu sahibi</p>
-                        <p class="text-[13px] font-bold text-[#111827]">{{ $hastaUser->ad_soyad }}</p>
-                        <p class="text-[11px] text-slate-400">{{ $hastaUser->telefon }} · {{ $hastaUser->e_posta }}</p>
+                    <div class="rw-patient">
+                        <p class="rw-label">Randevu sahibi</p>
+                        <p class="rw-patient-name">{{ $hastaUser->ad_soyad }}</p>
+                        <p class="rw-patient-meta">{{ $hastaUser->telefon }} · {{ $hastaUser->e_posta }}</p>
                     </div>
                 @else
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ad</label>
-                            <input type="text" name="ad" value="{{ old('ad') }}" required
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-[13px] focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B]/20 outline-none bg-white">
+                    <div class="rw-fields">
+                        <div class="rw-field">
+                            <label for="rw-ad">Ad</label>
+                            <input id="rw-ad" type="text" name="ad" value="{{ old('ad') }}" required autocomplete="given-name">
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Soyad</label>
-                            <input type="text" name="soyad" value="{{ old('soyad') }}" required
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-[13px] focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B]/20 outline-none bg-white">
+                        <div class="rw-field">
+                            <label for="rw-soyad">Soyad</label>
+                            <input id="rw-soyad" type="text" name="soyad" value="{{ old('soyad') }}" required autocomplete="family-name">
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Telefon</label>
-                            <input type="tel" name="telefon" value="{{ old('telefon') }}" required placeholder="05xx xxx xx xx"
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-[13px] focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B]/20 outline-none bg-white">
+                        <div class="rw-field">
+                            <label for="rw-tel">Telefon</label>
+                            <input id="rw-tel" type="tel" name="telefon" value="{{ old('telefon') }}" required placeholder="05xx xxx xx xx" autocomplete="tel">
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">E-posta <span class="font-normal normal-case">(opsiyonel)</span></label>
-                            <input type="email" name="e_posta" value="{{ old('e_posta') }}"
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-[13px] focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B]/20 outline-none bg-white">
+                        <div class="rw-field">
+                            <label for="rw-mail">E-posta <em>(opsiyonel)</em></label>
+                            <input id="rw-mail" type="email" name="e_posta" value="{{ old('e_posta') }}" autocomplete="email">
                         </div>
                     </div>
                 @endif
 
-                <div class="mb-3">
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Not <span class="font-normal normal-case">(opsiyonel)</span></label>
-                    <textarea name="not" rows="2" placeholder="Şikayet veya notunuz…"
-                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-[13px] focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B]/20 outline-none resize-none bg-white">{{ old('not') }}</textarea>
+                <div class="rw-field">
+                    <label for="rw-not">Not <em>(opsiyonel)</em></label>
+                    <textarea id="rw-not" name="not" rows="2" placeholder="Şikayet veya notunuz…">{{ old('not') }}</textarea>
                 </div>
 
                 @unless($hastaAuth)
-                    <label class="flex items-start gap-2 text-[11px] text-slate-500 cursor-pointer mb-1">
-                        <input type="checkbox" name="kvkk_onay" value="1" required class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
+                    <label class="rw-checkline">
+                        <input type="checkbox" name="kvkk_onay" value="1" required>
                         <span>Kişisel verilerimin randevu amacıyla işlenmesini kabul ediyorum.</span>
                     </label>
-                    <p class="text-[11px] text-slate-400">Hesabınız var mı? <a href="{{ route('frontend.hasta.giris') }}" class="text-[#C96A2B] font-semibold hover:underline">Giriş yapın</a></p>
+                    <p class="rw-login-hint">Hesabınız var mı? <a href="{{ route('frontend.hasta.giris') }}">Giriş yapın</a></p>
                 @endunless
             </div>
 
-            {{-- Nav --}}
-            <div class="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2">
-                <button type="button" id="rw-btn-back" class="hidden h-11 px-4 rounded-xl text-[12px] font-bold text-slate-500 hover:bg-slate-50 font-display transition-all">
-                    Geri
-                </button>
-                <div class="flex-1"></div>
-                <button type="button" id="rw-btn-next"
-                        class="h-11 px-6 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-[12px] font-bold font-display tracking-wide shadow-sm transition-all">
-                    İleri
-                </button>
-                <button type="submit" id="rw-btn-submit"
-                        class="hidden h-11 px-6 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-[12px] font-bold font-display tracking-wide shadow-sm transition-all">
-                    Randevu oluştur
-                </button>
+            <div class="rw-foot">
+                <button type="button" id="rw-btn-back" class="rw-btn rw-btn-ghost" hidden>Geri</button>
+                <span class="rw-foot-spacer"></span>
+                <button type="button" id="rw-btn-next" class="rw-btn rw-btn-primary">İleri</button>
+                <button type="submit" id="rw-btn-submit" class="rw-btn rw-btn-primary" hidden>Randevu oluştur</button>
             </div>
         </form>
     </div>
 </section>
 
 <style>
-    .rw-card.is-selected {
-        border-color: #C96A2B !important;
-        background: #FFF7ED !important;
-        box-shadow: 0 0 0 1px #C96A2B;
-    }
-    .rw-card.is-selected .rw-card-check {
-        border-color: #C96A2B !important;
-        background: #C96A2B !important;
-    }
-    .rw-card.is-selected .rw-card-check svg {
-        opacity: 1 !important;
-    }
-    .rw-day {
-        aspect-ratio: 1;
-        border-radius: 0.85rem;
-        border: 1px solid transparent;
-        font-size: 0.8rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.15s ease;
-        background: transparent;
-        color: #111827;
-    }
-    .rw-day-muted {
-        color: #D1D5DB;
-        cursor: default;
-        font-weight: 500;
-    }
-    .rw-day-off {
-        color: #CBD5E1;
-        background: #F8FAFC;
-        cursor: not-allowed;
-        font-weight: 500;
-    }
-    .rw-day-on {
-        background: #FAFAFA;
-        border-color: #F1F5F9;
-        cursor: pointer;
-        color: #1F2937;
-    }
-    .rw-day-on:hover {
-        border-color: #E7B58A;
-        background: #FFFBF5;
-        color: #C96A2B;
-    }
-    .rw-day-on.is-selected {
-        background: #C96A2B;
-        border-color: #C96A2B;
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(201, 106, 43, 0.25);
-    }
-    .rw-day-today:not(.is-selected) {
-        box-shadow: inset 0 0 0 1.5px #E7B58A;
-    }
-    .rw-slot {
-        padding: 0.7rem 0.25rem;
-        border-radius: 0.85rem;
-        text-align: center;
-        font-size: 0.8rem;
-        font-weight: 700;
-        border: 1px solid transparent;
-        transition: all 0.15s ease;
-    }
-    .rw-slot-musait {
-        border-color: #F1F5F9;
-        background: #FAFAFA;
-        color: #1F2937;
-        cursor: pointer;
-    }
-    .rw-slot-musait:hover {
-        border-color: #E7B58A;
-        background: #FFFBF5;
-        color: #C96A2B;
-    }
-    .rw-slot-musait.is-selected {
-        background: #C96A2B;
-        border-color: #C96A2B;
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(201, 106, 43, 0.22);
-    }
-    .rw-slot-dolu {
-        border-color: #F1F5F9;
-        background: #F8FAFC;
-        color: #CBD5E1;
-        text-decoration: line-through;
-        cursor: not-allowed;
-    }
-    .rw-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.35rem 0.7rem;
-        border-radius: 999px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        background: #FFF7ED;
-        color: #C96A2B;
-        border: 1px solid rgba(231, 181, 138, 0.35);
-    }
+/* ── Randevu Wizard (self-contained, no invalid Tailwind deps) ── */
+#randevu-wizard.rw {
+    margin-bottom: 2.5rem;
+    scroll-margin-top: 6rem;
+}
+#randevu-wizard *,
+#randevu-wizard *::before,
+#randevu-wizard *::after {
+    box-sizing: border-box;
+}
+#randevu-wizard button {
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0;
+    cursor: pointer;
+}
+#randevu-wizard button:disabled {
+    cursor: not-allowed;
+}
+#randevu-wizard input,
+#randevu-wizard textarea {
+    font-family: inherit;
+    margin: 0;
+}
+
+.rw-shell {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 1.5rem;
+    box-shadow: 0 8px 30px rgba(31, 41, 55, 0.04);
+    overflow: hidden;
+}
+
+.rw-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.15rem 1.35rem;
+    border-bottom: 1px solid #F1F5F9;
+    background: linear-gradient(90deg, #FFF7ED 0%, #fff 55%);
+}
+.rw-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+}
+.rw-caption {
+    margin: 0.2rem 0 0;
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+.rw-dots {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+.rw-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: #E2E8F0;
+    transition: width 0.25s ease, background 0.25s ease;
+}
+.rw-dot.is-active {
+    width: 1.35rem;
+    background: #C96A2B;
+}
+.rw-dot.is-done {
+    width: 0.4rem;
+    background: #34D399;
+}
+
+.rw-flash { padding: 0.85rem 1.35rem 0; }
+.rw-flash-ok,
+.rw-flash-err {
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+.rw-flash-ok { background: #ECFDF5; color: #047857; }
+.rw-flash-err { background: #FEF2F2; color: #B91C1C; }
+
+.rw-body { padding: 1.25rem 1.35rem 1.35rem; }
+.rw-hp { position: absolute; left: -9999px; height: 0; overflow: hidden; }
+
+.rw-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+.rw-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #C96A2B;
+    background: #FFF7ED;
+    border: 1px solid #F3D5B5;
+}
+
+.rw-panel[hidden] { display: none !important; }
+
+/* Cards (hizmet + görüşme) */
+.rw-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+}
+@media (min-width: 640px) {
+    .rw-cards { grid-template-columns: 1fr 1fr; }
+    .rw-cards-2 { grid-template-columns: 1fr 1fr; }
+}
+.rw-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.95rem 1rem;
+    border-radius: 1rem;
+    border: 1.5px solid #E5E7EB;
+    background: #FAFAFA;
+    color: inherit;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.rw-card:hover {
+    border-color: #E7B58A;
+    background: #FFFBF5;
+}
+.rw-card.is-selected {
+    border-color: #C96A2B;
+    background: #FFF7ED;
+    box-shadow: 0 0 0 1px #C96A2B;
+}
+.rw-check {
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 999px;
+    border: 2px solid #D1D5DB;
+    flex-shrink: 0;
+    position: relative;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.rw-card.is-selected .rw-check {
+    border-color: #C96A2B;
+    background: #C96A2B;
+}
+.rw-card.is-selected .rw-check::after {
+    content: '';
+    position: absolute;
+    left: 0.28rem;
+    top: 0.1rem;
+    width: 0.28rem;
+    height: 0.5rem;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.rw-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+.rw-card-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.3;
+}
+.rw-card-meta {
+    font-size: 0.72rem;
+    color: #94A3B8;
+    font-weight: 500;
+}
+
+/* Calendar */
+.rw-cal { max-width: 22rem; margin: 0 auto; }
+.rw-cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+}
+.rw-cal-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #111827;
+}
+.rw-icon-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid #E5E7EB;
+    background: #fff;
+    color: #64748B;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.rw-icon-btn:hover {
+    background: #FFF7ED;
+    color: #C96A2B;
+    border-color: #E7B58A;
+}
+.rw-cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+    margin-bottom: 0.35rem;
+}
+.rw-cal-weekdays span {
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #CBD5E1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0;
+}
+.rw-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.3rem;
+}
+.rw-day {
+    aspect-ratio: 1 / 1;
+    min-height: 0;
+    width: 100%;
+    border-radius: 0.7rem;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1F2937;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.rw-day.is-empty {
+    visibility: hidden;
+    pointer-events: none;
+}
+.rw-day.is-off {
+    color: #CBD5E1;
+    background: #F8FAFC;
+    font-weight: 500;
+}
+.rw-day.is-on {
+    background: #FAFAFA;
+    border-color: #F1F5F9;
+}
+.rw-day.is-on:hover {
+    border-color: #E7B58A;
+    background: #FFFBF5;
+    color: #C96A2B;
+}
+.rw-day.is-today:not(.is-selected) {
+    box-shadow: inset 0 0 0 1.5px #E7B58A;
+}
+.rw-day.is-selected {
+    background: #C96A2B !important;
+    border-color: #C96A2B !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(201, 106, 43, 0.28);
+}
+
+/* Slots */
+.rw-sub {
+    margin: 0 0 0.75rem;
+    font-size: 0.8rem;
+    color: #64748B;
+}
+.rw-sub strong { color: #C96A2B; font-weight: 700; }
+.rw-slots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.45rem;
+}
+@media (min-width: 640px) {
+    .rw-slots { grid-template-columns: repeat(4, 1fr); }
+}
+@media (min-width: 768px) {
+    .rw-slots { grid-template-columns: repeat(6, 1fr); }
+}
+.rw-slot {
+    padding: 0.7rem 0.2rem;
+    border-radius: 0.75rem;
+    border: 1px solid #E5E7EB;
+    background: #FAFAFA;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1F2937;
+    text-align: center;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.rw-slot.is-free:hover {
+    border-color: #E7B58A;
+    background: #FFFBF5;
+    color: #C96A2B;
+}
+.rw-slot.is-free.is-selected {
+    background: #C96A2B;
+    border-color: #C96A2B;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(201, 106, 43, 0.25);
+}
+.rw-slot.is-busy {
+    background: #F8FAFC;
+    border-color: #F1F5F9;
+    color: #CBD5E1;
+    text-decoration: line-through;
+    font-weight: 500;
+}
+
+.rw-empty {
+    text-align: center;
+    padding: 2rem 0.5rem;
+    font-size: 0.8rem;
+    color: #94A3B8;
+}
+.rw-empty p { margin: 0 0 0.5rem; }
+.rw-link {
+    border: 0;
+    background: none;
+    color: #C96A2B;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.rw-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    margin-top: 0.85rem;
+    font-size: 0.68rem;
+    color: #94A3B8;
+}
+.rw-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.rw-legend i {
+    display: inline-block;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 0.25rem;
+    border: 1px solid transparent;
+}
+.rw-lg-on { background: #FFF7ED; border-color: #E7B58A !important; }
+.rw-lg-off { background: #F8FAFC; border-color: #E5E7EB !important; }
+.rw-lg-sel { background: #C96A2B; }
+.rw-lg-busy { background: #F1F5F9; border-color: #E5E7EB !important; }
+
+/* Form fields */
+.rw-label {
+    margin: 0 0 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94A3B8;
+}
+.rw-fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    margin-bottom: 0.65rem;
+}
+@media (min-width: 640px) {
+    .rw-fields { grid-template-columns: 1fr 1fr; }
+}
+.rw-field { margin-bottom: 0.65rem; }
+.rw-field label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #94A3B8;
+}
+.rw-field label em {
+    font-style: normal;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #CBD5E1;
+}
+.rw-field input,
+.rw-field textarea {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.75rem;
+    font-size: 0.85rem;
+    color: #111827;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.rw-field input:focus,
+.rw-field textarea:focus {
+    border-color: #C96A2B;
+    box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.12);
+}
+.rw-field textarea { resize: vertical; min-height: 4rem; }
+
+.rw-patient {
+    padding: 0.9rem 1rem;
+    border-radius: 1rem;
+    background: #FAFAFA;
+    border: 1px solid #F1F5F9;
+    margin-bottom: 0.85rem;
+}
+.rw-patient-name {
+    margin: 0.15rem 0 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #111827;
+}
+.rw-patient-meta {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+
+.rw-checkline {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: #64748B;
+    cursor: pointer;
+    margin: 0.25rem 0 0.5rem;
+}
+.rw-checkline input {
+    margin-top: 0.15rem;
+    accent-color: #C96A2B;
+}
+.rw-login-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+.rw-login-hint a {
+    color: #C96A2B;
+    font-weight: 600;
+    text-decoration: none;
+}
+.rw-login-hint a:hover { text-decoration: underline; }
+
+.rw-err {
+    margin: 0.65rem 0 0;
+    font-size: 0.75rem;
+    color: #DC2626;
+    font-weight: 500;
+}
+.rw-err[hidden] { display: none !important; }
+.mb { margin-bottom: 1rem; }
+
+/* Footer */
+.rw-foot {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #F1F5F9;
+}
+.rw-foot-spacer { flex: 1; }
+.rw-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.75rem;
+    padding: 0 1.25rem;
+    border-radius: 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 0;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.rw-btn[hidden] { display: none !important; }
+.rw-btn-primary {
+    background: #C96A2B;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(201, 106, 43, 0.2);
+}
+.rw-btn-primary:hover { background: #B55A20; }
+.rw-btn-primary:disabled {
+    opacity: 0.65;
+}
+.rw-btn-ghost {
+    background: transparent;
+    color: #64748B;
+    border: 1px solid #E5E7EB;
+}
+.rw-btn-ghost:hover {
+    background: #F8FAFC;
+    color: #111827;
+}
 </style>
 
 <script>
 (function () {
     const slotsUrl = @json($slotsUrl);
     const isGuest = @json(! $hastaAuth);
-    const workDays = @json($calismaGunleri); // 1=Mon … 7=Sun
+    const workDays = @json($calismaGunleri);
     const captions = ['', 'Hizmet seçin', 'Gün seçin', 'Saat seçin', 'Bilgilerinizi tamamlayın'];
     const monthNames = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
@@ -349,7 +730,7 @@
     const maxStep = 4;
     let selectedHizmet = { id: '', ad: '', sure: '' };
     let selectedSaat = '';
-    let calYear, calMonth; // month 0-11
+    let calYear, calMonth;
 
     const form = document.getElementById('rw-form');
     if (!form) return;
@@ -373,7 +754,6 @@
         if (!d) return '';
         return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear();
     }
-    /** JS getDay: 0=Sun → DB: 1=Mon … 7=Sun */
     function dbDay(date) {
         const g = date.getDay();
         return g === 0 ? 7 : g;
@@ -385,31 +765,35 @@
 
     function setStep(n) {
         step = n;
-        document.querySelectorAll('.rw-panel').forEach(p => {
-            p.classList.toggle('hidden', Number(p.dataset.panel) !== n);
+        document.querySelectorAll('.rw-panel').forEach(function (p) {
+            const show = Number(p.dataset.panel) === n;
+            if (show) p.removeAttribute('hidden');
+            else p.setAttribute('hidden', '');
         });
-        document.querySelectorAll('.rw-dot').forEach(dot => {
+        document.querySelectorAll('.rw-dot').forEach(function (dot) {
             const s = Number(dot.dataset.dot);
-            if (s === n) {
-                dot.style.width = '1.5rem';
-                dot.style.background = '#C96A2B';
-            } else if (s < n) {
-                dot.style.width = '0.375rem';
-                dot.style.background = '#34D399';
-            } else {
-                dot.style.width = '0.375rem';
-                dot.style.background = '#E2E8F0';
-            }
+            dot.classList.remove('is-active', 'is-done');
+            if (s === n) dot.classList.add('is-active');
+            else if (s < n) dot.classList.add('is-done');
         });
-        const cap = document.getElementById('rw-step-caption');
+        var cap = document.getElementById('rw-step-caption');
         if (cap) cap.textContent = captions[n] || '';
 
-        const back = document.getElementById('rw-btn-back');
-        const next = document.getElementById('rw-btn-next');
-        const sub = document.getElementById('rw-btn-submit');
-        if (back) back.classList.toggle('hidden', n === 1);
-        if (next) next.classList.toggle('hidden', n === maxStep);
-        if (sub) sub.classList.toggle('hidden', n !== maxStep);
+        var back = document.getElementById('rw-btn-back');
+        var next = document.getElementById('rw-btn-next');
+        var sub = document.getElementById('rw-btn-submit');
+        if (back) {
+            if (n === 1) back.setAttribute('hidden', '');
+            else back.removeAttribute('hidden');
+        }
+        if (next) {
+            if (n === maxStep) next.setAttribute('hidden', '');
+            else next.removeAttribute('hidden');
+        }
+        if (sub) {
+            if (n === maxStep) sub.removeAttribute('hidden');
+            else sub.setAttribute('hidden', '');
+        }
 
         updateSummary();
         if (n === 2) renderCalendar();
@@ -417,26 +801,26 @@
     }
 
     function updateSummary() {
-        const box = document.getElementById('rw-summary');
-        const chips = [];
+        var box = document.getElementById('rw-summary');
+        var chips = [];
         if (selectedHizmet.id) chips.push(selectedHizmet.ad + (selectedHizmet.sure ? ' · ' + selectedHizmet.sure + ' dk' : ''));
-        const t = document.getElementById('rw-tarih').value;
+        var t = document.getElementById('rw-tarih').value;
         if (t) chips.push(formatTr(t));
         if (selectedSaat) chips.push(selectedSaat);
         if (!chips.length) {
-            box.classList.add('hidden');
+            box.hidden = true;
             box.innerHTML = '';
             return;
         }
-        box.classList.remove('hidden');
-        box.classList.add('flex');
-        box.innerHTML = chips.map(c => '<span class="rw-chip">' + c + '</span>').join('');
+        box.hidden = false;
+        box.innerHTML = chips.map(function (c) {
+            return '<span class="rw-chip">' + c + '</span>';
+        }).join('');
     }
 
-    // ── Hizmet cards ──
-    document.querySelectorAll('.rw-hizmet-card').forEach(card => {
-        card.addEventListener('click', () => {
-            document.querySelectorAll('.rw-hizmet-card').forEach(c => c.classList.remove('is-selected'));
+    document.querySelectorAll('.rw-hizmet-card').forEach(function (card) {
+        card.addEventListener('click', function () {
+            document.querySelectorAll('.rw-hizmet-card').forEach(function (c) { c.classList.remove('is-selected'); });
             card.classList.add('is-selected');
             selectedHizmet = { id: card.dataset.id, ad: card.dataset.ad, sure: card.dataset.sure };
             document.getElementById('rw-hizmet-id').value = selectedHizmet.id;
@@ -444,141 +828,130 @@
             updateSummary();
         });
     });
-    const oldH = document.getElementById('rw-hizmet-id').value;
+    var oldH = document.getElementById('rw-hizmet-id').value;
     if (oldH) {
-        const c = document.querySelector('.rw-hizmet-card[data-id="' + oldH + '"]');
+        var c = document.querySelector('.rw-hizmet-card[data-id="' + oldH + '"]');
         if (c) c.click();
     }
 
-    // ── Görüşme cards ──
-    document.querySelectorAll('.rw-gorusme-card').forEach(card => {
-        card.addEventListener('click', () => {
-            document.querySelectorAll('.rw-gorusme-card').forEach(c => c.classList.remove('is-selected'));
+    document.querySelectorAll('.rw-gorusme-card').forEach(function (card) {
+        card.addEventListener('click', function () {
+            document.querySelectorAll('.rw-gorusme-card').forEach(function (x) { x.classList.remove('is-selected'); });
             card.classList.add('is-selected');
-            const inp = document.getElementById('rw-gorusme');
+            var inp = document.getElementById('rw-gorusme');
             if (inp) inp.value = card.dataset.value;
         });
     });
-    const gOld = document.getElementById('rw-gorusme');
-    if (gOld && gOld.value) {
-        const gc = document.querySelector('.rw-gorusme-card[data-value="' + gOld.value + '"]');
-        if (gc) {
-            document.querySelectorAll('.rw-gorusme-card').forEach(c => c.classList.remove('is-selected'));
-            gc.classList.add('is-selected');
-        }
-    }
 
-    // ── Calendar ──
     function renderCalendar() {
-        const title = document.getElementById('rw-cal-title');
-        const grid = document.getElementById('rw-cal-grid');
+        var title = document.getElementById('rw-cal-title');
+        var grid = document.getElementById('rw-cal-grid');
         title.textContent = monthNames[calMonth] + ' ' + calYear;
         grid.innerHTML = '';
 
-        const first = new Date(calYear, calMonth, 1);
-        // Monday-first offset: Mon=0 … Sun=6
-        let startPad = first.getDay() - 1;
+        var first = new Date(calYear, calMonth, 1);
+        var startPad = first.getDay() - 1;
         if (startPad < 0) startPad = 6;
+        var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+        var selectedIso = document.getElementById('rw-tarih').value;
+        var todayIso = iso(today);
 
-        const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-        const selectedIso = document.getElementById('rw-tarih').value;
-        const todayIso = iso(today);
-
-        for (let i = 0; i < startPad; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'rw-day rw-day-muted';
-            cell.textContent = '';
-            grid.appendChild(cell);
+        for (var i = 0; i < startPad; i++) {
+            var empty = document.createElement('button');
+            empty.type = 'button';
+            empty.className = 'rw-day is-empty';
+            empty.tabIndex = -1;
+            empty.setAttribute('aria-hidden', 'true');
+            grid.appendChild(empty);
         }
 
-        for (let day = 1; day <= daysInMonth; day++) {
-            const d = new Date(calYear, calMonth, day);
+        for (var day = 1; day <= daysInMonth; day++) {
+            var d = new Date(calYear, calMonth, day);
             d.setHours(0, 0, 0, 0);
-            const dIso = iso(d);
-            const past = d < today;
-            const work = isWorkDay(d);
-            const btn = document.createElement('button');
+            var dIso = iso(d);
+            var past = d < today;
+            var work = isWorkDay(d);
+            var btn = document.createElement('button');
             btn.type = 'button';
             btn.textContent = String(day);
 
             if (past || !work) {
-                btn.className = 'rw-day rw-day-off';
+                btn.className = 'rw-day is-off';
                 btn.disabled = true;
-                btn.title = past ? 'Geçmiş' : 'Kapalı';
             } else {
-                btn.className = 'rw-day rw-day-on' + (dIso === todayIso ? ' rw-day-today' : '');
+                btn.className = 'rw-day is-on' + (dIso === todayIso ? ' is-today' : '');
                 if (dIso === selectedIso) btn.classList.add('is-selected');
-                btn.addEventListener('click', () => {
-                    document.getElementById('rw-tarih').value = dIso;
-                    selectedSaat = '';
-                    document.getElementById('rw-saat').value = '';
-                    hideErr(2);
-                    updateSummary();
-                    renderCalendar();
-                });
+                btn.addEventListener('click', (function (isoVal) {
+                    return function () {
+                        document.getElementById('rw-tarih').value = isoVal;
+                        selectedSaat = '';
+                        document.getElementById('rw-saat').value = '';
+                        hideErr(2);
+                        updateSummary();
+                        renderCalendar();
+                    };
+                })(dIso));
             }
             grid.appendChild(btn);
         }
     }
 
-    document.getElementById('rw-cal-prev').addEventListener('click', () => {
+    document.getElementById('rw-cal-prev').addEventListener('click', function () {
         calMonth--;
         if (calMonth < 0) { calMonth = 11; calYear--; }
-        // Don't go before current month
         if (calYear < today.getFullYear() || (calYear === today.getFullYear() && calMonth < today.getMonth())) {
             calYear = today.getFullYear();
             calMonth = today.getMonth();
         }
         renderCalendar();
     });
-    document.getElementById('rw-cal-next').addEventListener('click', () => {
+    document.getElementById('rw-cal-next').addEventListener('click', function () {
         calMonth++;
         if (calMonth > 11) { calMonth = 0; calYear++; }
         renderCalendar();
     });
 
-    // ── Slots ──
     function loadSlots() {
-        const tarih = document.getElementById('rw-tarih').value;
+        var tarih = document.getElementById('rw-tarih').value;
         document.getElementById('rw-saat-tarih-label').textContent = formatTr(tarih);
-        const grid = document.getElementById('rw-slots-grid');
-        const loading = document.getElementById('rw-slots-loading');
-        const empty = document.getElementById('rw-slots-empty');
+        var grid = document.getElementById('rw-slots-grid');
+        var loading = document.getElementById('rw-slots-loading');
+        var empty = document.getElementById('rw-slots-empty');
         grid.innerHTML = '';
         selectedSaat = '';
         document.getElementById('rw-saat').value = '';
         updateSummary();
 
         if (!tarih) {
-            empty.classList.remove('hidden');
-            loading.classList.add('hidden');
+            empty.hidden = false;
+            loading.hidden = true;
             return;
         }
-        loading.classList.remove('hidden');
-        empty.classList.add('hidden');
+        loading.hidden = false;
+        empty.hidden = true;
 
         fetch(slotsUrl + '?tarih=' + encodeURIComponent(tarih), {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         })
-            .then(r => r.json())
-            .then(json => {
-                loading.classList.add('hidden');
-                const slots = (json.data && json.data.slots) ? json.data.slots : [];
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                loading.hidden = true;
+                var slots = (json.data && json.data.slots) ? json.data.slots : [];
                 if (!slots.length) {
-                    empty.classList.remove('hidden');
+                    empty.hidden = false;
                     return;
                 }
-                empty.classList.add('hidden');
-                slots.forEach(slot => {
-                    const btn = document.createElement('button');
+                empty.hidden = true;
+                slots.forEach(function (slot) {
+                    var btn = document.createElement('button');
                     btn.type = 'button';
-                    const ok = !!slot.musait;
-                    btn.className = 'rw-slot ' + (ok ? 'rw-slot-musait' : 'rw-slot-dolu');
+                    var ok = !!slot.musait;
+                    btn.className = 'rw-slot ' + (ok ? 'is-free' : 'is-busy');
                     btn.textContent = slot.saat;
                     btn.disabled = !ok;
                     if (ok) {
-                        btn.addEventListener('click', () => {
-                            grid.querySelectorAll('.rw-slot-musait').forEach(b => b.classList.remove('is-selected'));
+                        btn.addEventListener('click', function () {
+                            grid.querySelectorAll('.rw-slot.is-free').forEach(function (b) { b.classList.remove('is-selected'); });
                             btn.classList.add('is-selected');
                             selectedSaat = slot.saat;
                             document.getElementById('rw-saat').value = slot.saat;
@@ -589,43 +962,36 @@
                     grid.appendChild(btn);
                 });
             })
-            .catch(() => {
-                loading.classList.add('hidden');
-                empty.classList.remove('hidden');
+            .catch(function () {
+                loading.hidden = true;
+                empty.hidden = false;
             });
     }
 
     function hideErr(n) {
-        const e = document.getElementById('rw-err-' + n);
-        if (e) e.classList.add('hidden');
+        var e = document.getElementById('rw-err-' + n);
+        if (e) e.hidden = true;
     }
     function showErr(n) {
-        const e = document.getElementById('rw-err-' + n);
-        if (e) e.classList.remove('hidden');
+        var e = document.getElementById('rw-err-' + n);
+        if (e) e.hidden = false;
     }
-
     function validateStep(n) {
-        if (n === 1 && !document.getElementById('rw-hizmet-id').value) {
-            showErr(1); return false;
-        }
-        if (n === 2 && !document.getElementById('rw-tarih').value) {
-            showErr(2); return false;
-        }
-        if (n === 3 && !document.getElementById('rw-saat').value) {
-            showErr(3); return false;
-        }
+        if (n === 1 && !document.getElementById('rw-hizmet-id').value) { showErr(1); return false; }
+        if (n === 2 && !document.getElementById('rw-tarih').value) { showErr(2); return false; }
+        if (n === 3 && !document.getElementById('rw-saat').value) { showErr(3); return false; }
         return true;
     }
 
-    document.getElementById('rw-btn-next').addEventListener('click', () => {
+    document.getElementById('rw-btn-next').addEventListener('click', function () {
         if (!validateStep(step)) return;
         if (step < maxStep) setStep(step + 1);
     });
-    document.getElementById('rw-btn-back').addEventListener('click', () => {
+    document.getElementById('rw-btn-back').addEventListener('click', function () {
         if (step > 1) setStep(step - 1);
     });
-    document.querySelectorAll('.rw-goto-date').forEach(b => {
-        b.addEventListener('click', () => setStep(2));
+    document.querySelectorAll('.rw-goto-date').forEach(function (b) {
+        b.addEventListener('click', function () { setStep(2); });
     });
 
     if (isGuest) {
@@ -638,10 +1004,10 @@
                 setStep(1);
                 return;
             }
-            const btn = document.getElementById('rw-btn-submit');
+            var btn = document.getElementById('rw-btn-submit');
             if (btn) { btn.disabled = true; btn.textContent = 'Gönderiliyor…'; }
-            const done = function (token) {
-                const inp = document.getElementById('rw-recaptcha-token');
+            var done = function (token) {
+                var inp = document.getElementById('rw-recaptcha-token');
                 if (inp) inp.value = token || '';
                 form.dataset.rcOk = '1';
                 form.submit();
@@ -654,11 +1020,10 @@
         });
     }
 
-    // Restore date month if old value
-    const oldT = document.getElementById('rw-tarih').value;
+    var oldT = document.getElementById('rw-tarih').value;
     if (oldT) {
-        const d = parseIso(oldT);
-        if (d) { calYear = d.getFullYear(); calMonth = d.getMonth(); }
+        var od = parseIso(oldT);
+        if (od) { calYear = od.getFullYear(); calMonth = od.getMonth(); }
     }
 
     setStep(1);
@@ -666,8 +1031,8 @@
 </script>
 @elseif($doktor->randevuya_acik_mi)
 <section class="mb-10">
-    <div class="bg-white border border-slate-100 rounded-3xl p-6 text-center">
-        <p class="text-sm text-slate-500">Bu hekim için henüz randevu hizmeti tanımlanmamış.</p>
+    <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 text-center">
+        <p class="text-sm text-[#6B7280]">Bu hekim için henüz randevu hizmeti tanımlanmamış.</p>
     </div>
 </section>
 @endif
