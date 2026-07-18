@@ -82,6 +82,9 @@
                                 @endif
                             </span>
                             <span class="rw-svc-name">{{ $hizmet->ad }}</span>
+                            @if($hizmet->aciklama)
+                                <span class="rw-svc-desc">{{ Str::limit(strip_tags($hizmet->aciklama), 48) }}</span>
+                            @endif
                             @if($sure > 0)
                                 <span class="rw-svc-tags">
                                     <span class="rw-tag">{{ $sure }} dk</span>
@@ -437,6 +440,18 @@
     overflow: hidden;
     max-width: 100%;
     padding: 0 0.15rem;
+}
+.rw-svc-desc {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: #94A3B8;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 100%;
+    padding: 0 0.2rem;
 }
 
 .rw-svc-tags {
