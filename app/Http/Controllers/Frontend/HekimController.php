@@ -363,37 +363,91 @@ class HekimController extends Controller
             : collect();
 
         $gunluk = $slotService->generateGunlukSlotlar($doktor, $tarih, $randevular, $izinler, $periyot);
+        $tarihStr = $tarih->toDateString();
 
         $slots = collect($gunluk)
             ->filter(fn ($s) => is_array($s))
-            ->map(function ($s) {
+            ->map(function ($s) use ($slotService, $doktor, $tarihStr) {
                 $saat = substr((string) ($s['saat_string'] ?? $s['saat_baslangic'] ?? ''), 0, 5);
                 $durum = (string) ($s['durum'] ?? 'bos');
+                $musait = $durum === 'bos' && $saat !== '' && $slotService->isSlotSelectable($doktor, $tarihStr, $saat);
+                if ($durum === 'bos' && ! $musait) {
+                    $durum = 'gecmis';
+                }
 
                 return [
                     'saat' => $saat,
                     'durum' => $durum,
-                    'musait' => $durum === 'bos',
+                    'musait' => $musait,
                     'etiket' => match ($durum) {
                         'bos' => 'Müsait',
                         'dolu' => 'Dolu',
                         'ogle' => 'Öğle',
                         'izin' => 'İzin',
+                        'gecmis' => 'Geçmiş',
                         default => $durum,
                     },
                 ];
             })
             ->filter(fn ($s) => $s['saat'] !== '')
-            // Öğle aralarını listede gösterme (sadece dolu + müsait + izin)
             ->filter(fn ($s) => $s['durum'] !== 'ogle')
             ->values();
+
+        $hasFree = $slots->contains(fn ($s) => ! empty($s['musait']));
 
         return response()->json([
             'success' => true,
             'data' => [
-                'tarih' => $tarih->toDateString(),
+                'tarih' => $tarihStr,
                 'slots' => $slots,
-                'kapali' => $slots->isEmpty(),
+                'kapali' => ! $hasFree,
+                'musait_var' => $hasFree,
+            ],
+        ]);
+    }
+
+    /**
+     * Takvim: ay içindeki müsait günler (en az 1 boş slot).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function publicAvailableDays(Request $request, int $id, \App\Services\SlotService $slotService)
+    {
+        $doktor = Doktor::platformdaListelenen()
+            ->with(['randevuAyari', 'calismaSaatleri'])
+            ->findOrFail($id);
+
+        $request->validate([
+            'ay' => ['nullable', 'date_format:Y-m'],
+            'baslangic' => ['nullable', 'date_format:Y-m-d'],
+            'bitis' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        if ($request->filled('ay')) {
+            $from = \Carbon\Carbon::createFromFormat('Y-m', $request->string('ay')->toString())->startOfMonth();
+            $to = $from->copy()->endOfMonth();
+        } else {
+            $from = $request->filled('baslangic')
+                ? \Carbon\Carbon::parse($request->string('baslangic')->toString())->startOfDay()
+                : today();
+            $to = $request->filled('bitis')
+                ? \Carbon\Carbon::parse($request->string('bitis')->toString())->startOfDay()
+                : $from->copy()->addDays(45);
+        }
+
+        // Geçmiş günleri tarama
+        if ($from->lt(today())) {
+            $from = today();
+        }
+
+        $days = $slotService->availableDatesInRange($doktor, $from, $to);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'gunler' => $days,
+                'baslangic' => $from->toDateString(),
+                'bitis' => $to->toDateString(),
             ],
         ]);
     }

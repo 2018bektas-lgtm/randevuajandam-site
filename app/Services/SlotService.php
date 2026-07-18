@@ -190,4 +190,85 @@ class SlotService
 
         return null;
     }
+
+    /**
+     * Belirli aralıkta en az 1 müsait slotu olan günler (takvim için).
+     *
+     * @return list<string> Y-m-d
+     */
+    public function availableDatesInRange(Doktor $doktor, Carbon $from, Carbon $to): array
+    {
+        if (! $doktor->randevuya_acik_mi) {
+            return [];
+        }
+
+        $from = $from->copy()->startOfDay();
+        $to = $to->copy()->startOfDay();
+        if ($to->lt($from)) {
+            return [];
+        }
+
+        $ayarlar = $doktor->randevuAyari;
+        $periyot = $this->getPeriyot($doktor);
+        $enErkenSaat = (int) ($ayarlar->en_erken_randevu_saati ?? 0);
+        $enErkenZaman = now()->addHours(max(0, $enErkenSaat));
+
+        $maxDaysSetting = (int) ($ayarlar->en_gec_randevu_gunu ?? 0);
+        if ($maxDaysSetting > 0) {
+            $hardEnd = today()->copy()->addDays($maxDaysSetting);
+            if ($to->gt($hardEnd)) {
+                $to = $hardEnd;
+            }
+        }
+
+        $izinler = method_exists($doktor, 'izinler')
+            ? $doktor->izinler()->get()
+            : collect();
+
+        $randevularByDate = $doktor->randevular()
+            ->whereDate('tarih', '>=', $from->toDateString())
+            ->whereDate('tarih', '<=', $to->toDateString())
+            ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
+            ->get()
+            ->groupBy(fn ($r) => Carbon::parse($r->tarih)->toDateString());
+
+        $available = [];
+        $cursor = $from->copy();
+        while ($cursor->lte($to)) {
+            $key = $cursor->toDateString();
+            $dayRandevular = $randevularByDate->get($key, collect());
+            $slots = $this->generateGunlukSlotlar($doktor, $cursor, $dayRandevular, $izinler, $periyot);
+            foreach ($slots as $slot) {
+                if (($slot['durum'] ?? '') !== 'bos') {
+                    continue;
+                }
+                $saat = (string) ($slot['saat_string'] ?? '');
+                if ($saat === '') {
+                    continue;
+                }
+                if (Carbon::parse($key.' '.$saat)->lt($enErkenZaman)) {
+                    continue;
+                }
+                $available[] = $key;
+                break;
+            }
+            $cursor->addDay();
+        }
+
+        return $available;
+    }
+
+    /**
+     * Slot "bos" olsa bile en_erken kuralına uymuyorsa seçilemez.
+     */
+    public function isSlotSelectable(Doktor $doktor, string $tarih, string $saat): bool
+    {
+        $ayarlar = $doktor->randevuAyari;
+        $enErkenSaat = (int) ($ayarlar->en_erken_randevu_saati ?? 0);
+        if ($enErkenSaat <= 0) {
+            return true;
+        }
+
+        return Carbon::parse($tarih.' '.$saat)->gte(now()->addHours($enErkenSaat));
+    }
 }

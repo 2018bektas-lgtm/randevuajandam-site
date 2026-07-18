@@ -61,6 +61,10 @@ Route::get('/doktorlar/{id}/slotlar', [HekimController::class, 'publicSlots'])
     ->whereNumber('id')
     ->middleware('throttle:60,1')
     ->name('frontend.doktorlar.slotlar');
+Route::get('/doktorlar/{id}/musait-gunler', [HekimController::class, 'publicAvailableDays'])
+    ->whereNumber('id')
+    ->middleware('throttle:60,1')
+    ->name('frontend.doktorlar.musait-gunler');
 // Eski /hekimler URL'leri (query string korunur) → /doktorlar
 Route::get('/hekimler', function (\Illuminate\Http\Request $request) {
     return redirect()->route('frontend.hekimler', $request->query(), 301);

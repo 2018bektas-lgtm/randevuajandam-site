@@ -4,6 +4,7 @@
     $hastaUser = $hastaAuth ? Auth::guard('hasta')->user() : null;
     $onlineGorusmeAcik = (bool) $doktor->aktifPaket()?->hasFeature('online_gorusme');
     $slotsUrl = route('frontend.doktorlar.slotlar', $doktor->id);
+    $daysUrl = route('frontend.doktorlar.musait-gunler', $doktor->id);
     $formAction = $hastaAuth
         ? route('frontend.hasta.randevu.kaydet')
         : route('frontend.hasta.randevu.misafir');
@@ -115,12 +116,13 @@
                     </div>
                     <div id="rw-cal-grid" class="rw-cal-grid"></div>
                     <div class="rw-legend">
-                        <span><i class="rw-lg-on"></i> Açık</span>
-                        <span><i class="rw-lg-off"></i> Kapalı</span>
+                        <span><i class="rw-lg-on"></i> Müsait gün</span>
+                        <span><i class="rw-lg-off"></i> Dolu / kapalı</span>
                         <span><i class="rw-lg-sel"></i> Seçili</span>
                     </div>
+                    <p id="rw-cal-loading" class="rw-empty" hidden style="padding:0.5rem 0 0">Günler kontrol ediliyor…</p>
                 </div>
-                <p id="rw-err-2" class="rw-err" hidden>Takvimden bir gün seçin</p>
+                <p id="rw-err-2" class="rw-err" hidden>Müsait bir gün seçin</p>
             </div>
 
             {{-- 3 Saat --}}
@@ -633,6 +635,13 @@
     background: #F8FAFC;
     font-weight: 500;
 }
+.rw-day.is-full {
+    color: #CBD5E1;
+    background: #F1F5F9;
+    font-weight: 500;
+    text-decoration: line-through;
+    opacity: 0.85;
+}
 .rw-day.is-on {
     background: #FAFAFA;
     border-color: #F1F5F9;
@@ -895,6 +904,7 @@
 <script>
 (function () {
     const slotsUrl = @json($slotsUrl);
+    const daysUrl = @json($daysUrl);
     const isGuest = @json(! $hastaAuth);
     const workDays = @json($calismaGunleri);
     const captions = ['', 'Hizmet seçin', 'Gün seçin', 'Saat seçin', 'Bilgilerinizi tamamlayın'];
@@ -905,6 +915,9 @@
     let selectedHizmet = { id: '', ad: '', sure: '' };
     let selectedSaat = '';
     let calYear, calMonth;
+    /** @type {Object.<string, Object.<string, boolean>>} ayKey -> { 'Y-m-d': true } */
+    var availableDaysCache = {};
+    var calRequestId = 0;
 
     const form = document.getElementById('rw-form');
     if (!form) return;
@@ -1017,7 +1030,11 @@
         });
     });
 
-    function renderCalendar() {
+    function monthKey() {
+        return calYear + '-' + pad(calMonth + 1);
+    }
+
+    function paintCalendar(availMap) {
         var title = document.getElementById('rw-cal-title');
         var grid = document.getElementById('rw-cal-grid');
         title.textContent = monthNames[calMonth] + ' ' + calYear;
@@ -1029,6 +1046,19 @@
         var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
         var selectedIso = document.getElementById('rw-tarih').value;
         var todayIso = iso(today);
+        availMap = availMap || {};
+
+        // Seçili gün artık müsait değilse temizle
+        if (selectedIso && !availMap[selectedIso]) {
+            var selDate = parseIso(selectedIso);
+            if (selDate && selDate.getFullYear() === calYear && selDate.getMonth() === calMonth) {
+                document.getElementById('rw-tarih').value = '';
+                selectedIso = '';
+                selectedSaat = '';
+                document.getElementById('rw-saat').value = '';
+                updateSummary();
+            }
+        }
 
         for (var i = 0; i < startPad; i++) {
             var empty = document.createElement('button');
@@ -1045,6 +1075,7 @@
             var dIso = iso(d);
             var past = d < today;
             var work = isWorkDay(d);
+            var hasSlot = !!availMap[dIso];
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.textContent = String(day);
@@ -1052,9 +1083,15 @@
             if (past || !work) {
                 btn.className = 'rw-day is-off';
                 btn.disabled = true;
+                btn.title = past ? 'Geçmiş' : 'Kapalı';
+            } else if (!hasSlot) {
+                btn.className = 'rw-day is-full';
+                btn.disabled = true;
+                btn.title = 'Bu günde müsait saat yok';
             } else {
                 btn.className = 'rw-day is-on' + (dIso === todayIso ? ' is-today' : '');
                 if (dIso === selectedIso) btn.classList.add('is-selected');
+                btn.title = 'Müsait';
                 btn.addEventListener('click', (function (isoVal) {
                     return function () {
                         document.getElementById('rw-tarih').value = isoVal;
@@ -1062,12 +1099,50 @@
                         document.getElementById('rw-saat').value = '';
                         hideErr(2);
                         updateSummary();
-                        renderCalendar();
+                        paintCalendar(availMap);
                     };
                 })(dIso));
             }
             grid.appendChild(btn);
         }
+    }
+
+    function renderCalendar() {
+        var key = monthKey();
+        var loading = document.getElementById('rw-cal-loading');
+        var title = document.getElementById('rw-cal-title');
+        title.textContent = monthNames[calMonth] + ' ' + calYear;
+
+        if (availableDaysCache[key]) {
+            if (loading) loading.hidden = true;
+            paintCalendar(availableDaysCache[key]);
+            return;
+        }
+
+        // Önce kapalı/çalışma günü iskeleti
+        paintCalendar({});
+        if (loading) loading.hidden = false;
+        var req = ++calRequestId;
+
+        fetch(daysUrl + '?ay=' + encodeURIComponent(key), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                if (req !== calRequestId) return;
+                if (loading) loading.hidden = true;
+                var map = {};
+                var list = (json.data && json.data.gunler) ? json.data.gunler : [];
+                list.forEach(function (d) { map[d] = true; });
+                availableDaysCache[key] = map;
+                paintCalendar(map);
+            })
+            .catch(function () {
+                if (req !== calRequestId) return;
+                if (loading) loading.hidden = true;
+                // Hata: çalışma günlerini geçici seçilebilir bırakma — güvenli taraf: hepsini kapalı
+                paintCalendar({});
+            });
     }
 
     document.getElementById('rw-cal-prev').addEventListener('click', function () {
@@ -1099,6 +1174,8 @@
         if (!tarih) {
             empty.hidden = false;
             loading.hidden = true;
+            // Takvime dön
+            setTimeout(function () { setStep(2); }, 0);
             return;
         }
         loading.hidden = false;
@@ -1111,8 +1188,17 @@
             .then(function (json) {
                 loading.hidden = true;
                 var slots = (json.data && json.data.slots) ? json.data.slots : [];
-                if (!slots.length) {
+                var free = slots.filter(function (s) { return !!s.musait; });
+                // Gün doluysa takvime geri
+                if (!free.length) {
                     empty.hidden = false;
+                    // Bu günü müsait listesinden düş
+                    var mk = tarih.slice(0, 7);
+                    if (availableDaysCache[mk]) {
+                        delete availableDaysCache[mk][tarih];
+                    }
+                    document.getElementById('rw-tarih').value = '';
+                    updateSummary();
                     return;
                 }
                 empty.hidden = true;
@@ -1150,9 +1236,20 @@
         var e = document.getElementById('rw-err-' + n);
         if (e) e.hidden = false;
     }
+    function isDateAvailable(isoVal) {
+        if (!isoVal) return false;
+        var mk = isoVal.slice(0, 7);
+        return !!(availableDaysCache[mk] && availableDaysCache[mk][isoVal]);
+    }
     function validateStep(n) {
         if (n === 1 && !document.getElementById('rw-hizmet-id').value) { showErr(1); return false; }
-        if (n === 2 && !document.getElementById('rw-tarih').value) { showErr(2); return false; }
+        if (n === 2) {
+            var t = document.getElementById('rw-tarih').value;
+            if (!t || !isDateAvailable(t)) {
+                showErr(2);
+                return false;
+            }
+        }
         if (n === 3 && !document.getElementById('rw-saat').value) { showErr(3); return false; }
         return true;
     }
