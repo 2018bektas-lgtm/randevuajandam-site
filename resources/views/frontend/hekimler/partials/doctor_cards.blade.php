@@ -128,6 +128,24 @@
                                 </div>
                             @endif
 
+                            {{-- En yakın müsait randevu --}}
+                            @if(!empty($doktor->en_yakin_randevu['label']))
+                                <div class="flex items-center gap-1.5 mt-1.5">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#FFF7ED] border border-[#E7B58A]/35 text-[10px] font-bold text-[#C96A2B] font-display">
+                                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
+                                        </svg>
+                                        En yakın: {{ $doktor->en_yakin_randevu['label'] }}
+                                    </span>
+                                </div>
+                            @elseif($doktor->randevuya_acik_mi)
+                                <div class="flex items-center gap-1.5 mt-1.5">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-400 font-display">
+                                        Yakın müsait slot yok
+                                    </span>
+                                </div>
+                            @endif
+
                             <!-- Short biography preview (Max 2 lines) -->
                             @if($doktor->biyografi)
                                 <p class="text-[11px] text-[#6B7280] leading-relaxed line-clamp-2 pt-1 border-t border-slate-50">

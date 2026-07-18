@@ -36,7 +36,9 @@ class SlotService
         int $periyot,
     ): array {
         $gunIndeksi = (int) $gunTarih->format('N');
-        $cs = $doktor->calismaSaatleri()->where('gun', $gunIndeksi)->first();
+        $cs = $doktor->relationLoaded('calismaSaatleri')
+            ? $doktor->calismaSaatleri->firstWhere('gun', $gunIndeksi)
+            : $doktor->calismaSaatleri()->where('gun', $gunIndeksi)->first();
 
         if (! $cs || ! $cs->aktif_mi) {
             return [];
@@ -116,5 +118,76 @@ class SlotService
         }
 
         return ['izinli' => false, 'aciklama' => ''];
+    }
+
+    /**
+     * En yakın müsait randevu slotu (liste kartları için).
+     *
+     * @return array{tarih: string, saat: string, label: string}|null
+     */
+    public function findNextAvailable(Doktor $doktor, int $maxScanDays = 45): ?array
+    {
+        if (! $doktor->randevuya_acik_mi) {
+            return null;
+        }
+
+        $ayarlar = $doktor->randevuAyari;
+        $periyot = $this->getPeriyot($doktor);
+        $maxDays = (int) ($ayarlar->en_gec_randevu_gunu ?? 30);
+        if ($maxDays <= 0) {
+            $maxDays = 30;
+        }
+        $maxDays = min($maxDays, max(1, $maxScanDays));
+
+        $enErkenSaat = (int) ($ayarlar->en_erken_randevu_saati ?? 0);
+        $enErkenZaman = now()->addHours(max(0, $enErkenSaat));
+
+        $izinler = method_exists($doktor, 'izinler')
+            ? $doktor->izinler()->get()
+            : collect();
+
+        $start = today();
+        $end = today()->copy()->addDays($maxDays);
+
+        $randevularByDate = $doktor->randevular()
+            ->whereDate('tarih', '>=', $start->toDateString())
+            ->whereDate('tarih', '<=', $end->toDateString())
+            ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
+            ->get()
+            ->groupBy(function ($r) {
+                return Carbon::parse($r->tarih)->toDateString();
+            });
+
+        for ($d = 0; $d <= $maxDays; $d++) {
+            $gun = today()->copy()->addDays($d);
+            $key = $gun->toDateString();
+            /** @var Collection $dayRandevular */
+            $dayRandevular = $randevularByDate->get($key, collect());
+
+            $slots = $this->generateGunlukSlotlar($doktor, $gun, $dayRandevular, $izinler, $periyot);
+            foreach ($slots as $slot) {
+                if (($slot['durum'] ?? '') !== 'bos') {
+                    continue;
+                }
+                $saat = (string) ($slot['saat_string'] ?? '');
+                if ($saat === '') {
+                    continue;
+                }
+                $slotDt = Carbon::parse($key.' '.$saat);
+                if ($slotDt->lt($enErkenZaman)) {
+                    continue;
+                }
+
+                $label = $gun->locale('tr')->translatedFormat('d M Y').' · '.$saat;
+
+                return [
+                    'tarih' => $key,
+                    'saat' => $saat,
+                    'label' => $label,
+                ];
+            }
+        }
+
+        return null;
     }
 }

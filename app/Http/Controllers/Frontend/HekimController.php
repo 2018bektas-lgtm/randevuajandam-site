@@ -155,7 +155,9 @@ class HekimController extends Controller
             $request->merge(['uzmanlik' => $bransModel->ad]);
         }
 
-        $query = Doktor::platformdaListelenen()->where('tur', 'bireysel')->with('paket', 'branslar', 'il', 'ilce');
+        $query = Doktor::platformdaListelenen()
+            ->where('tur', 'bireysel')
+            ->with(['paket', 'branslar', 'il', 'ilce', 'randevuAyari', 'calismaSaatleri']);
 
         // Search filter
         if ($request->filled('arama')) {
@@ -254,6 +256,13 @@ class HekimController extends Controller
         } else {
             $doktorlar = $query->paginate(12)->withQueryString();
             $toplamDoktorSayisi = $doktorlar->total();
+
+            // En yakın müsait randevu (kartlarda gösterim)
+            $slotService = app(\App\Services\SlotService::class);
+            foreach ($doktorlar as $d) {
+                $next = $slotService->findNextAvailable($d);
+                $d->setAttribute('en_yakin_randevu', $next);
+            }
         }
 
         // Get filter options from cache (refreshed every 24 hours)
