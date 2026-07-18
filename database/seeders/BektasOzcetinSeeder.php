@@ -16,17 +16,18 @@ use App\Models\Paket;
 use App\Models\RandevuAyari;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Yalnızca hekim: Bektaş Özçetin — en üst paket + tam içerik.
+ * Görseller Unsplash’ten indirilir (public/uploads/...).
  * Yönetici hesabına dokunmaz.
  *
  *   php artisan db:seed --class=BektasOzcetinSeeder
  *
- * Hekim paneli girişi:
+ * Hekim paneli:
  *   E-posta : ozcetinbektas@gmail.com
  *   Şifre   : sifre123
- *   Telefon : 05319912427
  */
 class BektasOzcetinSeeder extends Seeder
 {
@@ -44,7 +45,6 @@ class BektasOzcetinSeeder extends Seeder
                 ?? Ilce::query()->where('il_id', $istanbul->id)->orderBy('ad')->first())
             : null;
 
-        // En üst bireysel paket: Web Sitesi Entegrasyon → yoksa VIP → en pahalı
         $paket = Paket::query()
             ->where('tur', 'bireysel')
             ->where(function ($q) {
@@ -55,7 +55,35 @@ class BektasOzcetinSeeder extends Seeder
             ?? Paket::query()->where('tur', 'bireysel')->where('ad', 'like', '%VIP%')->first()
             ?? Paket::query()->where('tur', 'bireysel')->orderByDesc('aylik_fiyat')->first();
 
-        $profilPath = $this->ensureImage('uploads/profil/bektas_ozcetin_profil.jpg', [201, 106, 43], 'Bektaş Özçetin');
+        // Unsplash — doktor / sağlık temalı (ücretsiz, hotlink indirilir)
+        $img = [
+            'profil' => 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=800&q=80',
+            'hizmet' => [
+                'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80', // stethoscope / muayene
+                'https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=800&q=80', // medical desk
+                'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80', // hospital
+                'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=800&q=80', // telemedicine
+                'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80', // healthy lifestyle
+                'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=800&q=80', // laboratory
+            ],
+            'blog' => [
+                'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1559757175-5700dde675bc?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=1000&q=80',
+            ],
+            'galeri' => [
+                'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1666214280557-f1b5022eb634?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?auto=format&fit=crop&w=1000&q=80',
+            ],
+            'egitim' => 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1000&q=80',
+        ];
+
+        $profilPath = $this->downloadImage('uploads/profil/bektas_ozcetin_profil.jpg', $img['profil']);
 
         $payload = [
             'ad_soyad' => $adSoyad,
@@ -94,7 +122,6 @@ class BektasOzcetinSeeder extends Seeder
             'web_sitesi' => 'https://randevuajandam.com',
         ];
 
-        // Soft-deleted kayıt da unique e_posta tutar → withTrashed ile bul / restore et
         $doktor = Doktor::withTrashed()->where('e_posta', $email)->first();
         if ($doktor) {
             if ($doktor->trashed()) {
@@ -144,20 +171,21 @@ class BektasOzcetinSeeder extends Seeder
         }
 
         $hizmetler = [
-            ['ad' => 'Genel Muayene', 'sure' => 30, 'fiyat' => 1200, 'aciklama' => 'Kapsamlı şikayet dinleme, fizik muayene ve ilk değerlendirme.', 'img' => 'uploads/hizmet/bektas_hizmet_1.jpg', 'color' => [201, 106, 43]],
-            ['ad' => 'Check-up Danışmanlığı', 'sure' => 45, 'fiyat' => 1800, 'aciklama' => 'Yaşa uygun check-up planı ve sonuçların hekimce yorumlanması.', 'img' => 'uploads/hizmet/bektas_hizmet_2.jpg', 'color' => [31, 41, 55]],
-            ['ad' => 'Kronik Hastalık Takibi', 'sure' => 40, 'fiyat' => 1500, 'aciklama' => 'Hipertansiyon, diyabet ve metabolik sendrom izlemi.', 'img' => 'uploads/hizmet/bektas_hizmet_3.jpg', 'color' => [14, 116, 144]],
-            ['ad' => 'Online Görüşme', 'sure' => 20, 'fiyat' => 900, 'aciklama' => 'Video kontrol, reçete ve takip görüşmesi.', 'img' => 'uploads/hizmet/bektas_hizmet_4.jpg', 'color' => [124, 58, 237]],
-            ['ad' => 'Sağlıklı Yaşam Planı', 'sure' => 50, 'fiyat' => 1600, 'aciklama' => 'Beslenme, hareket ve uyku düzeni odaklı plan.', 'img' => 'uploads/hizmet/bektas_hizmet_5.jpg', 'color' => [5, 150, 105]],
-            ['ad' => 'Laboratuvar Sonuç Değerlendirme', 'sure' => 25, 'fiyat' => 800, 'aciklama' => 'Kan tahlili ve görüntüleme sonuçlarının detaylı değerlendirilmesi.', 'img' => 'uploads/hizmet/bektas_hizmet_6.jpg', 'color' => [220, 38, 38]],
+            ['ad' => 'Genel Muayene', 'sure' => 30, 'fiyat' => 1200, 'aciklama' => 'Kapsamlı şikayet dinleme, fizik muayene ve ilk değerlendirme.'],
+            ['ad' => 'Check-up Danışmanlığı', 'sure' => 45, 'fiyat' => 1800, 'aciklama' => 'Yaşa uygun check-up planı ve sonuçların hekimce yorumlanması.'],
+            ['ad' => 'Kronik Hastalık Takibi', 'sure' => 40, 'fiyat' => 1500, 'aciklama' => 'Hipertansiyon, diyabet ve metabolik sendrom izlemi.'],
+            ['ad' => 'Online Görüşme', 'sure' => 20, 'fiyat' => 900, 'aciklama' => 'Video kontrol, reçete ve takip görüşmesi.'],
+            ['ad' => 'Sağlıklı Yaşam Planı', 'sure' => 50, 'fiyat' => 1600, 'aciklama' => 'Beslenme, hareket ve uyku düzeni odaklı plan.'],
+            ['ad' => 'Laboratuvar Sonuç Değerlendirme', 'sure' => 25, 'fiyat' => 800, 'aciklama' => 'Kan tahlili ve görüntüleme sonuçlarının detaylı değerlendirilmesi.'],
         ];
 
-        foreach ($hizmetler as $h) {
+        foreach ($hizmetler as $i => $h) {
+            $url = $img['hizmet'][$i % count($img['hizmet'])];
             Hizmet::query()->updateOrCreate(
                 ['doktor_id' => $doktor->id, 'ad' => $h['ad']],
                 [
                     'aciklama' => $h['aciklama'],
-                    'resim' => $this->ensureImage($h['img'], $h['color'], $h['ad']),
+                    'resim' => $this->downloadImage('uploads/hizmet/bektas_hizmet_'.($i + 1).'.jpg', $url),
                     'sure' => $h['sure'],
                     'fiyat' => $h['fiyat'],
                     'aktif_mi' => true,
@@ -169,17 +197,18 @@ class BektasOzcetinSeeder extends Seeder
         }
 
         $bloglar = [
-            ['baslik' => 'Check-up Ne Sıklıkla Yaptırılmalı?', 'icerik' => '<p>Yaş ve risk faktörlerine göre check-up sıklığı değişir. 40 yaş sonrası yıllık değerlendirme iyi bir başlangıçtır.</p>', 'img' => 'uploads/blog/bektas_blog_1.jpg'],
-            ['baslik' => 'Hipertansiyon: Evde Tansiyon Ölçümü', 'icerik' => '<p>Doğru ölçüm için 5 dakika dinlenin, sırtınız destekli oturun, kolunuz kalp hizasında olsun.</p>', 'img' => 'uploads/blog/bektas_blog_2.jpg'],
-            ['baslik' => 'Online Görüşme Ne Zaman Tercih Edilir?', 'icerik' => '<p>İlaç ayarı ve laboratuvar yorumu için online görüşme pratiktir; acilde yüz yüze değerlendirme gerekir.</p>', 'img' => 'uploads/blog/bektas_blog_3.jpg'],
-            ['baslik' => 'Uyku Düzeni ve Bağışıklık', 'icerik' => '<p>Düzenli uyku, bağışıklık ve metabolizma için temeldir. Benzer saatte yatmak ritmi güçlendirir.</p>', 'img' => 'uploads/blog/bektas_blog_4.jpg'],
+            ['baslik' => 'Check-up Ne Sıklıkla Yaptırılmalı?', 'icerik' => '<p>Yaş ve risk faktörlerine göre check-up sıklığı değişir. 40 yaş sonrası yıllık değerlendirme iyi bir başlangıçtır.</p>'],
+            ['baslik' => 'Hipertansiyon: Evde Tansiyon Ölçümü', 'icerik' => '<p>Doğru ölçüm için 5 dakika dinlenin, sırtınız destekli oturun, kolunuz kalp hizasında olsun.</p>'],
+            ['baslik' => 'Online Görüşme Ne Zaman Tercih Edilir?', 'icerik' => '<p>İlaç ayarı ve laboratuvar yorumu için online görüşme pratiktir; acilde yüz yüze değerlendirme gerekir.</p>'],
+            ['baslik' => 'Uyku Düzeni ve Bağışıklık', 'icerik' => '<p>Düzenli uyku, bağışıklık ve metabolizma için temeldir. Benzer saatte yatmak ritmi güçlendirir.</p>'],
         ];
         foreach ($bloglar as $i => $blog) {
+            $url = $img['blog'][$i % count($img['blog'])];
             Blog::query()->updateOrCreate(
                 ['doktor_id' => $doktor->id, 'baslik' => $blog['baslik']],
                 [
                     'icerik' => $blog['icerik'],
-                    'resim' => $this->ensureImage($blog['img'], [30 + $i * 40, 90, 120], $blog['baslik']),
+                    'resim' => $this->downloadImage('uploads/blog/bektas_blog_'.($i + 1).'.jpg', $url),
                     'aktif_mi' => true,
                     'meta_baslik' => $blog['baslik'].' | Uzm. Dr. '.$adSoyad,
                     'meta_aciklama' => strip_tags($blog['icerik']),
@@ -188,11 +217,12 @@ class BektasOzcetinSeeder extends Seeder
             );
         }
 
-        for ($i = 1; $i <= 6; $i++) {
-            $path = $this->ensureImage('uploads/galeri/bektas_galeri_'.$i.'.jpg', [40 + $i * 20, 70 + $i * 10, 90], 'Galeri '.$i);
+        foreach ($img['galeri'] as $i => $url) {
+            $n = $i + 1;
+            $path = $this->downloadImage('uploads/galeri/bektas_galeri_'.$n.'.jpg', $url);
             DoktorGaleri::query()->updateOrCreate(
                 ['doktor_id' => $doktor->id, 'resim_yolu' => $path],
-                ['baslik' => 'Muayenehane görseli '.$i, 'sira' => $i]
+                ['baslik' => 'Muayenehane görseli '.$n, 'sira' => $n]
             );
         }
 
@@ -215,7 +245,7 @@ class BektasOzcetinSeeder extends Seeder
             [
                 'ozet' => 'Diyabet ve hipertansiyon takibinde günlük pratik öneriler.',
                 'icerik' => '<p>Kronik hastalıkların evde izlenmesi, ilaç uyumu ve yaşam tarzı değişiklikleri ele alınır.</p>',
-                'kapak' => $this->ensureImage('uploads/egitim/bektas_egitim_1.jpg', [201, 106, 43], 'Eğitim'),
+                'kapak' => $this->downloadImage('uploads/egitim/bektas_egitim_1.jpg', $img['egitim']),
                 'tip' => 'yuz_yuze',
                 'baslangic_at' => now()->addWeeks(3)->setTime(14, 0),
                 'bitis_at' => now()->addWeeks(3)->setTime(16, 0),
@@ -230,17 +260,17 @@ class BektasOzcetinSeeder extends Seeder
             ]
         );
 
-        $this->command?->info('✓ Hekim seed tamam (yöneticiye dokunulmadı).');
+        $this->command?->info('✓ Hekim seed + Unsplash görselleri tamam.');
         $this->command?->info('  E-posta: '.$email.' | Şifre: sifre123');
-        $this->command?->info('  Paket: '.($paket?->ad ?? 'yok').' (id='.($paket?->id ?? '-').')');
+        $this->command?->info('  Paket: '.($paket?->ad ?? 'yok'));
         $this->command?->info('  Doktor id='.$doktor->id);
         $this->command?->info('  Profil: '.($doktor->fresh()->profil_url ?? ''));
     }
 
     /**
-     * @param  array{0:int,1:int,2:int}  $rgb
+     * İnternetten indir → public/{relativePath}. Her seferinde günceller.
      */
-    protected function ensureImage(string $relativePath, array $rgb, string $label): string
+    protected function downloadImage(string $relativePath, string $url): string
     {
         $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
         $full = public_path($relativePath);
@@ -249,54 +279,28 @@ class BektasOzcetinSeeder extends Seeder
             File::makeDirectory($dir, 0755, true);
         }
 
-        if (file_exists($full)) {
-            return $relativePath;
+        try {
+            $response = Http::timeout(45)
+                ->withHeaders([
+                    'User-Agent' => 'RandevuAjandamSeeder/1.0',
+                    'Accept' => 'image/*',
+                ])
+                ->get($url);
+
+            if ($response->successful() && strlen($response->body()) > 1000) {
+                File::put($full, $response->body());
+                $this->command?->line('  ↓ '.$relativePath);
+
+                return $relativePath;
+            }
+
+            $this->command?->warn('  ! İndirilemedi (HTTP '.$response->status().'): '.$relativePath);
+        } catch (\Throwable $e) {
+            $this->command?->warn('  ! İndirme hatası '.$relativePath.': '.$e->getMessage());
         }
 
-        $stock = [
-            'uploads/hizmet/seeder_hizmet_1.jpg',
-            'uploads/hizmet/seeder_hizmet_2.jpg',
-            'uploads/hizmet/seeder_hizmet_3.jpg',
-            'uploads/blog/seeder_blog_1.jpg',
-            'uploads/blog/seeder_blog_2.jpg',
-            'uploads/blog/seeder_blog_3.jpg',
-            'uploads/galeri/seeder_galeri_1.jpg',
-            'uploads/galeri/seeder_galeri_2.jpg',
-            'uploads/galeri/seeder_galeri_3.jpg',
-            'assets/images/logo.png',
-        ];
-
-        $pool = array_values(array_filter($stock, function ($s) use ($relativePath) {
-            if (! is_file(public_path($s))) {
-                return false;
-            }
-            if (str_contains($relativePath, '/hizmet/')) {
-                return str_contains($s, '/hizmet/');
-            }
-            if (str_contains($relativePath, '/blog/')) {
-                return str_contains($s, '/blog/');
-            }
-            if (str_contains($relativePath, '/galeri/')) {
-                return str_contains($s, '/galeri/') || str_contains($s, 'logo');
-            }
-
-            return true;
-        }));
-
-        if ($pool !== []) {
-            $pick = $pool[crc32($relativePath) % count($pool)];
-            @copy(public_path($pick), $full);
-        } elseif (function_exists('imagecreatetruecolor')) {
-            $im = @imagecreatetruecolor(800, 600);
-            if ($im) {
-                $bg = imagecolorallocate($im, $rgb[0], $rgb[1], $rgb[2]);
-                imagefill($im, 0, 0, $bg);
-                $white = imagecolorallocate($im, 255, 255, 255);
-                imagestring($im, 5, 40, 280, mb_substr($label, 0, 40), $white);
-                imagejpeg($im, $full, 85);
-                imagedestroy($im);
-            }
-        } elseif (is_file(public_path('assets/images/logo.png'))) {
+        // Fallback: var olan dosya kalsın veya logo
+        if (! is_file($full) && is_file(public_path('assets/images/logo.png'))) {
             @copy(public_path('assets/images/logo.png'), $full);
         }
 
