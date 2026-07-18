@@ -56,15 +56,15 @@
                     <div class="flex flex-col items-center gap-4">
                         <!-- Image Preview Frame -->
                         <div class="w-full h-44 bg-slate-50 rounded-2xl border border-dashed border-[#E5E7EB] flex items-center justify-center overflow-hidden relative group">
-                            <img id="previewBlogImage" src="{{ $hizmet->resim ? asset($hizmet->resim) : '' }}" alt="Önizleme" class="w-full h-full object-cover {{ $hizmet->resim ? '' : 'hidden' }}">
-                            <div id="uploadPlaceholder" class="text-center p-6 flex flex-col items-center gap-1.5 cursor-pointer {{ $hizmet->resim ? 'hidden' : '' }}" onclick="document.getElementById('resim').click()">
+                            <img id="previewBlogImage" src="{{ $hizmet->resim_url ?? '' }}" alt="Önizleme" class="w-full h-full object-cover {{ $hizmet->resim_url ? '' : 'hidden' }}">
+                            <div id="uploadPlaceholder" class="text-center p-6 flex flex-col items-center gap-1.5 cursor-pointer {{ $hizmet->resim_url ? 'hidden' : '' }}" onclick="document.getElementById('resim').click()">
                                 <svg class="w-8 h-8 text-slate-400 group-hover:text-[#C96A2B] transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 <span class="block text-xs font-semibold text-slate-500 font-display">Resim Seçin</span>
                                 <span class="block text-[9px] text-slate-400">JPG, PNG, WEBP veya GIF (Maks. 10MB)</span>
                             </div>
-                            <button type="button" class="absolute right-3 top-3 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-lg text-xs {{ $hizmet->resim ? '' : 'hidden' }}" id="removeImageBtn" onclick="clearSelectedImage()">
+                            <button type="button" class="absolute right-3 top-3 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-lg text-xs {{ $hizmet->resim_url ? '' : 'hidden' }}" id="removeImageBtn" onclick="clearSelectedImage()">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>

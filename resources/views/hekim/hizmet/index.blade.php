@@ -37,6 +37,7 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b border-[#E5E7EB] bg-slate-50/70">
+                        <th class="px-6 py-4 text-xs font-bold text-[#6B7280] uppercase tracking-wider font-display w-16">Görsel</th>
                         <th class="px-6 py-4 text-xs font-bold text-[#6B7280] uppercase tracking-wider font-display">Hizmet / Tedavi Adı</th>
                         <th class="px-6 py-4 text-xs font-bold text-[#6B7280] uppercase tracking-wider font-display">Süre</th>
                         <th class="px-6 py-4 text-xs font-bold text-[#6B7280] uppercase tracking-wider font-display">Fiyat (Gizli)</th>
@@ -47,6 +48,18 @@
                 <tbody class="divide-y divide-[#E5E7EB]">
                     @foreach($hizmetler as $hizmet)
                         <tr class="hover:bg-slate-50/40 transition-colors">
+                            <td class="px-6 py-3">
+                                @if($hizmet->resim_url)
+                                    <img src="{{ $hizmet->resim_url }}" alt="{{ $hizmet->ad }}"
+                                         class="w-12 h-12 rounded-xl object-cover border border-[#E5E7EB] shadow-sm bg-slate-50">
+                                @else
+                                    <div class="w-12 h-12 rounded-xl bg-[#FFF7ED] border border-[#E7B58A]/30 text-[#C96A2B] flex items-center justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"/>
+                                        </svg>
+                                    </div>
+                                @endif
+                            </td>
                             <td class="px-6 py-4">
                                 <div class="max-w-md">
                                     <span class="block font-bold text-[#111827] text-sm font-display">

@@ -391,8 +391,8 @@
                                     @if($hizmet->aktif_mi)
                                         <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/30 flex flex-col justify-between hover:border-[#E7B58A]/60 hover:shadow-sm transition-all duration-300 relative group/hizmet">
                                             <div class="flex items-start gap-4">
-                                                @if($hizmet->resim)
-                                                    <img src="{{ asset($hizmet->resim) }}" alt="{{ $hizmet->ad }}" class="w-14 h-14 object-cover rounded-xl border border-slate-200/60 shadow-sm shrink-0">
+                                                @if($hizmet->resim_url)
+                                                    <img src="{{ $hizmet->resim_url }}" alt="{{ $hizmet->ad }}" class="w-14 h-14 object-cover rounded-xl border border-slate-200/60 shadow-sm shrink-0">
                                                 @else
                                                     <div class="w-14 h-14 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center shrink-0 border border-[#E7B58A]/20">
                                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

@@ -3,7 +3,7 @@
 @section('baslik', ($hizmet->meta_baslik ?? $hizmet->ad) . ' - ' . ($doktor->unvan ? $doktor->unvan . ' ' : '') . $doktor->ad_soyad . ' - Randevu Ajandam')
 @section('meta_aciklama', $hizmet->meta_aciklama ?? Str::limit(strip_tags($hizmet->aciklama), 150))
 @section('meta_anahtar_kelimeler', $hizmet->meta_anahtar_kelimeler ?? '')
-@section('og_image', $hizmet->resim ? asset($hizmet->resim) : asset('assets/images/logo.png'))
+@section('og_image', $hizmet->resim_url ?: asset('assets/images/logo.png'))
 @section('og_type', 'website')
 
 @section('icerik')
@@ -30,9 +30,9 @@
             <div class="lg:col-span-2 space-y-8">
                 <!-- Service Card -->
                 <article class="bg-white border border-[#E5E7EB] rounded-3xl overflow-hidden shadow-[0_8px_30px_rgba(31,41,55,0.02)]">
-                    @if($hizmet->resim)
+                    @if($hizmet->resim_url)
                         <div class="w-full h-[300px] md:h-[380px] overflow-hidden relative">
-                            <img src="{{ asset($hizmet->resim) }}" alt="{{ $hizmet->ad }}" class="w-full h-full object-cover">
+                            <img src="{{ $hizmet->resim_url }}" alt="{{ $hizmet->ad }}" class="w-full h-full object-cover">
                         </div>
                     @endif
 

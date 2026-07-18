@@ -56,8 +56,8 @@
                             <!-- Service Name -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
-                                    @if($h->resim)
-                                        <img src="{{ asset($h->resim) }}" alt="{{ $h->ad }}" class="w-9 h-9 object-cover rounded-xl border border-slate-200 shadow-sm shrink-0">
+                                    @if($h->resim_url)
+                                        <img src="{{ $h->resim_url }}" alt="{{ $h->ad }}" class="w-9 h-9 object-cover rounded-xl border border-slate-200 shadow-sm shrink-0">
                                     @else
                                         <div class="w-9 h-9 rounded-xl bg-orange-50 text-[#C96A2B] border border-[#E7B58A]/20 flex items-center justify-center font-bold text-xs font-display">
                                             {{ mb_strtoupper(mb_substr($h->ad, 0, 2)) }}

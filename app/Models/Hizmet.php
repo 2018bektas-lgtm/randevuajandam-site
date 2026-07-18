@@ -96,4 +96,26 @@ class Hizmet extends Model
             'hizmet_slug' => $this->slug,
         ]);
     }
+
+    /**
+     * Public absolute URL for service image (uploads under public/).
+     */
+    public function getResimUrlAttribute(): ?string
+    {
+        $path = $this->resim;
+        if (! $path) {
+            return null;
+        }
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        // Legacy: storage/uploads/... or /storage/...
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        if (str_starts_with($path, 'storage/')) {
+            $path = substr($path, strlen('storage/'));
+        }
+
+        return asset($path);
+    }
 }

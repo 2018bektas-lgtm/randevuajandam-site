@@ -61,8 +61,8 @@
                 <div class="rw-svc-grid">
                     @foreach($aktifHizmetler as $hizmet)
                         @php
-                            $hasImg = !empty($hizmet->resim);
                             $sure = (int) ($hizmet->sure ?? 0);
+                            $resimUrl = $hizmet->resim_url;
                         @endphp
                         <button type="button"
                                 class="rw-svc rw-hizmet-card"
@@ -71,8 +71,8 @@
                                 data-sure="{{ $sure }}">
                             <span class="rw-svc-radio" aria-hidden="true"></span>
                             <span class="rw-svc-media" aria-hidden="true">
-                                @if($hasImg)
-                                    <img src="{{ asset($hizmet->resim) }}" alt="" class="rw-svc-img">
+                                @if($resimUrl)
+                                    <img src="{{ $resimUrl }}" alt="" class="rw-svc-img">
                                 @else
                                     <span class="rw-svc-icon">
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
