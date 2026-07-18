@@ -1,5 +1,5 @@
 @php
-    $tr = $siteAyari ?? \App\Models\SiteAyari::query()->first();
+    $tr = $siteAyari ?? \App\Models\SiteAyari::cached();
     $gtm = preg_replace('/[^A-Za-z0-9\-]/', '', (string) ($tr->gtm_container_id ?? ''));
 @endphp
 @if($gtm !== '')

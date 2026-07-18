@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Doktor;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Generates and checks time slots for a doctor based on working hours,
@@ -122,15 +123,50 @@ class SlotService
 
     /**
      * En yakın müsait randevu slotu (liste kartları için).
+     * Sonuç 15 dk cache'lenir — liste sayfasında 12 hekim × 45 gün taramasını engeller.
      *
      * @return array{tarih: string, saat: string, label: string}|null
      */
-    public function findNextAvailable(Doktor $doktor, int $maxScanDays = 45): ?array
+    public function findNextAvailable(Doktor $doktor, int $maxScanDays = 21): ?array
     {
         if (! $doktor->randevuya_acik_mi) {
             return null;
         }
 
+        $cacheKey = 'doktor_next_slot:v2:'.$doktor->id.':'.$maxScanDays.':'.now()->format('Y-m-d-H');
+
+        /** @var array{tarih: string, saat: string, label: string}|null|false $cached */
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached === false ? null : $cached;
+        }
+
+        $result = $this->computeNextAvailable($doktor, $maxScanDays);
+        // false sentinel = "no slot" so we still skip recompute
+        Cache::put($cacheKey, $result ?? false, now()->addMinutes(15));
+
+        return $result;
+    }
+
+    /**
+     * Clear next-slot cache for a doctor (call after booking / cancel / schedule change).
+     */
+    public function forgetNextAvailableCache(int $doktorId): void
+    {
+        // Hourly key variants for current and previous hour (safety)
+        $hour = now()->format('Y-m-d-H');
+        $prev = now()->subHour()->format('Y-m-d-H');
+        foreach ([14, 21, 30, 45] as $days) {
+            Cache::forget("doktor_next_slot:v2:{$doktorId}:{$days}:{$hour}");
+            Cache::forget("doktor_next_slot:v2:{$doktorId}:{$days}:{$prev}");
+        }
+    }
+
+    /**
+     * @return array{tarih: string, saat: string, label: string}|null
+     */
+    protected function computeNextAvailable(Doktor $doktor, int $maxScanDays = 21): ?array
+    {
         $ayarlar = $doktor->randevuAyari;
         $periyot = $this->getPeriyot($doktor);
         $maxDays = (int) ($ayarlar->en_gec_randevu_gunu ?? 30);

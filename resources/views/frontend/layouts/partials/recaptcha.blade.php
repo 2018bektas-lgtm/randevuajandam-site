@@ -5,7 +5,7 @@
     $rcSiteKey = $rcService->siteKey();
     $rcOn = (bool) config('recaptcha.enabled', true)
         && $rcSiteKey !== ''
-        && ((\App\Models\SiteAyari::query()->value('recaptcha_enabled') ?? true) !== false);
+        && (((\App\Models\SiteAyari::cached())?->recaptcha_enabled ?? true) !== false);
 @endphp
 @if($rcOn)
 <script src="https://www.google.com/recaptcha/api.js?render={{ $rcSiteKey }}"></script>

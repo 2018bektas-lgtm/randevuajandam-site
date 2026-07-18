@@ -465,7 +465,7 @@
             return [
                 'ad_soyad' => $k->ad,
                 'klinik_adi' => 'Klinik',
-                'uzmanlik_alani' => $k->doktorlar->count() . ' Hekim',
+                'uzmanlik_alani' => ((int) ($k->doktorlar_count ?? 0)).' Hekim',
                 'url' => route('frontend.klinik.profil', ['il_slug' => $k->il->slug ?? 'il', 'ilce_slug' => $k->ilce->slug ?? 'ilce', 'klinik_slug' => $k->slug]),
                 'enlem' => (float)$k->enlem,
                 'boylam' => (float)$k->boylam,

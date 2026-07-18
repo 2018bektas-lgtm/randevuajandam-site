@@ -242,6 +242,7 @@ class AppointmentBookingService
         $eski = $randevu->durum;
         $randevu->update(['durum' => 'iptal']);
         \App\Events\RandevuDurumuDegisti::dispatch($randevu, $eski, 'iptal');
+        app(SlotService::class)->forgetNextAvailableCache((int) $randevu->doktor_id);
 
         return $randevu->fresh();
     }
@@ -352,6 +353,7 @@ class AppointmentBookingService
                     }
 
                     RandevuOlusturuldu::dispatch($randevu);
+                    app(SlotService::class)->forgetNextAvailableCache((int) $doktor->id);
 
                     return $randevu;
                 });
@@ -429,6 +431,8 @@ class AppointmentBookingService
                     } catch (\Throwable $e) {
                         \Illuminate\Support\Facades\Log::warning('Randevu erteleme hasta bildirimi: '.$e->getMessage());
                     }
+
+                    app(SlotService::class)->forgetNextAvailableCache((int) $doktor->id);
 
                     return $fresh;
                 });

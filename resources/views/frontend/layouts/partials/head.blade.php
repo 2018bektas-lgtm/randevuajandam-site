@@ -1,16 +1,54 @@
 @php
-    $siteAyari = \App\Models\SiteAyari::first();
+    $siteAyari = \App\Models\SiteAyari::cached();
     $defaultTitle = $siteAyari?->meta_baslik ?? 'Randevu Ajandam - Premium Randevu ve Danışan Yönetim Platformu';
     $defaultDesc = $siteAyari?->meta_aciklama ?? 'Uzman hekim ve kliniklerden online randevu alın. Randevu Ajandam ile hasta ve randevu yönetimini kolaylaştırın.';
     $pageTitle = trim($__env->yieldContent('baslik', $defaultTitle));
     $pageDesc = trim($__env->yieldContent('meta_aciklama', $defaultDesc));
     $ogImage = trim($__env->yieldContent('og_image', asset('assets/images/logo.png')));
     $canonical = url()->current();
+    // reCAPTCHA: yalnızca form içeren sayfalarda (her sayfada Google script yok)
+    $needsRecaptcha = request()->routeIs([
+        'frontend.hasta.kayit',
+        'frontend.hasta.kayit.post',
+        'frontend.hasta.giris',
+        'frontend.hasta.giris.post',
+        'frontend.hekim.kayit',
+        'frontend.hekim.kayit.post',
+        'frontend.hekim.giris',
+        'frontend.hekim.giris.post',
+        'frontend.hekim.detay',
+        'frontend.hekim.hizmet.detay',
+        'frontend.hekim.egitim.detay',
+        'frontend.paketler',
+        'frontend.hekim.paket_ode',
+        'frontend.hekim.paket_sec',
+        'frontend.klinik.*',
+        'frontend.randevu.yonet.hesap',
+        'frontend.randevu.yonet.hesap.post',
+    ]);
+    $needsSelect2 = request()->routeIs([
+        'frontend.hekimler',
+        'frontend.hasta.profil',
+        'frontend.hasta.randevular',
+        'frontend.hekim.kayit',
+        'frontend.paketler',
+        'frontend.hekim.paket_ode',
+        'frontend.hekim.paket_sec',
+        'frontend.hekim.klinik.*',
+        'frontend.klinik.*',
+    ]);
 @endphp
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 @include('frontend.layouts.partials.tracking')
-@include('frontend.layouts.partials.recaptcha')
+@if($needsRecaptcha)
+    @include('frontend.layouts.partials.recaptcha')
+@else
+<script>
+window.raRecaptchaSiteKey = '';
+window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
+</script>
+@endif
 <title>{{ $pageTitle }}</title>
 <meta name="description" content="{{ $pageDesc }}">
 <meta name="keywords" content="@yield('meta_anahtar_kelimeler', $siteAyari?->meta_anahtar_kelimeler ?? 'randevu, hekim, klinik, online randevu')">
@@ -66,10 +104,11 @@
 @endif
 
 <link rel="shortcut icon" href="{{ asset('assets/images/logo.png') }}" type="image/png">
-<!-- Google Fonts: Inter & Outfit -->
+<!-- Google Fonts (display=swap, fewer weights) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet"></noscript>
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -171,7 +210,8 @@
     }
     </style>
 
-<!-- Select2 CSS -->
+@if($needsSelect2)
+<!-- Select2 CSS (yalnızca filtre/form sayfaları) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
 <style>
     /* Select2 Premium Theme Override */
@@ -255,5 +295,6 @@
         width: 100% !important;
     }
 </style>
+@endif
 
 @yield('head')

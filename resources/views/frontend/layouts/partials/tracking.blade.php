@@ -1,6 +1,6 @@
 {{-- Ana platform izleme: yönetim SEO ayarlarından (sadece platform sahibi) --}}
 @php
-    $tr = $siteAyari ?? \App\Models\SiteAyari::query()->first();
+    $tr = $siteAyari ?? \App\Models\SiteAyari::cached();
     $gtm = preg_replace('/[^A-Za-z0-9\-]/', '', (string) ($tr->gtm_container_id ?? ''));
     $ga4 = preg_replace('/[^A-Za-z0-9\-]/', '', (string) ($tr->ga4_measurement_id ?? ''));
     $pixel = preg_replace('/[^0-9]/', '', (string) ($tr->meta_pixel_id ?? ''));

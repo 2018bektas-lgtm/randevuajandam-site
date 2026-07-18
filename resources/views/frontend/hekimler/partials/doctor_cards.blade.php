@@ -32,7 +32,7 @@
                     
                     <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between relative z-10">
                         <span class="text-[10px] font-bold text-[#C96A2B] bg-[#FFF7ED] px-2.5 py-1 rounded-full">
-                            {{ $klinik->doktorlar->count() }} Uzman Hekim
+                            {{ (int) ($klinik->doktorlar_count ?? $klinik->doktorlar?->count() ?? 0) }} Uzman Hekim
                         </span>
                         <a href="{{ route('frontend.klinik.profil', ['il_slug' => $klinik->il->slug ?? 'il', 'ilce_slug' => $klinik->ilce->slug ?? 'ilce', 'klinik_slug' => $klinik->slug]) }}" class="text-xs font-bold text-[#C96A2B] hover:underline flex items-center gap-1">
                             İncele →

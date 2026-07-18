@@ -222,7 +222,10 @@ class HekimController extends Controller
             }
         }
 
-        $klinikQuery = \App\Models\Klinik::where('aktif_mi', true)->with('il', 'ilce', 'doktorlar');
+        // Klinikler: doktor ilişkisi yükleme (N+1/ağır) yok — withCount yeterli
+        $klinikQuery = \App\Models\Klinik::where('aktif_mi', true)
+            ->with(['il:id,ad,slug', 'ilce:id,ad,slug'])
+            ->withCount('doktorlar');
 
         if ($request->filled('arama')) {
             $arama = $request->input('arama');
@@ -247,7 +250,7 @@ class HekimController extends Controller
             });
         }
 
-        $klinikler = $klinikQuery->get();
+        $klinikler = $klinikQuery->limit(100)->get();
         $toplamKlinikSayisi = $klinikler->count();
 
         if ($request->input('sadece_klinik')) {
@@ -257,10 +260,10 @@ class HekimController extends Controller
             $doktorlar = $query->paginate(12)->withQueryString();
             $toplamDoktorSayisi = $doktorlar->total();
 
-            // En yakın müsait randevu (kartlarda gösterim)
+            // En yakın müsait randevu (15 dk cache; max 21 gün tarama)
             $slotService = app(\App\Services\SlotService::class);
             foreach ($doktorlar as $d) {
-                $next = $slotService->findNextAvailable($d);
+                $next = $slotService->findNextAvailable($d, 21);
                 $d->setAttribute('en_yakin_randevu', $next);
             }
         }
@@ -292,7 +295,7 @@ class HekimController extends Controller
                 return [
                     'ad_soyad' => $k->ad,
                     'klinik_adi' => 'Klinik',
-                    'uzmanlik_alani' => $k->doktorlar->count() . ' Hekim',
+                    'uzmanlik_alani' => ((int) ($k->doktorlar_count ?? 0)).' Hekim',
                     'url' => route('frontend.klinik.profil', ['il_slug' => $k->il->slug ?? 'il', 'ilce_slug' => $k->ilce->slug ?? 'ilce', 'klinik_slug' => $k->slug]),
                     'enlem' => (float) $k->enlem,
                     'boylam' => (float) $k->boylam,

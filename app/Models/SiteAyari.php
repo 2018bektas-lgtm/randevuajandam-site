@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class SiteAyari extends Model
 {
@@ -12,6 +13,32 @@ class SiteAyari extends Model
      * @var string
      */
     protected $table = 'site_ayarlari';
+
+    /**
+     * Request-scoped + cache-backed site settings (avoids N queries per page).
+     */
+    public static function cached(): ?self
+    {
+        return once(function () {
+            return Cache::remember('site_ayari:v1', now()->addMinutes(30), function () {
+                return static::query()->first();
+            });
+        });
+    }
+
+    /**
+     * Clear settings cache after admin updates.
+     */
+    public static function forgetCache(): void
+    {
+        Cache::forget('site_ayari:v1');
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => static::forgetCache());
+        static::deleted(fn () => static::forgetCache());
+    }
 
     /**
      * The attributes that are mass assignable.
