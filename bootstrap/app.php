@@ -45,6 +45,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->append(\App\Http\Middleware\ForceHttps::class);
+        // Misafir public GET sayfaları (kısa HTML cache)
+        $middleware->appendToGroup('web', \App\Http\Middleware\CachePublicGet::class);
 
         // Public doctor-site + panel APIs live in the separate `api/` project.
         // Iyzico webhook stays on the main site (frontend route).

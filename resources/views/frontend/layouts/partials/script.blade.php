@@ -13,11 +13,10 @@
 @endphp
 
 @if($needsSelect2)
-<!-- jQuery (Select2 dependency) -->
+{{-- defer: HTML parse'ı bloklamaz; DOMContentLoaded öncesi sırayla çalışır --}}
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js" defer></script>
-<!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
-<script>
+<script defer>
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof jQuery === 'undefined' || !jQuery.fn.select2) return;
     var $ = jQuery;

@@ -106,9 +106,7 @@
             width: 100% !important;
         }
     </style>
-    <!-- Leaflet Map CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    {{-- Leaflet: sadece harita açılınca yüklenecek (index script) --}}
 @endsection
 
 @section('icerik')
@@ -1097,19 +1095,47 @@
             }
         }
 
+        function loadLeaflet(cb) {
+            if (window.L) { cb(); return; }
+            if (window.__leafletLoading) {
+                window.__leafletLoading.push(cb);
+                return;
+            }
+            window.__leafletLoading = [cb];
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            link.crossOrigin = '';
+            document.head.appendChild(link);
+            var s = document.createElement('script');
+            s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            s.crossOrigin = '';
+            s.onload = function () {
+                var q = window.__leafletLoading || [];
+                window.__leafletLoading = null;
+                q.forEach(function (fn) { try { fn(); } catch (e) {} });
+            };
+            document.head.appendChild(s);
+        }
+
         function initSearchMap() {
-            // Precise coordinates for Turkey center boundaries
-            var defaultLat = 38.9637;
-            var defaultLng = 35.2433;
-            var defaultZoom = 6;
+            loadLeaflet(function () {
+                if (searchMap) {
+                    setTimeout(function () { searchMap.invalidateSize(); refreshMapMarkers(); }, 80);
+                    return;
+                }
+                var defaultLat = 38.9637;
+                var defaultLng = 35.2433;
+                var defaultZoom = 6;
 
-            searchMap = L.map('searchMap').setView([defaultLat, defaultLng], defaultZoom);
+                searchMap = L.map('searchMap').setView([defaultLat, defaultLng], defaultZoom);
 
-            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                attribution: '&copy; <a href="https://maps.google.com">Google Maps</a>'
-            }).addTo(searchMap);
+                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                    attribution: '&copy; <a href="https://maps.google.com">Google Maps</a>'
+                }).addTo(searchMap);
 
-            refreshMapMarkers();
+                refreshMapMarkers();
+            });
         }
     });
 </script>

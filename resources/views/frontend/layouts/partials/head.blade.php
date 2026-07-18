@@ -104,24 +104,18 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
 @endif
 
 <link rel="shortcut icon" href="{{ asset('assets/images/logo.png') }}" type="image/png">
-<!-- Google Fonts (display=swap, fewer weights) -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet"></noscript>
-
+{{-- Sistem fontları: Google Fonts yok = 100–300ms+ daha hızlı ilk boyama --}}
 @vite(['resources/css/app.css', 'resources/js/app.js'])
-{{-- Kritik CSS/JS'i mümkün olduğunca erken; fontlar async --}}
-<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-<meta http-equiv="x-dns-prefetch-control" content="on">
 
 <style>
     body {
-        font-family: 'Inter', sans-serif;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         background-color: #F5F5F4;
     }
     .font-display {
-        font-family: 'Outfit', sans-serif;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.02em;
     }
 
     /* Logo Breathing Animation for Small Icons */
