@@ -94,6 +94,14 @@ Route::post('/randevu-misafir', [HastaController::class, 'randevuMisafirKaydet']
     ->middleware('throttle:10,1')
     ->name('frontend.hasta.randevu.misafir');
 
+// SMS OTP (misafir randevu + hasta kaydı)
+Route::post('/sms-otp/gonder', [\App\Http\Controllers\Frontend\SmsOtpController::class, 'gonder'])
+    ->middleware('throttle:12,1')
+    ->name('frontend.sms-otp.gonder');
+Route::post('/sms-otp/dogrula', [\App\Http\Controllers\Frontend\SmsOtpController::class, 'dogrula'])
+    ->middleware('throttle:20,1')
+    ->name('frontend.sms-otp.dogrula');
+
 // Bekleme listesi (misafir + üye)
 Route::post('/bekleme-listesi', [\App\Http\Controllers\Frontend\BeklemeListesiController::class, 'katil'])
     ->middleware('throttle:10,1')

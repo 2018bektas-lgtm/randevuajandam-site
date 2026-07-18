@@ -190,7 +190,11 @@
                         </div>
                         <div class="rw-field">
                             <label for="rw-tel">Telefon</label>
-                            <input id="rw-tel" type="tel" name="telefon" value="{{ old('telefon') }}" required placeholder="05xx xxx xx xx" autocomplete="tel">
+                            <input id="rw-tel" type="tel" name="telefon" value="{{ old('telefon') }}" required
+                                   inputmode="numeric" pattern="05[0-9]{9}" maxlength="11"
+                                   placeholder="05xxxxxxxxx" autocomplete="tel-national"
+                                   title="05 ile başlayan 11 haneli numara">
+                            <span class="rw-field-hint">Yalnızca rakam · 05 ile başlamalı · 11 hane</span>
                         </div>
                         <div class="rw-field">
                             <label for="rw-mail">E-posta</label>
@@ -927,6 +931,13 @@
     box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.12);
 }
 .rw-field textarea { resize: vertical; min-height: 4rem; }
+.rw-field-hint {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: #94A3B8;
+}
 
 .rw-patient {
     padding: 0.9rem 1rem;
@@ -1023,6 +1034,8 @@
     color: #111827;
 }
 </style>
+
+@include('frontend.partials.phone_otp_modal')
 
 <script>
 (function () {
@@ -1389,6 +1402,11 @@
     });
 
     if (isGuest) {
+        var telEl = document.getElementById('rw-tel');
+        if (window.RA_OTP && telEl) {
+            window.RA_OTP.bindPhoneInput(telEl);
+        }
+
         form.addEventListener('submit', function (e) {
             if (form.dataset.rcOk === '1') return;
             e.preventDefault();
@@ -1398,18 +1416,74 @@
                 setStep(1);
                 return;
             }
+
+            var ad = (document.getElementById('rw-ad') || {}).value || '';
+            var soyad = (document.getElementById('rw-soyad') || {}).value || '';
+            var tel = (telEl && telEl.value) || '';
+            var mail = (document.getElementById('rw-mail') || {}).value || '';
+            if (!ad.trim() || !soyad.trim() || !mail.trim()) {
+                setStep(4);
+                alert('Lütfen ad, soyad ve e-posta alanlarını doldurun.');
+                return;
+            }
+            if (!window.RA_OTP || !window.RA_OTP.isValidPhone(tel)) {
+                setStep(4);
+                alert('Telefon 05 ile başlamalı ve 11 haneli olmalıdır (yalnızca rakam).');
+                if (telEl) telEl.focus();
+                return;
+            }
+            if (telEl) telEl.value = window.RA_OTP.normalizePhone(tel);
+
             var btn = document.getElementById('rw-btn-submit');
-            if (btn) { btn.disabled = true; btn.textContent = 'Gönderiliyor…'; }
-            var done = function (token) {
-                var inp = document.getElementById('rw-recaptcha-token');
-                if (inp) inp.value = token || '';
-                form.dataset.rcOk = '1';
-                form.submit();
+            var resetBtn = function () {
+                if (btn) { btn.disabled = false; btn.textContent = 'Randevu oluştur'; }
             };
-            if (typeof window.raGetRecaptchaToken === 'function') {
-                window.raGetRecaptchaToken('randevu').then(done).catch(function () { done(''); });
-            } else {
-                done('');
+            if (btn) { btn.disabled = true; btn.textContent = 'Doğrulanıyor…'; }
+
+            var submitWithCaptcha = function () {
+                if (btn) btn.textContent = 'Gönderiliyor…';
+                var done = function (token) {
+                    var inp = document.getElementById('rw-recaptcha-token');
+                    if (inp) inp.value = token || '';
+                    form.dataset.rcOk = '1';
+                    form.submit();
+                };
+                if (typeof window.raGetRecaptchaToken === 'function') {
+                    window.raGetRecaptchaToken('randevu').then(done).catch(function () { done(''); });
+                } else {
+                    done('');
+                }
+            };
+
+            window.RA_OTP.ensureVerified({
+                phone: telEl.value,
+                purpose: 'randevu',
+                doktorId: {{ (int) $doktor->id }},
+                onVerified: function (verifiedPhone) {
+                    if (telEl) telEl.value = verifiedPhone;
+                    submitWithCaptcha();
+                },
+            });
+
+            // If OTP modal closed without verify, re-enable button after a beat
+            setTimeout(function () {
+                if (form.dataset.rcOk !== '1' && btn && btn.disabled) {
+                    // keep disabled while modal open; re-enable if modal closed
+                    var modal = document.getElementById('ra-otp-modal');
+                    if (modal && modal.hidden) resetBtn();
+                }
+            }, 400);
+
+            // Watch modal close without verify
+            var modal = document.getElementById('ra-otp-modal');
+            if (modal) {
+                var obs = new MutationObserver(function () {
+                    if (modal.hidden && form.dataset.rcOk !== '1') {
+                        resetBtn();
+                        obs.disconnect();
+                    }
+                });
+                obs.observe(modal, { attributes: true, attributeFilter: ['hidden'] });
             }
         });
     }

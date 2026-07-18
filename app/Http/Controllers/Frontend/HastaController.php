@@ -10,7 +10,9 @@ use App\Http\Requests\Frontend\YorumKaydetRequest;
 use App\Models\Yorum;
 use App\Models\Doktor;
 use App\Models\Hasta;
+use App\Rules\TurkishMobilePhone;
 use App\Services\AppointmentBookingService;
+use App\Services\PhoneOtpService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,17 +33,26 @@ class HastaController extends Controller
     /**
      * Handle registration request.
      */
-    public function kayitOl(HastaKayitRequest $request)
+    public function kayitOl(HastaKayitRequest $request, PhoneOtpService $otp)
     {
+        $telefon = TurkishMobilePhone::normalize($request->input('telefon'));
+
+        try {
+            $otp->assertVerifiedIfRequired($telefon, 'kayit');
+        } catch (InvalidArgumentException $e) {
+            return redirect()->back()->withInput()->withErrors(['telefon' => $e->getMessage()]);
+        }
 
         $hasta = Hasta::create([
             'ad' => $request->ad,
             'soyad' => $request->soyad,
             'e_posta' => $request->e_posta,
-            'telefon' => $request->telefon,
+            'telefon' => $telefon,
             'sifre' => $request->sifre,
             'aktif_mi' => true,
         ]);
+
+        $otp->clearVerified($telefon, 'kayit');
 
         Auth::guard('hasta')->login($hasta);
 
@@ -244,7 +255,7 @@ class HastaController extends Controller
     /**
      * Guest booking from main platform (no login).
      */
-    public function randevuMisafirKaydet(Request $request, AppointmentBookingService $bookingService)
+    public function randevuMisafirKaydet(Request $request, AppointmentBookingService $bookingService, PhoneOtpService $otp)
     {
         $hp = config('randevu.honeypot_field', 'website_url');
         if ($request->filled($hp)) {
@@ -272,7 +283,7 @@ class HastaController extends Controller
             'saat' => ['required', 'date_format:H:i'],
             'ad' => ['required', 'string', 'max:100'],
             'soyad' => ['required', 'string', 'max:100'],
-            'telefon' => ['required', 'string', 'max:30'],
+            'telefon' => ['required', 'string', new TurkishMobilePhone],
             'e_posta' => ['required', 'email', 'max:255'],
             'not' => ['nullable', 'string', 'max:1000', new \App\Rules\NoProfanity],
             'gorusme_tipi' => ['nullable', 'in:yuz_yuze,online'],
@@ -287,16 +298,19 @@ class HastaController extends Controller
             'e_posta.email' => 'Geçerli bir e-posta adresi giriniz.',
         ]);
 
+        $telefon = TurkishMobilePhone::normalize($validated['telefon']);
         $doktor = Doktor::findOrFail($validated['doktor_id']);
 
         try {
+            $otp->assertVerifiedIfRequired($telefon, 'randevu', (int) $doktor->id);
+
             $randevu = $bookingService->createFromGuest($doktor, [
                 'hizmet_id' => (int) $validated['hizmet_id'],
                 'tarih' => $validated['tarih'],
                 'saat' => $validated['saat'],
                 'ad' => $validated['ad'],
                 'soyad' => $validated['soyad'],
-                'telefon' => $validated['telefon'],
+                'telefon' => $telefon,
                 'e_posta' => $validated['e_posta'],
                 'not' => $validated['not'] ?? null,
                 'gorusme_tipi' => $validated['gorusme_tipi'] ?? 'yuz_yuze',
@@ -307,6 +321,7 @@ class HastaController extends Controller
             return redirect()->back()->withInput()->with('hata', $e->getMessage());
         }
 
+        $otp->clearVerified($telefon, 'randevu', (int) $doktor->id);
         RateLimiter::hit($throttleKey, 300);
 
         $mesaj = $randevu->durum === 'onaylandi'

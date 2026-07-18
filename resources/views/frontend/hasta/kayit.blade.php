@@ -67,8 +67,12 @@
                 <!-- Phone -->
                 <div class="space-y-1">
                     <label for="telefon" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Telefon Numarası</label>
-                    <input type="tel" name="telefon" id="telefon" required value="{{ old('telefon') }}" placeholder="0 (555) 123 45 67"
+                    <input type="tel" name="telefon" id="telefon" required value="{{ old('telefon') }}"
+                           inputmode="numeric" pattern="05[0-9]{9}" maxlength="11"
+                           placeholder="05xxxxxxxxx" autocomplete="tel-national"
+                           title="05 ile başlayan 11 haneli numara"
                            class="w-full px-4 py-2.5 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] text-xs text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] transition-all">
+                    <p class="text-[10px] text-[#6B7280]">Yalnızca rakam · 05 ile başlamalı · 11 hane · SMS doğrulama gerekir</p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -106,20 +110,71 @@
     </div>
 </section>
 
-<!-- Phone Mask JS -->
+@include('frontend.partials.phone_otp_modal')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const phoneInput = document.getElementById('telefon');
-    if (phoneInput) {
-        phoneInput.addEventListener('input', function(e) {
-            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
-            if (!x[2] && x[1] !== '') {
-                e.target.value = x[1] === '0' ? '0' : '0 (' + x[1];
-            } else {
-                e.target.value = !x[3] ? '0 (' + x[2] : '0 (' + x[2] + ') ' + x[3] + (x[4] ? ' ' + x[4] : '') + (x[5] ? ' ' + x[5] : '');
-            }
-        });
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('hasta-kayit-form');
+    var phoneInput = document.getElementById('telefon');
+    if (window.RA_OTP && phoneInput) {
+        window.RA_OTP.bindPhoneInput(phoneInput);
     }
+    if (!form) return;
+
+    // Capture phase: OTP first, then reCAPTCHA on second pass
+    form.addEventListener('submit', function (e) {
+        if (form.dataset.otpOk === '1') return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        if (!window.RA_OTP) {
+            form.dataset.otpOk = '1';
+            if (typeof form.requestSubmit === 'function') form.requestSubmit();
+            else form.submit();
+            return;
+        }
+
+        var phone = phoneInput ? phoneInput.value : '';
+        if (!window.RA_OTP.isValidPhone(phone)) {
+            alert('Telefon 05 ile başlamalı ve 11 haneli olmalıdır (yalnızca rakam).');
+            if (phoneInput) phoneInput.focus();
+            return;
+        }
+        phoneInput.value = window.RA_OTP.normalizePhone(phone);
+
+        var submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'SMS doğrulama…';
+        }
+
+        window.RA_OTP.ensureVerified({
+            phone: phoneInput.value,
+            purpose: 'kayit',
+            onVerified: function (verifiedPhone) {
+                phoneInput.value = verifiedPhone;
+                form.dataset.otpOk = '1';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Kayıt Ol ve Giriş Yap';
+                }
+                if (typeof form.requestSubmit === 'function') form.requestSubmit();
+                else form.submit();
+            },
+        });
+
+        var modal = document.getElementById('ra-otp-modal');
+        if (modal) {
+            var obs = new MutationObserver(function () {
+                if (modal.hidden && form.dataset.otpOk !== '1' && submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Kayıt Ol ve Giriş Yap';
+                    obs.disconnect();
+                }
+            });
+            obs.observe(modal, { attributes: true, attributeFilter: ['hidden'] });
+        }
+    }, true);
 });
 </script>
 @endsection

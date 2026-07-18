@@ -3,14 +3,15 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Misafir randevu için SMS OTP zorunlu mu?
+    | Misafir randevu + hasta kaydı için SMS OTP zorunlu mu?
     |--------------------------------------------------------------------------
-    | Production varsayılan: true. Local: RANDEVU_OTP_REQUIRED=false ile kapatın.
+    | Giriş yapmış hastalar randevuda OTP’den muaftır.
+    | Production varsayılan: true. Local/test: RANDEVU_OTP_REQUIRED=false ile kapatın.
     */
     'otp_required' => filter_var(
         env(
             'RANDEVU_OTP_REQUIRED',
-            env('APP_ENV', 'production') === 'local' || env('APP_ENV') === 'testing' ? 'false' : 'true'
+            in_array(env('APP_ENV', 'production'), ['local', 'testing'], true) ? 'false' : 'true'
         ),
         FILTER_VALIDATE_BOOLEAN
     ),

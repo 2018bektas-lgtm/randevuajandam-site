@@ -156,10 +156,13 @@ class AppointmentBookingService
         $digits = preg_replace('/\D+/', '', $telefon) ?? '';
 
         if (str_starts_with($digits, '90') && strlen($digits) >= 12) {
-            $digits = substr($digits, 2);
+            $digits = '0'.substr($digits, 2);
         }
         if (strlen($digits) === 10 && str_starts_with($digits, '5')) {
-            return '0'.$digits;
+            $digits = '0'.$digits;
+        }
+        if (preg_match('/^05[0-9]{9}$/', $digits)) {
+            return $digits;
         }
         if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
             return $digits;
