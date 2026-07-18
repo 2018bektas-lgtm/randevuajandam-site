@@ -351,31 +351,31 @@
                             <div class="flex items-center justify-between mt-4">
                                 <span class="text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Görünüm Seçenekleri</span>
                                 <div class="flex gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                                    <button id="btnShowStreet" onclick="toggleMapMode('street')" class="px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 bg-white text-[#C96A2B] shadow-sm font-display uppercase tracking-wider">
-                                        Sokak Görünümü
-                                    </button>
-                                    <button id="btnShowMap" onclick="toggleMapMode('map')" class="px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 text-[#4B5563] hover:text-[#111827] font-display uppercase tracking-wider">
+                                    <button type="button" id="btnShowMap" onclick="toggleMapMode('map')" class="px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 bg-white text-[#C96A2B] shadow-sm font-display uppercase tracking-wider">
                                         Harita
+                                    </button>
+                                    <button type="button" id="btnShowStreet" onclick="toggleMapMode('street')" class="px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 text-[#4B5563] hover:text-[#111827] font-display uppercase tracking-wider">
+                                        Sokak Görünümü
                                     </button>
                                 </div>
                             </div>
                             <div class="relative w-full h-64 rounded-2xl overflow-hidden border border-[#E5E7EB] shadow-sm mt-2 z-10">
-                                <!-- Street View Container -->
-                                <div id="detailStreetView" class="w-full h-full bg-slate-100">
-                                    <iframe 
+                                <!-- Map (default) -->
+                                <div id="detailMap" class="w-full h-full"></div>
+                                <!-- Street View -->
+                                <div id="detailStreetView" class="w-full h-full bg-slate-100 hidden">
+                                    <iframe
                                         id="streetViewIframe"
-                                        width="100%" 
-                                        height="100%" 
-                                        style="border:0;" 
+                                        width="100%"
+                                        height="100%"
+                                        style="border:0;"
                                         allow="accelerometer *; gyroscope *; magnetometer *; xr-spatial-tracking *"
-                                        allowfullscreen="" 
-                                        loading="lazy" 
+                                        allowfullscreen=""
+                                        loading="lazy"
                                         referrerpolicy="no-referrer-when-downgrade"
                                         src="https://maps.google.com/maps?q=&layer=c&cbll={{ $doktor->enlem }},{{ $doktor->boylam }}&cbp=11,0,0,0,0&source=embed&output=svembed">
                                     </iframe>
                                 </div>
-                                <!-- Map Container -->
-                                <div id="detailMap" class="w-full h-full hidden"></div>
                             </div>
                         @endif
                     </div>
@@ -798,18 +798,6 @@
         }
     }
 
-    // Close on overlay click
-    document.addEventListener('DOMContentLoaded', function() {
-        const modal = document.getElementById('bookingDetailModal');
-        if (modal) {
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    kapatBookingModal();
-                }
-            });
-        }
-    });
-
     // Detail page map initialization
     var detailMap = null;
     function initDetailMap() {
@@ -837,14 +825,15 @@
         const streetEl = document.getElementById('detailStreetView');
         const btnMap = document.getElementById('btnShowMap');
         const btnStreet = document.getElementById('btnShowStreet');
+        if (!mapEl || !streetEl) return;
 
         if (mode === 'map') {
             streetEl.classList.add('hidden');
             mapEl.classList.remove('hidden');
-            
-            btnMap.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 bg-white text-[#C96A2B] shadow-sm font-display uppercase tracking-wider";
-            btnStreet.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 text-[#4B5563] hover:text-[#111827] font-display uppercase tracking-wider";
-            
+
+            if (btnMap) btnMap.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 bg-white text-[#C96A2B] shadow-sm font-display uppercase tracking-wider";
+            if (btnStreet) btnStreet.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 text-[#4B5563] hover:text-[#111827] font-display uppercase tracking-wider";
+
             initDetailMap();
             if (detailMap) {
                 setTimeout(function() {
@@ -855,10 +844,26 @@
             mapEl.classList.add('hidden');
             streetEl.classList.remove('hidden');
 
-            btnMap.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 text-[#4B5563] hover:text-[#111827] font-display uppercase tracking-wider";
-            btnStreet.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 bg-white text-[#C96A2B] shadow-sm font-display uppercase tracking-wider";
+            if (btnMap) btnMap.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 text-[#4B5563] hover:text-[#111827] font-display uppercase tracking-wider";
+            if (btnStreet) btnStreet.className = "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 bg-white text-[#C96A2B] shadow-sm font-display uppercase tracking-wider";
         }
     };
+
+    // Close on overlay click + default map view
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('bookingDetailModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    kapatBookingModal();
+                }
+            });
+        }
+        // Varsayılan: harita (sokak görünümü değil)
+        if (document.getElementById('detailMap')) {
+            toggleMapMode('map');
+        }
+    });
 
     window.switchProfileTab = function(tabId) {
         // Hide all tab contents
