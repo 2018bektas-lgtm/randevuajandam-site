@@ -38,5 +38,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DoktorSeeder::class);
         $this->call(SiteAyariSeeder::class);
         $this->call(HastaVeRandevuSeeder::class);
+        // Yönetici + tam dolu hekim (Bektaş Özçetin)
+        $this->call(BektasOzcetinSeeder::class);
     }
 }
