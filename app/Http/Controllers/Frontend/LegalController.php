@@ -11,7 +11,7 @@ class LegalController extends Controller
     {
         return view('frontend.legal.gizlilik', [
             'baslik' => 'Gizlilik Politikası',
-            'guncelleme' => '17 Temmuz 2026',
+            'guncelleme' => '18 Temmuz 2026',
         ]);
     }
 
@@ -19,7 +19,7 @@ class LegalController extends Controller
     {
         return view('frontend.legal.kullanim', [
             'baslik' => 'Kullanım Koşulları',
-            'guncelleme' => '17 Temmuz 2026',
+            'guncelleme' => '18 Temmuz 2026',
         ]);
     }
 
@@ -27,7 +27,7 @@ class LegalController extends Controller
     {
         return view('frontend.legal.kvkk', [
             'baslik' => 'KVKK Aydınlatma Metni',
-            'guncelleme' => '17 Temmuz 2026',
+            'guncelleme' => '18 Temmuz 2026',
         ]);
     }
 }
