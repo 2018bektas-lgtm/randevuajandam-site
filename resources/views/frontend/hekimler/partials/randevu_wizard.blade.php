@@ -63,7 +63,6 @@
                         @php
                             $hasImg = !empty($hizmet->resim);
                             $sure = (int) ($hizmet->sure ?? 0);
-                            $ucret = $hizmet->fiyat ?? null;
                         @endphp
                         <button type="button"
                                 class="rw-svc rw-hizmet-card"
@@ -83,14 +82,11 @@
                                 @endif
                             </span>
                             <span class="rw-svc-name">{{ $hizmet->ad }}</span>
-                            <span class="rw-svc-tags">
-                                @if($sure > 0)
+                            @if($sure > 0)
+                                <span class="rw-svc-tags">
                                     <span class="rw-tag">{{ $sure }} dk</span>
-                                @endif
-                                @if($ucret !== null && $ucret !== '' && is_numeric($ucret))
-                                    <span class="rw-tag rw-tag-soft">{{ number_format((float) $ucret, 0, ',', '.') }} ₺</span>
-                                @endif
-                            </span>
+                                </span>
+                            @endif
                         </button>
                     @endforeach
                 </div>
