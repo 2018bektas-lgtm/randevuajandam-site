@@ -76,21 +76,25 @@
                                     <img src="{{ $resimUrl }}" alt="" class="rw-svc-img">
                                 @else
                                     <span class="rw-svc-icon">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
                                     </span>
                                 @endif
+                                <span class="rw-svc-shine" aria-hidden="true"></span>
+                                <span class="rw-svc-media-overlay" aria-hidden="true"></span>
                             </span>
-                            <span class="rw-svc-name">{{ $hizmet->ad }}</span>
-                            @if($hizmet->aciklama)
-                                <span class="rw-svc-desc">{{ Str::limit(strip_tags($hizmet->aciklama), 48) }}</span>
-                            @endif
-                            @if($sure > 0)
-                                <span class="rw-svc-tags">
-                                    <span class="rw-tag">{{ $sure }} dk</span>
-                                </span>
-                            @endif
+                            <span class="rw-svc-body">
+                                <span class="rw-svc-name">{{ $hizmet->ad }}</span>
+                                @if($hizmet->aciklama)
+                                    <span class="rw-svc-desc">{{ Str::limit(strip_tags($hizmet->aciklama), 48) }}</span>
+                                @endif
+                                @if($sure > 0)
+                                    <span class="rw-svc-tags">
+                                        <span class="rw-tag">{{ $sure }} dk</span>
+                                    </span>
+                                @endif
+                            </span>
                         </button>
                     @endforeach
                 </div>
@@ -332,82 +336,101 @@
 
 .rw-panel[hidden] { display: none !important; }
 
-/* ── Minimal service tiles: 2 / 3 / 4 columns ── */
+/* ── Premium service cards: 2 / 3 / 4 columns ── */
 .rw-svc-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.6rem;
+    gap: 0.75rem;
 }
 @media (min-width: 640px) {
-    .rw-svc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
+    .rw-svc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.85rem; }
 }
 @media (min-width: 960px) {
-    .rw-svc-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+    .rw-svc-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.9rem; }
 }
 
 .rw-svc {
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.55rem;
+    align-items: stretch;
+    text-align: left;
+    gap: 0;
     width: 100%;
-    min-height: 8.5rem;
-    padding: 1rem 0.7rem 0.85rem;
-    border-radius: 1.1rem;
-    border: 1.5px solid #ECEFF3;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 1.15rem;
+    border: 1.5px solid #E8ECF1;
     background: #fff;
     color: inherit;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    transition:
+        border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+        background 0.3s ease;
 }
 .rw-svc:hover {
     border-color: #E7B58A;
-    box-shadow: 0 10px 24px rgba(201, 106, 43, 0.09);
-    transform: translateY(-2px);
+    box-shadow:
+        0 16px 36px rgba(201, 106, 43, 0.14),
+        0 4px 12px rgba(15, 23, 42, 0.06);
+    transform: translateY(-5px);
+}
+.rw-svc:active {
+    transform: translateY(-2px) scale(0.99);
 }
 .rw-svc.is-selected {
     border-color: #C96A2B;
-    background: linear-gradient(180deg, #FFF7ED 0%, #fff 70%);
-    box-shadow: 0 0 0 1px #C96A2B, 0 12px 28px rgba(201, 106, 43, 0.12);
+    background: #fff;
+    box-shadow:
+        0 0 0 1.5px #C96A2B,
+        0 18px 40px rgba(201, 106, 43, 0.18);
+    transform: translateY(-3px);
 }
 
 .rw-svc-radio {
     position: absolute;
     top: 0.55rem;
     right: 0.55rem;
-    width: 1rem;
-    height: 1rem;
+    z-index: 4;
+    width: 1.15rem;
+    height: 1.15rem;
     border-radius: 999px;
-    border: 2px solid #D1D5DB;
-    background: #fff;
-    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    background: rgba(15, 23, 42, 0.25);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.rw-svc:hover .rw-svc-radio {
+    background: rgba(15, 23, 42, 0.35);
+    transform: scale(1.06);
 }
 .rw-svc.is-selected .rw-svc-radio {
-    border-color: #C96A2B;
+    border-color: #fff;
     background: #C96A2B;
-    box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.14);
+    box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.35), 0 2px 8px rgba(201, 106, 43, 0.4);
+    transform: scale(1.08);
 }
 .rw-svc.is-selected .rw-svc-radio::after {
     content: '';
     position: absolute;
-    left: 0.22rem;
-    top: 0.06rem;
-    width: 0.24rem;
-    height: 0.42rem;
+    left: 0.28rem;
+    top: 0.08rem;
+    width: 0.28rem;
+    height: 0.48rem;
     border: solid #fff;
-    border-width: 0 1.8px 1.8px 0;
+    border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
 
 .rw-svc-media {
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 0.85rem;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 11;
     overflow: hidden;
-    background: linear-gradient(145deg, #FFF7ED, #FFE8D2);
-    border: 1px solid rgba(231, 181, 138, 0.35);
+    background: linear-gradient(145deg, #FFF7ED 0%, #FFE8D2 50%, #FDE6D0 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -418,16 +441,80 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    transform: scale(1);
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
+.rw-svc:hover .rw-svc-img {
+    transform: scale(1.1);
+}
+.rw-svc.is-selected .rw-svc-img {
+    transform: scale(1.05);
+}
+
+.rw-svc-media-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 40%, rgba(15, 23, 42, 0.18) 100%);
+    opacity: 0.55;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+}
+.rw-svc:hover .rw-svc-media-overlay {
+    opacity: 0.75;
+}
+.rw-svc.is-selected .rw-svc-media-overlay {
+    background: linear-gradient(180deg, rgba(201, 106, 43, 0.12) 0%, rgba(201, 106, 43, 0.28) 100%);
+    opacity: 1;
+}
+
+/* Shine sweep on hover */
+.rw-svc-shine {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient(
+        115deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.35) 48%,
+        rgba(255, 255, 255, 0.55) 50%,
+        rgba(255, 255, 255, 0.35) 52%,
+        transparent 70%
+    );
+    transform: translateX(-120%) skewX(-12deg);
+    transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+}
+.rw-svc:hover .rw-svc-shine {
+    transform: translateX(120%) skewX(-12deg);
+}
+
 .rw-svc-icon {
     color: #C96A2B;
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s ease;
 }
-.rw-svc.is-selected .rw-svc-media {
-    border-color: rgba(201, 106, 43, 0.5);
-    box-shadow: 0 4px 10px rgba(201, 106, 43, 0.14);
+.rw-svc:hover .rw-svc-icon {
+    transform: scale(1.12);
+    color: #B55A20;
+}
+
+.rw-svc-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    padding: 0.8rem 0.85rem 0.95rem;
+    background: #fff;
+    transition: background 0.3s ease;
+}
+.rw-svc:hover .rw-svc-body {
+    background: linear-gradient(180deg, #fff 0%, #FFFBF7 100%);
+}
+.rw-svc.is-selected .rw-svc-body {
+    background: linear-gradient(180deg, #FFF7ED 0%, #fff 100%);
 }
 
 .rw-svc-name {
@@ -435,44 +522,58 @@
     font-weight: 700;
     color: #0F172A;
     line-height: 1.3;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     max-width: 100%;
-    padding: 0 0.15rem;
+    transition: color 0.25s ease;
+}
+.rw-svc:hover .rw-svc-name,
+.rw-svc.is-selected .rw-svc-name {
+    color: #C96A2B;
 }
 .rw-svc-desc {
     font-size: 0.68rem;
     font-weight: 500;
     color: #94A3B8;
-    line-height: 1.35;
+    line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     max-width: 100%;
-    padding: 0 0.2rem;
 }
 
 .rw-svc-tags {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0.3rem;
-    margin-top: auto;
+    margin-top: 0.15rem;
 }
 .rw-tag {
     display: inline-flex;
     align-items: center;
-    padding: 0.18rem 0.48rem;
+    padding: 0.2rem 0.55rem;
     border-radius: 999px;
     font-size: 0.65rem;
     font-weight: 700;
     color: #C96A2B;
     background: #FFF7ED;
-    border: 1px solid rgba(231, 181, 138, 0.4);
+    border: 1px solid rgba(231, 181, 138, 0.45);
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+.rw-svc:hover .rw-tag {
+    background: #FFEDD5;
+    border-color: rgba(201, 106, 43, 0.35);
+    transform: translateY(-1px);
+}
+.rw-svc.is-selected .rw-tag {
+    background: #C96A2B;
+    color: #fff;
+    border-color: #C96A2B;
 }
 .rw-tag-soft {
     color: #64748B;
@@ -481,8 +582,23 @@
 }
 
 @media (max-width: 380px) {
-    .rw-svc { min-height: 7.75rem; padding: 0.85rem 0.55rem 0.7rem; }
+    .rw-svc-body { padding: 0.7rem 0.7rem 0.8rem; }
     .rw-svc-name { font-size: 0.75rem; }
+    .rw-svc-media { aspect-ratio: 16 / 12; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rw-svc,
+    .rw-svc-img,
+    .rw-svc-shine,
+    .rw-svc-radio,
+    .rw-svc-icon,
+    .rw-tag {
+        transition: none !important;
+    }
+    .rw-svc:hover { transform: none; }
+    .rw-svc:hover .rw-svc-img { transform: none; }
+    .rw-svc:hover .rw-svc-shine { transform: none; }
 }
 
 /* Görüşme kartları (daha sade) */
@@ -506,16 +622,23 @@
     border: 1.5px solid #E5E7EB;
     background: #FAFAFA;
     color: inherit;
-    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+        background 0.3s ease,
+        box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .rw-card:hover {
     border-color: #E7B58A;
     background: #FFFBF5;
+    box-shadow: 0 10px 24px rgba(201, 106, 43, 0.1);
+    transform: translateY(-2px);
 }
 .rw-card.is-selected {
     border-color: #C96A2B;
     background: #FFF7ED;
-    box-shadow: 0 0 0 1px #C96A2B;
+    box-shadow: 0 0 0 1.5px #C96A2B, 0 10px 24px rgba(201, 106, 43, 0.12);
+    transform: translateY(-1px);
 }
 .rw-check {
     width: 1.15rem;

@@ -263,37 +263,38 @@
                 @endphp
 
                 <!-- Premium Tabs Navigation -->
-                <div class="border-b border-[#E5E7EB] mb-6 flex overflow-x-auto scrollbar-none gap-2 pb-px shrink-0">
-                    <button onclick="switchProfileTab('hakkimda')" id="tab-btn-hakkimda" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-[#C96A2B] text-[#C96A2B]">
+                <div id="profile-tabs-nav" class="border-b border-[#E5E7EB] mb-6 flex overflow-x-auto scrollbar-none gap-2 pb-px shrink-0">
+                    <button type="button" onclick="switchProfileTab('hakkimda', event)" id="tab-btn-hakkimda" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-[#C96A2B] text-[#C96A2B]">
                         Hekim Hakkında
                     </button>
                     @if($doktor->hizmetler->isNotEmpty())
-                        <button onclick="switchProfileTab('hizmetler')" id="tab-btn-hizmetler" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
+                        <button type="button" onclick="switchProfileTab('hizmetler', event)" id="tab-btn-hizmetler" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
                             Hizmet & Tedaviler
                         </button>
                     @endif
                     @if($yayinEgitimler->isNotEmpty())
-                        <button onclick="switchProfileTab('egitimler')" id="tab-btn-egitimler" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
+                        <button type="button" onclick="switchProfileTab('egitimler', event)" id="tab-btn-egitimler" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
                             Eğitimler
                         </button>
                     @endif
                     @if($doktor->galeriler->isNotEmpty())
-                        <button onclick="switchProfileTab('galeri')" id="tab-btn-galeri" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
+                        <button type="button" onclick="switchProfileTab('galeri', event)" id="tab-btn-galeri" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
                             Klinik Galeri
                         </button>
                     @endif
                     @if($doktor->bloglar->isNotEmpty())
-                        <button onclick="switchProfileTab('bloglar')" id="tab-btn-bloglar" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
+                        <button type="button" onclick="switchProfileTab('bloglar', event)" id="tab-btn-bloglar" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
                             Blog Yazıları
                         </button>
                     @endif
                     @if($faqCount > 0 || $yorumCount > 0)
-                        <button onclick="switchProfileTab('yorumlar')" id="tab-btn-yorumlar" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
+                        <button type="button" onclick="switchProfileTab('yorumlar', event)" id="tab-btn-yorumlar" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
                             Yorumlar & SSS
                         </button>
                     @endif
                 </div>
 
+                <div id="profile-tabs-panels">
                 <!-- Tab 1: Hakkında -->
                 <div id="tab-content-hakkimda" class="profile-tab-content space-y-8">
                     <!-- Biography -->
@@ -843,6 +844,7 @@
                         @endif
                     </div>
                 @endif
+                </div>{{-- /#profile-tabs-panels --}}
 
         </div>
 
@@ -998,33 +1000,57 @@
         }
     });
 
-    window.switchProfileTab = function(tabId) {
-        // Hide all tab contents
-        document.querySelectorAll('.profile-tab-content').forEach(el => {
+    window.switchProfileTab = function(tabId, evt) {
+        if (evt && typeof evt.preventDefault === 'function') {
+            evt.preventDefault();
+            evt.stopPropagation();
+        }
+
+        // Keep viewport locked while content height changes
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+        const panelsWrap = document.getElementById('profile-tabs-panels');
+        if (panelsWrap) {
+            panelsWrap.style.minHeight = panelsWrap.offsetHeight + 'px';
+        }
+
+        document.querySelectorAll('.profile-tab-content').forEach(function(el) {
             el.classList.add('hidden');
         });
-        
-        // Show target tab content
+
         const targetContent = document.getElementById('tab-content-' + tabId);
         if (targetContent) {
             targetContent.classList.remove('hidden');
         }
-        
-        // Reset all buttons styling
-        document.querySelectorAll('.profile-tab-btn').forEach(btn => {
+
+        document.querySelectorAll('.profile-tab-btn').forEach(function(btn) {
             btn.className = "profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300";
         });
-        
-        // Apply active styling to clicked button
+
         const activeBtn = document.getElementById('tab-btn-' + tabId);
         if (activeBtn) {
             activeBtn.className = "profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-[#C96A2B] text-[#C96A2B]";
+            // Blur to avoid browser scroll-into-view on focused controls
+            if (typeof activeBtn.blur === 'function') {
+                activeBtn.blur();
+            }
         }
 
-        // If the map is in the active tab (Hakkımda) and we switched back to Hakkımda, we should invalidate size
+        // Restore scroll after layout, then settle min-height to new panel
+        requestAnimationFrame(function() {
+            window.scrollTo(0, scrollY);
+            if (panelsWrap && targetContent) {
+                panelsWrap.style.minHeight = Math.max(targetContent.offsetHeight, 120) + 'px';
+            }
+            // Extra frame for stubborn browsers (image reflow, fonts)
+            requestAnimationFrame(function() {
+                window.scrollTo(0, scrollY);
+            });
+        });
+
         if (tabId === 'hakkimda' && detailMap) {
             setTimeout(function() {
                 detailMap.invalidateSize();
+                window.scrollTo(0, scrollY);
             }, 100);
         }
     };
