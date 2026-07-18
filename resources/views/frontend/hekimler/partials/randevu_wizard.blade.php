@@ -58,16 +58,48 @@
 
             {{-- 1 Hizmet --}}
             <div class="rw-panel" data-panel="1">
-                <div class="rw-cards">
+                <div class="rw-svc-grid">
                     @foreach($aktifHizmetler as $hizmet)
-                        <button type="button" class="rw-card rw-hizmet-card"
+                        @php
+                            $hasImg = !empty($hizmet->resim);
+                            $sure = (int) ($hizmet->sure ?? 0);
+                            $ucret = $hizmet->ucret ?? $hizmet->fiyat ?? null;
+                        @endphp
+                        <button type="button"
+                                class="rw-svc rw-hizmet-card"
                                 data-id="{{ $hizmet->id }}"
                                 data-ad="{{ $hizmet->ad }}"
-                                data-sure="{{ $hizmet->sure }}">
-                            <span class="rw-check" aria-hidden="true"></span>
-                            <span class="rw-card-body">
-                                <span class="rw-card-title">{{ $hizmet->ad }}</span>
-                                <span class="rw-card-meta">{{ $hizmet->sure }} dakika</span>
+                                data-sure="{{ $sure }}">
+                            <span class="rw-svc-media" aria-hidden="true">
+                                @if($hasImg)
+                                    <img src="{{ asset($hizmet->resim) }}" alt="" class="rw-svc-img">
+                                @else
+                                    <span class="rw-svc-icon">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
+                                        </svg>
+                                    </span>
+                                @endif
+                            </span>
+                            <span class="rw-svc-content">
+                                <span class="rw-svc-top">
+                                    <span class="rw-svc-name">{{ $hizmet->ad }}</span>
+                                    <span class="rw-svc-radio" aria-hidden="true"></span>
+                                </span>
+                                @if($hizmet->aciklama)
+                                    <span class="rw-svc-desc">{{ Str::limit(strip_tags($hizmet->aciklama), 72) }}</span>
+                                @endif
+                                <span class="rw-svc-tags">
+                                    @if($sure > 0)
+                                        <span class="rw-tag">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+                                            {{ $sure }} dk
+                                        </span>
+                                    @endif
+                                    @if($ucret !== null && $ucret !== '' && is_numeric($ucret))
+                                        <span class="rw-tag rw-tag-soft">{{ number_format((float) $ucret, 0, ',', '.') }} ₺</span>
+                                    @endif
+                                </span>
                             </span>
                         </button>
                     @endforeach
@@ -309,7 +341,169 @@
 
 .rw-panel[hidden] { display: none !important; }
 
-/* Cards (hizmet + görüşme) */
+/* ── Modern service tiles ── */
+.rw-svc-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+@media (min-width: 640px) {
+    .rw-svc-grid { grid-template-columns: 1fr 1fr; }
+}
+.rw-svc {
+    display: flex;
+    align-items: stretch;
+    gap: 0.85rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.85rem;
+    border-radius: 1.15rem;
+    border: 1.5px solid #ECEFF3;
+    background: #fff;
+    color: inherit;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    position: relative;
+    overflow: hidden;
+}
+.rw-svc::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 247, 237, 0.55) 0%, transparent 55%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+.rw-svc:hover {
+    border-color: #E7B58A;
+    box-shadow: 0 8px 24px rgba(201, 106, 43, 0.08);
+    transform: translateY(-1px);
+}
+.rw-svc:hover::before { opacity: 1; }
+.rw-svc.is-selected {
+    border-color: #C96A2B;
+    background: linear-gradient(160deg, #FFF7ED 0%, #fff 60%);
+    box-shadow: 0 0 0 1px #C96A2B, 0 10px 28px rgba(201, 106, 43, 0.12);
+}
+.rw-svc.is-selected::before { opacity: 1; }
+
+.rw-svc-media {
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 0.95rem;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: linear-gradient(145deg, #FFF7ED, #FFE8D2);
+    border: 1px solid rgba(231, 181, 138, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+.rw-svc-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.rw-svc-icon {
+    color: #C96A2B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.rw-svc.is-selected .rw-svc-media {
+    border-color: rgba(201, 106, 43, 0.45);
+    box-shadow: 0 4px 12px rgba(201, 106, 43, 0.15);
+}
+
+.rw-svc-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    padding: 0.1rem 0;
+}
+.rw-svc-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.rw-svc-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #0F172A;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+}
+.rw-svc-radio {
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 999px;
+    border: 2px solid #D1D5DB;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    background: #fff;
+    position: relative;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.rw-svc.is-selected .rw-svc-radio {
+    border-color: #C96A2B;
+    background: #C96A2B;
+    box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.15);
+}
+.rw-svc.is-selected .rw-svc-radio::after {
+    content: '';
+    position: absolute;
+    left: 0.28rem;
+    top: 0.1rem;
+    width: 0.28rem;
+    height: 0.5rem;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.rw-svc-desc {
+    font-size: 0.72rem;
+    color: #64748B;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.rw-svc-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.15rem;
+}
+.rw-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #C96A2B;
+    background: #FFF7ED;
+    border: 1px solid rgba(231, 181, 138, 0.4);
+}
+.rw-tag svg { flex-shrink: 0; opacity: 0.9; }
+.rw-tag-soft {
+    color: #475569;
+    background: #F8FAFC;
+    border-color: #E2E8F0;
+}
+
+/* Görüşme kartları (daha sade) */
 .rw-cards {
     display: grid;
     grid-template-columns: 1fr;
