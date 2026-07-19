@@ -307,7 +307,7 @@
                 <a href="{{ $blog->url }}" class="rounded-2xl bg-white border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.03)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden group block no-underline">
                     @if($blog->resim)
                         <div class="aspect-video overflow-hidden">
-                            <img src="{{ asset('storage/' . $blog->resim) }}"
+                            <img src="{{ asset($blog->resim) }}"
                                  alt="{{ $blog->baslik }}"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                         </div>
