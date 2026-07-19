@@ -4,7 +4,7 @@
 
 @section('icerik')
     <!-- Hero Section -->
-    <section class="relative bg-white border-b border-[#E5E7EB] pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden select-none">
+    <section class="relative bg-white border-b border-[#E5E7EB] pt-16 pb-4 md:pt-24 md:pb-28 overflow-hidden select-none">
         <!-- Background Ambient Lights -->
         <div class="absolute top-[-30%] right-[-10%] w-[550px] h-[550px] rounded-full bg-[#E7B58A]/10 blur-[130px] pointer-events-none"></div>
         <div class="absolute bottom-[-20%] left-[-10%] w-[550px] h-[550px] rounded-full bg-[#C96A2B]/4 blur-[130px] pointer-events-none"></div>
@@ -14,12 +14,12 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] animate-pulse"></span>
                 Türkiye'nin Seçkin Uzman Ağı
             </span>
-            
+
             <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold font-display text-[#111827] tracking-tight leading-tight md:leading-none">
                 Aradığınız Uzmanı Bulun, <br class="hidden md:inline">
                 <span class="text-[#C96A2B]">Kolayca Randevu</span> Alın.
             </h1>
-            
+
             <p class="text-base text-[#6B7280] max-w-xl mx-auto mt-5 leading-relaxed">
                 @if(isset($branslar) && $branslar->count() > 0)
                     {{ $branslar->take(4)->pluck('ad')->implode(', ') }} ve daha birçok alanda yüzlerce profesyonel arasından size en uygun olanını seçin.
@@ -36,10 +36,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                     </span>
-                    <input type="text" name="arama" id="searchBar" placeholder="Uzman adı, branş veya şikayet yazın..." 
+                    <input type="text" name="arama" id="searchBar" placeholder="Uzman adı, branş veya şikayet yazın..."
                            class="w-full pl-11 pr-4 py-4 rounded-xl bg-transparent text-[#111827] placeholder-[#9CA3AF] focus:outline-none text-sm font-medium">
                 </div>
-                
+
                 <button type="submit" class="sm:px-8 py-4 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-sm tracking-wide transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
                     Uzman Ara
                 </button>
@@ -90,7 +90,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             @forelse($branslar->take(8) as $brans)
-                <a href="{{ route('frontend.hekimler', ['brans' => $brans->slug]) }}" 
+                <a href="{{ route('frontend.hekimler', ['brans' => $brans->slug]) }}"
                    class="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.03)] hover:-translate-y-0.5 transition-all duration-300 group block no-underline">
                     <div class="w-12 h-12 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center mb-5 transition-transform group-hover:scale-105">
                         @include('frontend.partials.brans_ikon', ['slug' => $brans->slug])
@@ -190,8 +190,8 @@
                         <div class="flex gap-4 mb-6">
                             <!-- Avatar -->
                             @if($doktor->profil_resmi)
-                                <img src="{{ asset('storage/' . $doktor->profil_resmi) }}" 
-                                     alt="{{ $doktor->ad_soyad }}" 
+                                <img src="{{ asset('storage/' . $doktor->profil_resmi) }}"
+                                     alt="{{ $doktor->ad_soyad }}"
                                      class="w-14 h-14 rounded-full object-cover border border-[#E7B58A]/30 flex-shrink-0">
                             @else
                                 <div class="w-14 h-14 rounded-full bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 flex items-center justify-center font-extrabold text-sm font-display flex-shrink-0">
@@ -259,12 +259,12 @@
                                 <span class="{{ $i <= $yorum->puan ? 'text-[#C96A2B]' : 'text-[#D1D5DB]' }} text-sm">★</span>
                             @endfor
                         </div>
-                        
+
                         <!-- Yorum -->
                         <p class="text-sm text-[#374151] leading-relaxed mb-5 italic">
                             "{{ Str::limit($yorum->yorum, 150) }}"
                         </p>
-                        
+
                         <!-- Hasta ve Doktor bilgisi -->
                         <div class="flex items-center justify-between">
                             <div>
@@ -307,8 +307,8 @@
                 <a href="{{ $blog->url }}" class="rounded-2xl bg-white border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.03)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden group block no-underline">
                     @if($blog->resim)
                         <div class="aspect-video overflow-hidden">
-                            <img src="{{ asset('storage/' . $blog->resim) }}" 
-                                 alt="{{ $blog->baslik }}" 
+                            <img src="{{ asset('storage/' . $blog->resim) }}"
+                                 alt="{{ $blog->baslik }}"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                         </div>
                     @else
