@@ -87,6 +87,43 @@ class DomainInclusionService
         return $this->hostinger->checkAvailability($sld, $tlds, true);
     }
 
+    /**
+     * Ödeme öncesi müsaitlik — seçilen pakete göre (üyelik henüz yok).
+     *
+     * @param  list<string>|null  $tlds
+     * @return list<array{domain:?string,is_available:bool,is_alternative:bool,restriction:?string,mock?:bool}>
+     */
+    public function checkByPackage(Paket $paket, string $sld, ?array $tlds = null): array
+    {
+        $tlds = $tlds ?: $this->includedTlds($paket);
+        $key = 'hostinger-avail:'.(request()->ip() ?? 'cli');
+        $max = (int) config('hostinger.availability_per_minute', 8);
+        if (RateLimiter::tooManyAttempts($key, $max)) {
+            throw new RuntimeException('Çok fazla domain sorgusu. Lütfen bir dakika sonra tekrar deneyin.');
+        }
+        RateLimiter::hit($key, 60);
+
+        if (! $this->hostinger->enabled()) {
+            return array_map(fn ($tld) => [
+                'domain' => strtolower(preg_replace('/[^a-z0-9\-]/i', '', $sld) ?? $sld).'.'.$tld,
+                'is_available' => true,
+                'is_alternative' => false,
+                'restriction' => null,
+                'mock' => true,
+            ], $tlds);
+        }
+
+        return $this->hostinger->checkAvailability($sld, $tlds, true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function tldsForPackage(?Paket $paket): array
+    {
+        return $this->includedTlds($paket);
+    }
+
     public function claimIncluded(Doktor|Klinik $owner, string $domain): DomainOrder
     {
         $elig = $this->eligibility($owner);

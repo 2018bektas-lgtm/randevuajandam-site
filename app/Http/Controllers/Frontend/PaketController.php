@@ -209,16 +209,64 @@ class PaketController extends Controller
     }
 
     /**
-     * Üyelik aktifleşince: web paketi varsa domain onboarding, değilse başarı.
+     * Üyelik aktifleşince: session'daki domaini kur; yoksa (web paketi) sonradan domain adımı.
      */
     protected function redirectAfterMembership(?Doktor $doktor = null)
     {
         $doktor = $doktor ?? Auth::guard('doktor')->user();
-        if ($doktor && $doktor->needsWebsiteDomainOnboarding()) {
+        if (! $doktor) {
+            return redirect()->route('frontend.hekim.basarili');
+        }
+
+        $doktor = $doktor->fresh(['paket', 'klinik', 'webSite']);
+        $pending = session(HekimOnboardingController::SESSION_PENDING);
+        $flash = [];
+
+        if (is_array($pending) && ! empty($pending['domain']) && ! empty($pending['mode'])) {
+            try {
+                $provisioning = app(\App\Services\WebsiteProvisioningService::class);
+                $mode = $pending['mode'] === 'byod' ? 'byod' : 'included';
+                $target = $pending['target'] ?? 'doctor';
+
+                if ($target === 'clinic' && $doktor->klinik) {
+                    $result = $provisioning->provisionKlinik($doktor->klinik, $pending['domain'], $mode);
+                } else {
+                    $result = $provisioning->provisionDoktor($doktor, $pending['domain'], $mode);
+                }
+
+                session()->forget(HekimOnboardingController::SESSION_PENDING);
+                $flash = [
+                    'basarili' => 'Üyelik aktif. Domain kuruldu: '.$result['domain'],
+                    'plain_api_secret' => $result['plain_secret'],
+                    'onboarding_domain_done' => $result['domain'],
+                ];
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Post-pay domain provision failed', [
+                    'error' => $e->getMessage(),
+                    'domain' => $pending['domain'] ?? null,
+                ]);
+                // Domain seçilmişti ama kurulum başarısız → onboarding'e dön
+                return redirect()
+                    ->route('frontend.hekim.onboarding.domain')
+                    ->with('hata', 'Üyelik aktif; domain kurulumu tamamlanamadı: '.$e->getMessage().' Lütfen tekrar deneyin.');
+            }
+        }
+
+        $redirect = redirect()->route('frontend.hekim.basarili');
+        foreach ($flash as $k => $v) {
+            $redirect = $redirect->with($k, $v);
+        }
+
+        // Domain hiç seçilmediyse ve web paketi varsa sonradan kurulum
+        if (
+            empty($flash)
+            && $doktor->needsWebsiteDomainOnboarding()
+            && ! session('onboarding_domain_skipped')
+        ) {
             return redirect()->route('frontend.hekim.onboarding.domain');
         }
 
-        return redirect()->route('frontend.hekim.basarili');
+        return $redirect;
     }
 
     /**
@@ -480,7 +528,7 @@ class PaketController extends Controller
         $doktor = Auth::guard('doktor')->user();
 
         // Get all active packages
-        $paketler = Paket::where('aktif_mi', true)->orderBy('sira')->get();
+        $paketler = Paket::where('aktif_mi', true)->with('sistemOzellikleri')->orderBy('sira')->get();
 
         // Separate them by type
         $bireyselPaketler = $paketler->where('tur', 'bireysel')->values();
@@ -497,15 +545,32 @@ class PaketController extends Controller
 
     /**
      * Show package payment form for logged-in doctor.
+     * Web sitesi paketinde domain seçilmediyse önce domain adımına yönlendir.
      */
     public function paketOdeFormu(Request $request)
     {
         $paketId = $request->query('paket');
         $periyot = $request->query('periyot', 'aylik');
 
-        $secilenPaket = Paket::where('aktif_mi', true)->find($paketId);
+        $secilenPaket = Paket::where('aktif_mi', true)->with('sistemOzellikleri')->find($paketId);
         if (! $secilenPaket) {
             return redirect()->route('frontend.hekim.paket_sec')->with('hata', 'Lütfen geçerli bir paket seçin.');
+        }
+
+        // Domain adımı zorunlu değil ama web paketinde seçim yoksa ve atlanmamışsa domain'e yönlendir
+        if (HekimOnboardingController::packageNeedsDomain($secilenPaket)) {
+            $pending = session(HekimOnboardingController::SESSION_PENDING);
+            $pendingOk = is_array($pending)
+                && (int) ($pending['paket_id'] ?? 0) === (int) $secilenPaket->id
+                && ! empty($pending['domain']);
+            $skipped = (bool) session('onboarding_domain_skipped');
+
+            if (! $pendingOk && ! $skipped && ! $request->boolean('domain_ok')) {
+                return redirect()->route('frontend.hekim.onboarding.domain', [
+                    'paket' => $secilenPaket->id,
+                    'periyot' => $periyot,
+                ]);
+            }
         }
 
         $doktor = Auth::guard('doktor')->user();
@@ -525,6 +590,8 @@ class PaketController extends Controller
             ? (float) $discountedPrice
             : $listedPrice;
 
+        $pendingDomain = session(HekimOnboardingController::SESSION_PENDING);
+
         return view('frontend.hekim.paket_ode', compact(
             'secilenPaket',
             'periyot',
@@ -534,6 +601,7 @@ class PaketController extends Controller
             'paymentSettings',
             'bankAvailable',
             'tutar',
+            'pendingDomain',
         ));
     }
 

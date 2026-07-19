@@ -1,21 +1,23 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', 'Domain seçimi - Kayıt - Randevu Ajandam')
+@section('baslik', ($phase ?? 'pre_payment') === 'pre_payment' ? 'Domain seçimi - Ödeme öncesi' : 'Domain seçimi - Randevu Ajandam')
 
 @section('icerik')
 @php
+    $phase = $phase ?? 'pre_payment';
+    $isPre = $phase === 'pre_payment';
     $de = $eligibility ?? [];
     $tlds = $de['tlds'] ?? ['com', 'net'];
     $domainEligible = (bool) ($de['eligible'] ?? false);
     $hostingerReady = (bool) ($de['hostinger_ready'] ?? false);
-    $mode = old('mode', request('mode', ''));
+    $paket = $secilenPaket ?? null;
+    $periyot = $periyot ?? 'aylik';
 @endphp
 
 <section class="relative bg-[#FAFAFA] py-12 md:py-16 min-h-[70vh] overflow-hidden">
     <div class="absolute top-[-10%] right-[-10%] w-[420px] h-[420px] rounded-full bg-[#E7B58A]/15 blur-[100px] pointer-events-none"></div>
     <div class="max-w-3xl mx-auto px-4 relative z-10 space-y-8">
 
-        {{-- Wizard steps --}}
         <nav aria-label="Kayıt adımları" class="flex flex-wrap items-center justify-center gap-2 md:gap-0">
             @foreach($steps as $i => $step)
                 @php
@@ -45,10 +47,15 @@
                 Web sitenizin alan adı
             </h1>
             <p class="text-sm text-[#6B7280] max-w-lg mx-auto">
-                @if($target === 'clinic')
-                    Klinik kurumsal paketinize web sitesi dahil. Domaininizi seçin veya mevcut domaininizi bağlayın.
+                @if($isPre)
+                    <strong>Ödemeden önce</strong> domaininizi belirleyin.
+                    @if($paket)
+                        Seçilen paket: <span class="text-[#C96A2B] font-semibold">{{ $paket->ad }}</span>
+                        ({{ $periyot === 'yillik' ? 'yıllık' : 'aylık' }}).
+                    @endif
+                    Hostinger kaydı / site kurulumu ödeme başarılı olduktan sonra otomatik yapılır.
                 @else
-                    Özel web sitesi paketinize domain adımı dahil. Yeni isim alın (pakete dahil) veya mevcut domaininizi kullanın.
+                    Üyeliğiniz aktif. Domain seçerek web sitenizi tamamlayın.
                 @endif
             </p>
         </div>
@@ -60,27 +67,23 @@
             <div class="rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-800 text-sm px-4 py-3">{{ session('basarili') }}</div>
         @endif
 
-        {{-- Choice cards --}}
         <div class="grid md:grid-cols-2 gap-4" id="choice-cards">
             <button type="button" data-mode="byod"
                 class="mode-card text-left p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-[#C96A2B] transition-all shadow-sm space-y-2">
                 <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#C96A2B]">Zaten var</div>
                 <h2 class="text-lg font-bold text-slate-900 font-display">Domainim var</h2>
                 <p class="text-xs text-slate-500 leading-relaxed">
-                    Örn. <strong>dr-ahmet.com</strong> — Hostinger’dan yeni satın alma yok. DNS’i (A/CNAME) sizin yönlendirmeniz gerekir.
+                    Örn. <strong>dr-ahmet.com</strong> — yeni satın alma yok. DNS yönlendirmesi sizin sorumluluğunuzda.
                 </p>
             </button>
 
             <button type="button" data-mode="included"
-                class="mode-card text-left p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-emerald-500 transition-all shadow-sm space-y-2 {{ $domainEligible ? '' : 'opacity-70' }}"
-                @if(! $domainEligible) title="{{ $de['reason'] ?? 'Domain hakkı yok' }}" @endif>
+                class="mode-card text-left p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-emerald-500 transition-all shadow-sm space-y-2 {{ $domainEligible ? '' : 'opacity-70' }}">
                 <div class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">Pakete dahil</div>
                 <h2 class="text-lg font-bold text-slate-900 font-display">Yeni domain al</h2>
                 <p class="text-xs text-slate-500 leading-relaxed">
                     .{{ implode(' / .', $tlds) }} — <strong>1 yıl ek ücret yok</strong>.
-                    @if(! $hostingerReady)
-                        <span class="text-amber-700">(Hostinger API hazır değilse simülasyon)</span>
-                    @endif
+                    Müsaitliği şimdi soruyoruz; kayıt ödeme sonrası.
                 </p>
                 @if(! $domainEligible && !empty($de['reason']))
                     <p class="text-[11px] text-amber-800 bg-amber-50 rounded-lg px-2 py-1">{{ $de['reason'] }}</p>
@@ -88,37 +91,43 @@
             </button>
         </div>
 
-        {{-- BYOD panel --}}
+        {{-- BYOD --}}
         <div id="panel-byod" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 space-y-5">
             <h3 class="text-base font-bold text-slate-900 font-display">Mevcut domaininizi yazın</h3>
-            <form method="POST" action="{{ route('frontend.hekim.onboarding.domain.byod') }}" class="space-y-4">
+            <form method="POST"
+                  action="{{ $isPre ? route('frontend.hekim.onboarding.domain.save') : route('frontend.hekim.onboarding.domain.byod') }}"
+                  class="space-y-4">
                 @csrf
+                @if($isPre)
+                    <input type="hidden" name="paket_id" value="{{ $paket?->id }}">
+                    <input type="hidden" name="periyot" value="{{ $periyot }}">
+                    <input type="hidden" name="mode" value="byod">
+                @endif
                 <div>
                     <label for="byod-domain" class="block text-sm font-medium text-slate-700 mb-1.5">Alan adı</label>
-                    <input type="text" name="domain" id="byod-domain" value="{{ old('domain') }}" required
+                    <input type="text" name="domain" id="byod-domain" value="{{ old('domain', $pending['domain'] ?? '') }}" required
                         placeholder="ornek: dr-ahmet-yilmaz.com"
                         class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-[#C96A2B] focus:border-[#C96A2B]">
                     @error('domain')
                         <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
                     @enderror
-                    <p class="text-xs text-slate-400 mt-2">www olmadan yazın. DNS yönlendirmesi kurulumu panelde hatırlatılır.</p>
                 </div>
                 <div class="flex flex-wrap gap-3">
                     <button type="submit" class="px-5 py-3 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-sm font-bold">
-                        Domaini bağla ve devam et
+                        {{ $isPre ? 'Kaydet ve ödemeye geç' : 'Domaini bağla ve devam et' }}
                     </button>
                     <button type="button" class="back-choice px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-600">Geri</button>
                 </div>
             </form>
         </div>
 
-        {{-- Included domain panel --}}
+        {{-- Included --}}
         <div id="panel-included" class="hidden bg-white rounded-2xl border border-emerald-100 shadow-sm p-6 md:p-8 space-y-5">
             <h3 class="text-base font-bold text-slate-900 font-display">Yeni site adını sorgula</h3>
             @if(! $domainEligible)
                 <p class="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-                    {{ $de['reason'] ?? 'Pakete dahil domain hakkı şu an kullanılamıyor.' }}
-                    Kendi domaininiz varsa “Domainim var” seçeneğini kullanın veya daha sonra panelden kurun.
+                    {{ $de['reason'] ?? 'Pakete dahil domain bu planda yok.' }}
+                    “Domainim var” seçeneğini kullanın veya atlayın.
                 </p>
             @else
                 <div class="flex flex-col sm:flex-row gap-2">
@@ -132,26 +141,51 @@
                 <div id="domain-check-results" class="space-y-2"></div>
                 <p id="domain-check-msg" class="text-xs text-slate-400 hidden"></p>
 
-                <form id="domain-claim-form" method="POST" action="{{ route('frontend.hekim.onboarding.domain.claim') }}" class="hidden space-y-3">
+                <form id="domain-claim-form" method="POST"
+                      action="{{ $isPre ? route('frontend.hekim.onboarding.domain.save') : route('frontend.hekim.onboarding.domain.claim') }}"
+                      class="hidden space-y-3">
                     @csrf
+                    @if($isPre)
+                        <input type="hidden" name="paket_id" value="{{ $paket?->id }}">
+                        <input type="hidden" name="periyot" value="{{ $periyot }}">
+                        <input type="hidden" name="mode" value="included">
+                    @endif
                     <input type="hidden" name="domain" id="claim-domain-val">
                     <p class="text-sm text-slate-700">Seçilen: <strong id="claim-domain-label"></strong>
-                        — <span class="text-emerald-700 font-semibold">pakete dahil, ek ücret yok</span></p>
+                        — <span class="text-emerald-700 font-semibold">pakete dahil, ek ücret yok</span>
+                        @if($isPre)
+                            <span class="block text-xs text-slate-500 mt-1">Ödeme sonrası Hostinger’a kaydedilir.</span>
+                        @endif
+                    </p>
                     <button type="submit" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold">
-                        Bu domaini al ve siteyi aç
+                        {{ $isPre ? 'Bu domaini seç ve ödemeye geç' : 'Bu domaini al ve siteyi aç' }}
                     </button>
                 </form>
             @endif
             <button type="button" class="back-choice text-sm text-slate-500 underline">← Seçimlere dön</button>
         </div>
 
-        <div class="text-center pt-2">
-            <form method="POST" action="{{ route('frontend.hekim.onboarding.domain.skip') }}" class="inline">
-                @csrf
-                <button type="submit" class="text-xs font-semibold text-slate-400 hover:text-slate-600 underline">
-                    Şimdilik atla — daha sonra panelden kuracağım
-                </button>
-            </form>
+        <div class="text-center pt-2 space-y-2">
+            @if($isPre)
+                <form method="POST" action="{{ route('frontend.hekim.onboarding.domain.skip_pre') }}" class="inline">
+                    @csrf
+                    <input type="hidden" name="paket_id" value="{{ $paket?->id }}">
+                    <input type="hidden" name="periyot" value="{{ $periyot }}">
+                    <button type="submit" class="text-xs font-semibold text-slate-400 hover:text-slate-600 underline">
+                        Domaini atla — doğrudan ödemeye git
+                    </button>
+                </form>
+                <p class="text-[11px] text-slate-400">
+                    <a href="{{ route('frontend.hekim.paket_sec') }}" class="underline">← Paket seçimine dön</a>
+                </p>
+            @else
+                <form method="POST" action="{{ route('frontend.hekim.onboarding.domain.skip') }}" class="inline">
+                    @csrf
+                    <button type="submit" class="text-xs font-semibold text-slate-400 hover:text-slate-600 underline">
+                        Şimdilik atla — panelden kuracağım
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
 </section>
@@ -162,16 +196,14 @@
     const panelByod = document.getElementById('panel-byod');
     const panelIncluded = document.getElementById('panel-included');
     const choiceCards = document.getElementById('choice-cards');
+    const isPre = @json($isPre);
+    const paketId = @json($paket?->id);
+    const checkUrl = @json($checkUrl);
 
     function showMode(mode) {
         choiceCards.classList.add('hidden');
         panelByod.classList.toggle('hidden', mode !== 'byod');
         panelIncluded.classList.toggle('hidden', mode !== 'included');
-        cards.forEach(c => {
-            c.classList.toggle('ring-2', c.dataset.mode === mode);
-            c.classList.toggle('ring-[#C96A2B]', c.dataset.mode === mode && mode === 'byod');
-            c.classList.toggle('ring-emerald-500', c.dataset.mode === mode && mode === 'included');
-        });
     }
 
     cards.forEach(c => c.addEventListener('click', () => showMode(c.dataset.mode)));
@@ -183,12 +215,6 @@
         });
     });
 
-    @if(old('domain') && !$domainEligible)
-        showMode('byod');
-    @elseif(old('domain'))
-        // leave choice open
-    @endif
-
     const checkBtn = document.getElementById('domain-check-btn');
     const sldEl = document.getElementById('domain-sld');
     const resultsEl = document.getElementById('domain-check-results');
@@ -198,7 +224,6 @@
 
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content
         || document.querySelector('input[name="_token"]')?.value;
-    const checkUrl = @json($checkUrl);
 
     checkBtn.addEventListener('click', async () => {
         const sld = (sldEl.value || '').trim();
@@ -213,6 +238,8 @@
         resultsEl.innerHTML = '';
         if (claimForm) claimForm.classList.add('hidden');
         try {
+            const body = { sld };
+            if (isPre && paketId) body.paket_id = paketId;
             const res = await fetch(checkUrl, {
                 method: 'POST',
                 headers: {
@@ -221,7 +248,7 @@
                     'X-CSRF-TOKEN': csrf,
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify({ sld }),
+                body: JSON.stringify(body),
             });
             const json = await res.json().catch(() => ({}));
             if (!res.ok || !json.success) {

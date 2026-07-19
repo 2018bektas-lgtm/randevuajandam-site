@@ -141,13 +141,42 @@
                 </h2>
                 <p class="text-xs text-[#6B7280] mt-1.5 ml-4">Seçtiğiniz paketin kurulumunu ve ödemesini tamamlayın.</p>
             </div>
-            <div>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('frontend.hekim.onboarding.domain', ['paket' => $secilenPaket->id, 'periyot' => $periyot]) }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-xs font-semibold text-emerald-800 transition-all shadow-sm">
+                    Domaini değiştir
+                </a>
                 <a href="{{ route('frontend.hekim.paket_sec') }}" 
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-xs font-semibold text-[#6B7280] hover:text-[#C96A2B] transition-all shadow-sm">
                     ← Paket Seçimine Dön
                 </a>
             </div>
         </div>
+
+        @if(!empty($pendingDomain['domain']))
+            <div class="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <p class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">Seçilen domain (ödeme sonrası kurulur)</p>
+                    <p class="text-sm font-bold text-emerald-950 font-mono mt-0.5">{{ $pendingDomain['domain'] }}</p>
+                    <p class="text-[11px] text-emerald-800/80 mt-1">
+                        {{ ($pendingDomain['mode'] ?? '') === 'byod' ? 'Kendi domaininiz (BYOD) — DNS sizin' : 'Pakete dahil yeni domain — ek ücret yok' }}
+                    </p>
+                </div>
+                <a href="{{ route('frontend.hekim.onboarding.domain', ['paket' => $secilenPaket->id, 'periyot' => $periyot]) }}"
+                   class="text-xs font-bold text-emerald-800 underline shrink-0">Değiştir</a>
+            </div>
+        @elseif(session('onboarding_domain_skipped'))
+            <div class="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl text-xs text-amber-900">
+                Domain adımını atladınız. Ödeme sonrası panelden kurabilirsiniz.
+                <a href="{{ route('frontend.hekim.onboarding.domain', ['paket' => $secilenPaket->id, 'periyot' => $periyot]) }}" class="font-bold underline ml-1">Şimdi seç</a>
+            </div>
+        @endif
+
+        @if(session('basarili'))
+            <div class="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-xs text-emerald-800 font-semibold">
+                {{ session('basarili') }}
+            </div>
+        @endif
 
         @if($errors->any())
             <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-600 space-y-1 font-semibold">

@@ -168,27 +168,34 @@ Route::middleware('guest:doktor')->group(function () {
         ->name('frontend.hekim.giris.post');
 });
 
-// Doctor Auth Routes (Without membership check)
+// Doctor Auth Routes (Without membership check) — kayıt / paket / domain / ödeme
 Route::middleware(['auth:doktor'])->group(function () {
     Route::get('/hekim/paket-sec', [PaketController::class, 'paketSecFormu'])->name('frontend.hekim.paket_sec');
     Route::get('/hekim/paket-ode', [PaketController::class, 'paketOdeFormu'])->name('frontend.hekim.paket_ode');
     Route::post('/hekim/paket-ode', [PaketController::class, 'paketOde'])->name('frontend.hekim.paket_ode.post');
-});
 
-// Doctor Auth Routes
-Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
-    // Success page
-    Route::get('/hekim/basarili', [PaketController::class, 'basarili'])->name('frontend.hekim.basarili');
-
-    // Kayıt sonrası domain onboarding (web / klinik web paketi)
+    // Domain: ödeme ÖNCESİ (paket query) + ödeme sonrası (üyelik varken)
     Route::get('/hekim/onboarding/domain', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domain'])
         ->name('frontend.hekim.onboarding.domain');
+    Route::post('/hekim/onboarding/domain/check', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainCheck'])
+        ->middleware('throttle:20,1')
+        ->name('frontend.hekim.onboarding.domain.check');
+    Route::post('/hekim/onboarding/domain/save', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainSave'])
+        ->name('frontend.hekim.onboarding.domain.save');
+    Route::post('/hekim/onboarding/domain/skip-pre', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainSkipPre'])
+        ->name('frontend.hekim.onboarding.domain.skip_pre');
     Route::post('/hekim/onboarding/domain/byod', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainByod'])
         ->name('frontend.hekim.onboarding.domain.byod');
     Route::post('/hekim/onboarding/domain/claim', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainClaim'])
         ->name('frontend.hekim.onboarding.domain.claim');
     Route::post('/hekim/onboarding/domain/skip', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainSkip'])
         ->name('frontend.hekim.onboarding.domain.skip');
+});
+
+// Doctor Auth Routes
+Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
+    // Success page
+    Route::get('/hekim/basarili', [PaketController::class, 'basarili'])->name('frontend.hekim.basarili');
 
     // Clinic Upgrade
     Route::get('/hekim/klinik/gecis', [PaketController::class, 'gecisFormu'])->name('frontend.hekim.klinik.gecis');

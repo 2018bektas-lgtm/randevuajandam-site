@@ -273,7 +273,13 @@
             @forelse($bireyselPaketler as $p)
                 @php
                     $isFree = (float) $p->aylik_fiyat == 0;
-                    $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'web sitesi');
+                    $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'web sitesi')
+                        || $p->hasFeature('web_sitesi')
+                        || (bool) ($p->domain_dahil_mi ?? false);
+                    $needsDomainStep = $p->hasFeature('web_sitesi') || (bool) ($p->domain_dahil_mi ?? false);
+                    $ctaBase = $needsDomainStep
+                        ? route('frontend.hekim.onboarding.domain')
+                        : route('frontend.hekim.paket_ode');
                     $isFeatured = false;
                     $paidIndex = 0;
                     foreach ($bireyselPaketler as $bp) {
@@ -369,11 +375,11 @@
                             @endif
                         </ul>
 
-                        <a href="{{ route('frontend.hekim.paket_ode', ['paket' => $p->id, 'periyot' => 'aylik']) }}"
+                        <a href="{{ $ctaBase }}?paket={{ $p->id }}&periyot=aylik"
                            class="btn-select-package btn-plan {{ $isFeatured || $isWebsite ? 'btn-plan-primary' : 'btn-plan-ghost' }} mt-auto"
-                           data-base-url="{{ route('frontend.hekim.paket_ode') }}"
+                           data-base-url="{{ $ctaBase }}"
                            data-paket-id="{{ $p->id }}">
-                            {{ $isFree ? 'Hemen başla' : 'Seç ve öde' }}
+                            {{ $needsDomainStep ? ($isFree ? 'Domain seç' : 'Domain seç → öde') : ($isFree ? 'Hemen başla' : 'Seç ve öde') }}
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                         </a>
                     </div>
@@ -387,7 +393,13 @@
             @forelse($klinikPaketler as $p)
                 @php
                     $isFeatured = $loop->iteration === 2;
-                    $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'kurumsal');
+                    $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'kurumsal')
+                        || $p->hasFeature('klinik_web_sitesi')
+                        || (bool) ($p->domain_dahil_mi ?? false);
+                    $needsDomainStep = $p->hasFeature('klinik_web_sitesi') || (bool) ($p->domain_dahil_mi ?? false);
+                    $ctaBase = $needsDomainStep
+                        ? route('frontend.hekim.onboarding.domain')
+                        : route('frontend.hekim.paket_ode');
                     $cardClass = 'price-card';
                     if ($isFeatured) $cardClass .= ' featured';
                     if ($isWebsite && ! $isFeatured) $cardClass .= ' website';
@@ -470,11 +482,11 @@
                             @endif
                         </ul>
 
-                        <a href="{{ route('frontend.hekim.paket_ode', ['paket' => $p->id, 'periyot' => 'aylik']) }}"
+                        <a href="{{ $ctaBase }}?paket={{ $p->id }}&periyot=aylik"
                            class="btn-select-package btn-plan {{ $isFeatured || $isWebsite ? 'btn-plan-primary' : 'btn-plan-ghost' }} mt-auto"
-                           data-base-url="{{ route('frontend.hekim.paket_ode') }}"
+                           data-base-url="{{ $ctaBase }}"
                            data-paket-id="{{ $p->id }}">
-                            Seç ve öde
+                            {{ $needsDomainStep ? 'Domain seç → öde' : 'Seç ve öde' }}
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                         </a>
                     </div>
