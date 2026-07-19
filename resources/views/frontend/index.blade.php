@@ -354,7 +354,7 @@
                         </button>
                     </form>
 
-                    <div class="mt-5 flex items-center justify-center flex-wrap gap-2 text-xs">
+                    <div class="mt-5 flex items-center justify-center flex-wrap gap-2 text-xs pb-2">
                         <span class="text-[#6B7280] font-medium mr-1.5">Popüler:</span>
                         @foreach($populerAramalar as $arama)
                             <button type="button" onclick="setSearch(@js($arama))" class="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-slate-50 hover:bg-[#FFF7ED] hover:text-[#C96A2B] hover:border-[#E7B58A]/30 transition-all font-semibold cursor-pointer">{{ $arama }}</button>
