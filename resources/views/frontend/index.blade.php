@@ -465,7 +465,7 @@
                             <div>
                                 <div class="flex gap-3.5 mb-5">
                                     @if($doktor->profil_resmi)
-                                        <img src="{{ asset('storage/' . $doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}"
+                                        <img src="{{ asset( $doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}"
                                              class="w-14 h-14 rounded-full object-cover border border-[#E7B58A]/30 flex-shrink-0" loading="lazy">
                                     @else
                                         <div class="w-14 h-14 rounded-full bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 flex items-center justify-center font-extrabold text-sm font-display flex-shrink-0">{{ $initials }}</div>
@@ -607,7 +607,7 @@
                         <a href="{{ $hizmet->url }}" class="ra-card overflow-hidden flex flex-col min-h-[260px] block no-underline group">
                             @if($hizmet->resim)
                                 <div class="aspect-[16/10] overflow-hidden bg-slate-50">
-                                    <img src="{{ asset(str_starts_with($hizmet->resim, 'storage/') || str_starts_with($hizmet->resim, 'http') ? $hizmet->resim : 'storage/'.$hizmet->resim) }}"
+                                    <img src="{{ asset(str_starts_with($hizmet->resim) || str_starts_with($hizmet->resim, 'http') ? $hizmet->resim : $hizmet->resim) }}"
                                          alt="{{ $hizmet->ad }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
                                 </div>
                             @else
