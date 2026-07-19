@@ -252,7 +252,7 @@
     </style>
 
     <!-- Hero Section -->
-    <section class="relative bg-white border-b border-[#E5E7EB] pt-8 pb-8 md:pt-8 md:pb-8 lg:pt-8 lg:pb-8 select-none">
+    <section class="relative bg-white border-b border-[#E5E7EB] pt-8 pb-8! md:pt-8 md:pb-8 lg:pt-8 lg:pb-8 select-none">
         <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
             <div class="absolute top-[-30%] right-[-10%] w-[550px] h-[550px] rounded-full bg-[#E7B58A]/10 blur-[130px]"></div>
             <div class="absolute bottom-[-20%] left-[-10%] w-[550px] h-[550px] rounded-full bg-[#C96A2B]/4 blur-[130px]"></div>
