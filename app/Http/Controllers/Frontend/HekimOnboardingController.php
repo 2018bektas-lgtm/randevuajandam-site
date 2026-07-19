@@ -105,6 +105,7 @@ class HekimOnboardingController extends Controller
         $data = $request->validate([
             'sld' => ['required', 'string', 'min:2', 'max:63'],
             'paket_id' => ['required', 'integer', 'exists:paketler,id'],
+            'tld' => ['nullable', 'string', 'max:20'],
             'tlds' => ['nullable', 'array'],
             'tlds.*' => ['string', 'max:20'],
         ]);
@@ -114,8 +115,26 @@ class HekimOnboardingController extends Controller
             return response()->json(['success' => false, 'message' => 'Bu pakette domain adımı yok.'], 422);
         }
 
+        $allowed = $this->domains->tldsForPackage($paket);
+        $tlds = $data['tlds'] ?? null;
+        if (! empty($data['tld'])) {
+            $tlds = [strtolower(ltrim($data['tld'], '.'))];
+        }
+        if (is_array($tlds) && $tlds !== []) {
+            $tlds = array_values(array_filter(array_map(
+                fn ($t) => strtolower(ltrim((string) $t, '.')),
+                $tlds
+            ), fn ($t) => in_array($t, $allowed, true)));
+            if ($tlds === []) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Seçilen uzantı pakete dahil değil. İzin verilen: .'.implode(', .', $allowed),
+                ], 422);
+            }
+        }
+
         try {
-            $results = $this->domains->checkByPackage($paket, $data['sld'], $data['tlds'] ?? null);
+            $results = $this->domains->checkByPackage($paket, $data['sld'], $tlds);
         } catch (RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }

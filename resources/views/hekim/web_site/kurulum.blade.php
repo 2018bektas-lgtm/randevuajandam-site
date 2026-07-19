@@ -238,11 +238,35 @@
                 <p class="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">{{ $de['reason'] }}</p>
             @endif
 
-            <div class="flex flex-col sm:flex-row gap-2 max-w-2xl">
-                <input type="text" id="domain-sld" placeholder="ornek: dr-ahmet-yilmaz" class="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-sm focus:ring-orange-500 focus:border-orange-500" {{ $domainEligible ? '' : 'disabled' }}>
-                <button type="button" id="domain-check-btn" class="px-5 py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-50" {{ $domainEligible ? '' : 'disabled' }}>
-                    Sorgula
-                </button>
+            <div class="space-y-3 max-w-2xl">
+                <div>
+                    <label for="domain-sld" class="block text-xs font-bold text-gray-600 mb-1.5">Site adı (uzantısız)</label>
+                    <div class="flex flex-col sm:flex-row gap-2 items-stretch">
+                        <input type="text" id="domain-sld" placeholder="ornek: dr-ahmet-yilmaz" autocomplete="off"
+                            class="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-sm focus:ring-orange-500 focus:border-orange-500" {{ $domainEligible ? '' : 'disabled' }}>
+                        <select id="domain-tld" class="sm:w-36 px-3 py-3 rounded-xl border border-gray-300 text-sm font-semibold bg-white" {{ $domainEligible ? '' : 'disabled' }}>
+                            @foreach($tlds as $tld)
+                                <option value="{{ $tld }}" @selected($loop->first)>.{{ $tld }}</option>
+                            @endforeach
+                        </select>
+                        <button type="button" id="domain-check-btn" class="px-5 py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 shrink-0" {{ $domainEligible ? '' : 'disabled' }}>
+                            Sorgula
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">
+                        Önizleme: <strong id="domain-preview" class="font-mono text-gray-800">—</strong>
+                        · Sadece isim yazın; uzantıyı seçin (.com / .net).
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    @foreach($tlds as $tld)
+                        <button type="button" data-tld="{{ $tld }}"
+                            class="tld-chip px-3 py-1.5 rounded-full text-xs font-bold border transition-all {{ $loop->first ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-200' }}"
+                            {{ $domainEligible ? '' : 'disabled' }}>
+                            .{{ $tld }}
+                        </button>
+                    @endforeach
+                </div>
             </div>
             <div id="domain-check-results" class="space-y-2"></div>
             <p id="domain-check-msg" class="text-xs text-gray-400 hidden"></p>
@@ -289,21 +313,78 @@
 (function () {
     const checkBtn = document.getElementById('domain-check-btn');
     const sldEl = document.getElementById('domain-sld');
+    const tldEl = document.getElementById('domain-tld');
+    const previewEl = document.getElementById('domain-preview');
     const resultsEl = document.getElementById('domain-check-results');
     const msgEl = document.getElementById('domain-check-msg');
     const claimForm = document.getElementById('domain-claim-form');
-    if (!checkBtn || !sldEl) return;
+    if (!checkBtn || !sldEl || !tldEl) return;
 
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content
         || document.querySelector('input[name="_token"]')?.value;
+    const allowedTlds = @json(array_values($tlds));
+
+    function parseSldInput(raw) {
+        let v = (raw || '').trim().toLowerCase();
+        v = v.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+        for (const t of allowedTlds) {
+            const suf = '.' + t;
+            if (v.endsWith(suf)) {
+                return { sld: v.slice(0, -suf.length).replace(/[^a-z0-9\-]/g, ''), tld: t };
+            }
+        }
+        const m = v.match(/^([a-z0-9\-]+)\.([a-z0-9.]+)$/);
+        if (m) {
+            return { sld: m[1], tld: allowedTlds.includes(m[2]) ? m[2] : null };
+        }
+        return { sld: v.replace(/[^a-z0-9\-]/g, ''), tld: null };
+    }
+    function selectedTld() {
+        return (tldEl.value || allowedTlds[0] || 'com').replace(/^\./, '');
+    }
+    function syncChips(tld) {
+        document.querySelectorAll('.tld-chip').forEach(btn => {
+            const on = btn.dataset.tld === tld;
+            btn.classList.toggle('bg-emerald-600', on);
+            btn.classList.toggle('text-white', on);
+            btn.classList.toggle('border-emerald-600', on);
+            btn.classList.toggle('bg-white', !on);
+            btn.classList.toggle('text-gray-600', !on);
+            btn.classList.toggle('border-gray-200', !on);
+        });
+    }
+    function updatePreview() {
+        const p = parseSldInput(sldEl.value);
+        const tld = p.tld || selectedTld();
+        if (p.tld) { tldEl.value = p.tld; syncChips(p.tld); }
+        previewEl.textContent = p.sld.length >= 2 ? (p.sld + '.' + tld) : '—';
+    }
+    document.querySelectorAll('.tld-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.disabled) return;
+            tldEl.value = btn.dataset.tld;
+            syncChips(btn.dataset.tld);
+            updatePreview();
+        });
+    });
+    tldEl.addEventListener('change', () => { syncChips(selectedTld()); updatePreview(); });
+    sldEl.addEventListener('input', updatePreview);
+    updatePreview();
 
     checkBtn.addEventListener('click', async () => {
-        const sld = (sldEl.value || '').trim();
+        const parsed = parseSldInput(sldEl.value);
+        const sld = parsed.sld;
+        const tld = parsed.tld || selectedTld();
         if (sld.length < 2) {
-            msgEl.textContent = 'En az 2 karakter girin.';
+            msgEl.textContent = 'En az 2 karakterlik site adı girin (uzantısız).';
             msgEl.classList.remove('hidden');
             return;
         }
+        sldEl.value = sld;
+        tldEl.value = tld;
+        syncChips(tld);
+        updatePreview();
+
         checkBtn.disabled = true;
         checkBtn.textContent = 'Sorgulanıyor…';
         msgEl.classList.add('hidden');
@@ -318,7 +399,7 @@
                     'X-CSRF-TOKEN': csrf,
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify({ sld }),
+                body: JSON.stringify({ sld, tlds: [tld] }),
             });
             const json = await res.json().catch(() => ({}));
             if (!res.ok || !json.success) {
@@ -355,7 +436,7 @@
                     html += `<p class="text-xs font-bold text-sky-800 pt-2">Benzer / alternatif uygun domainler</p>`;
                     html += alts.map(renderRow).join('');
                 } else if (primary.length && primary.every(r => !r.is_available)) {
-                    html += `<p class="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-1">Bu isimler dolu. Farklı bir kelime deneyin.</p>`;
+                    html += `<p class="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-1">Bu isim + uzantı dolu. Başka uzantı veya isim deneyin.</p>`;
                 }
                 resultsEl.innerHTML = html;
                 resultsEl.querySelectorAll('[data-pick]').forEach(btn => {

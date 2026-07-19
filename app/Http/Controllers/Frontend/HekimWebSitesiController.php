@@ -43,12 +43,18 @@ class HekimWebSitesiController extends Controller
         $doktor = Auth::guard('doktor')->user();
         $data = $request->validate([
             'sld' => ['required', 'string', 'min:2', 'max:63'],
+            'tld' => ['nullable', 'string', 'max:20'],
             'tlds' => ['nullable', 'array'],
             'tlds.*' => ['string', 'max:20'],
         ]);
 
+        $tlds = $data['tlds'] ?? null;
+        if (! empty($data['tld'])) {
+            $tlds = [strtolower(ltrim($data['tld'], '.'))];
+        }
+
         try {
-            $results = $this->domains->check($doktor, $data['sld'], $data['tlds'] ?? null);
+            $results = $this->domains->check($doktor, $data['sld'], $tlds);
         } catch (RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
