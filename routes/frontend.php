@@ -180,6 +180,16 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     // Success page
     Route::get('/hekim/basarili', [PaketController::class, 'basarili'])->name('frontend.hekim.basarili');
 
+    // Kayıt sonrası domain onboarding (web / klinik web paketi)
+    Route::get('/hekim/onboarding/domain', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domain'])
+        ->name('frontend.hekim.onboarding.domain');
+    Route::post('/hekim/onboarding/domain/byod', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainByod'])
+        ->name('frontend.hekim.onboarding.domain.byod');
+    Route::post('/hekim/onboarding/domain/claim', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainClaim'])
+        ->name('frontend.hekim.onboarding.domain.claim');
+    Route::post('/hekim/onboarding/domain/skip', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainSkip'])
+        ->name('frontend.hekim.onboarding.domain.skip');
+
     // Clinic Upgrade
     Route::get('/hekim/klinik/gecis', [PaketController::class, 'gecisFormu'])->name('frontend.hekim.klinik.gecis');
     Route::post('/hekim/klinik/gecis', [PaketController::class, 'gecisYap'])->name('frontend.hekim.klinik.gecis.post');
@@ -446,6 +456,8 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
             Route::get('/hekim/klinik/web-sitesi', [KlinikWebSitesiController::class, 'kurulumFormu'])->name('hekim.klinik.web-sitesi.kurulum');
             Route::post('/hekim/klinik/web-sitesi', [KlinikWebSitesiController::class, 'kurulumYap'])->name('hekim.klinik.web-sitesi.kurulum.post');
             Route::post('/hekim/klinik/web-sitesi/api-anahtari', [KlinikWebSitesiController::class, 'apiAnahtariYenile'])->name('hekim.klinik.web-sitesi.api-anahtari');
+            Route::post('/hekim/klinik/web-sitesi/domain/check', [KlinikWebSitesiController::class, 'domainCheck'])->name('hekim.klinik.web-sitesi.domain.check');
+            Route::post('/hekim/klinik/web-sitesi/domain/claim', [KlinikWebSitesiController::class, 'domainClaim'])->name('hekim.klinik.web-sitesi.domain.claim');
         });
 
         // Clinic Announcement Management

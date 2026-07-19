@@ -106,7 +106,7 @@ class HekimController extends Controller
     {
         /** @var Doktor $doktor */
         $doktor = Auth::guard('doktor')->user();
-        $doktor->load('il', 'ilce');
+        $doktor->load('il', 'ilce', 'webSite', 'klinik.webSite', 'paket');
 
         $toplamRandevu = $doktor->randevular()->count();
         $kayitliHasta = $doktor->randevular()->distinct('hasta_id')->count('hasta_id');
@@ -119,7 +119,17 @@ class HekimController extends Controller
             ->with('klinik')
             ->get();
 
-        return view('hekim.panel', compact('doktor', 'toplamRandevu', 'kayitliHasta', 'bekleyenTalep', 'klinikDurumu', 'davetiyeler'));
+        $needsDomainOnboarding = $doktor->needsWebsiteDomainOnboarding();
+
+        return view('hekim.panel', compact(
+            'doktor',
+            'toplamRandevu',
+            'kayitliHasta',
+            'bekleyenTalep',
+            'klinikDurumu',
+            'davetiyeler',
+            'needsDomainOnboarding'
+        ));
     }
 
     /**

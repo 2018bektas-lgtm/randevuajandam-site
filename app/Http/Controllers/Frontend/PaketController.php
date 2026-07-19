@@ -180,12 +180,23 @@ class PaketController extends Controller
 
     /**
      * Show successful registration page.
+     * Web sitesi paketinde domain kurulmamışsa önce domain adımına yönlendir.
      */
     public function basarili()
     {
         $doktor = Auth::guard('doktor')->user();
         if (! $doktor) {
             return redirect()->route('frontend.paketler');
+        }
+
+        // Ödeme sonrası zorunlu domain adımı (atlandıysa veya tamamlandıysa değil)
+        if (
+            $doktor->needsWebsiteDomainOnboarding()
+            && ! session('onboarding_domain_skipped')
+            && ! session('onboarding_domain_done')
+            && ! session('plain_api_secret')
+        ) {
+            return redirect()->route('frontend.hekim.onboarding.domain');
         }
 
         if ($doktor->klinikSahibiMi() && $doktor->klinik) {
@@ -195,6 +206,19 @@ class PaketController extends Controller
         }
 
         return view('frontend.paketler.basarili', compact('doktor'));
+    }
+
+    /**
+     * Üyelik aktifleşince: web paketi varsa domain onboarding, değilse başarı.
+     */
+    protected function redirectAfterMembership(?Doktor $doktor = null)
+    {
+        $doktor = $doktor ?? Auth::guard('doktor')->user();
+        if ($doktor && $doktor->needsWebsiteDomainOnboarding()) {
+            return redirect()->route('frontend.hekim.onboarding.domain');
+        }
+
+        return redirect()->route('frontend.hekim.basarili');
     }
 
     /**
@@ -315,7 +339,7 @@ class PaketController extends Controller
 
         Auth::guard('doktor')->login($klinik->sahipDoktor);
 
-        return redirect()->route('frontend.hekim.basarili');
+        return $this->redirectAfterMembership($klinik->sahipDoktor);
     }
 
     /**
@@ -445,7 +469,7 @@ class PaketController extends Controller
             return $klinik;
         });
 
-        return redirect()->route('frontend.hekim.basarili');
+        return $this->redirectAfterMembership($doktor->fresh());
     }
 
     /**
@@ -685,6 +709,6 @@ class PaketController extends Controller
             }
         });
 
-        return redirect()->route('frontend.hekim.basarili');
+        return $this->redirectAfterMembership($doktor->fresh());
     }
 }

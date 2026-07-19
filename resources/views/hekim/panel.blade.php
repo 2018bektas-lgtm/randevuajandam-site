@@ -4,6 +4,21 @@
 @section('sayfa_baslik', 'Panel Özeti')
 
 @section('icerik')
+    @if(!empty($needsDomainOnboarding))
+        <div class="mb-6 p-5 md:p-6 rounded-2xl bg-orange-50 border border-orange-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <h4 class="font-bold text-orange-950 text-sm font-display">Web sitesi domaini kurulmadı</h4>
+                <p class="text-xs text-orange-900/80 mt-1 max-w-xl">
+                    Paketinize özel web sitesi dahil. Domain seçin (pakete dahil yeni isim veya mevcut domain) — site ve API anahtarı otomatik açılır.
+                </p>
+            </div>
+            <a href="{{ route('frontend.hekim.onboarding.domain') }}"
+               class="shrink-0 px-4 py-2.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-xs font-bold transition-all">
+                Domain kur
+            </a>
+        </div>
+    @endif
+
     <!-- Clinic Invitations -->
     @if(isset($davetiyeler) && $davetiyeler->count() > 0)
         @foreach($davetiyeler as $davetiye)

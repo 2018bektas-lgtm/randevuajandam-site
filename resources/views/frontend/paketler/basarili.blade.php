@@ -71,6 +71,33 @@
             </div>
         </div>
 
+        @if(session('onboarding_domain_done'))
+        <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 text-left space-y-2">
+            <p class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">Web sitesi domaini</p>
+            <p class="text-sm font-bold text-emerald-900 font-mono">{{ session('onboarding_domain_done') }}</p>
+            <p class="text-xs text-emerald-800/80">Domain kaydı tamamlandı. DNS yayılımı bir süre alabilir.</p>
+        </div>
+        @endif
+
+        @if(session('plain_api_secret'))
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-left space-y-2">
+            <p class="text-[10px] font-extrabold uppercase tracking-wider text-amber-900">API secret (yalnızca bir kez)</p>
+            <p class="text-xs font-mono break-all text-amber-950 bg-white/80 rounded-lg px-3 py-2 border border-amber-100">{{ session('plain_api_secret') }}</p>
+            <p class="text-[11px] text-amber-800">Hemen kopyalayın — bu sayfayı kapatınca bir daha gösterilmez. Panel → Web Sitesi’nden anahtar yenileyebilirsiniz.</p>
+        </div>
+        @endif
+
+        @if($doktor->needsWebsiteDomainOnboarding())
+        <div class="bg-orange-50 border border-orange-100 rounded-2xl p-5 text-left space-y-3">
+            <p class="text-sm font-bold text-orange-900">Web siteniz için domain henüz kurulmadı</p>
+            <p class="text-xs text-orange-800/90">Paketinize web sitesi dahil. Domain seçerek sitenizi hemen açabilirsiniz.</p>
+            <a href="{{ route('frontend.hekim.onboarding.domain') }}"
+               class="inline-flex px-4 py-2.5 rounded-xl bg-[#C96A2B] text-white text-xs font-bold uppercase tracking-wide">
+                Domain kurulumuna git
+            </a>
+        </div>
+        @endif
+
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row gap-3 items-center w-full">
             <a href="/" 

@@ -4,17 +4,18 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\ApiKey;
-use App\Models\HekimWebSitesi;
 use App\Services\DomainInclusionService;
+use App\Services\WebsiteProvisioningService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 class HekimWebSitesiController extends Controller
 {
-    public function __construct(protected DomainInclusionService $domains) {}
+    public function __construct(
+        protected DomainInclusionService $domains,
+        protected WebsiteProvisioningService $provisioning,
+    ) {}
 
     public function kurulumFormu()
     {
@@ -24,7 +25,7 @@ class HekimWebSitesiController extends Controller
         $plainSecret = session('plain_api_secret');
         $canHide = $doktor->canHideFromPlatform();
         $platformdaGorunur = (bool) ($doktor->platformda_gorunur ?? true);
-        $domainEligibility = $this->domains->eligibility($doktor);
+        $domainEligibility = $this->publicEligibility($doktor);
 
         return view('hekim.web_site.kurulum', compact(
             'webSite',
@@ -37,9 +38,6 @@ class HekimWebSitesiController extends Controller
         ));
     }
 
-    /**
-     * Pakete dahil domain müsaitlik (Hostinger).
-     */
     public function domainCheck(Request $request)
     {
         $doktor = Auth::guard('doktor')->user();
@@ -65,7 +63,7 @@ class HekimWebSitesiController extends Controller
     }
 
     /**
-     * Pakete dahil domain kaydı (Hostinger purchase — ek ücret yok).
+     * Domain + web sitesi + API key tek adımda (pakete dahil / BYOD).
      */
     public function domainClaim(Request $request)
     {
@@ -76,57 +74,38 @@ class HekimWebSitesiController extends Controller
         ]);
 
         $mode = $data['mode'] ?? 'included';
-        $domain = $this->domains->normalizeDomain($data['domain']);
 
         try {
-            $order = $mode === 'byod'
-                ? $this->domains->claimByod($doktor, $domain)
-                : $this->domains->claimIncluded($doktor, $domain);
+            $result = $this->provisioning->provisionDoktor($doktor, $data['domain'], $mode);
         } catch (RuntimeException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+
             return back()->with('hata', $e->getMessage())->withInput();
         }
 
-        // Web sitesi kaydı yoksa oluştur
-        if (! $doktor->webSite) {
-            $request->merge(['domain' => $order->domain]);
+        $msg = $mode === 'byod'
+            ? 'Web siteniz bağlandı (kendi domaininiz). DNS + Hostinger kurulumunu tamamlayın. Secret key bir kez gösterilir.'
+            : 'Domain pakete dahil kaydedildi ve web sitesi otomatik açıldı (1 yıl, ek ücret yok). Secret key bir kez gösterilir.';
 
-            return $this->kurulumYap($request)
-                ->with('basarili', $mode === 'byod'
-                    ? 'Domain bağlandı (kendi alan adınız). DNS adımlarını tamamlayın.'
-                    : 'Domain pakete dahil olarak kaydedildi (1 yıl). Ek ücret yok.');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'data' => [
+                    'domain' => $result['domain'],
+                    'created_site' => $result['created_site'],
+                ],
+            ]);
         }
-
-        $doktor->webSite->forceFill([
-            'domain' => $order->domain,
-            'hostinger_domain_id' => $order->hostinger_order_id,
-        ])->save();
 
         return redirect()
             ->route('hekim.web-sitesi.kurulum')
-            ->with('basarili', $mode === 'byod'
-                ? 'Domain güncellendi. DNS adımlarını tamamlayın.'
-                : 'Domain pakete dahil kaydedildi.');
+            ->with('basarili', $msg)
+            ->with('plain_api_secret', $result['plain_secret']);
     }
 
-    protected function publicEligibility($doktor): array
-    {
-        $e = $this->domains->eligibility($doktor);
-
-        return [
-            'eligible' => $e['eligible'],
-            'reason' => $e['reason'],
-            'tlds' => $e['tlds'],
-            'yil' => $e['yil'],
-            'already_claimed' => $e['already_claimed'],
-            'active_domain' => $e['active_domain'],
-            'hostinger_ready' => $e['hostinger_ready'],
-            'paket_ad' => $e['paket']?->ad,
-        ];
-    }
-
-    /**
-     * Ana platform vitrininde görünürlük (yalnızca web_sitesi paketi).
-     */
     public function platformGorunurluk(Request $request)
     {
         /** @var \App\Models\Doktor $doktor */
@@ -143,12 +122,8 @@ class HekimWebSitesiController extends Controller
             'platformda_gorunur' => ['nullable', 'boolean'],
         ]);
 
-        // Checkbox: yoksa false
         $gorunur = $request->boolean('platformda_gorunur');
-
-        $doktor->forceFill([
-            'platformda_gorunur' => $gorunur,
-        ])->save();
+        $doktor->forceFill(['platformda_gorunur' => $gorunur])->save();
 
         return redirect()->back()->with(
             'basarili',
@@ -158,6 +133,9 @@ class HekimWebSitesiController extends Controller
         );
     }
 
+    /**
+     * BYOD / manuel domain — otomatik provision (byod).
+     */
     public function kurulumYap(Request $request)
     {
         $doktor = Auth::guard('doktor')->user();
@@ -167,64 +145,32 @@ class HekimWebSitesiController extends Controller
         }
 
         $request->validate([
-            'domain' => 'required|string|max:100|unique:hekim_web_siteleri,domain',
+            'domain' => 'required|string|max:100',
         ], [
             'domain.required' => 'Lütfen web sitenizin alan adını (domain) girin. Örn: doktoradi.com',
-            'domain.unique' => 'Bu alan adı daha önce başka bir hekim tarafından kaydedilmiş.',
         ]);
 
-        $domain = strtolower(trim($request->domain));
-        $domain = preg_replace('#^https?://(www\.)?#', '', $domain);
-        $domain = rtrim($domain, '/');
-
-        if (empty($domain)) {
-            return redirect()->back()->with('hata', 'Geçersiz alan adı girdiniz.');
+        try {
+            $result = $this->provisioning->provisionDoktor($doktor, $request->input('domain'), 'byod');
+        } catch (RuntimeException $e) {
+            return redirect()->back()->with('hata', $e->getMessage())->withInput();
         }
-
-        HekimWebSitesi::create([
-            'doktor_id' => $doktor->id,
-            'domain' => $domain,
-            'tema' => 'custom',
-            'durum' => 'aktif',
-        ]);
-
-        $apiKeyVal = 'rk_'.strtolower(Str::random(30));
-        $secretKeyVal = strtolower(Str::random(60));
-
-        ApiKey::issue([
-            'doktor_id' => $doktor->id,
-            'klinik_id' => null,
-            'api_key' => $apiKeyVal,
-            'durum' => true,
-            'yetkiler' => ['*'],
-        ], $secretKeyVal);
-
-        $webhookUrl = $this->buildWebhookUrl($domain);
-
-        DB::table('webhook_endpoints')->updateOrInsert(
-            ['doktor_id' => $doktor->id],
-            [
-                'url' => $webhookUrl,
-                'secret_key' => $secretKeyVal, // webhook HMAC needs plain
-                'events' => json_encode(['*']),
-                'aktif' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
 
         return redirect()
             ->route('hekim.web-sitesi.kurulum')
-            ->with('basarili', 'Kişisel alan adınız kaydedildi. Secret key yalnızca bir kez gösterilir — hemen kopyalayın.')
-            ->with('plain_api_secret', $secretKeyVal);
+            ->with('basarili', 'Web siteniz otomatik kuruldu. Secret key yalnızca bir kez gösterilir — hemen kopyalayın.')
+            ->with('plain_api_secret', $result['plain_secret']);
     }
 
     public function apiAnahtariOlustur()
     {
         $doktor = Auth::guard('doktor')->user();
+        if (! $doktor->webSite) {
+            return redirect()->back()->with('hata', 'Önce domain / web sitesi kurulumunu tamamlayın.');
+        }
 
-        $apiKey = 'rk_'.strtolower(Str::random(30));
-        $secretKey = strtolower(Str::random(60));
+        $apiKey = 'rk_'.strtolower(\Illuminate\Support\Str::random(30));
+        $secretKey = strtolower(\Illuminate\Support\Str::random(60));
 
         ApiKey::issue([
             'doktor_id' => $doktor->id,
@@ -234,7 +180,7 @@ class HekimWebSitesiController extends Controller
             'yetkiler' => ['*'],
         ], $secretKey);
 
-        DB::table('webhook_endpoints')
+        \Illuminate\Support\Facades\DB::table('webhook_endpoints')
             ->where('doktor_id', $doktor->id)
             ->update([
                 'secret_key' => $secretKey,
@@ -247,24 +193,19 @@ class HekimWebSitesiController extends Controller
             ->with('plain_api_secret', $secretKey);
     }
 
-    protected function buildWebhookUrl(string $domain): string
+    protected function publicEligibility($doktor): array
     {
-        $webhookUrl = rtrim((string) $domain, '/');
-        if (! str_starts_with($webhookUrl, 'http://') && ! str_starts_with($webhookUrl, 'https://')) {
-            $scheme = app()->environment('production') ? 'https://' : 'http://';
-            if (! str_contains($webhookUrl, '.') && ! str_contains($webhookUrl, 'localhost')) {
-                $webhookUrl = $scheme.'localhost/'.$webhookUrl;
-            } else {
-                $webhookUrl = $scheme.$webhookUrl;
-            }
-        }
-        if (! str_ends_with($webhookUrl, '/webhook/receiver')) {
-            $webhookUrl = rtrim($webhookUrl, '/').'/webhook/receiver';
-        }
-        if (app()->environment('production') && str_starts_with($webhookUrl, 'http://')) {
-            $webhookUrl = 'https://'.substr($webhookUrl, 7);
-        }
+        $e = $this->domains->eligibility($doktor);
 
-        return $webhookUrl;
+        return [
+            'eligible' => $e['eligible'],
+            'reason' => $e['reason'],
+            'tlds' => $e['tlds'],
+            'yil' => $e['yil'],
+            'already_claimed' => $e['already_claimed'],
+            'active_domain' => $e['active_domain'],
+            'hostinger_ready' => $e['hostinger_ready'],
+            'paket_ad' => $e['paket']?->ad,
+        ];
     }
 }

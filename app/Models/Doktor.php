@@ -347,6 +347,60 @@ class Doktor extends Authenticatable
     }
 
     /**
+     * Bireysel hekim: web_sitesi paketi var ama site/domain kurulmamış.
+     */
+    public function needsDoctorWebsiteOnboarding(): bool
+    {
+        $paket = $this->aktifPaket();
+        if (! $paket || ! $paket->hasFeature('web_sitesi')) {
+            return false;
+        }
+
+        return ! $this->webSite;
+    }
+
+    /**
+     * Klinik sahibi: klinik_web_sitesi var ama klinik sitesi kurulmamış.
+     */
+    public function needsClinicWebsiteOnboarding(): bool
+    {
+        if (! $this->klinikSahibiMi() || ! $this->klinik) {
+            return false;
+        }
+        $paket = $this->klinik->paket ?? $this->aktifPaket();
+        if (! $paket || ! $paket->hasFeature('klinik_web_sitesi')) {
+            return false;
+        }
+
+        return ! $this->klinik->webSite;
+    }
+
+    /**
+     * Kayıt/ödeme sonrası domain adımına yönlendirilmeli mi?
+     */
+    public function needsWebsiteDomainOnboarding(): bool
+    {
+        return $this->needsDoctorWebsiteOnboarding() || $this->needsClinicWebsiteOnboarding();
+    }
+
+    /**
+     * Onboarding hedefi: hekim veya klinik domain adımı.
+     *
+     * @return 'doctor'|'clinic'|null
+     */
+    public function websiteOnboardingTarget(): ?string
+    {
+        if ($this->needsDoctorWebsiteOnboarding()) {
+            return 'doctor';
+        }
+        if ($this->needsClinicWebsiteOnboarding()) {
+            return 'clinic';
+        }
+
+        return null;
+    }
+
+    /**
      * Ana site arama / profil / sitemap görünürlüğü.
      * Web paketi yoksa bayrak yok sayılır (her zaman listelenir).
      */
