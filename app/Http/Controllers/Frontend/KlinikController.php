@@ -444,7 +444,7 @@ class KlinikController extends Controller
                 Storage::disk('public')->delete(str_replace('storage/', '', $klinik->logo));
             }
             $path = $request->file('logo')->store('uploads/klinikler', 'public');
-            $data['logo'] = 'storage/'.$path;
+            $data['logo'] = $path;
         }
 
         // Process calisma_saatleri JSON

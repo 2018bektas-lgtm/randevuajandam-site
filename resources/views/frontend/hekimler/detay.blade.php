@@ -108,6 +108,59 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
+    /* Dikey yorum bandı (randevu 3/4 yanında 1/4) */
+    .doc-review-panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 22rem;
+        max-height: 36rem;
+        background: #fff;
+        border: 1px solid #E5E7EB;
+        border-radius: 1.5rem;
+        box-shadow: 0 8px 30px rgba(31, 41, 55, 0.02);
+        overflow: hidden;
+    }
+    .doc-review-panel-head {
+        padding: 1rem 1.1rem 0.85rem;
+        border-bottom: 1px solid #F1F5F9;
+        flex-shrink: 0;
+    }
+    .doc-review-viewport {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        mask-image: linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
+    }
+    .doc-review-track {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.85rem 0.9rem 1.25rem;
+        will-change: transform;
+    }
+    .doc-review-track.is-animated {
+        animation: doc-review-scroll var(--doc-review-duration, 28s) linear infinite;
+    }
+    .doc-review-panel:hover .doc-review-track.is-animated {
+        animation-play-state: paused;
+    }
+    @keyframes doc-review-scroll {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-50%); }
+    }
+    .doc-review-card {
+        flex-shrink: 0;
+        padding: 0.85rem 0.9rem;
+        border-radius: 1rem;
+        border: 1px solid #F1F5F9;
+        background: #FAFAFA;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .doc-review-track.is-animated { animation: none !important; }
+        .doc-review-viewport { overflow-y: auto; mask-image: none; -webkit-mask-image: none; }
+    }
 </style>
 @endsection
 
@@ -242,25 +295,84 @@
             <div class="absolute right-0 bottom-0 top-0 w-1/4 bg-gradient-to-l from-[#FFF7ED]/20 to-transparent pointer-events-none"></div>
         </div>
 
-        {{-- Kimlik kartı ile sekmeler arasında: adım adım randevu sihirbazı --}}
-        @include('frontend.hekimler.partials.randevu_wizard', ['doktor' => $doktor])
+        @php
+            $aktifFaqs = $doktor->faqs()->aktif()->orderBy('sira')->get();
+            $faqCount = $aktifFaqs->count();
+            $onayliYorumlar = $doktor->yorumlar()->onaylandi()->with('hasta')->latest()->take(12)->get();
+            $yorumCount = $onayliYorumlar->count();
+            $yayinEgitimler = $doktor->egitimler()->yayinda()->orderBy('sira')->orderByDesc('baslangic_at')->take(6)->get();
+            $egitimListeUrl = route('frontend.hekim.egitimler', [
+                'il_slug' => $doktor->il?->slug ?? 'il',
+                'ilce_slug' => $doktor->ilce?->slug ?? 'ilce',
+                'brans_slug' => $doktor->branslar->first()?->slug ?? 'hekim',
+                'doctor_slug' => $doktor->slug,
+            ]);
+            $sidebarYorumlar = $onayliYorumlar;
+            // Sonsuz dikey kaydırma için listeyi en az 2 kez tekrarla
+            $sidebarYorumLoop = $sidebarYorumlar->isNotEmpty()
+                ? $sidebarYorumlar->concat($sidebarYorumlar)
+                : collect();
+        @endphp
+
+        {{-- Randevu (3/4) + dikey yorum bandı (1/4) --}}
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-5 lg:gap-6 mb-10 items-stretch">
+            <div class="lg:col-span-3 min-w-0">
+                @include('frontend.hekimler.partials.randevu_wizard', ['doktor' => $doktor])
+            </div>
+
+            <aside class="lg:col-span-1 min-w-0" aria-label="Hasta yorumları">
+                <div class="doc-review-panel h-full lg:sticky lg:top-24">
+                    <div class="doc-review-panel-head">
+                        <div class="flex items-center justify-between gap-2">
+                            <h2 class="text-sm font-bold font-display text-[#111827]">Hasta Yorumları</h2>
+                            @if($doktor->ortalama_puan)
+                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-[#C96A2B] bg-[#FFF7ED] px-2 py-0.5 rounded-full">
+                                    ★ {{ $doktor->ortalama_puan }}
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-[10px] text-[#6B7280] mt-1">
+                            {{ $doktor->yorum_sayisi ?? $yorumCount }} değerlendirme
+                        </p>
+                    </div>
+
+                    @if($sidebarYorumlar->isNotEmpty())
+                        <div class="doc-review-viewport">
+                            <div class="doc-review-track is-animated" id="doc-review-track" style="--doc-review-duration: {{ max(18, $sidebarYorumlar->count() * 6) }}s">
+                                @foreach($sidebarYorumLoop as $yorum)
+                                    <article class="doc-review-card">
+                                        <div class="flex items-start justify-between gap-2 mb-2">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <div class="w-7 h-7 rounded-full bg-[#FFF7ED] border border-[#E7B58A]/30 text-[#C96A2B] flex items-center justify-center text-[9px] font-bold font-display shrink-0">
+                                                    {{ mb_strtoupper(mb_substr($yorum->hasta->ad ?? 'H', 0, 1)) }}{{ mb_strtoupper(mb_substr($yorum->hasta->soyad ?? '', 0, 1)) }}
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <p class="text-[11px] font-bold text-[#111827] font-display truncate">{{ $yorum->hasta->maskeli_ad ?? 'Hasta' }}</p>
+                                                    <p class="text-[9px] text-[#9CA3AF]">{{ $yorum->created_at->translatedFormat('d M Y') }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-0.5 shrink-0">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <span class="text-[9px] {{ $i <= $yorum->puan ? 'text-[#C96A2B]' : 'text-slate-200' }}">★</span>
+                                                @endfor
+                                            </div>
+                                        </div>
+                                        <p class="text-[11px] text-[#4B5563] leading-relaxed line-clamp-4">{{ $yorum->yorum }}</p>
+                                    </article>
+                                @endforeach
+                            </div>
+                        </div>
+                    @else
+                        <div class="flex-1 flex items-center justify-center p-6 text-center">
+                            <p class="text-[11px] text-[#9CA3AF] leading-relaxed">Bu hekim için henüz onaylı yorum bulunmuyor.</p>
+                        </div>
+                    @endif
+                </div>
+            </aside>
+        </div>
 
         <!-- Details: Hakkımda / Hizmetler / Blog vb. (tam genişlik) -->
         <div class="space-y-6">
-
-                @php
-                    $aktifFaqs = $doktor->faqs()->aktif()->orderBy('sira')->get();
-                    $faqCount = $aktifFaqs->count();
-                    $onayliYorumlar = $doktor->yorumlar()->onaylandi()->with('hasta')->latest()->take(10)->get();
-                    $yorumCount = $onayliYorumlar->count();
-                    $yayinEgitimler = $doktor->egitimler()->yayinda()->orderBy('sira')->orderByDesc('baslangic_at')->take(6)->get();
-                    $egitimListeUrl = route('frontend.hekim.egitimler', [
-                        'il_slug' => $doktor->il?->slug ?? 'il',
-                        'ilce_slug' => $doktor->ilce?->slug ?? 'ilce',
-                        'brans_slug' => $doktor->branslar->first()?->slug ?? 'hekim',
-                        'doctor_slug' => $doktor->slug,
-                    ]);
-                @endphp
 
                 <!-- Premium Tabs Navigation -->
                 <div id="profile-tabs-nav" class="border-b border-[#E5E7EB] mb-6 flex overflow-x-auto scrollbar-none gap-2 pb-px shrink-0">
@@ -445,8 +557,8 @@
                                 @foreach($yayinEgitimler as $egitim)
                                     <a href="{{ $egitim->url }}" class="p-4 rounded-2xl border border-slate-100 bg-slate-50/30 flex flex-col justify-between hover:border-[#E7B58A]/60 hover:shadow-sm transition-all duration-300 relative group/egitim block">
                                         <div class="flex items-start gap-4">
-                                            @if($egitim->kapak)
-                                                <img src="{{ asset('storage/'.$egitim->kapak) }}" alt="{{ $egitim->baslik }}" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl border border-slate-200/60 shadow-sm shrink-0">
+                                            @if($egitim->kapak_url)
+                                                <img src="{{ $egitim->kapak_url }}" alt="{{ $egitim->baslik }}" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl border border-slate-200/60 shadow-sm shrink-0" loading="lazy">
                                             @else
                                                 <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center shrink-0 border border-[#E7B58A]/20">
                                                     <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

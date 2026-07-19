@@ -117,6 +117,26 @@ class Egitim extends Model
         ]);
     }
 
+    /**
+     * Kapak görseli public URL (DB: uploads/... → /uploads/...).
+     */
+    public function getKapakUrlAttribute(): ?string
+    {
+        $path = $this->kapak;
+        if (! $path) {
+            return null;
+        }
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        if (str_starts_with($path, 'storage/')) {
+            $path = substr($path, strlen('storage/'));
+        }
+
+        return asset($path);
+    }
+
     public function getListeUrlAttribute(): string
     {
         $doktor = $this->doktor;

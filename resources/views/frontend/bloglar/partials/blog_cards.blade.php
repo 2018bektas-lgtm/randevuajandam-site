@@ -19,7 +19,7 @@
                     if (\Illuminate\Support\Str::startsWith($blog->resim, 'http')) {
                         $blogImage = $blog->resim;
                     } elseif (\Illuminate\Support\Str::startsWith($blog->resim, 'uploads')) {
-                        $blogImage = asset('storage/' . $blog->resim);
+                        $blogImage = asset($blog->resim);
                     } else {
                         $blogImage = asset($blog->resim);
                     }

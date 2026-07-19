@@ -9,7 +9,7 @@
     if (! empty($egitim?->kapak)) {
         $kapakUrl = str_starts_with($egitim->kapak, 'http')
             ? $egitim->kapak
-            : asset('storage/'.$egitim->kapak);
+            : $egitim->kapak_url;
     }
 @endphp
 

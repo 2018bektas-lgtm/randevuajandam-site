@@ -3,7 +3,7 @@
 @section('meta_aciklama', $egitim->meta_aciklama ?? Str::limit(strip_tags($egitim->ozet ?? $egitim->icerik ?? ''), 150))
 @section('og_type', 'website')
 @if($egitim->kapak)
-    @section('og_image', asset('storage/'.$egitim->kapak))
+    @section('og_image', $egitim->kapak_url ?: asset('assets/images/logo.png'))
 @endif
 
 @section('icerik')
@@ -43,7 +43,7 @@
                     {{-- Kapak --}}
                     <div class="relative w-full aspect-[16/9] sm:aspect-[21/9] max-h-[360px] bg-gradient-to-br from-[#FFF7ED] via-[#FFE8D2] to-[#FDE6D0] overflow-hidden">
                         @if($egitim->kapak)
-                            <img src="{{ asset('storage/'.$egitim->kapak) }}"
+                            <img src="{{ $egitim->kapak_url }}"
                                  alt="{{ $egitim->baslik }}"
                                  class="w-full h-full object-cover">
                             <div class="absolute inset-0 bg-gradient-to-t from-slate-900/55 via-slate-900/10 to-transparent"></div>

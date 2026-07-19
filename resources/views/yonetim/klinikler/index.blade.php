@@ -63,7 +63,7 @@
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-xl bg-orange-50 text-[#C96A2B] border border-orange-100 flex items-center justify-center font-bold text-xs overflow-hidden">
                                         @if($k->logo)
-                                            <img src="{{ asset('storage/' . $k->logo) }}" alt="Logo" class="w-full h-full object-cover">
+                                            <img src="{{ asset($k->logo) }}" alt="Logo" class="w-full h-full object-cover">
                                         @else
                                             {{ mb_strtoupper(mb_substr($k->ad, 0, 2)) }}
                                         @endif

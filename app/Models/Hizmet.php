@@ -110,7 +110,7 @@ class Hizmet extends Model
             return $path;
         }
 
-        // Legacy: storage/uploads/... or /storage/...
+        // DB yolu: uploads/... → URL: /uploads/...
         $path = ltrim(str_replace('\\', '/', $path), '/');
         if (str_starts_with($path, 'storage/')) {
             $path = substr($path, strlen('storage/'));

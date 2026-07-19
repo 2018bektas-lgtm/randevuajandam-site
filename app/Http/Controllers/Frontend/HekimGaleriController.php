@@ -59,17 +59,14 @@ class HekimGaleriController extends Controller
                 }
                 $fileName = 'doktor_'.$doktor->id.'_'.Str::uuid().'.'.$ext;
                 $stored = $file->storeAs('uploads/galeri', $fileName, 'public');
-                $dbPath = $stored ? 'storage/'.$stored : null;
-                if (! $dbPath) {
+                if (! $stored) {
                     continue;
                 }
-                // Keep legacy path style compatible with views that use asset()
-                $legacyPath = 'uploads/galeri/'.$fileName;
-                // Also copy/link style: store under public disk so storage/app/public/uploads/galeri
+                // DB: uploads/... → public URL: /uploads/...
                 $baslik = isset($basliklar[$index]) ? $basliklar[$index] : null;
 
                 $doktor->galeriler()->create([
-                    'resim_yolu' => $legacyPath,
+                    'resim_yolu' => $stored,
                     'baslik' => $baslik,
                     'sira' => ++$maxSira,
                 ]);

@@ -31,7 +31,7 @@
                    class="group flex flex-col bg-white border border-[#E5E7EB] rounded-3xl overflow-hidden shadow-sm hover:shadow-[0_16px_40px_rgba(201,106,43,0.12)] hover:border-[#E7B58A]/50 hover:-translate-y-1 transition-all duration-300">
                     <div class="relative aspect-[16/10] bg-gradient-to-br from-[#FFF7ED] to-[#FFE8D2] overflow-hidden">
                         @if($e->kapak)
-                            <img src="{{ asset('storage/'.$e->kapak) }}" alt=""
+                            <img src="{{ $e->kapak_url }}" alt=""
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                         @else
                             <div class="w-full h-full flex items-center justify-center text-[#C96A2B]/35">
