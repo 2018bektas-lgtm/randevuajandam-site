@@ -20,14 +20,29 @@
 <section id="randevu-wizard" class="rw">
     <div class="rw-shell">
         <header class="rw-head">
-            <div>
+            <div class="rw-head-main">
                 <h2 class="rw-title">Randevu al</h2>
                 <p class="rw-caption" id="rw-step-caption">Hizmet seçin</p>
             </div>
-            <div class="rw-dots" id="rw-dots" aria-hidden="true">
-                @for($i = 1; $i <= 3; $i++)
-                    <span class="rw-dot{{ $i === 1 ? ' is-active' : '' }}" data-dot="{{ $i }}"></span>
-                @endfor
+            <div class="rw-head-tools">
+                <div class="rw-svc-search" id="rw-svc-search-wrap">
+                    <svg class="rw-svc-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2m0 0A7.5 7.5 0 105.2 5.2a7.5 7.5 0 0010.6 10.6z"/>
+                    </svg>
+                    <input type="search"
+                           id="rw-svc-search"
+                           class="rw-svc-search-input"
+                           placeholder="Hizmet ara…"
+                           autocomplete="off"
+                           enterkeyhint="search"
+                           aria-label="Hizmet ara">
+                    <button type="button" id="rw-svc-search-clear" class="rw-svc-search-clear" hidden aria-label="Aramayı temizle">×</button>
+                </div>
+                <div class="rw-dots" id="rw-dots" aria-hidden="true">
+                    @for($i = 1; $i <= 3; $i++)
+                        <span class="rw-dot{{ $i === 1 ? ' is-active' : '' }}" data-dot="{{ $i }}"></span>
+                    @endfor
+                </div>
             </div>
         </header>
 
@@ -57,47 +72,60 @@
 
             <div id="rw-summary" class="rw-summary" hidden></div>
 
-            {{-- 1 Hizmet — minimal grid (mobil 2 / tablet 3 / geniş 4) --}}
+            {{-- 1 Hizmet — max 8 görünür, kaydırmalı + arama --}}
             <div class="rw-panel" data-panel="1">
-                <div class="rw-svc-grid">
-                    @foreach($aktifHizmetler as $hizmet)
-                        @php
-                            $sure = (int) ($hizmet->sure ?? 0);
-                            $resimUrl = $hizmet->resim_url;
-                        @endphp
-                        <button type="button"
-                                class="rw-svc rw-hizmet-card"
-                                data-id="{{ $hizmet->id }}"
-                                data-ad="{{ $hizmet->ad }}"
-                                data-sure="{{ $sure }}">
-                            <span class="rw-svc-radio" aria-hidden="true"></span>
-                            <span class="rw-svc-media" aria-hidden="true">
-                                @if($resimUrl)
-                                    <img src="{{ $resimUrl }}" alt="" class="rw-svc-img">
-                                @else
-                                    <span class="rw-svc-icon">
-                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                    </span>
-                                @endif
-                                <span class="rw-svc-shine" aria-hidden="true"></span>
-                                <span class="rw-svc-media-overlay" aria-hidden="true"></span>
-                            </span>
-                            <span class="rw-svc-body">
-                                <span class="rw-svc-name">{{ $hizmet->ad }}</span>
-                                @if($hizmet->aciklama)
-                                    <span class="rw-svc-desc">{{ Str::limit(strip_tags($hizmet->aciklama), 48) }}</span>
-                                @endif
-                                @if($sure > 0)
-                                    <span class="rw-svc-tags">
-                                        <span class="rw-tag">{{ $sure }} dk</span>
-                                    </span>
-                                @endif
-                            </span>
-                        </button>
-                    @endforeach
+                <div class="rw-svc-meta">
+                    <span id="rw-svc-count" class="rw-svc-count">{{ $aktifHizmetler->count() }} hizmet</span>
+                    @if($aktifHizmetler->count() > 8)
+                        <span class="rw-svc-hint">Kaydırarak tümünü görün · en fazla 8 kart aynı anda</span>
+                    @endif
                 </div>
+                <div class="rw-svc-scroll" id="rw-svc-scroll">
+                    <div class="rw-svc-grid" id="rw-svc-grid">
+                        @foreach($aktifHizmetler as $hizmet)
+                            @php
+                                $sure = (int) ($hizmet->sure ?? 0);
+                                $resimUrl = $hizmet->resim_url;
+                                $searchBlob = mb_strtolower(trim(
+                                    ($hizmet->ad ?? '').' '.strip_tags((string) ($hizmet->aciklama ?? ''))
+                                ));
+                            @endphp
+                            <button type="button"
+                                    class="rw-svc rw-hizmet-card"
+                                    data-id="{{ $hizmet->id }}"
+                                    data-ad="{{ $hizmet->ad }}"
+                                    data-sure="{{ $sure }}"
+                                    data-search="{{ e($searchBlob) }}">
+                                <span class="rw-svc-radio" aria-hidden="true"></span>
+                                <span class="rw-svc-media" aria-hidden="true">
+                                    @if($resimUrl)
+                                        <img src="{{ $resimUrl }}" alt="" class="rw-svc-img" loading="lazy">
+                                    @else
+                                        <span class="rw-svc-icon">
+                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                        </span>
+                                    @endif
+                                    <span class="rw-svc-shine" aria-hidden="true"></span>
+                                    <span class="rw-svc-media-overlay" aria-hidden="true"></span>
+                                </span>
+                                <span class="rw-svc-body">
+                                    <span class="rw-svc-name">{{ $hizmet->ad }}</span>
+                                    @if($hizmet->aciklama)
+                                        <span class="rw-svc-desc">{{ Str::limit(strip_tags($hizmet->aciklama), 48) }}</span>
+                                    @endif
+                                    @if($sure > 0)
+                                        <span class="rw-svc-tags">
+                                            <span class="rw-tag">{{ $sure }} dk</span>
+                                        </span>
+                                    @endif
+                                </span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+                <p id="rw-svc-empty" class="rw-empty" hidden>Aramanıza uygun hizmet bulunamadı.</p>
                 <p id="rw-err-1" class="rw-err" hidden>Bir hizmet seçin</p>
             </div>
 
@@ -297,10 +325,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 1.15rem 1.35rem;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid #F1F5F9;
     background: linear-gradient(90deg, #FFF7ED 0%, #fff 55%);
+}
+.rw-head-main { min-width: 0; flex: 1 1 auto; }
+.rw-head-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    flex-shrink: 0;
 }
 .rw-title {
     margin: 0;
@@ -314,6 +351,104 @@
     margin: 0.2rem 0 0;
     font-size: 0.75rem;
     color: #94A3B8;
+}
+/* Hizmet arama — başlık yanında */
+.rw-svc-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 11.5rem;
+    max-width: 16rem;
+    width: min(100%, 16rem);
+    height: 2.4rem;
+    padding: 0 0.55rem 0 2rem;
+    border-radius: 9999px;
+    border: 1px solid #E8ECF1;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.rw-svc-search:focus-within {
+    border-color: #C96A2B;
+    box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.12);
+}
+.rw-svc-search[hidden] { display: none !important; }
+.rw-svc-search-icon {
+    position: absolute;
+    left: 0.65rem;
+    color: #C96A2B;
+    pointer-events: none;
+    opacity: 0.9;
+}
+.rw-svc-search-input {
+    width: 100%;
+    border: 0 !important;
+    outline: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 0.8rem !important;
+    font-weight: 500;
+    color: #111827;
+    padding: 0.35rem 1.4rem 0.35rem 0 !important;
+    height: auto !important;
+}
+.rw-svc-search-input::placeholder { color: #9CA3AF; font-weight: 400; }
+.rw-svc-search-clear {
+    position: absolute;
+    right: 0.35rem;
+    width: 1.35rem;
+    height: 1.35rem;
+    border: 0;
+    border-radius: 999px;
+    background: #F1F5F9;
+    color: #64748B;
+    font-size: 1rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+.rw-svc-search-clear:hover { background: #E2E8F0; color: #111827; }
+.rw-svc-search-clear[hidden] { display: none !important; }
+.rw-svc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+    margin-bottom: 0.65rem;
+}
+.rw-svc-count {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748B;
+    letter-spacing: 0.02em;
+}
+.rw-svc-hint {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #94A3B8;
+}
+/* Max ~8 kart (2 satır × 4 kolon) görünür, kaydırılabilir */
+.rw-svc-scroll {
+    max-height: 26.5rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.25rem;
+    margin-right: -0.15rem;
+    scrollbar-width: thin;
+    scrollbar-color: #E7B58A transparent;
+}
+.rw-svc-scroll::-webkit-scrollbar { width: 6px; }
+.rw-svc-scroll::-webkit-scrollbar-thumb {
+    background: #E7B58A;
+    border-radius: 99px;
+}
+.rw-svc-scroll::-webkit-scrollbar-track { background: transparent; }
+@media (max-width: 639px) {
+    /* mobil 2 kolon × 4 satır ≈ 8 kart */
+    .rw-svc-scroll { max-height: 34rem; }
 }
 .rw-dots {
     display: flex;
@@ -1199,6 +1334,14 @@
         }
 
         updateSummary();
+
+        // Hizmet arama yalnızca 1. adımda
+        var searchWrap = document.getElementById('rw-svc-search-wrap');
+        if (searchWrap) {
+            if (n === 1) searchWrap.removeAttribute('hidden');
+            else searchWrap.setAttribute('hidden', '');
+        }
+
         if (n === 2) {
             renderCalendar();
             // Tarih zaten seçiliyse saatleri yenile
@@ -1209,6 +1352,44 @@
             }
         }
     }
+
+    // Hizmet arama + görünür liste filtreleme
+    (function initHizmetSearch() {
+        var input = document.getElementById('rw-svc-search');
+        var clearBtn = document.getElementById('rw-svc-search-clear');
+        var empty = document.getElementById('rw-svc-empty');
+        var countEl = document.getElementById('rw-svc-count');
+        var total = document.querySelectorAll('.rw-hizmet-card').length;
+        if (!input) return;
+
+        function applyFilter() {
+            var q = (input.value || '').trim().toLocaleLowerCase('tr-TR');
+            if (clearBtn) clearBtn.hidden = q.length === 0;
+            var shown = 0;
+            document.querySelectorAll('.rw-hizmet-card').forEach(function (card) {
+                var hay = (card.getAttribute('data-search') || card.getAttribute('data-ad') || '').toLocaleLowerCase('tr-TR');
+                var ok = !q || hay.indexOf(q) !== -1;
+                card.hidden = !ok;
+                card.style.display = ok ? '' : 'none';
+                if (ok) shown++;
+            });
+            if (empty) empty.hidden = shown > 0;
+            if (countEl) {
+                countEl.textContent = q
+                    ? (shown + ' / ' + total + ' hizmet')
+                    : (total + ' hizmet');
+            }
+        }
+
+        input.addEventListener('input', applyFilter);
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function () {
+                input.value = '';
+                applyFilter();
+                input.focus();
+            });
+        }
+    })();
 
     function updateSummary() {
         var box = document.getElementById('rw-summary');
