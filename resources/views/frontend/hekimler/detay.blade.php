@@ -170,7 +170,7 @@
     <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#E7B58A]/8 blur-[120px] pointer-events-none"></div>
     <div class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#C96A2B]/3 blur-[120px] pointer-events-none"></div>
 
-    <div class="max-w-6xl mx-auto px-6 relative z-10">
+    <div style="max-width: 1400px" class=" mx-auto px-6 relative z-10">
 
         <!-- Back Navigation Link -->
         <div class="mb-8">
