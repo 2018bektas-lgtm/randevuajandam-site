@@ -4,100 +4,168 @@
 
 @section('icerik')
     <style>
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+        /* Float sadece iç sarmalayıcıda — hover scale ile transform çakışmasın */
+        @keyframes hero-float-a {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50% { transform: translate3d(0, -10px, 0); }
         }
-        @keyframes float-slow {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-15px); }
+        @keyframes hero-float-b {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50% { transform: translate3d(0, -14px, 0); }
         }
-        .animate-float {
-            animation: float 4s ease-in-out infinite;
+        @keyframes hero-stat-in {
+            from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.96); }
+            to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
         }
-        .animate-float-delayed {
-            animation: float 4s ease-in-out infinite;
-            animation-delay: 2s;
+        .hero-float-a { animation: hero-float-a 4.5s ease-in-out infinite; will-change: transform; }
+        .hero-float-b { animation: hero-float-b 5.5s ease-in-out infinite; will-change: transform; }
+        .hero-float-c { animation: hero-float-a 5s ease-in-out infinite; animation-delay: 1.2s; will-change: transform; }
+        .hero-float-d { animation: hero-float-b 6s ease-in-out infinite; animation-delay: 2.1s; will-change: transform; }
+
+        .hero-stat-pin {
+            position: absolute;
+            z-index: 20;
+            pointer-events: auto;
+            animation: hero-stat-in 0.55s ease-out both;
         }
-        .animate-float-slow {
-            animation: float-slow 6s ease-in-out infinite;
+        .hero-stat-pin--tl { top: 0; left: 0; animation-delay: 0.05s; }
+        .hero-stat-pin--tr { top: 0; right: 0; animation-delay: 0.15s; }
+        .hero-stat-pin--bl { bottom: 0; left: 0; animation-delay: 0.25s; }
+        .hero-stat-pin--br { bottom: 0; right: 0; animation-delay: 0.35s; }
+
+        .hero-stat-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 168px;
+            padding: 0.875rem 1rem;
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(231, 181, 138, 0.35);
+            box-shadow: 0 12px 32px -8px rgba(31, 41, 55, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+            transition: box-shadow 0.25s ease, border-color 0.25s ease;
         }
-        .animate-float-slow-delayed {
-            animation: float-slow 6s ease-in-out infinite;
-            animation-delay: 3s;
+        .hero-stat-card--compact {
+            min-width: 0;
+            padding: 0.75rem 0.875rem;
+            gap: 0.625rem;
+        }
+        .hero-stat-card:hover {
+            box-shadow: 0 16px 40px -8px rgba(201, 106, 43, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+            border-color: rgba(201, 106, 43, 0.35);
+        }
+        .hero-stat-scale {
+            transition: transform 0.25s ease;
+        }
+        .hero-stat-scale:hover {
+            transform: scale(1.05);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-float-a, .hero-float-b, .hero-float-c, .hero-float-d,
+            .hero-stat-pin {
+                animation: none !important;
+            }
         }
     </style>
 
     <!-- Hero Section -->
-    <section class="relative bg-white border-b border-[#E5E7EB] pt-12 pb-16 md:pt-24 md:pb-24 overflow-hidden select-none">
+    <section class="relative bg-white border-b border-[#E5E7EB] pt-12 pb-14 md:pt-20 md:pb-24 lg:pt-24 lg:pb-28 overflow-hidden select-none">
         <!-- Background Ambient Lights -->
         <div class="absolute top-[-30%] right-[-10%] w-[550px] h-[550px] rounded-full bg-[#E7B58A]/10 blur-[130px] pointer-events-none"></div>
         <div class="absolute bottom-[-20%] left-[-10%] w-[550px] h-[550px] rounded-full bg-[#C96A2B]/4 blur-[130px] pointer-events-none"></div>
 
-        <!-- Floating Stats in 4 Corners -->
-        @if(isset($istatistikler))
-        <div class="absolute inset-0 pointer-events-none hidden lg:block z-20" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;">
-            <!-- Sol Üst (Top-Left): Aktif Uzman -->
-            <div class="absolute bg-white/90 backdrop-blur-md border border-[#E7B58A]/30 p-4 rounded-2xl shadow-lg shadow-slate-200/50 flex items-center gap-3 animate-float-slow pointer-events-auto transition-all duration-300 hover:scale-105" style="position: absolute; top: 2rem; left: 1.5rem;">
-                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center font-bold flex-shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:min-h-[540px] xl:flex xl:flex-col xl:justify-center">
+            {{-- Masaüstü: 4 köşe floating istatistik --}}
+            @if(isset($istatistikler))
+            <div class="pointer-events-none absolute inset-0 z-20 hidden xl:block">
+                {{-- Sol üst --}}
+                <div class="hero-stat-pin hero-stat-pin--tl">
+                    <div class="hero-stat-scale">
+                        <div class="hero-float-a">
+                            <div class="hero-stat-card">
+                                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['doktor_sayisi']) }}+</div>
+                                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Aktif Uzman</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none">{{ number_format($istatistikler['doktor_sayisi']) }}+</div>
-                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Aktif Uzman</div>
+
+                {{-- Sağ üst --}}
+                <div class="hero-stat-pin hero-stat-pin--tr">
+                    <div class="hero-stat-scale">
+                        <div class="hero-float-c">
+                            <div class="hero-stat-card">
+                                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['randevu_sayisi']) }}+</div>
+                                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Tamamlanan Randevu</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Sol alt --}}
+                <div class="hero-stat-pin hero-stat-pin--bl">
+                    <div class="hero-stat-scale">
+                        <div class="hero-float-b">
+                            <div class="hero-stat-card">
+                                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['yorum_sayisi']) }}+</div>
+                                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Hasta Yorumu</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Sağ alt --}}
+                <div class="hero-stat-pin hero-stat-pin--br">
+                    <div class="hero-stat-scale">
+                        <div class="hero-float-d">
+                            <div class="hero-stat-card">
+                                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ $istatistikler['brans_sayisi'] }}</div>
+                                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Uzmanlık Alanı</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+            @endif
 
-            <!-- Sol Alt (Bottom-Left): Hasta Yorumu -->
-            <div class="absolute bg-white/90 backdrop-blur-md border border-[#E5E7EB] p-4 rounded-2xl shadow-lg shadow-slate-200/50 flex items-center gap-3 animate-float-delayed pointer-events-auto transition-all duration-300 hover:scale-105" style="position: absolute; bottom: 2rem; left: 1.5rem;">
-                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center font-bold flex-shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none">{{ number_format($istatistikler['yorum_sayisi']) }}+</div>
-                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Hasta Yorumu</div>
-                </div>
-            </div>
-
-            <!-- Sağ Üst (Top-Right): Tamamlanan Randevu -->
-            <div class="absolute bg-white/90 backdrop-blur-md border border-[#E5E7EB] p-4 rounded-2xl shadow-lg shadow-slate-200/50 flex items-center gap-3 animate-float pointer-events-auto transition-all duration-300 hover:scale-105" style="position: absolute; top: 2rem; right: 1.5rem;">
-                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center font-bold flex-shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                    </svg>
-                </div>
-                <div>
-                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none">{{ number_format($istatistikler['randevu_sayisi']) }}+</div>
-                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Tamamlanan Randevu</div>
-                </div>
-            </div>
-
-            <!-- Sağ Alt (Bottom-Right): Uzmanlık Alanı -->
-            <div class="absolute bg-white/90 backdrop-blur-md border border-[#E7B58A]/30 p-4 rounded-2xl shadow-lg shadow-slate-200/50 flex items-center gap-3 animate-float-slow-delayed pointer-events-auto transition-all duration-300 hover:scale-105" style="position: absolute; bottom: 2rem; right: 1.5rem;">
-                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center font-bold flex-shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none">{{ $istatistikler['brans_sayisi'] }}</div>
-                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Uzmanlık Alanı</div>
-                </div>
-            </div>
-        </div>
-        @endif
-
-        <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+            {{-- Merkez içerik --}}
+            <div class="relative z-10 max-w-3xl mx-auto text-center px-2 sm:px-4 xl:px-10">
                 <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 rounded-full text-xs font-bold font-display uppercase tracking-wider mb-6">
                     <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] animate-pulse"></span>
                     Türkiye'nin Seçkin Uzman Ağı
                 </span>
 
-                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold font-display text-[#111827] tracking-tight leading-tight md:leading-none">
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold font-display text-[#111827] tracking-tight leading-tight md:leading-[1.08]">
                     Aradığınız Uzmanı Bulun, <br class="hidden md:inline">
                     <span class="text-[#C96A2B]">Kolayca Randevu</span> Alın.
                 </h1>
@@ -131,10 +199,62 @@
                 <div class="mt-5 flex items-center justify-center flex-wrap gap-2 text-xs">
                     <span class="text-[#6B7280] font-medium mr-1.5">Popüler:</span>
                     @foreach($populerAramalar as $arama)
-                        <button type="button" onclick="setSearch('{{ $arama }}')" class="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-slate-50 hover:bg-[#FFF7ED] hover:text-[#C96A2B] hover:border-[#E7B58A]/30 transition-all font-semibold cursor-pointer">{{ $arama }}</button>
+                        <button type="button" onclick="setSearch(@js($arama))" class="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-slate-50 hover:bg-[#FFF7ED] hover:text-[#C96A2B] hover:border-[#E7B58A]/30 transition-all font-semibold cursor-pointer">{{ $arama }}</button>
                     @endforeach
                 </div>
             </div>
+
+            {{-- Mobil / tablet: 4 istatistik grid (köşe kartları gizliyken) --}}
+            @if(isset($istatistikler))
+            <div class="relative z-10 mt-10 xl:hidden" role="list" aria-label="Platform istatistikleri">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+                    <div class="hero-stat-card hero-stat-card--compact" role="listitem">
+                        <div class="w-9 h-9 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="text-left min-w-0">
+                            <div class="text-sm font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['doktor_sayisi']) }}+</div>
+                            <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1 leading-tight">Aktif Uzman</div>
+                        </div>
+                    </div>
+                    <div class="hero-stat-card hero-stat-card--compact" role="listitem">
+                        <div class="w-9 h-9 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                            </svg>
+                        </div>
+                        <div class="text-left min-w-0">
+                            <div class="text-sm font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['randevu_sayisi']) }}+</div>
+                            <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1 leading-tight">Randevu</div>
+                        </div>
+                    </div>
+                    <div class="hero-stat-card hero-stat-card--compact" role="listitem">
+                        <div class="w-9 h-9 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
+                        <div class="text-left min-w-0">
+                            <div class="text-sm font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['yorum_sayisi']) }}+</div>
+                            <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1 leading-tight">Yorum</div>
+                        </div>
+                    </div>
+                    <div class="hero-stat-card hero-stat-card--compact" role="listitem">
+                        <div class="w-9 h-9 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                            </svg>
+                        </div>
+                        <div class="text-left min-w-0">
+                            <div class="text-sm font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ $istatistikler['brans_sayisi'] }}</div>
+                            <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1 leading-tight">Branş</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
     </section>
 
