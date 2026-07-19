@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BransController;
 use App\Http\Controllers\DoktorController;
+use App\Http\Controllers\Frontend\AnasayfaController;
 use App\Http\Controllers\PaketController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\UnvanController;
@@ -10,9 +11,7 @@ use App\Http\Controllers\YonetimController;
 use App\Http\Controllers\YorumController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('frontend.index');
-});
+Route::get('/', [AnasayfaController::class, 'index']);
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 

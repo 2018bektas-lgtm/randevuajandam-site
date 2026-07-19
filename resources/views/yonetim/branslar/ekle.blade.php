@@ -22,7 +22,7 @@
     </div>
 
     <!-- Form Container -->
-    <div class="max-w-xl bg-white border border-[#E5E7EB] rounded-2xl p-6 sm:p-8 shadow-sm">
+    <div class="max-w-2xl bg-white border border-[#E5E7EB] rounded-2xl p-6 sm:p-8 shadow-sm">
         <form action="{{ route('yonetim.branslar.store') }}" method="POST" class="space-y-6">
             @csrf
 
@@ -30,7 +30,21 @@
             <div>
                 <label for="ad" class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Branş Adı</label>
                 <input type="text" name="ad" id="ad" value="{{ old('ad') }}" placeholder="Örn: Göz Hastalıkları" required
-                       class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                       class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all @error('ad') border-red-400 @enderror">
+                @error('ad')
+                    <p class="mt-1.5 text-xs text-red-600 font-semibold">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <!-- Açıklama -->
+            <div>
+                <label for="aciklama" class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Açıklama <span class="font-normal normal-case text-[#9CA3AF]">(opsiyonel)</span></label>
+                <textarea name="aciklama" id="aciklama" rows="5" maxlength="5000" placeholder="Bu branşın neyi kapsadığını kısaca yazın. Örn: Kalp ve damar hastalıklarının tanı ve tedavisi."
+                          class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all resize-y min-h-[120px] @error('aciklama') border-red-400 @enderror">{{ old('aciklama') }}</textarea>
+                <p class="mt-1.5 text-[11px] text-[#9CA3AF]">Hasta ve hekim arayüzlerinde branşı tanıtmak için kullanılabilir. En fazla 5000 karakter.</p>
+                @error('aciklama')
+                    <p class="mt-1.5 text-xs text-red-600 font-semibold">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Submit Buttons -->

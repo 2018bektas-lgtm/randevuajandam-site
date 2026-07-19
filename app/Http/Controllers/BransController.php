@@ -46,14 +46,17 @@ class BransController extends Controller
     {
         $request->validate([
             'ad' => 'required|string|max:255|unique:branslar,ad',
+            'aciklama' => 'nullable|string|max:5000',
         ], [
             'ad.required' => 'Branş adı alanı zorunludur.',
             'ad.unique' => 'Bu branş adı zaten eklenmiş.',
             'ad.max' => 'Branş adı en fazla 255 karakter olabilir.',
+            'aciklama.max' => 'Açıklama en fazla 5000 karakter olabilir.',
         ]);
 
         Brans::create([
             'ad' => $request->ad,
+            'aciklama' => $request->filled('aciklama') ? trim((string) $request->aciklama) : null,
         ]);
 
         Cache::forget('branslar_listesi');
@@ -82,14 +85,17 @@ class BransController extends Controller
 
         $request->validate([
             'ad' => 'required|string|max:255|unique:branslar,ad,'.$id,
+            'aciklama' => 'nullable|string|max:5000',
         ], [
             'ad.required' => 'Branş adı alanı zorunludur.',
             'ad.unique' => 'Bu branş adı zaten kullanımda.',
             'ad.max' => 'Branş adı en fazla 255 karakter olabilir.',
+            'aciklama.max' => 'Açıklama en fazla 5000 karakter olabilir.',
         ]);
 
         $brans->update([
             'ad' => $request->ad,
+            'aciklama' => $request->filled('aciklama') ? trim((string) $request->aciklama) : null,
         ]);
 
         Cache::forget('branslar_listesi');

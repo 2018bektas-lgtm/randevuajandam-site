@@ -64,6 +64,7 @@
                 <thead>
                     <tr class="bg-slate-50/50 border-b border-[#E5E7EB]">
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Branş Adı</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Açıklama</th>
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Bağlı Hekim Sayısı</th>
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display text-right">İşlemler</th>
                     </tr>
@@ -78,6 +79,13 @@
                                     </div>
                                     <span class="block text-sm font-bold text-[#111827] font-display">{{ $b->ad }}</span>
                                 </div>
+                            </td>
+                            <td class="px-6 py-4 max-w-xs">
+                                @if(filled($b->aciklama))
+                                    <p class="text-xs text-[#4B5563] leading-relaxed line-clamp-2" title="{{ $b->aciklama }}">{{ $b->aciklama }}</p>
+                                @else
+                                    <span class="text-xs text-[#9CA3AF] italic">—</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-[#4B5563] font-medium">
                                 <span class="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800">

@@ -15,6 +15,7 @@ class Brans extends Model
     protected $fillable = [
         'ad',
         'slug',
+        'aciklama',
     ];
 
     public function doktorlar()
