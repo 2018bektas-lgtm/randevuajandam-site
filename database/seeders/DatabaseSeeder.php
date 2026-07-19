@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
         $this->call(YoneticiSeeder::class);
         $this->call(PaketSeeder::class);
         $this->call(KlinikSeeder::class);
+        // Türkiye branş/uzmanlık + unvan listeleri (idempotent)
         $this->call(BransSeeder::class);
         $this->call(UnvanSeeder::class);
         $this->call(IlIlceSeeder::class);
