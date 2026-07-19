@@ -34,23 +34,23 @@
 
     <style>
         @keyframes hero-float-1 {
-            0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--hero-rot)); }
-            50% { transform: translate3d(4px, -10px, 0) rotate(var(--hero-rot)); }
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50% { transform: translate3d(0, -10px, 0); }
         }
         @keyframes hero-float-2 {
-            0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--hero-rot)); }
-            50% { transform: translate3d(-5px, -12px, 0) rotate(var(--hero-rot)); }
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50% { transform: translate3d(0, -12px, 0); }
         }
         @keyframes hero-float-3 {
-            0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--hero-rot)); }
-            50% { transform: translate3d(6px, -8px, 0) rotate(var(--hero-rot)); }
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50% { transform: translate3d(0, -8px, 0); }
         }
         @keyframes hero-float-4 {
-            0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--hero-rot)); }
-            50% { transform: translate3d(-3px, -11px, 0) rotate(var(--hero-rot)); }
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50% { transform: translate3d(0, -11px, 0); }
         }
         @keyframes hero-card-in {
-            from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.92); }
+            from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.96); }
             to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
         }
 
@@ -61,7 +61,7 @@
             margin-right: auto;
         }
 
-        /* Dağınık dikdörtgen kutular — hizalı ızgara değil */
+        /* Düz dikdörtgen kutular — farklı konumlarda (eğim yok) */
         .hero-scatter {
             position: absolute;
             z-index: 20;
@@ -69,25 +69,21 @@
             animation: hero-card-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .hero-scatter--a {
-            --hero-rot: -7deg;
             top: -0.35rem;
             left: -0.25rem;
             animation-delay: 0.08s;
         }
         .hero-scatter--b {
-            --hero-rot: 5deg;
             top: 12%;
             right: -0.5rem;
             animation-delay: 0.22s;
         }
         .hero-scatter--c {
-            --hero-rot: 4deg;
             bottom: 8%;
             left: -0.75rem;
             animation-delay: 0.36s;
         }
         .hero-scatter--d {
-            --hero-rot: -5deg;
             bottom: -0.5rem;
             right: 0.25rem;
             animation-delay: 0.5s;
@@ -113,7 +109,6 @@
         }
 
         .hero-scatter-float {
-            transform: rotate(var(--hero-rot, 0deg));
             will-change: transform;
         }
         .hero-scatter--a .hero-scatter-float { animation: hero-float-1 5.2s ease-in-out infinite; animation-delay: 0.2s; }
@@ -183,11 +178,9 @@
             border-radius: 1.15rem;
         }
         .hero-scatter--c .hero-box {
-            flex-direction: row-reverse;
             background: linear-gradient(155deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.95) 100%);
             border-color: rgba(229, 231, 235, 0.95);
         }
-        .hero-scatter--c .hero-box-text { text-align: right; }
         .hero-scatter--d .hero-box {
             min-width: 9rem;
             box-shadow:
@@ -235,11 +228,11 @@
                 position: static;
                 animation: hero-card-in 0.55s ease-out both;
             }
-            .hero-scatter-mobile .hero-scatter--a { --hero-rot: -3deg; margin-top: 0.35rem; }
-            .hero-scatter-mobile .hero-scatter--b { --hero-rot: 3deg; margin-top: 0; }
-            .hero-scatter-mobile .hero-scatter--c { --hero-rot: 2deg; margin-top: 0.15rem; }
-            .hero-scatter-mobile .hero-scatter--d { --hero-rot: -2.5deg; margin-top: 0.55rem; }
-            .hero-scatter-mobile .hero-scatter-float { animation: none; transform: rotate(var(--hero-rot)); }
+            .hero-scatter-mobile .hero-scatter--a { margin-top: 0; }
+            .hero-scatter-mobile .hero-scatter--b { margin-top: 0; }
+            .hero-scatter-mobile .hero-scatter--c { margin-top: 0; }
+            .hero-scatter-mobile .hero-scatter--d { margin-top: 0; }
+            .hero-scatter-mobile .hero-scatter-float { animation: none; transform: none; }
             .hero-text-frame { padding: 0 0.15rem 0.5rem; }
         }
         @media (min-width: 640px) {
@@ -253,7 +246,7 @@
                 animation: none !important;
             }
             .hero-scatter-float {
-                transform: rotate(var(--hero-rot));
+                transform: none;
             }
         }
     </style>
