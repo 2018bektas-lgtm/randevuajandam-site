@@ -3,258 +3,352 @@
 @section('baslik', 'Randevu Ajandam - Uzman Doktor ve Randevu Platformu')
 
 @section('icerik')
-    <style>
-        /* Float sadece iç sarmalayıcıda — hover scale ile transform çakışmasın */
-        @keyframes hero-float-a {
-            0%, 100% { transform: translate3d(0, 0, 0); }
-            50% { transform: translate3d(0, -10px, 0); }
-        }
-        @keyframes hero-float-b {
-            0%, 100% { transform: translate3d(0, 0, 0); }
-            50% { transform: translate3d(0, -14px, 0); }
-        }
-        @keyframes hero-stat-in {
-            from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.96); }
-            to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-        }
-        .hero-float-a { animation: hero-float-a 4.5s ease-in-out infinite; will-change: transform; }
-        .hero-float-b { animation: hero-float-b 5.5s ease-in-out infinite; will-change: transform; }
-        .hero-float-c { animation: hero-float-a 5s ease-in-out infinite; animation-delay: 1.2s; will-change: transform; }
-        .hero-float-d { animation: hero-float-b 6s ease-in-out infinite; animation-delay: 2.1s; will-change: transform; }
+    @php
+        $heroStats = isset($istatistikler) ? [
+            [
+                'value' => number_format($istatistikler['doktor_sayisi']).'+',
+                'label' => 'Aktif Uzman',
+                'delay' => '0s',
+                'draw' => '0.1s',
+                'side' => 'tl',
+            ],
+            [
+                'value' => number_format($istatistikler['randevu_sayisi']).'+',
+                'label' => 'Randevu',
+                'delay' => '0.6s',
+                'draw' => '0.35s',
+                'side' => 'tr',
+            ],
+            [
+                'value' => number_format($istatistikler['yorum_sayisi']).'+',
+                'label' => 'Hasta Yorumu',
+                'delay' => '1.2s',
+                'draw' => '0.6s',
+                'side' => 'bl',
+            ],
+            [
+                'value' => (string) $istatistikler['brans_sayisi'],
+                'label' => 'Uzmanlık',
+                'delay' => '1.8s',
+                'draw' => '0.85s',
+                'side' => 'br',
+            ],
+        ] : [];
+        // SVG daire çevresi: r=42 → 2πr ≈ 263.9
+        $heroCircleLen = 264;
+    @endphp
 
-        .hero-stat-pin {
+    <style>
+        /* Animasyonlu daire çizimi (stroke-dash) */
+        @keyframes hero-circle-draw {
+            0% { stroke-dashoffset: {{ $heroCircleLen }}; opacity: 0.35; }
+            12% { opacity: 1; }
+            55% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 0; }
+        }
+        @keyframes hero-circle-spin {
+            0% { transform: rotate(-90deg); }
+            100% { transform: rotate(270deg); }
+        }
+        @keyframes hero-bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        @keyframes hero-fade-up {
+            from { opacity: 0; transform: translateY(10px) scale(0.92); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes hero-soft-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(201, 106, 43, 0.18); }
+            50% { box-shadow: 0 0 0 10px rgba(201, 106, 43, 0); }
+        }
+
+        .hero-stage {
+            position: relative;
+            max-width: 56rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 4 kenar: yazının etrafında */
+        .hero-ring-stat {
             position: absolute;
             z-index: 20;
-            pointer-events: auto;
-            animation: hero-stat-in 0.55s ease-out both;
-        }
-        .hero-stat-pin--tl { top: 0; left: 0; animation-delay: 0.05s; }
-        .hero-stat-pin--tr { top: 0; right: 0; animation-delay: 0.15s; }
-        .hero-stat-pin--bl { bottom: 0; left: 0; animation-delay: 0.25s; }
-        .hero-stat-pin--br { bottom: 0; right: 0; animation-delay: 0.35s; }
-
-        .hero-stat-card {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 0.75rem;
-            min-width: 168px;
-            padding: 0.875rem 1rem;
-            border-radius: 1rem;
-            background: rgba(255, 255, 255, 0.94);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            gap: 0.4rem;
+            width: 6.25rem;
+            text-align: center;
+            pointer-events: none;
+            animation: hero-fade-up 0.6s ease-out both;
+        }
+        .hero-ring-stat--tl { top: -0.5rem; left: 0; animation-delay: 0.05s; }
+        .hero-ring-stat--tr { top: -0.5rem; right: 0; animation-delay: 0.15s; }
+        .hero-ring-stat--bl { bottom: -0.5rem; left: 0; animation-delay: 0.25s; }
+        .hero-ring-stat--br { bottom: -0.5rem; right: 0; animation-delay: 0.35s; }
+
+        @media (min-width: 768px) {
+            .hero-ring-stat { width: 7rem; }
+            .hero-ring-stat--tl { top: -0.75rem; left: -0.75rem; }
+            .hero-ring-stat--tr { top: -0.75rem; right: -0.75rem; }
+            .hero-ring-stat--bl { bottom: -0.75rem; left: -0.75rem; }
+            .hero-ring-stat--br { bottom: -0.75rem; right: -0.75rem; }
+        }
+        @media (min-width: 1024px) {
+            .hero-ring-stat--tl { top: -0.5rem; left: -2rem; }
+            .hero-ring-stat--tr { top: -0.5rem; right: -2rem; }
+            .hero-ring-stat--bl { bottom: -0.5rem; left: -2rem; }
+            .hero-ring-stat--br { bottom: -0.5rem; right: -2rem; }
+        }
+        @media (min-width: 1280px) {
+            .hero-ring-stat--tl { top: -0.25rem; left: -4rem; }
+            .hero-ring-stat--tr { top: -0.25rem; right: -4rem; }
+            .hero-ring-stat--bl { bottom: -0.25rem; left: -4rem; }
+            .hero-ring-stat--br { bottom: -0.25rem; right: -4rem; }
+        }
+
+        .hero-ring-bob {
+            animation: hero-bob 5s ease-in-out infinite;
+        }
+        .hero-ring-stat--tr .hero-ring-bob { animation-delay: 0.7s; }
+        .hero-ring-stat--bl .hero-ring-bob { animation-delay: 1.4s; }
+        .hero-ring-stat--br .hero-ring-bob { animation-delay: 2.1s; }
+
+        .hero-ring {
+            position: relative;
+            width: 5.25rem;
+            height: 5.25rem;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(231, 181, 138, 0.35);
-            box-shadow: 0 12px 32px -8px rgba(31, 41, 55, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
-            transition: box-shadow 0.25s ease, border-color 0.25s ease;
+            box-shadow: 0 10px 28px -10px rgba(31, 41, 55, 0.14);
+            animation: hero-soft-pulse 3.2s ease-in-out infinite;
         }
-        .hero-stat-card--compact {
-            min-width: 0;
-            padding: 0.75rem 0.875rem;
-            gap: 0.625rem;
+        @media (min-width: 768px) {
+            .hero-ring { width: 5.75rem; height: 5.75rem; }
         }
-        .hero-stat-card:hover {
-            box-shadow: 0 16px 40px -8px rgba(201, 106, 43, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
-            border-color: rgba(201, 106, 43, 0.35);
+
+        .hero-ring svg {
+            position: absolute;
+            inset: -4px;
+            width: calc(100% + 8px);
+            height: calc(100% + 8px);
+            overflow: visible;
+            transform-origin: 50% 50%;
+            /* Üstten çizime başla + yavaş dönüş */
+            animation: hero-circle-spin 12s linear infinite;
         }
-        .hero-stat-scale {
-            transition: transform 0.25s ease;
+        .hero-ring-track {
+            fill: none;
+            stroke: rgba(231, 181, 138, 0.28);
+            stroke-width: 2.75;
         }
-        .hero-stat-scale:hover {
-            transform: scale(1.05);
+        .hero-ring-progress {
+            fill: none;
+            stroke: #C96A2B;
+            stroke-width: 3.5;
+            stroke-linecap: round;
+            stroke-dasharray: {{ $heroCircleLen }};
+            stroke-dashoffset: {{ $heroCircleLen }};
+            animation: hero-circle-draw 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            /* spin ile birlikte dönüş için transform SVG'de */
+            transform-origin: 50% 50%;
         }
+
+        .hero-ring-core {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.35rem;
+            z-index: 1;
+        }
+        .hero-ring-value {
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #C96A2B;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+        @media (min-width: 768px) {
+            .hero-ring-value { font-size: 1.05rem; }
+        }
+        .hero-ring-label {
+            font-size: 0.5625rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #6B7280;
+            line-height: 1.15;
+            max-width: 6.5rem;
+        }
+
+        .hero-text-frame {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 1.25rem 5.25rem 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .hero-text-frame { padding: 1.5rem 6.25rem 1.75rem; }
+        }
+        @media (min-width: 1024px) {
+            .hero-text-frame { padding: 1.75rem 7rem 2rem; }
+        }
+        .hero-search-block {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            margin-top: 1.75rem;
+        }
+        @media (max-width: 639px) {
+            /* Mobil: daireler yazının üstünde 2x2 grid */
+            .hero-stage { max-width: 100%; }
+            .hero-ring-stat {
+                position: static;
+                width: auto;
+                animation: hero-fade-up 0.5s ease-out both;
+            }
+            .hero-ring-stats-mobile {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.85rem 0.5rem;
+                justify-items: center;
+                margin-bottom: 1.25rem;
+            }
+            .hero-text-frame { padding: 0 0.25rem 0.5rem; }
+            .hero-ring-stats-desktop { display: none !important; }
+            .hero-ring { width: 5rem; height: 5rem; }
+            .hero-ring-bob { animation: none; }
+        }
+        @media (min-width: 640px) {
+            .hero-ring-stats-mobile { display: none !important; }
+            .hero-ring-stats-desktop { display: contents; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-            .hero-float-a, .hero-float-b, .hero-float-c, .hero-float-d,
-            .hero-stat-pin {
+            .hero-ring-progress,
+            .hero-ring svg,
+            .hero-ring-bob,
+            .hero-ring-stat,
+            .hero-ring {
                 animation: none !important;
+            }
+            .hero-ring svg {
+                transform: rotate(-90deg);
+            }
+            .hero-ring-progress {
+                stroke-dashoffset: 0 !important;
             }
         }
     </style>
 
     <!-- Hero Section -->
-    <section class="relative bg-white border-b border-[#E5E7EB] pt-12 pb-14 md:pt-20 md:pb-24 lg:pt-24 lg:pb-28 overflow-hidden select-none">
-        <!-- Background Ambient Lights -->
-        <div class="absolute top-[-30%] right-[-10%] w-[550px] h-[550px] rounded-full bg-[#E7B58A]/10 blur-[130px] pointer-events-none"></div>
-        <div class="absolute bottom-[-20%] left-[-10%] w-[550px] h-[550px] rounded-full bg-[#C96A2B]/4 blur-[130px] pointer-events-none"></div>
+    <section class="relative bg-white border-b border-[#E5E7EB] pt-12 pb-14 md:pt-20 md:pb-24 lg:pt-24 lg:pb-28 select-none">
+        <!-- Background Ambient Lights (ayrı katmanda clip — daireler kesilmesin) -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+            <div class="absolute top-[-30%] right-[-10%] w-[550px] h-[550px] rounded-full bg-[#E7B58A]/10 blur-[130px]"></div>
+            <div class="absolute bottom-[-20%] left-[-10%] w-[550px] h-[550px] rounded-full bg-[#C96A2B]/4 blur-[130px]"></div>
+        </div>
 
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:min-h-[540px] xl:flex xl:flex-col xl:justify-center">
-            {{-- Masaüstü: 4 köşe floating istatistik --}}
-            @if(isset($istatistikler))
-            <div class="pointer-events-none absolute inset-0 z-20 hidden xl:block">
-                {{-- Sol üst --}}
-                <div class="hero-stat-pin hero-stat-pin--tl">
-                    <div class="hero-stat-scale">
-                        <div class="hero-float-a">
-                            <div class="hero-stat-card">
-                                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                    </svg>
+        <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="hero-stage">
+                @if(!empty($heroStats))
+                    {{-- Mobil: yazının üstünde 2x2 daireler --}}
+                    <div class="hero-ring-stats-mobile" role="list" aria-label="Platform istatistikleri">
+                        @foreach($heroStats as $stat)
+                            <div class="hero-ring-stat" role="listitem" style="animation-delay: {{ $stat['draw'] }}">
+                                <div class="hero-ring-bob">
+                                    <div class="hero-ring">
+                                        <svg viewBox="0 0 100 100" style="animation-delay: {{ $stat['delay'] }}">
+                                            <circle class="hero-ring-track" cx="50" cy="50" r="42"></circle>
+                                            <circle class="hero-ring-progress" cx="50" cy="50" r="42"
+                                                    style="animation-delay: {{ $stat['draw'] }}"></circle>
+                                        </svg>
+                                        <div class="hero-ring-core">
+                                            <span class="hero-ring-value">{{ $stat['value'] }}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="text-left">
-                                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['doktor_sayisi']) }}+</div>
-                                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Aktif Uzman</div>
-                                </div>
+                                <span class="hero-ring-label">{{ $stat['label'] }}</span>
                             </div>
-                        </div>
+                        @endforeach
                     </div>
-                </div>
+                @endif
 
-                {{-- Sağ üst --}}
-                <div class="hero-stat-pin hero-stat-pin--tr">
-                    <div class="hero-stat-scale">
-                        <div class="hero-float-c">
-                            <div class="hero-stat-card">
-                                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                                    </svg>
+                {{-- Başlık metni + 4 kenar daire --}}
+                <div class="hero-text-frame">
+                    @if(!empty($heroStats))
+                        <div class="hero-ring-stats-desktop" role="list" aria-label="Platform istatistikleri">
+                            @foreach($heroStats as $stat)
+                                <div class="hero-ring-stat hero-ring-stat--{{ $stat['side'] }}" role="listitem">
+                                    <div class="hero-ring-bob">
+                                        <div class="hero-ring">
+                                            <svg viewBox="0 0 100 100" style="animation-delay: {{ $stat['delay'] }}">
+                                                <circle class="hero-ring-track" cx="50" cy="50" r="42"></circle>
+                                                <circle class="hero-ring-progress" cx="50" cy="50" r="42"
+                                                        style="animation-delay: {{ $stat['draw'] }}"></circle>
+                                            </svg>
+                                            <div class="hero-ring-core">
+                                                <span class="hero-ring-value">{{ $stat['value'] }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="hero-ring-label">{{ $stat['label'] }}</span>
                                 </div>
-                                <div class="text-left">
-                                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['randevu_sayisi']) }}+</div>
-                                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Tamamlanan Randevu</div>
-                                </div>
-                            </div>
+                            @endforeach
                         </div>
-                    </div>
-                </div>
-
-                {{-- Sol alt --}}
-                <div class="hero-stat-pin hero-stat-pin--bl">
-                    <div class="hero-stat-scale">
-                        <div class="hero-float-b">
-                            <div class="hero-stat-card">
-                                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                    </svg>
-                                </div>
-                                <div class="text-left">
-                                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['yorum_sayisi']) }}+</div>
-                                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Hasta Yorumu</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Sağ alt --}}
-                <div class="hero-stat-pin hero-stat-pin--br">
-                    <div class="hero-stat-scale">
-                        <div class="hero-float-d">
-                            <div class="hero-stat-card">
-                                <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                                    </svg>
-                                </div>
-                                <div class="text-left">
-                                    <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ $istatistikler['brans_sayisi'] }}</div>
-                                    <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Uzmanlık Alanı</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @endif
-
-            {{-- Merkez içerik --}}
-            <div class="relative z-10 max-w-3xl mx-auto text-center px-2 sm:px-4 xl:px-10">
-                <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 rounded-full text-xs font-bold font-display uppercase tracking-wider mb-6">
-                    <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] animate-pulse"></span>
-                    Türkiye'nin Seçkin Uzman Ağı
-                </span>
-
-                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold font-display text-[#111827] tracking-tight leading-tight md:leading-[1.08]">
-                    Aradığınız Uzmanı Bulun, <br class="hidden md:inline">
-                    <span class="text-[#C96A2B]">Kolayca Randevu</span> Alın.
-                </h1>
-
-                <p class="text-base text-[#6B7280] max-w-xl mx-auto mt-5 leading-relaxed">
-                    @if(isset($branslar) && $branslar->count() > 0)
-                        {{ $branslar->take(4)->pluck('ad')->implode(', ') }} ve daha birçok alanda yüzlerce profesyonel arasından size en uygun olanını seçin.
-                    @else
-                        Psikologlardan diyetisyenlere, çocuk gelişimcilerinden fizyoterapistlere kadar yüzlerce profesyonel arasından size en uygun olanını seçin.
                     @endif
-                </p>
 
-                <!-- Search Area -->
-                <form action="{{ route('frontend.hekimler') }}" method="GET" class="max-w-2xl mx-auto mt-10 p-2 bg-white rounded-2xl border border-[#E5E7EB] shadow-lg shadow-slate-200/50 flex flex-col sm:flex-row gap-2">
-                    <div class="flex-grow relative">
-                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#6B7280]">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                        </span>
-                        <input type="text" name="arama" id="searchBar" placeholder="Uzman adı, branş veya şikayet yazın..."
-                               class="w-full pl-11 pr-4 py-4 rounded-xl bg-transparent text-[#111827] placeholder-[#9CA3AF] focus:outline-none text-sm font-medium">
-                    </div>
+                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 rounded-full text-xs font-bold font-display uppercase tracking-wider mb-6">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] animate-pulse"></span>
+                        Türkiye'nin Seçkin Uzman Ağı
+                    </span>
 
-                    <button type="submit" class="sm:px-8 py-4 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-sm tracking-wide transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
-                        Uzman Ara
-                    </button>
-                </form>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold font-display text-[#111827] tracking-tight leading-tight md:leading-[1.08]">
+                        Aradığınız Uzmanı Bulun, <br class="hidden md:inline">
+                        <span class="text-[#C96A2B]">Kolayca Randevu</span> Alın.
+                    </h1>
 
-                <!-- Popular Quick Tags (Dinamik) -->
-                <div class="mt-5 flex items-center justify-center flex-wrap gap-2 text-xs">
-                    <span class="text-[#6B7280] font-medium mr-1.5">Popüler:</span>
-                    @foreach($populerAramalar as $arama)
-                        <button type="button" onclick="setSearch(@js($arama))" class="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-slate-50 hover:bg-[#FFF7ED] hover:text-[#C96A2B] hover:border-[#E7B58A]/30 transition-all font-semibold cursor-pointer">{{ $arama }}</button>
-                    @endforeach
+                    <p class="text-base text-[#6B7280] max-w-xl mx-auto mt-5 leading-relaxed">
+                        @if(isset($branslar) && $branslar->count() > 0)
+                            {{ $branslar->take(4)->pluck('ad')->implode(', ') }} ve daha birçok alanda yüzlerce profesyonel arasından size en uygun olanını seçin.
+                        @else
+                            Psikologlardan diyetisyenlere, çocuk gelişimcilerinden fizyoterapistlere kadar yüzlerce profesyonel arasından size en uygun olanını seçin.
+                        @endif
+                    </p>
                 </div>
-            </div>
 
-            {{-- Mobil / tablet: 4 istatistik grid (köşe kartları gizliyken) --}}
-            @if(isset($istatistikler))
-            <div class="relative z-10 mt-10 xl:hidden" role="list" aria-label="Platform istatistikleri">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
-                    <div class="hero-stat-card hero-stat-card--compact" role="listitem">
-                        <div class="w-9 h-9 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
+                {{-- Arama (dairelerin dışında) --}}
+                <div class="hero-search-block">
+                    <form action="{{ route('frontend.hekimler') }}" method="GET" class="max-w-2xl mx-auto p-2 bg-white rounded-2xl border border-[#E5E7EB] shadow-lg shadow-slate-200/50 flex flex-col sm:flex-row gap-2">
+                        <div class="flex-grow relative">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#6B7280]">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </span>
+                            <input type="text" name="arama" id="searchBar" placeholder="Uzman adı, branş veya şikayet yazın..."
+                                   class="w-full pl-11 pr-4 py-4 rounded-xl bg-transparent text-[#111827] placeholder-[#9CA3AF] focus:outline-none text-sm font-medium">
                         </div>
-                        <div class="text-left min-w-0">
-                            <div class="text-sm font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['doktor_sayisi']) }}+</div>
-                            <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1 leading-tight">Aktif Uzman</div>
-                        </div>
-                    </div>
-                    <div class="hero-stat-card hero-stat-card--compact" role="listitem">
-                        <div class="w-9 h-9 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                            </svg>
-                        </div>
-                        <div class="text-left min-w-0">
-                            <div class="text-sm font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['randevu_sayisi']) }}+</div>
-                            <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1 leading-tight">Randevu</div>
-                        </div>
-                    </div>
-                    <div class="hero-stat-card hero-stat-card--compact" role="listitem">
-                        <div class="w-9 h-9 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                        </div>
-                        <div class="text-left min-w-0">
-                            <div class="text-sm font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ number_format($istatistikler['yorum_sayisi']) }}+</div>
-                            <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1 leading-tight">Yorum</div>
-                        </div>
-                    </div>
-                    <div class="hero-stat-card hero-stat-card--compact" role="listitem">
-                        <div class="w-9 h-9 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                            </svg>
-                        </div>
-                        <div class="text-left min-w-0">
-                            <div class="text-sm font-extrabold font-display text-[#C96A2B] leading-none tabular-nums">{{ $istatistikler['brans_sayisi'] }}</div>
-                            <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1 leading-tight">Branş</div>
-                        </div>
+
+                        <button type="submit" class="sm:px-8 py-4 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-sm tracking-wide transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
+                            Uzman Ara
+                        </button>
+                    </form>
+
+                    <div class="mt-5 flex items-center justify-center flex-wrap gap-2 text-xs">
+                        <span class="text-[#6B7280] font-medium mr-1.5">Popüler:</span>
+                        @foreach($populerAramalar as $arama)
+                            <button type="button" onclick="setSearch(@js($arama))" class="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-slate-50 hover:bg-[#FFF7ED] hover:text-[#C96A2B] hover:border-[#E7B58A]/30 transition-all font-semibold cursor-pointer">{{ $arama }}</button>
+                        @endforeach
                     </div>
                 </div>
             </div>
-            @endif
         </div>
     </section>
 
