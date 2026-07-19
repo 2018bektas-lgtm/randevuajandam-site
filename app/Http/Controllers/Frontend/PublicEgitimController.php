@@ -19,6 +19,63 @@ use InvalidArgumentException;
 
 class PublicEgitimController extends Controller
 {
+    /**
+     * Platform geneli: tüm uzmanların yayındaki eğitimleri.
+     */
+    public function platformListe(Request $request): View
+    {
+        $arama = trim((string) $request->input('arama', ''));
+        $tip = trim((string) $request->input('tip', ''));
+
+        $query = Egitim::query()
+            ->yayinda()
+            ->whereHas('doktor', function ($q) {
+                $q->platformdaListelenen();
+            })
+            ->with([
+                'doktor' => function ($q) {
+                    $q->select('id', 'ad_soyad', 'unvan', 'slug', 'profil_resmi', 'uzmanlik_alani', 'il_id', 'ilce_id');
+                },
+                'doktor.branslar:id,ad,slug',
+                'doktor.il:id,ad,slug',
+                'doktor.ilce:id,ad,slug',
+            ]);
+
+        if ($arama !== '') {
+            $query->where(function ($q) use ($arama) {
+                $q->where('baslik', 'like', '%'.$arama.'%')
+                    ->orWhere('ozet', 'like', '%'.$arama.'%')
+                    ->orWhere('tip', 'like', '%'.$arama.'%')
+                    ->orWhereHas('doktor', function ($dq) use ($arama) {
+                        $dq->where('ad_soyad', 'like', '%'.$arama.'%')
+                            ->orWhere('uzmanlik_alani', 'like', '%'.$arama.'%');
+                    });
+            });
+        }
+
+        if ($tip !== '') {
+            $query->where('tip', $tip);
+        }
+
+        $egitimler = $query
+            ->orderBy('sira')
+            ->orderByDesc('baslangic_at')
+            ->orderByDesc('id')
+            ->paginate(12)
+            ->withQueryString();
+
+        $tipler = Egitim::query()
+            ->yayinda()
+            ->whereNotNull('tip')
+            ->where('tip', '!=', '')
+            ->whereHas('doktor', fn ($q) => $q->platformdaListelenen())
+            ->distinct()
+            ->orderBy('tip')
+            ->pluck('tip');
+
+        return view('frontend.egitimler.index', compact('egitimler', 'arama', 'tip', 'tipler'));
+    }
+
     public function liste(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug): View
     {
         $doktor = $this->resolveDoktor($il_slug, $ilce_slug, $brans_slug, $doctor_slug);

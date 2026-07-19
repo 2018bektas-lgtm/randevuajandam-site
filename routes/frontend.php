@@ -74,6 +74,7 @@ Route::get('/hekimler', function (\Illuminate\Http\Request $request) {
 });
 Route::get('/hekimler/arama', [HekimController::class, 'spotlightArama']);
 Route::get('/blog', [HekimController::class, 'bloglarListesi'])->name('frontend.blog.index');
+Route::get('/egitimler', [PublicEgitimController::class, 'platformListe'])->name('frontend.egitimler.index');
 
 // Yasal sayfalar (mobil + mağaza incelemesi)
 Route::get('/gizlilik-politikasi', [LegalController::class, 'gizlilik'])->name('frontend.legal.gizlilik');
@@ -523,7 +524,7 @@ Route::get('/{il_slug}/{ilce_slug}/klinik/{klinik_slug}/iletisim', [KlinikProfil
 
 // Hiyerarşik Dizin Rotaları (Nested SEO Directory)
 // Constraint: il_slug must not match reserved route prefixes
-$reservedSlugs = '^(?!yonetim|hekim|giris|kayit-ol|profil|cikis|paketler|doktorlar|iller|up|api|personel|klinik)[\w-]+$';
+$reservedSlugs = '^(?!yonetim|hekim|giris|kayit-ol|profil|cikis|paketler|doktorlar|egitimler|blog|iller|up|api|personel|klinik)[\w-]+$';
 
 Route::get('/{il_slug}', [HekimController::class, 'doktorlarListesi'])->name('frontend.il.liste')->where('il_slug', $reservedSlugs);
 Route::get('/{il_slug}/{ilce_slug}', [HekimController::class, 'doktorlarListesi'])->name('frontend.ilce.liste')->where('il_slug', $reservedSlugs);

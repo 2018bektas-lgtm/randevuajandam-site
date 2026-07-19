@@ -31,13 +31,13 @@
     }
 </style>
 
-<section class="relative bg-[#FAFAFA] py-16 md:py-24 overflow-hidden min-h-[80vh]">
+<section class="relative bg-[#FAFAFA] py-8 md:py-8 overflow-hidden min-h-[80vh]">
     <!-- Ambient Background Light Glows -->
     <div class="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[#E7B58A]/8 blur-[120px] pointer-events-none"></div>
     <div class="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-[#C96A2B]/3 blur-[120px] pointer-events-none"></div>
 
     <div class="max-w-7xl mx-auto px-6 relative z-10">
-        
+
         <!-- Header Text -->
         <div class="max-w-3xl mx-auto text-center space-y-4 mb-12">
             <span class="text-xs font-bold text-[#C96A2B] uppercase tracking-widest font-display block">Uzman Hekim Yazıları</span>
@@ -59,7 +59,7 @@
 
         <!-- Main Content Area with Sidebar Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
+
             <!-- Sidebar Filter Panel (Left Column) -->
             <aside id="filterSidebar" class="hidden lg:block lg:col-span-3 bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-[0_8px_30px_rgba(31,41,55,0.02)] sticky top-6">
                 <h3 class="text-sm font-bold text-[#111827] mb-5 uppercase tracking-wider font-display flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -68,19 +68,19 @@
                     </svg>
                     Arama & Filtreleme
                 </h3>
-                
+
                 <form id="filterForm" action="{{ route('frontend.blog.index') }}" method="GET" class="space-y-5">
                     <!-- Search Input -->
                     <div class="space-y-1.5">
                         <label for="arama" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider font-display">Arama</label>
-                        <input type="text" name="arama" id="arama" value="{{ request('arama') }}" placeholder="Başlık, içerik veya yazar..." 
+                        <input type="text" name="arama" id="arama" value="{{ request('arama') }}" placeholder="Başlık, içerik veya yazar..."
                                class="w-full px-3 py-2.5 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                     </div>
 
                     <!-- Specialty/Branch Dropdown -->
                     <div class="space-y-1.5">
                         <label for="brans" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider font-display">Branş / Kategori</label>
-                        <select name="brans" id="brans" 
+                        <select name="brans" id="brans"
                                 class="w-full px-3 py-2.5 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                             <option value="">Tüm Branşlar</option>
                             @foreach($branslar as $bransAd)
@@ -92,7 +92,7 @@
                     <!-- Sorting Dropdown -->
                     <div class="space-y-1.5">
                         <label for="sirala" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider font-display">Sıralama</label>
-                        <select name="sirala" id="sirala" 
+                        <select name="sirala" id="sirala"
                                 class="w-full px-3 py-2.5 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                             <option value="yeni" {{ request('sirala') == 'yeni' ? 'selected' : '' }}>En Yeni Yazılar</option>
                             <option value="populer" {{ request('sirala') == 'populer' ? 'selected' : '' }}>En Çok Okunanlar</option>
@@ -102,7 +102,7 @@
                     <!-- Actions -->
                     @if(request()->anyFilled(['arama', 'brans', 'sirala']))
                         <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
-                            <a href="{{ route('frontend.blog.index') }}" 
+                            <a href="{{ route('frontend.blog.index') }}"
                                class="w-full py-2.5 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#C96A2B] hover:border-[#C96A2B] font-bold text-xs uppercase tracking-wider transition-all font-display text-center flex items-center justify-center cursor-pointer shadow-sm clear-filters-btn">
                                 Filtreleri Temizle
                             </a>
@@ -137,11 +137,11 @@
         // Mobile Sidebar Filter Toggle
         const mobileFilterToggle = document.getElementById('mobileFilterToggle');
         const filterSidebar = document.getElementById('filterSidebar');
-        
+
         if (mobileFilterToggle && filterSidebar) {
             mobileFilterToggle.addEventListener('click', function() {
                 filterSidebar.classList.toggle('hidden');
-                
+
                 // Smooth scroll to sidebar if opening
                 if (!filterSidebar.classList.contains('hidden')) {
                     filterSidebar.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -224,12 +224,12 @@
                 const filterFormValues = $('#filterForm').serializeArray().filter(item => {
                     return item.value !== '' && item.name !== '_token';
                 });
-                
+
                 if (filterFormValues.length > 0) {
                     if ($('#filterForm a.clear-filters-btn').length === 0) {
                         $('#filterForm').append(`
                             <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
-                                <a href="${window.location.pathname}" 
+                                <a href="${window.location.pathname}"
                                    class="w-full py-2.5 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#C96A2B] hover:border-[#C96A2B] font-bold text-xs uppercase tracking-wider transition-all font-display text-center flex items-center justify-center cursor-pointer shadow-sm clear-filters-btn">
                                     Filtreleri Temizle
                                 </a>

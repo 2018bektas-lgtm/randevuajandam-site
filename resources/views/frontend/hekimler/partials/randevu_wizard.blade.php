@@ -25,7 +25,7 @@
                 <p class="rw-caption" id="rw-step-caption">Hizmet seçin</p>
             </div>
             <div class="rw-dots" id="rw-dots" aria-hidden="true">
-                @for($i = 1; $i <= 4; $i++)
+                @for($i = 1; $i <= 3; $i++)
                     <span class="rw-dot{{ $i === 1 ? ' is-active' : '' }}" data-dot="{{ $i }}"></span>
                 @endfor
             </div>
@@ -101,54 +101,60 @@
                 <p id="rw-err-1" class="rw-err" hidden>Bir hizmet seçin</p>
             </div>
 
-            {{-- 2 Takvim --}}
+            {{-- 2 Tarih + Saat (yan yana) --}}
             <div class="rw-panel" data-panel="2" hidden>
-                <div class="rw-cal">
-                    <div class="rw-cal-nav">
-                        <button type="button" id="rw-cal-prev" class="rw-icon-btn" aria-label="Önceki ay">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
-                        </button>
-                        <p id="rw-cal-title" class="rw-cal-title"></p>
-                        <button type="button" id="rw-cal-next" class="rw-icon-btn" aria-label="Sonraki ay">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-                        </button>
+                <div class="rw-datetime">
+                    <div class="rw-datetime-cal">
+                        <p class="rw-label">Tarih seçin</p>
+                        <div class="rw-cal">
+                            <div class="rw-cal-nav">
+                                <button type="button" id="rw-cal-prev" class="rw-icon-btn" aria-label="Önceki ay">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+                                </button>
+                                <p id="rw-cal-title" class="rw-cal-title"></p>
+                                <button type="button" id="rw-cal-next" class="rw-icon-btn" aria-label="Sonraki ay">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                                </button>
+                            </div>
+                            <div class="rw-cal-weekdays">
+                                @foreach(['Pt','Sa','Ça','Pe','Cu','Ct','Pz'] as $d)
+                                    <span>{{ $d }}</span>
+                                @endforeach
+                            </div>
+                            <div id="rw-cal-grid" class="rw-cal-grid"></div>
+                            <div class="rw-legend">
+                                <span><i class="rw-lg-on"></i> Müsait</span>
+                                <span><i class="rw-lg-off"></i> Kapalı</span>
+                                <span><i class="rw-lg-sel"></i> Seçili</span>
+                            </div>
+                            <p id="rw-cal-loading" class="rw-empty" hidden style="padding:0.5rem 0 0">Günler kontrol ediliyor…</p>
+                        </div>
                     </div>
-                    <div class="rw-cal-weekdays">
-                        @foreach(['Pt','Sa','Ça','Pe','Cu','Ct','Pz'] as $d)
-                            <span>{{ $d }}</span>
-                        @endforeach
+                    <div class="rw-datetime-slots">
+                        <p class="rw-label">
+                            Saat seçin
+                            <span id="rw-saat-tarih-label" class="rw-saat-date"></span>
+                        </p>
+                        <div id="rw-slots-placeholder" class="rw-empty rw-slots-ph">
+                            Soldan bir tarih seçin; müsait saatler burada listelenir.
+                        </div>
+                        <div id="rw-slots-loading" class="rw-empty" hidden>Saatler yükleniyor…</div>
+                        <div id="rw-slots-empty" class="rw-empty" hidden>
+                            <p>Bu günde müsait saat yok.</p>
+                            <p class="rw-empty-hint">Başka bir gün seçin.</p>
+                        </div>
+                        <div id="rw-slots-grid" class="rw-slots"></div>
+                        <div class="rw-legend rw-slots-legend" id="rw-slots-legend" hidden>
+                            <span><i class="rw-lg-on"></i> Müsait</span>
+                            <span><i class="rw-lg-busy"></i> Dolu</span>
+                        </div>
                     </div>
-                    <div id="rw-cal-grid" class="rw-cal-grid"></div>
-                    <div class="rw-legend">
-                        <span><i class="rw-lg-on"></i> Müsait gün</span>
-                        <span><i class="rw-lg-off"></i> Dolu / kapalı</span>
-                        <span><i class="rw-lg-sel"></i> Seçili</span>
-                    </div>
-                    <p id="rw-cal-loading" class="rw-empty" hidden style="padding:0.5rem 0 0">Günler kontrol ediliyor…</p>
                 </div>
-                <p id="rw-err-2" class="rw-err" hidden>Müsait bir gün seçin</p>
+                <p id="rw-err-2" class="rw-err" hidden>Müsait bir gün ve saat seçin</p>
             </div>
 
-            {{-- 3 Saat --}}
+            {{-- 3 Bilgi --}}
             <div class="rw-panel" data-panel="3" hidden>
-                <p class="rw-sub">
-                    <strong id="rw-saat-tarih-label"></strong> için saatler
-                </p>
-                <div id="rw-slots-loading" class="rw-empty" hidden>Yükleniyor…</div>
-                <div id="rw-slots-empty" class="rw-empty" hidden>
-                    <p>Bu günde müsait saat yok.</p>
-                    <button type="button" class="rw-link rw-goto-date">Başka gün seç</button>
-                </div>
-                <div id="rw-slots-grid" class="rw-slots"></div>
-                <div class="rw-legend">
-                    <span><i class="rw-lg-on"></i> Müsait</span>
-                    <span><i class="rw-lg-busy"></i> Dolu</span>
-                </div>
-                <p id="rw-err-3" class="rw-err" hidden>Müsait bir saat seçin</p>
-            </div>
-
-            {{-- 4 Bilgi --}}
-            <div class="rw-panel" data-panel="4" hidden>
                 @if($onlineGorusmeAcik)
                     <p class="rw-label">Görüşme türü</p>
                     <div class="rw-cards rw-cards-2 mb">
@@ -230,8 +236,33 @@
 <style>
 /* ── Randevu Wizard (self-contained, no invalid Tailwind deps) ── */
 #randevu-wizard.rw {
-    margin-bottom: 2.5rem;
+    margin-bottom: 0;
     scroll-margin-top: 6rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+#randevu-wizard .rw-shell {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 32rem;
+    height: 100%;
+}
+#randevu-wizard .rw-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+#randevu-wizard .rw-panel:not([hidden]) {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+#randevu-wizard .rw-foot {
+    margin-top: auto;
 }
 #randevu-wizard *,
 #randevu-wizard *::before,
@@ -339,6 +370,54 @@
 }
 
 .rw-panel[hidden] { display: none !important; }
+
+/* Tarih + saat yan yana */
+.rw-datetime {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.15rem;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+@media (min-width: 720px) {
+    .rw-datetime {
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+        gap: 1.25rem;
+        align-items: start;
+    }
+}
+.rw-datetime-cal,
+.rw-datetime-slots {
+    min-width: 0;
+    min-height: 16rem;
+    padding: 0.85rem 0.9rem 1rem;
+    border: 1px solid #F1F5F9;
+    border-radius: 1.1rem;
+    background: #FAFAFA;
+}
+.rw-datetime-slots {
+    display: flex;
+    flex-direction: column;
+    max-height: 22rem;
+}
+.rw-saat-date {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #C96A2B;
+}
+.rw-slots-ph { color: #94A3B8; font-size: 0.8rem; line-height: 1.45; }
+.rw-empty-hint { margin: 0.35rem 0 0; font-size: 0.75rem; color: #94A3B8; }
+.rw-datetime-slots .rw-slots {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    max-height: 14rem;
+    padding-right: 0.15rem;
+}
+.rw-slots-legend { margin-top: 0.65rem; }
 
 /* ── Premium service cards: 2 / 3 / 4 columns ── */
 .rw-svc-grid {
@@ -1043,11 +1122,12 @@
     const daysUrl = @json($daysUrl);
     const isGuest = @json(! $hastaAuth);
     const workDays = @json($calismaGunleri);
-    const captions = ['', 'Hizmet seçin', 'Gün seçin', 'Saat seçin', 'Bilgilerinizi tamamlayın'];
+    const captions = ['', 'Hizmet seçin', 'Tarih ve saat seçin', 'Bilgilerinizi tamamlayın'];
     const monthNames = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
     let step = 1;
-    const maxStep = 4;
+    const maxStep = 3;
+    var slotsRequestId = 0;
     let selectedHizmet = { id: '', ad: '', sure: '' };
     let selectedSaat = '';
     let calYear, calMonth;
@@ -1119,8 +1199,15 @@
         }
 
         updateSummary();
-        if (n === 2) renderCalendar();
-        if (n === 3) loadSlots();
+        if (n === 2) {
+            renderCalendar();
+            // Tarih zaten seçiliyse saatleri yenile
+            if (document.getElementById('rw-tarih').value) {
+                loadSlots(false);
+            } else {
+                resetSlotsUi(true);
+            }
+        }
     }
 
     function updateSummary() {
@@ -1236,6 +1323,8 @@
                         hideErr(2);
                         updateSummary();
                         paintCalendar(availMap);
+                        // Tarih değişince müsait saatler anında yüklensin
+                        loadSlots(true);
                     };
                 })(dIso));
             }
@@ -1296,48 +1385,76 @@
         renderCalendar();
     });
 
-    function loadSlots() {
-        var tarih = document.getElementById('rw-tarih').value;
-        document.getElementById('rw-saat-tarih-label').textContent = formatTr(tarih);
+    function resetSlotsUi(showPlaceholder) {
         var grid = document.getElementById('rw-slots-grid');
         var loading = document.getElementById('rw-slots-loading');
         var empty = document.getElementById('rw-slots-empty');
-        grid.innerHTML = '';
-        selectedSaat = '';
-        document.getElementById('rw-saat').value = '';
-        updateSummary();
+        var ph = document.getElementById('rw-slots-placeholder');
+        var legend = document.getElementById('rw-slots-legend');
+        var label = document.getElementById('rw-saat-tarih-label');
+        if (grid) grid.innerHTML = '';
+        if (loading) loading.hidden = true;
+        if (empty) empty.hidden = true;
+        if (ph) ph.hidden = !showPlaceholder;
+        if (legend) legend.hidden = true;
+        if (label) label.textContent = '';
+    }
 
+    function loadSlots(clearSelection) {
+        var tarih = document.getElementById('rw-tarih').value;
+        var label = document.getElementById('rw-saat-tarih-label');
+        var grid = document.getElementById('rw-slots-grid');
+        var loading = document.getElementById('rw-slots-loading');
+        var empty = document.getElementById('rw-slots-empty');
+        var ph = document.getElementById('rw-slots-placeholder');
+        var legend = document.getElementById('rw-slots-legend');
+        if (!grid) return;
+
+        if (clearSelection !== false) {
+            selectedSaat = '';
+            document.getElementById('rw-saat').value = '';
+            updateSummary();
+        }
+
+        grid.innerHTML = '';
         if (!tarih) {
-            empty.hidden = false;
-            loading.hidden = true;
-            // Takvime dön
-            setTimeout(function () { setStep(2); }, 0);
+            resetSlotsUi(true);
             return;
         }
-        loading.hidden = false;
-        empty.hidden = true;
 
+        if (label) label.textContent = formatTr(tarih) + ' için müsait saatler';
+        if (ph) ph.hidden = true;
+        if (empty) empty.hidden = true;
+        if (legend) legend.hidden = true;
+        if (loading) loading.hidden = false;
+
+        var req = ++slotsRequestId;
         fetch(slotsUrl + '?tarih=' + encodeURIComponent(tarih), {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         })
             .then(function (r) { return r.json(); })
             .then(function (json) {
-                loading.hidden = true;
+                if (req !== slotsRequestId) return;
+                if (loading) loading.hidden = true;
                 var slots = (json.data && json.data.slots) ? json.data.slots : [];
                 var free = slots.filter(function (s) { return !!s.musait; });
-                // Gün doluysa takvime geri
                 if (!free.length) {
-                    empty.hidden = false;
-                    // Bu günü müsait listesinden düş
+                    if (empty) empty.hidden = false;
+                    if (legend) legend.hidden = true;
                     var mk = tarih.slice(0, 7);
                     if (availableDaysCache[mk]) {
                         delete availableDaysCache[mk][tarih];
                     }
+                    // Tarihi temizleme — kullanıcı başka gün seçsin
                     document.getElementById('rw-tarih').value = '';
+                    selectedSaat = '';
+                    document.getElementById('rw-saat').value = '';
                     updateSummary();
+                    paintCalendar(availableDaysCache[monthKey()] || {});
                     return;
                 }
-                empty.hidden = true;
+                if (empty) empty.hidden = true;
+                if (legend) legend.hidden = false;
                 slots.forEach(function (slot) {
                     var btn = document.createElement('button');
                     btn.type = 'button';
@@ -1351,16 +1468,32 @@
                             btn.classList.add('is-selected');
                             selectedSaat = slot.saat;
                             document.getElementById('rw-saat').value = slot.saat;
-                            hideErr(3);
+                            hideErr(2);
                             updateSummary();
                         });
                     }
                     grid.appendChild(btn);
                 });
+                // Eski seçim hâlâ müsaitse koru
+                var keep = document.getElementById('rw-saat').value;
+                if (keep) {
+                    var keepBtn = Array.prototype.find.call(grid.querySelectorAll('.rw-slot.is-free'), function (b) {
+                        return b.textContent === keep;
+                    });
+                    if (keepBtn) {
+                        keepBtn.classList.add('is-selected');
+                        selectedSaat = keep;
+                    } else {
+                        document.getElementById('rw-saat').value = '';
+                        selectedSaat = '';
+                        updateSummary();
+                    }
+                }
             })
             .catch(function () {
-                loading.hidden = true;
-                empty.hidden = false;
+                if (req !== slotsRequestId) return;
+                if (loading) loading.hidden = true;
+                if (empty) empty.hidden = false;
             });
     }
 
@@ -1375,18 +1508,20 @@
     function isDateAvailable(isoVal) {
         if (!isoVal) return false;
         var mk = isoVal.slice(0, 7);
-        return !!(availableDaysCache[mk] && availableDaysCache[mk][isoVal]);
+        // Cache yoksa (henüz yüklenmedi) tarih alanına güven
+        if (!availableDaysCache[mk]) return !!isoVal;
+        return !!availableDaysCache[mk][isoVal];
     }
     function validateStep(n) {
         if (n === 1 && !document.getElementById('rw-hizmet-id').value) { showErr(1); return false; }
         if (n === 2) {
             var t = document.getElementById('rw-tarih').value;
-            if (!t || !isDateAvailable(t)) {
+            var s = document.getElementById('rw-saat').value;
+            if (!t || !isDateAvailable(t) || !s) {
                 showErr(2);
                 return false;
             }
         }
-        if (n === 3 && !document.getElementById('rw-saat').value) { showErr(3); return false; }
         return true;
     }
 
@@ -1396,9 +1531,6 @@
     });
     document.getElementById('rw-btn-back').addEventListener('click', function () {
         if (step > 1) setStep(step - 1);
-    });
-    document.querySelectorAll('.rw-goto-date').forEach(function (b) {
-        b.addEventListener('click', function () { setStep(2); });
     });
 
     if (isGuest) {
@@ -1422,12 +1554,12 @@
             var tel = (telEl && telEl.value) || '';
             var mail = (document.getElementById('rw-mail') || {}).value || '';
             if (!ad.trim() || !soyad.trim() || !mail.trim()) {
-                setStep(4);
+                setStep(3);
                 alert('Lütfen ad, soyad ve e-posta alanlarını doldurun.');
                 return;
             }
             if (!window.RA_OTP || !window.RA_OTP.isValidPhone(tel)) {
-                setStep(4);
+                setStep(3);
                 alert('Telefon 05 ile başlamalı ve 11 haneli olmalıdır (yalnızca rakam).');
                 if (telEl) telEl.focus();
                 return;

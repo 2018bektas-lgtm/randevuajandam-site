@@ -52,7 +52,7 @@
             border-color: transparent transparent #C96A2B transparent !important;
             border-width: 0 4px 5px 4px !important;
         }
-        
+
         /* Dropdown container */
         .select2-dropdown {
             background-color: #FFF !important;
@@ -78,7 +78,7 @@
         .select2-container--default .select2-search--dropdown .select2-search__field:focus {
             border-color: #C96A2B !important;
         }
-        
+
         /* Options list */
         .select2-container--default .select2-results__options {
             max-height: 200px !important;
@@ -162,7 +162,7 @@
     .doctor-list-container {
         transition: all 0.3s ease;
     }
-    
+
     /* List View Styles */
     .doctor-list-container.layout-list {
         display: flex;
@@ -187,7 +187,7 @@
             justify-content: flex-start !important;
         }
     }
-    
+
     /* Grid View Styles */
     .doctor-list-container.layout-grid {
         display: grid;
@@ -212,7 +212,7 @@
     .doctor-list-container.layout-grid .doctor-details .info-row {
         justify-content: center !important;
     }
-    
+
     /* Map Filter Overlay Style */
     #mapFilterOverlay {
         transition: max-height 0.3s ease, opacity 0.3s ease;
@@ -229,13 +229,13 @@
     }
 </style>
 
-<section class="relative bg-[#FAFAFA] py-16 md:py-24 overflow-hidden min-h-[80vh]">
+<section class="relative bg-[#FAFAFA] py-16 md:py-8 overflow-hidden min-h-[80vh]">
     <!-- Ambient Background Light Glows -->
     <div class="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[#E7B58A]/8 blur-[120px] pointer-events-none"></div>
     <div class="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-[#C96A2B]/3 blur-[120px] pointer-events-none"></div>
 
     <div class="max-w-7xl mx-auto px-6 relative z-10">
-        
+
         <!-- Header Text -->
         <div class="max-w-3xl mx-auto text-center space-y-4 mb-12">
             <span class="text-xs font-bold text-[#C96A2B] uppercase tracking-widest font-display block">Sistem Kayıtlı Uzman Hekimler</span>
@@ -257,7 +257,7 @@
 
         <!-- Main Content Area with Sidebar Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
+
             <!-- Sidebar Filter Panel (Left Column) -->
             <aside id="filterSidebar" class="hidden lg:block lg:col-span-3 bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-[0_8px_30px_rgba(31,41,55,0.02)] sticky top-6">
                 <h3 class="text-sm font-bold text-[#111827] mb-5 uppercase tracking-wider font-display flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -266,12 +266,12 @@
                     </svg>
                     Filtrele & Ara
                 </h3>
-                
+
                 <form id="filterForm" action="{{ route('frontend.hekimler') }}" method="GET" class="space-y-5">
                     <!-- Search Input -->
                     <div class="space-y-1.5">
                         <label for="arama" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider font-display">Arama</label>
-                        <input type="text" name="arama" id="arama" value="{{ request('arama') }}" placeholder="Hekim adı veya branş..." 
+                        <input type="text" name="arama" id="arama" value="{{ request('arama') }}" placeholder="Hekim adı veya branş..."
                                class="w-full px-3 py-2.5 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                     </div>
 
@@ -346,7 +346,7 @@
                     <!-- Actions -->
                     @if(request()->anyFilled(['arama', 'uzmanlik', 'unvan', 'il', 'ilce', 'yakindaki', 'sadece_klinik']))
                         <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
-                            <a href="{{ route('frontend.hekimler') }}" 
+                            <a href="{{ route('frontend.hekimler') }}"
                                class="w-full py-2.5 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#C96A2B] hover:border-[#C96A2B] font-bold text-xs uppercase tracking-wider transition-all font-display text-center flex items-center justify-center cursor-pointer shadow-sm clear-filters-btn">
                                 Filtreleri Temizle
                             </a>
@@ -358,7 +358,7 @@
 
             <!-- Listing Results Area (Right Column) -->
             <main class="col-span-1 lg:col-span-9 space-y-6">
-                
+
                 <!-- Toolbar Panel -->
                 <div class="bg-white border border-[#E5E7EB] rounded-2xl px-5 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.01)] flex flex-col sm:flex-row justify-between items-center gap-4">
                     <!-- Left: Tab Switcher -->
@@ -438,7 +438,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path>
                 </svg>
             </div>
-            
+
             <h3 class="text-lg font-bold font-display text-[#111827]">Randevu Talebi Gönderildi!</h3>
             <div class="text-xs text-[#6B7280] leading-relaxed space-y-2">
                 <p>Sayın <strong id="modalDocName" class="text-[#111827]"></strong> (<span id="modalDocBranch"></span>) ile randevu talebi simülasyonu başarıyla oluşturuldu.</p>
@@ -514,7 +514,7 @@
         var input = document.getElementById('sadece_klinik');
         if (!input) return;
         var isClinic = input.value === '1';
-        
+
         var tabDoctors = document.getElementById('tabDoctors');
         var tabClinics = document.getElementById('tabClinics');
         var badgeDoctors = document.getElementById('badgeDoctorsCount');
@@ -642,11 +642,11 @@
         // Mobile Sidebar Filter Toggle
         const mobileFilterToggle = document.getElementById('mobileFilterToggle');
         const filterSidebar = document.getElementById('filterSidebar');
-        
+
         if (mobileFilterToggle && filterSidebar) {
             mobileFilterToggle.addEventListener('click', function() {
                 filterSidebar.classList.toggle('hidden');
-                
+
                 // Smooth scroll to sidebar if opening
                 if (!filterSidebar.classList.contains('hidden')) {
                     filterSidebar.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -818,9 +818,9 @@
                 $ilce.empty().append('<option value="">Tüm İlçeler</option>').trigger('change.select2');
                 return;
             }
-            
+
             $ilce.empty().append('<option value="">Yükleniyor...</option>').trigger('change.select2');
-            
+
             fetch(`/iller/${ilId}/ilceler`)
                 .then(response => response.json())
                 .then(data => {
@@ -935,13 +935,13 @@
                 const filterFormValues = $('#filterForm').serializeArray().filter(item => {
                     return item.value !== '' && item.name !== '_token';
                 });
-                
+
                 // If any filters active, show/hide the Clear Filters wrapper
                 if (filterFormValues.length > 0) {
                     if ($('#filterForm a.clear-filters-btn').length === 0) {
                         $('#filterForm').append(`
                             <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
-                                <a href="${window.location.pathname}" 
+                                <a href="${window.location.pathname}"
                                    class="w-full py-2.5 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#C96A2B] hover:border-[#C96A2B] font-bold text-xs uppercase tracking-wider transition-all font-display text-center flex items-center justify-center cursor-pointer shadow-sm clear-filters-btn">
                                     Filtreleri Temizle
                                 </a>
@@ -1006,13 +1006,13 @@
         // Dynamic Clear Filters click handler
         $(document).on('click', '.clear-filters-btn', function(e) {
             e.preventDefault();
-            
+
             // Clear text search
             $('#arama').val('');
-            
+
             // Reset Select2 dropdowns
             $('#uzmanlik, #unvan, #il, #ilce').val('').trigger('change.select2');
-            
+
             // Clear geolocation parameters
             const yakindakiCheckbox = document.getElementById('yakindaki');
             if (yakindakiCheckbox) {
@@ -1024,7 +1024,7 @@
             }
             document.getElementById('user_lat').value = '';
             document.getElementById('user_lng').value = '';
-            
+
             // Trigger AJAX update
             fetchDoctorsData();
         });
@@ -1049,7 +1049,7 @@
             // Render doctor markers
             mapDoctors.forEach(function(doc) {
                 var popupHtml = '<div class="flex gap-3 items-center p-1 font-display" style="min-width: 200px; max-width: 250px;">' +
-                    (doc.profil_resmi ? 
+                    (doc.profil_resmi ?
                         '<img src="' + doc.profil_resmi + '" class="w-10 h-13 rounded-lg object-cover shrink-0 border border-gray-100">' :
                         '<div class="w-10 h-13 bg-[#FFF7ED] text-[#C96A2B] text-xs font-bold rounded-lg flex items-center justify-center shrink-0 border border-[#E7B58A]/30">' + doc.kisa_ad + '</div>') +
                     '<div class="flex-1 min-w-0">' +

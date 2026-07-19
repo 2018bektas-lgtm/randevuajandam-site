@@ -46,6 +46,13 @@ class SitemapController extends Controller
             'priority' => '0.7',
         ];
 
+        $urls[] = [
+            'loc' => route('frontend.egitimler.index'),
+            'lastmod' => now()->startOfDay()->toAtomString(),
+            'changefreq' => 'daily',
+            'priority' => '0.75',
+        ];
+
         // 2. Doctor Profiles
         $doktorlar = Doktor::platformdaListelenen()->with(['il', 'ilce', 'branslar'])->get();
         foreach ($doktorlar as $doktor) {

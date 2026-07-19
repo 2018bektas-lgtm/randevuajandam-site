@@ -108,21 +108,47 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
-    /* Dikey yorum bandı (randevu 3/4 yanında 1/4) */
+    /* Randevu + yorumlar eşit yükseklik */
+    .doc-booking-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        margin-bottom: 2.5rem;
+        align-items: stretch;
+    }
+    @media (min-width: 1024px) {
+        .doc-booking-row {
+            grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+            gap: 1.35rem;
+        }
+    }
+    .doc-booking-main,
+    .doc-booking-aside {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    .doc-booking-main > #randevu-wizard,
+    .doc-booking-main > .rw {
+        flex: 1 1 auto;
+        height: 100%;
+    }
+    /* Yorum bandı — sabit yükseklik, slate dikey kaydırma */
     .doc-review-panel {
         display: flex;
         flex-direction: column;
-        min-height: 22rem;
-        max-height: 36rem;
+        height: 100%;
+        min-height: 32rem;
         background: #fff;
         border: 1px solid #E5E7EB;
         border-radius: 1.5rem;
-        box-shadow: 0 8px 30px rgba(31, 41, 55, 0.02);
+        box-shadow: 0 8px 30px rgba(31, 41, 55, 0.04);
         overflow: hidden;
     }
     .doc-review-panel-head {
         padding: 1rem 1.1rem 0.85rem;
         border-bottom: 1px solid #F1F5F9;
+        background: linear-gradient(90deg, #FFF7ED 0%, #fff 70%);
         flex-shrink: 0;
     }
     .doc-review-viewport {
@@ -130,18 +156,19 @@
         flex: 1 1 auto;
         min-height: 0;
         overflow: hidden;
-        mask-image: linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
+        background: #FAFAFA;
+        mask-image: linear-gradient(to bottom, transparent 0%, #000 6%, #000 94%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 6%, #000 94%, transparent 100%);
     }
     .doc-review-track {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
-        padding: 0.85rem 0.9rem 1.25rem;
+        gap: 0.65rem;
+        padding: 0.85rem 0.85rem 1.25rem;
         will-change: transform;
     }
     .doc-review-track.is-animated {
-        animation: doc-review-scroll var(--doc-review-duration, 28s) linear infinite;
+        animation: doc-review-scroll var(--doc-review-duration, 32s) linear infinite;
     }
     .doc-review-panel:hover .doc-review-track.is-animated {
         animation-play-state: paused;
@@ -152,10 +179,11 @@
     }
     .doc-review-card {
         flex-shrink: 0;
-        padding: 0.85rem 0.9rem;
-        border-radius: 1rem;
-        border: 1px solid #F1F5F9;
-        background: #FAFAFA;
+        padding: 0.8rem 0.85rem;
+        border-radius: 0.9rem;
+        border: 1px solid #E8ECF1;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
     }
     @media (prefers-reduced-motion: reduce) {
         .doc-review-track.is-animated { animation: none !important; }
@@ -314,14 +342,14 @@
                 : collect();
         @endphp
 
-        {{-- Randevu (3/4) + dikey yorum bandı (1/4) --}}
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-5 lg:gap-6 mb-10 items-stretch">
-            <div class="lg:col-span-3 min-w-0">
+        {{-- Randevu + yorumlar eşit yükseklik --}}
+        <div class="doc-booking-row">
+            <div class="doc-booking-main">
                 @include('frontend.hekimler.partials.randevu_wizard', ['doktor' => $doktor])
             </div>
 
-            <aside class="lg:col-span-1 min-w-0" aria-label="Hasta yorumları">
-                <div class="doc-review-panel h-full lg:sticky lg:top-24">
+            <aside class="doc-booking-aside" aria-label="Hasta yorumları">
+                <div class="doc-review-panel">
                     <div class="doc-review-panel-head">
                         <div class="flex items-center justify-between gap-2">
                             <h2 class="text-sm font-bold font-display text-[#111827]">Hasta Yorumları</h2>
@@ -332,13 +360,13 @@
                             @endif
                         </div>
                         <p class="text-[10px] text-[#6B7280] mt-1">
-                            {{ $doktor->yorum_sayisi ?? $yorumCount }} değerlendirme
+                            {{ $doktor->yorum_sayisi ?? $yorumCount }} değerlendirme · yukarı kayar
                         </p>
                     </div>
 
                     @if($sidebarYorumlar->isNotEmpty())
                         <div class="doc-review-viewport">
-                            <div class="doc-review-track is-animated" id="doc-review-track" style="--doc-review-duration: {{ max(18, $sidebarYorumlar->count() * 6) }}s">
+                            <div class="doc-review-track is-animated" id="doc-review-track" style="--doc-review-duration: {{ max(22, $sidebarYorumlar->count() * 7) }}s">
                                 @foreach($sidebarYorumLoop as $yorum)
                                     <article class="doc-review-card">
                                         <div class="flex items-start justify-between gap-2 mb-2">

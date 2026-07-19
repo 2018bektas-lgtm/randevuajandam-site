@@ -78,7 +78,7 @@
                     @auth('doktor')
                         <li><a href="{{ route('hekim.panel') }}" class="hover:text-[#C96A2B] transition-colors">Hekim paneli</a></li>
                     @endauth
-                    <li><a href="/#doktorlar" class="hover:text-[#C96A2B] transition-colors">Öne çıkan uzmanlar</a></li>
+                    <li><a href="{{ route('frontend.egitimler.index') }}" class="hover:text-[#C96A2B] transition-colors">Eğitimler</a></li>
                 </ul>
             </div>
 
