@@ -88,7 +88,7 @@ class KlinikSeeder extends Seeder
         $kurumsal = Paket::updateOrCreate(['ad' => 'Klinik Kurumsal', 'tur' => 'klinik'], [
             'ad' => 'Klinik Kurumsal',
             'tur' => 'klinik',
-            'aciklama' => 'Sınırsız hekim/personel + özel klinik web sitesi: kurumsal domain, çok hekimli vitrin, CMS ve online randevu tek pakette.',
+            'aciklama' => 'Sınırsız hekim/personel + özel klinik web sitesi: 1 yıl domain (.com/.net) pakete dahil, çok hekimli vitrin, CMS ve online randevu.',
             'aylik_fiyat' => 5499.00,
             'aylik_indirimli_fiyat' => 3999.00,
             'yillik_fiyat' => 54990.00,
@@ -99,7 +99,8 @@ class KlinikSeeder extends Seeder
                 'Sınırsız Sekreter / Personel Tanımlama',
                 'Merkezi Finans & PDF Rapor Çıktıları',
                 'Tüm Şubeler İçin Ortak Hasta Havuzu',
-                'Özel Klinik Web Sitesi (domain + CMS + hosting + SSL)',
+                '1 yıl domain dahil (.com / .net) — ek ücret yok',
+                'Özel Klinik Web Sitesi (CMS + hosting + SSL)',
                 'Premium site temaları (Sıcak, Ocean) + 3 ücretsiz tema',
                 'Çok hekimli vitrin ve hekim seçimli online randevu',
                 'Öncelikli Canlı Destek & Sekreterya Eğitimi',
@@ -113,6 +114,9 @@ class KlinikSeeder extends Seeder
             'toplu_randevu_mi' => true,
             'raporlama_mi' => true,
             'hasta_havuzu_mi' => true,
+            'domain_dahil_mi' => true,
+            'domain_dahil_yil' => 1,
+            'domain_dahil_tlds' => ['com', 'net'],
             'sira' => 3,
             'aktif_mi' => true,
         ]);

@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Models\ApiKey;
 use App\Models\HekimWebSitesi;
+use App\Services\DomainInclusionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class HekimWebSitesiController extends Controller
 {
+    public function __construct(protected DomainInclusionService $domains) {}
+
     public function kurulumFormu()
     {
         $doktor = Auth::guard('doktor')->user();
@@ -20,6 +24,7 @@ class HekimWebSitesiController extends Controller
         $plainSecret = session('plain_api_secret');
         $canHide = $doktor->canHideFromPlatform();
         $platformdaGorunur = (bool) ($doktor->platformda_gorunur ?? true);
+        $domainEligibility = $this->domains->eligibility($doktor);
 
         return view('hekim.web_site.kurulum', compact(
             'webSite',
@@ -27,8 +32,96 @@ class HekimWebSitesiController extends Controller
             'plainSecret',
             'canHide',
             'platformdaGorunur',
-            'doktor'
+            'doktor',
+            'domainEligibility'
         ));
+    }
+
+    /**
+     * Pakete dahil domain müsaitlik (Hostinger).
+     */
+    public function domainCheck(Request $request)
+    {
+        $doktor = Auth::guard('doktor')->user();
+        $data = $request->validate([
+            'sld' => ['required', 'string', 'min:2', 'max:63'],
+            'tlds' => ['nullable', 'array'],
+            'tlds.*' => ['string', 'max:20'],
+        ]);
+
+        try {
+            $results = $this->domains->check($doktor, $data['sld'], $data['tlds'] ?? null);
+        } catch (RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'results' => $results,
+                'eligibility' => $this->publicEligibility($doktor),
+            ],
+        ]);
+    }
+
+    /**
+     * Pakete dahil domain kaydı (Hostinger purchase — ek ücret yok).
+     */
+    public function domainClaim(Request $request)
+    {
+        $doktor = Auth::guard('doktor')->user();
+        $data = $request->validate([
+            'domain' => ['required', 'string', 'max:150'],
+            'mode' => ['nullable', 'in:included,byod'],
+        ]);
+
+        $mode = $data['mode'] ?? 'included';
+        $domain = $this->domains->normalizeDomain($data['domain']);
+
+        try {
+            $order = $mode === 'byod'
+                ? $this->domains->claimByod($doktor, $domain)
+                : $this->domains->claimIncluded($doktor, $domain);
+        } catch (RuntimeException $e) {
+            return back()->with('hata', $e->getMessage())->withInput();
+        }
+
+        // Web sitesi kaydı yoksa oluştur
+        if (! $doktor->webSite) {
+            $request->merge(['domain' => $order->domain]);
+
+            return $this->kurulumYap($request)
+                ->with('basarili', $mode === 'byod'
+                    ? 'Domain bağlandı (kendi alan adınız). DNS adımlarını tamamlayın.'
+                    : 'Domain pakete dahil olarak kaydedildi (1 yıl). Ek ücret yok.');
+        }
+
+        $doktor->webSite->forceFill([
+            'domain' => $order->domain,
+            'hostinger_domain_id' => $order->hostinger_order_id,
+        ])->save();
+
+        return redirect()
+            ->route('hekim.web-sitesi.kurulum')
+            ->with('basarili', $mode === 'byod'
+                ? 'Domain güncellendi. DNS adımlarını tamamlayın.'
+                : 'Domain pakete dahil kaydedildi.');
+    }
+
+    protected function publicEligibility($doktor): array
+    {
+        $e = $this->domains->eligibility($doktor);
+
+        return [
+            'eligible' => $e['eligible'],
+            'reason' => $e['reason'],
+            'tlds' => $e['tlds'],
+            'yil' => $e['yil'],
+            'already_claimed' => $e['already_claimed'],
+            'active_domain' => $e['active_domain'],
+            'hostinger_ready' => $e['hostinger_ready'],
+            'paket_ad' => $e['paket']?->ad,
+        ];
     }
 
     /**

@@ -21,7 +21,7 @@ class PaketSeeder extends Seeder
             ['kod' => 'blog', 'ad' => 'Blog / Makale Paneli', 'aciklama' => 'Blog ve sağlık makalesi yayınlama yetkisi.'],
             ['kod' => 'yorum', 'ad' => 'Danışan Yorumları Modülü', 'aciklama' => 'Hasta yorumlarını ve geri bildirimlerini yönetme yetkisi.'],
             ['kod' => 'faq', 'ad' => 'Sıkça Sorulan Sorular Modülü', 'aciklama' => 'Profilde S.S.S. yayınlama yetkisi.'],
-            ['kod' => 'web_sitesi', 'ad' => 'Özel Web Sitesi Entegrasyonu', 'aciklama' => 'Hostinger tabanlı kişisel web sitesi ve alan adı kurulum yetkisi (bireysel hekim).'],
+            ['kod' => 'web_sitesi', 'ad' => 'Özel Web Sitesi Entegrasyonu', 'aciklama' => 'Kişisel hekim web sitesi + 1 yıl domain (com/net) pakete dahil; Hostinger üzerinden sistem kaydı.'],
             ['kod' => 'klinik_web_sitesi', 'ad' => 'Klinik Web Sitesi', 'aciklama' => 'Klinik markalı özel web sitesi, çok hekim vitrini ve online randevu (yalnızca Klinik Kurumsal).'],
             ['kod' => 'egitimler', 'ad' => 'Eğitimler & Başvuru Formu', 'aciklama' => 'Kurs/webinar vitrini, dinamik başvuru formu ve finansa yansıyan eğitim geliri takibi.'],
             ['kod' => 'online_gorusme', 'ad' => 'Online Görüşme', 'aciklama' => 'Randevuda online seans; platform üzerinden görüntülü oda (Zoom linki yok).'],
@@ -124,14 +124,14 @@ class PaketSeeder extends Seeder
             [
                 'ad' => 'Özel Web Sitesi Entegrasyon Paketi',
                 'tur' => 'bireysel',
-                'aciklama' => 'VIP paneli + kişisel hekim web sitesi: kendi domaininiz, CMS paneli, online randevu ve SEO altyapısı tek pakette.',
+                'aciklama' => 'VIP paneli + kişisel hekim web sitesi: 1 yıl domain (.com/.net) pakete dahil, CMS, online randevu ve SEO tek fiyatta.',
                 'aylik_fiyat' => 2499.00,
                 'aylik_indirimli_fiyat' => 1999.00,
                 'yillik_fiyat' => 24999.00,
                 'yillik_indirimli_fiyat' => 19999.00,
                 'ozellikler' => [
                     'Tüm VIP Paket Özelliklerinin Tamamı',
-                    'Kişiye Özel Alan Adı (.com, .com.tr vb.) Tanımlama',
+                    '1 yıl domain dahil (.com / .net) — ek ücret yok',
                     'Mobil Uyumlu Modern Hekim Web Sitesi (doktorsitesi)',
                     'Premium site temaları (Sıcak, Ocean) + 3 ücretsiz tema',
                     'Eğitimler & dinamik başvuru formu',
@@ -142,6 +142,9 @@ class PaketSeeder extends Seeder
                     'Hosting, SSL ve Teknik Bakım Dahil',
                 ],
                 'aktif_mi' => true,
+                'domain_dahil_mi' => true,
+                'domain_dahil_yil' => 1,
+                'domain_dahil_tlds' => ['com', 'net'],
                 'sistem_ozellikleri' => ['hakkimda', 'galeri', 'randevu_talepleri', 'finans', 'blog', 'yorum', 'faq', 'web_sitesi', 'egitimler', 'online_gorusme'],
                 'max_hasta_sayisi' => null,
                 'max_randevu_sayisi' => null,
@@ -151,6 +154,10 @@ class PaketSeeder extends Seeder
         foreach ($bireyselPaketler as $paketVeri) {
             $sistemOzellikKodlari = $paketVeri['sistem_ozellikleri'] ?? [];
             unset($paketVeri['sistem_ozellikleri']);
+            // domain alanları yoksa false
+            $paketVeri['domain_dahil_mi'] = (bool) ($paketVeri['domain_dahil_mi'] ?? false);
+            $paketVeri['domain_dahil_yil'] = (int) ($paketVeri['domain_dahil_yil'] ?? 1);
+            $paketVeri['domain_dahil_tlds'] = $paketVeri['domain_dahil_tlds'] ?? null;
 
             $paket = Paket::updateOrCreate(
                 ['ad' => $paketVeri['ad'], 'tur' => $paketVeri['tur']],

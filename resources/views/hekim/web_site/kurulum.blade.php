@@ -207,41 +207,160 @@
             </div>
         </div>
     @else
-        <!-- No Website Configured: Form to Save Custom Domain -->
+        @php
+            $de = $domainEligibility ?? [];
+            $tlds = $de['tlds'] ?? ['com', 'net'];
+            $domainEligible = (bool) ($de['eligible'] ?? false);
+            $domainClaimed = (bool) ($de['already_claimed'] ?? false);
+        @endphp
+
+        {{-- Pakete dahil domain (ek ücret yok) --}}
+        <div class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-6 md:p-8 space-y-5">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 font-display">Domain (pakete dahil)</h3>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Özel Web Sitesi paketinde <strong>1 yıl domain ek ücret yok</strong>
+                        ({{ implode(', ', array_map(fn ($t) => '.'.$t, $tlds)) }}).
+                        Aylık veya yıllık abonelikte hak aynıdır.
+                    </p>
+                </div>
+                @if($domainEligible)
+                    <span class="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Hak açık</span>
+                @elseif($domainClaimed)
+                    <span class="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide rounded-full bg-slate-100 text-slate-600 border border-slate-200">Kullanıldı: {{ $de['active_domain'] ?? '' }}</span>
+                @else
+                    <span class="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide rounded-full bg-amber-50 text-amber-800 border border-amber-100">Paket kontrol</span>
+                @endif
+            </div>
+
+            @if(!empty($de['reason']) && ! $domainEligible)
+                <p class="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">{{ $de['reason'] }}</p>
+            @endif
+
+            <div class="flex flex-col sm:flex-row gap-2 max-w-2xl">
+                <input type="text" id="domain-sld" placeholder="ornek: dr-ahmet-yilmaz" class="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-sm focus:ring-orange-500 focus:border-orange-500" {{ $domainEligible ? '' : 'disabled' }}>
+                <button type="button" id="domain-check-btn" class="px-5 py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-50" {{ $domainEligible ? '' : 'disabled' }}>
+                    Sorgula
+                </button>
+            </div>
+            <div id="domain-check-results" class="space-y-2"></div>
+            <p id="domain-check-msg" class="text-xs text-gray-400 hidden"></p>
+
+            <form id="domain-claim-form" action="{{ route('hekim.web-sitesi.domain.claim') }}" method="POST" class="hidden space-y-3 max-w-2xl">
+                @csrf
+                <input type="hidden" name="domain" id="claim-domain-val">
+                <input type="hidden" name="mode" id="claim-mode-val" value="included">
+                <p class="text-sm text-gray-700">Seçilen: <strong id="claim-domain-label"></strong> — <span class="text-emerald-700 font-semibold">pakete dahil, ek ücret yok</span></p>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">
+                    Domaini kaydet (pakete dahil)
+                </button>
+            </form>
+        </div>
+
+        <!-- Manuel / BYOD domain -->
         <form action="{{ route('hekim.web-sitesi.kurulum.post') }}" method="POST" class="space-y-8">
             @csrf
-
-            <!-- Card 1: Domain input -->
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 space-y-6">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">1</div>
-                    <h3 class="text-lg font-bold text-gray-900 font-display">Kişisel Web Sitesi Adresinizi Belirleyin</h3>
+                    <div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">2</div>
+                    <h3 class="text-lg font-bold text-gray-900 font-display">Kendi domaininiz varsa (BYOD)</h3>
                 </div>
-                
                 <div class="max-w-xl">
-                    <label for="domain" class="block text-sm font-medium text-gray-700 mb-2">Web Sitenizin Alan Adı (Domain)</label>
-                    <div class="flex rounded-xl shadow-sm">
-                        <input type="text" name="domain" id="domain" required value="{{ old('domain') }}" placeholder="örnek: dr-ahmet-yilmaz.com" class="flex-1 min-w-0 block w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-orange-500 focus:border-orange-500 text-sm">
-                    </div>
+                    <label for="domain" class="block text-sm font-medium text-gray-700 mb-2">Mevcut alan adınız</label>
+                    <input type="text" name="domain" id="domain" required value="{{ old('domain') }}" placeholder="ornek: dr-ahmet-yilmaz.com" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-orange-500 focus:border-orange-500 text-sm">
                     @error('domain')
                         <p class="text-red-600 text-xs mt-2">{{ $message }}</p>
                     @enderror
-                    <p class="text-xs text-gray-400 mt-2">Sitenizi yayına alacağınız alan adını girin (Örn: <code>doktoradi.com</code>). Girilen alan adı için API anahtarları otomatik olarak üretilecektir.</p>
+                    <p class="text-xs text-gray-400 mt-2">Zaten sahip olduğunuz domaini buraya yazın. Hostinger satın alma yapılmaz; DNS yönlendirmesi sizin sorumluluğunuzdadır.</p>
                 </div>
             </div>
-
-            <!-- Submit actions -->
             <div class="flex justify-end gap-4">
-                <button type="submit" class="px-6 py-3.5 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 shadow-sm transition-all text-sm flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                    </svg>
-                    <span>Alan Adını Kaydet ve API Anahtarları Üret</span>
+                <button type="submit" class="px-6 py-3.5 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 shadow-sm transition-all text-sm">
+                    Domaini kaydet ve API anahtarları üret
                 </button>
             </div>
         </form>
     @endif
 </div>
+
+@if(!($webSite ?? null))
+<script>
+(function () {
+    const checkBtn = document.getElementById('domain-check-btn');
+    const sldEl = document.getElementById('domain-sld');
+    const resultsEl = document.getElementById('domain-check-results');
+    const msgEl = document.getElementById('domain-check-msg');
+    const claimForm = document.getElementById('domain-claim-form');
+    if (!checkBtn || !sldEl) return;
+
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content
+        || document.querySelector('input[name="_token"]')?.value;
+
+    checkBtn.addEventListener('click', async () => {
+        const sld = (sldEl.value || '').trim();
+        if (sld.length < 2) {
+            msgEl.textContent = 'En az 2 karakter girin.';
+            msgEl.classList.remove('hidden');
+            return;
+        }
+        checkBtn.disabled = true;
+        checkBtn.textContent = 'Sorgulanıyor…';
+        msgEl.classList.add('hidden');
+        resultsEl.innerHTML = '';
+        claimForm.classList.add('hidden');
+        try {
+            const res = await fetch(@json(route('hekim.web-sitesi.domain.check')), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ sld }),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json.success) {
+                throw new Error(json.message || 'Sorgu başarısız');
+            }
+            const rows = json.data?.results || [];
+            if (!rows.length) {
+                resultsEl.innerHTML = '<p class="text-sm text-gray-500">Sonuç yok.</p>';
+            } else {
+                resultsEl.innerHTML = rows.map(r => {
+                    const d = r.domain || '';
+                    const ok = !!r.is_available;
+                    const mock = r.mock ? ' <span class="text-[10px] text-amber-600">(simülasyon)</span>' : '';
+                    return `<div class="flex items-center justify-between gap-3 p-3 rounded-xl border ${ok ? 'border-emerald-100 bg-emerald-50/50' : 'border-gray-100 bg-gray-50'}">
+                        <div>
+                            <span class="font-semibold text-sm text-gray-900">${d}</span>${mock}
+                            <span class="block text-xs ${ok ? 'text-emerald-700' : 'text-gray-500'}">${ok ? 'Müsait — pakete dahil' : 'Dolu'}</span>
+                        </div>
+                        ${ok ? `<button type="button" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold" data-pick="${d}">Seç</button>` : ''}
+                    </div>`;
+                }).join('');
+                resultsEl.querySelectorAll('[data-pick]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.getElementById('claim-domain-val').value = btn.dataset.pick;
+                        document.getElementById('claim-domain-label').textContent = btn.dataset.pick;
+                        document.getElementById('claim-mode-val').value = 'included';
+                        claimForm.classList.remove('hidden');
+                    });
+                });
+            }
+        } catch (e) {
+            msgEl.textContent = e.message || 'Hata';
+            msgEl.classList.remove('hidden');
+            msgEl.classList.add('text-red-600');
+        } finally {
+            checkBtn.disabled = false;
+            checkBtn.textContent = 'Sorgula';
+        }
+    });
+})();
+</script>
+@endif
 
 <script>
     function toggleSecretKey() {

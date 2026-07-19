@@ -29,6 +29,9 @@ class Paket extends Model
         'raporlama_mi',
         'hasta_havuzu_mi',
         'sira',
+        'domain_dahil_mi',
+        'domain_dahil_yil',
+        'domain_dahil_tlds',
     ];
 
     protected function casts(): array
@@ -40,7 +43,16 @@ class Paket extends Model
             'toplu_randevu_mi' => 'boolean',
             'raporlama_mi' => 'boolean',
             'hasta_havuzu_mi' => 'boolean',
+            'domain_dahil_mi' => 'boolean',
+            'domain_dahil_yil' => 'integer',
+            'domain_dahil_tlds' => 'array',
         ];
+    }
+
+    /** Domain pakete dahil mi (ayrı ücret yok). */
+    public function domainDahilMi(): bool
+    {
+        return (bool) ($this->domain_dahil_mi ?? false);
     }
 
     /**
