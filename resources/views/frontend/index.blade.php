@@ -3,83 +3,144 @@
 @section('baslik', 'Randevu Ajandam - Uzman Doktor ve Randevu Platformu')
 
 @section('icerik')
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+        .animate-float-delayed {
+            animation: float 4s ease-in-out infinite;
+            animation-delay: 2s;
+        }
+        .animate-float-slow {
+            animation: float-slow 6s ease-in-out infinite;
+        }
+        .animate-float-slow-delayed {
+            animation: float-slow 6s ease-in-out infinite;
+            animation-delay: 3s;
+        }
+    </style>
+
     <!-- Hero Section -->
-    <section class="relative bg-white border-b border-[#E5E7EB] pt-4 pb-4 md:pt-4 md:pb-4 overflow-hidden select-none">
+    <section class="relative bg-white border-b border-[#E5E7EB] pt-12 pb-16 md:pt-24 md:pb-24 overflow-hidden select-none">
         <!-- Background Ambient Lights -->
         <div class="absolute top-[-30%] right-[-10%] w-[550px] h-[550px] rounded-full bg-[#E7B58A]/10 blur-[130px] pointer-events-none"></div>
         <div class="absolute bottom-[-20%] left-[-10%] w-[550px] h-[550px] rounded-full bg-[#C96A2B]/4 blur-[130px] pointer-events-none"></div>
 
-        <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
-            <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 rounded-full text-xs font-bold font-display uppercase tracking-wider mb-6">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] animate-pulse"></span>
-                Türkiye'nin Seçkin Uzman Ağı
-            </span>
-
-            <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold font-display text-[#111827] tracking-tight leading-tight md:leading-none">
-                Aradığınız Uzmanı Bulun, <br class="hidden md:inline">
-                <span class="text-[#C96A2B]">Kolayca Randevu</span> Alın.
-            </h1>
-
-            <p class="text-base text-[#6B7280] max-w-xl mx-auto mt-5 leading-relaxed">
-                @if(isset($branslar) && $branslar->count() > 0)
-                    {{ $branslar->take(4)->pluck('ad')->implode(', ') }} ve daha birçok alanda yüzlerce profesyonel arasından size en uygun olanını seçin.
-                @else
-                    Psikologlardan diyetisyenlere, çocuk gelişimcilerinden fizyoterapistlere kadar yüzlerce profesyonel arasından size en uygun olanını seçin.
-                @endif
-            </p>
-
-            <!-- Search Area -->
-            <form action="{{ route('frontend.hekimler') }}" method="GET" class="max-w-2xl mx-auto mt-10 p-2 bg-white rounded-2xl border border-[#E5E7EB] shadow-lg shadow-slate-200/50 flex flex-col sm:flex-row gap-2">
-                <div class="flex-grow relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#6B7280]">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        <div class="max-w-7xl mx-auto relative px-6">
+            <!-- Floating Stats (Left Side) -->
+            @if(isset($istatistikler))
+            <div class="absolute inset-y-0 left-0 w-full pointer-events-none hidden lg:block z-20">
+                <!-- Stat Card 1: Aktif Uzman -->
+                <div class="absolute top-[10%] left-[2%] xl:left-[4%] bg-white/90 backdrop-blur-md border border-[#E7B58A]/30 p-4 rounded-2xl shadow-lg shadow-slate-200/50 flex items-center gap-3 animate-float-slow pointer-events-auto transition-all duration-300 hover:scale-105">
+                    <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center font-bold flex-shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
-                    </span>
-                    <input type="text" name="arama" id="searchBar" placeholder="Uzman adı, branş veya şikayet yazın..."
-                           class="w-full pl-11 pr-4 py-4 rounded-xl bg-transparent text-[#111827] placeholder-[#9CA3AF] focus:outline-none text-sm font-medium">
+                    </div>
+                    <div>
+                        <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none">{{ number_format($istatistikler['doktor_sayisi']) }}+</div>
+                        <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Aktif Uzman</div>
+                    </div>
                 </div>
 
-                <button type="submit" class="sm:px-8 py-4 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-sm tracking-wide transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
-                    Uzman Ara
-                </button>
-            </form>
+                <!-- Stat Card 2: Hasta Yorumu -->
+                <div class="absolute bottom-[15%] left-[4%] xl:left-[8%] bg-white/90 backdrop-blur-md border border-[#E5E7EB] p-4 rounded-2xl shadow-lg shadow-slate-200/50 flex items-center gap-3 animate-float-delayed pointer-events-auto transition-all duration-300 hover:scale-105">
+                    <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center font-bold flex-shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none">{{ number_format($istatistikler['yorum_sayisi']) }}+</div>
+                        <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Hasta Yorumu</div>
+                    </div>
+                </div>
+            </div>
 
-            <!-- Popular Quick Tags (Dinamik) -->
-            <div class="mt-5 flex items-center justify-center flex-wrap gap-2 text-xs">
-                <span class="text-[#6B7280] font-medium mr-1.5">Popüler:</span>
-                @foreach($populerAramalar as $arama)
-                    <button type="button" onclick="setSearch('{{ $arama }}')" class="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-slate-50 hover:bg-[#FFF7ED] hover:text-[#C96A2B] hover:border-[#E7B58A]/30 transition-all font-semibold cursor-pointer">{{ $arama }}</button>
-                @endforeach
+            <!-- Floating Stats (Right Side) -->
+            <div class="absolute inset-y-0 right-0 w-full pointer-events-none hidden lg:block z-20">
+                <!-- Stat Card 3: Tamamlanan Randevu -->
+                <div class="absolute top-[15%] right-[2%] xl:right-[4%] bg-white/90 backdrop-blur-md border border-[#E5E7EB] p-4 rounded-2xl shadow-lg shadow-slate-200/50 flex items-center gap-3 animate-float pointer-events-auto transition-all duration-300 hover:scale-105">
+                    <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center font-bold flex-shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none">{{ number_format($istatistikler['randevu_sayisi']) }}+</div>
+                        <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Tamamlanan Randevu</div>
+                    </div>
+                </div>
+
+                <!-- Stat Card 4: Uzmanlık Alanı -->
+                <div class="absolute bottom-[10%] right-[4%] xl:right-[8%] bg-white/90 backdrop-blur-md border border-[#E7B58A]/30 p-4 rounded-2xl shadow-lg shadow-slate-200/50 flex items-center gap-3 animate-float-slow-delayed pointer-events-auto transition-all duration-300 hover:scale-105">
+                    <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center font-bold flex-shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-base font-extrabold font-display text-[#C96A2B] leading-none">{{ $istatistikler['brans_sayisi'] }}</div>
+                        <div class="text-[9px] font-bold text-[#6B7280] uppercase tracking-wider mt-1.5 leading-none">Uzmanlık Alanı</div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 rounded-full text-xs font-bold font-display uppercase tracking-wider mb-6">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] animate-pulse"></span>
+                    Türkiye'nin Seçkin Uzman Ağı
+                </span>
+
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold font-display text-[#111827] tracking-tight leading-tight md:leading-none">
+                    Aradığınız Uzmanı Bulun, <br class="hidden md:inline">
+                    <span class="text-[#C96A2B]">Kolayca Randevu</span> Alın.
+                </h1>
+
+                <p class="text-base text-[#6B7280] max-w-xl mx-auto mt-5 leading-relaxed">
+                    @if(isset($branslar) && $branslar->count() > 0)
+                        {{ $branslar->take(4)->pluck('ad')->implode(', ') }} ve daha birçok alanda yüzlerce profesyonel arasından size en uygun olanını seçin.
+                    @else
+                        Psikologlardan diyetisyenlere, çocuk gelişimcilerinden fizyoterapistlere kadar yüzlerce profesyonel arasından size en uygun olanını seçin.
+                    @endif
+                </p>
+
+                <!-- Search Area -->
+                <form action="{{ route('frontend.hekimler') }}" method="GET" class="max-w-2xl mx-auto mt-10 p-2 bg-white rounded-2xl border border-[#E5E7EB] shadow-lg shadow-slate-200/50 flex flex-col sm:flex-row gap-2">
+                    <div class="flex-grow relative">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#6B7280]">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </span>
+                        <input type="text" name="arama" id="searchBar" placeholder="Uzman adı, branş veya şikayet yazın..."
+                               class="w-full pl-11 pr-4 py-4 rounded-xl bg-transparent text-[#111827] placeholder-[#9CA3AF] focus:outline-none text-sm font-medium">
+                    </div>
+
+                    <button type="submit" class="sm:px-8 py-4 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-sm tracking-wide transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
+                        Uzman Ara
+                    </button>
+                </form>
+
+                <!-- Popular Quick Tags (Dinamik) -->
+                <div class="mt-5 flex items-center justify-center flex-wrap gap-2 text-xs">
+                    <span class="text-[#6B7280] font-medium mr-1.5">Popüler:</span>
+                    @foreach($populerAramalar as $arama)
+                        <button type="button" onclick="setSearch('{{ $arama }}')" class="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-slate-50 hover:bg-[#FFF7ED] hover:text-[#C96A2B] hover:border-[#E7B58A]/30 transition-all font-semibold cursor-pointer">{{ $arama }}</button>
+                    @endforeach
+                </div>
             </div>
         </div>
     </section>
-
-    <!-- İstatistikler Section -->
-    @if(isset($istatistikler))
-    <section class="bg-[#FFF7ED] border-b border-[#E7B58A]/20 py-12 select-none">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                <div class="space-y-1">
-                    <div class="text-3xl md:text-4xl font-extrabold font-display text-[#C96A2B]">{{ number_format($istatistikler['doktor_sayisi']) }}+</div>
-                    <div class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Aktif Uzman</div>
-                </div>
-                <div class="space-y-1">
-                    <div class="text-3xl md:text-4xl font-extrabold font-display text-[#C96A2B]">{{ number_format($istatistikler['randevu_sayisi']) }}+</div>
-                    <div class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Tamamlanan Randevu</div>
-                </div>
-                <div class="space-y-1">
-                    <div class="text-3xl md:text-4xl font-extrabold font-display text-[#C96A2B]">{{ number_format($istatistikler['yorum_sayisi']) }}+</div>
-                    <div class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Hasta Yorumu</div>
-                </div>
-                <div class="space-y-1">
-                    <div class="text-3xl md:text-4xl font-extrabold font-display text-[#C96A2B]">{{ $istatistikler['brans_sayisi'] }}</div>
-                    <div class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Uzmanlık Alanı</div>
-                </div>
-            </div>
-        </div>
-    </section>
-    @endif
 
     <!-- Categories Section (Dinamik) -->
     <section id="hizmetler" class="max-w-7xl mx-auto px-6 py-20 select-none">
