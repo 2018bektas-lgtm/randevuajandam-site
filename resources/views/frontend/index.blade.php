@@ -4,7 +4,7 @@
 
 @section('icerik')
     <!-- Hero Section -->
-    <section class="relative bg-white border-b border-[#E5E7EB] pt-16 pb-4 md:pt-24 md:pb-28 overflow-hidden select-none">
+    <section class="relative bg-white border-b border-[#E5E7EB] pt-4 pb-4 md:pt-4 md:pb-4 overflow-hidden select-none">
         <!-- Background Ambient Lights -->
         <div class="absolute top-[-30%] right-[-10%] w-[550px] h-[550px] rounded-full bg-[#E7B58A]/10 blur-[130px] pointer-events-none"></div>
         <div class="absolute bottom-[-20%] left-[-10%] w-[550px] h-[550px] rounded-full bg-[#C96A2B]/4 blur-[130px] pointer-events-none"></div>
