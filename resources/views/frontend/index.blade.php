@@ -8,196 +8,204 @@
             [
                 'value' => number_format($istatistikler['doktor_sayisi']).'+',
                 'label' => 'Aktif Uzman',
-                'delay' => '0s',
-                'draw' => '0.1s',
-                'side' => 'tl',
+                'icon' => 'users',
+                'side' => 'a',
             ],
             [
                 'value' => number_format($istatistikler['randevu_sayisi']).'+',
-                'label' => 'Randevu',
-                'delay' => '0.6s',
-                'draw' => '0.35s',
-                'side' => 'tr',
+                'label' => 'Tamamlanan Randevu',
+                'icon' => 'check',
+                'side' => 'b',
             ],
             [
                 'value' => number_format($istatistikler['yorum_sayisi']).'+',
                 'label' => 'Hasta Yorumu',
-                'delay' => '1.2s',
-                'draw' => '0.6s',
-                'side' => 'bl',
+                'icon' => 'chat',
+                'side' => 'c',
             ],
             [
                 'value' => (string) $istatistikler['brans_sayisi'],
-                'label' => 'Uzmanlık',
-                'delay' => '1.8s',
-                'draw' => '0.85s',
-                'side' => 'br',
+                'label' => 'Uzmanlık Alanı',
+                'icon' => 'flask',
+                'side' => 'd',
             ],
         ] : [];
-        // SVG daire çevresi: r=42 → 2πr ≈ 263.9
-        $heroCircleLen = 264;
     @endphp
 
     <style>
-        /* Animasyonlu daire çizimi (stroke-dash) */
-        @keyframes hero-circle-draw {
-            0% { stroke-dashoffset: {{ $heroCircleLen }}; opacity: 0.35; }
-            12% { opacity: 1; }
-            55% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: 0; }
+        @keyframes hero-float-1 {
+            0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--hero-rot)); }
+            50% { transform: translate3d(4px, -10px, 0) rotate(var(--hero-rot)); }
         }
-        @keyframes hero-circle-spin {
-            0% { transform: rotate(-90deg); }
-            100% { transform: rotate(270deg); }
+        @keyframes hero-float-2 {
+            0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--hero-rot)); }
+            50% { transform: translate3d(-5px, -12px, 0) rotate(var(--hero-rot)); }
         }
-        @keyframes hero-bob {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
+        @keyframes hero-float-3 {
+            0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--hero-rot)); }
+            50% { transform: translate3d(6px, -8px, 0) rotate(var(--hero-rot)); }
         }
-        @keyframes hero-fade-up {
-            from { opacity: 0; transform: translateY(10px) scale(0.92); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+        @keyframes hero-float-4 {
+            0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--hero-rot)); }
+            50% { transform: translate3d(-3px, -11px, 0) rotate(var(--hero-rot)); }
         }
-        @keyframes hero-soft-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(201, 106, 43, 0.18); }
-            50% { box-shadow: 0 0 0 10px rgba(201, 106, 43, 0); }
+        @keyframes hero-card-in {
+            from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.92); }
+            to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
         }
 
         .hero-stage {
             position: relative;
-            max-width: 56rem;
+            max-width: 58rem;
             margin-left: auto;
             margin-right: auto;
         }
 
-        /* 4 kenar: yazının etrafında */
-        .hero-ring-stat {
+        /* Dağınık dikdörtgen kutular — hizalı ızgara değil */
+        .hero-scatter {
             position: absolute;
             z-index: 20;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.4rem;
-            width: 6.25rem;
-            text-align: center;
             pointer-events: none;
-            animation: hero-fade-up 0.6s ease-out both;
+            animation: hero-card-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
-        .hero-ring-stat--tl { top: -0.5rem; left: 0; animation-delay: 0.05s; }
-        .hero-ring-stat--tr { top: -0.5rem; right: 0; animation-delay: 0.15s; }
-        .hero-ring-stat--bl { bottom: -0.5rem; left: 0; animation-delay: 0.25s; }
-        .hero-ring-stat--br { bottom: -0.5rem; right: 0; animation-delay: 0.35s; }
+        .hero-scatter--a {
+            --hero-rot: -7deg;
+            top: -0.35rem;
+            left: -0.25rem;
+            animation-delay: 0.08s;
+        }
+        .hero-scatter--b {
+            --hero-rot: 5deg;
+            top: 12%;
+            right: -0.5rem;
+            animation-delay: 0.22s;
+        }
+        .hero-scatter--c {
+            --hero-rot: 4deg;
+            bottom: 8%;
+            left: -0.75rem;
+            animation-delay: 0.36s;
+        }
+        .hero-scatter--d {
+            --hero-rot: -5deg;
+            bottom: -0.5rem;
+            right: 0.25rem;
+            animation-delay: 0.5s;
+        }
 
         @media (min-width: 768px) {
-            .hero-ring-stat { width: 7rem; }
-            .hero-ring-stat--tl { top: -0.75rem; left: -0.75rem; }
-            .hero-ring-stat--tr { top: -0.75rem; right: -0.75rem; }
-            .hero-ring-stat--bl { bottom: -0.75rem; left: -0.75rem; }
-            .hero-ring-stat--br { bottom: -0.75rem; right: -0.75rem; }
+            .hero-scatter--a { top: 0; left: -1.25rem; }
+            .hero-scatter--b { top: 4%; right: -1.5rem; }
+            .hero-scatter--c { bottom: 6%; left: -1.75rem; }
+            .hero-scatter--d { bottom: -0.75rem; right: -0.75rem; }
         }
         @media (min-width: 1024px) {
-            .hero-ring-stat--tl { top: -0.5rem; left: -2rem; }
-            .hero-ring-stat--tr { top: -0.5rem; right: -2rem; }
-            .hero-ring-stat--bl { bottom: -0.5rem; left: -2rem; }
-            .hero-ring-stat--br { bottom: -0.5rem; right: -2rem; }
+            .hero-scatter--a { top: -0.5rem; left: -3rem; }
+            .hero-scatter--b { top: 8%; right: -3.25rem; }
+            .hero-scatter--c { bottom: 10%; left: -3.5rem; }
+            .hero-scatter--d { bottom: -1rem; right: -2.5rem; }
         }
         @media (min-width: 1280px) {
-            .hero-ring-stat--tl { top: -0.25rem; left: -4rem; }
-            .hero-ring-stat--tr { top: -0.25rem; right: -4rem; }
-            .hero-ring-stat--bl { bottom: -0.25rem; left: -4rem; }
-            .hero-ring-stat--br { bottom: -0.25rem; right: -4rem; }
+            .hero-scatter--a { top: -0.75rem; left: -5.5rem; }
+            .hero-scatter--b { top: 6%; right: -5.75rem; }
+            .hero-scatter--c { bottom: 12%; left: -6rem; }
+            .hero-scatter--d { bottom: -1.25rem; right: -4.5rem; }
         }
 
-        .hero-ring-bob {
-            animation: hero-bob 5s ease-in-out infinite;
+        .hero-scatter-float {
+            transform: rotate(var(--hero-rot, 0deg));
+            will-change: transform;
         }
-        .hero-ring-stat--tr .hero-ring-bob { animation-delay: 0.7s; }
-        .hero-ring-stat--bl .hero-ring-bob { animation-delay: 1.4s; }
-        .hero-ring-stat--br .hero-ring-bob { animation-delay: 2.1s; }
+        .hero-scatter--a .hero-scatter-float { animation: hero-float-1 5.2s ease-in-out infinite; animation-delay: 0.2s; }
+        .hero-scatter--b .hero-scatter-float { animation: hero-float-2 6.1s ease-in-out infinite; animation-delay: 0.9s; }
+        .hero-scatter--c .hero-scatter-float { animation: hero-float-3 5.6s ease-in-out infinite; animation-delay: 1.4s; }
+        .hero-scatter--d .hero-scatter-float { animation: hero-float-4 6.4s ease-in-out infinite; animation-delay: 0.5s; }
 
-        .hero-ring {
-            position: relative;
-            width: 5.25rem;
-            height: 5.25rem;
-            border-radius: 9999px;
-            background: rgba(255, 255, 255, 0.92);
-            border: 1px solid rgba(231, 181, 138, 0.35);
-            box-shadow: 0 10px 28px -10px rgba(31, 41, 55, 0.14);
-            animation: hero-soft-pulse 3.2s ease-in-out infinite;
-        }
-        @media (min-width: 768px) {
-            .hero-ring { width: 5.75rem; height: 5.75rem; }
-        }
-
-        .hero-ring svg {
-            position: absolute;
-            inset: -4px;
-            width: calc(100% + 8px);
-            height: calc(100% + 8px);
-            overflow: visible;
-            transform-origin: 50% 50%;
-            /* Üstten çizime başla + yavaş dönüş */
-            animation: hero-circle-spin 12s linear infinite;
-        }
-        .hero-ring-track {
-            fill: none;
-            stroke: rgba(231, 181, 138, 0.28);
-            stroke-width: 2.75;
-        }
-        .hero-ring-progress {
-            fill: none;
-            stroke: #C96A2B;
-            stroke-width: 3.5;
-            stroke-linecap: round;
-            stroke-dasharray: {{ $heroCircleLen }};
-            stroke-dashoffset: {{ $heroCircleLen }};
-            animation: hero-circle-draw 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-            /* spin ile birlikte dönüş için transform SVG'de */
-            transform-origin: 50% 50%;
-        }
-
-        .hero-ring-core {
-            position: absolute;
-            inset: 0;
+        .hero-box {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 0.7rem;
+            min-width: 9.5rem;
+            max-width: 11.5rem;
+            padding: 0.7rem 0.85rem;
+            border-radius: 1rem;
+            background: linear-gradient(145deg, rgba(255,255,255,0.97) 0%, rgba(255,247,237,0.92) 100%);
+            border: 1px solid rgba(231, 181, 138, 0.4);
+            box-shadow:
+                0 14px 36px -14px rgba(31, 41, 55, 0.18),
+                0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .hero-box:hover {
+            border-color: rgba(201, 106, 43, 0.45);
+            box-shadow:
+                0 18px 40px -12px rgba(201, 106, 43, 0.22),
+                0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+        }
+        .hero-box-icon {
+            width: 2.35rem;
+            height: 2.35rem;
+            border-radius: 0.7rem;
+            background: #FFF7ED;
+            color: #C96A2B;
+            display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0.35rem;
-            z-index: 1;
+            flex-shrink: 0;
+            border: 1px solid rgba(231, 181, 138, 0.35);
         }
-        .hero-ring-value {
-            font-size: 0.95rem;
+        .hero-box-icon svg { width: 1.15rem; height: 1.15rem; }
+        .hero-box-text { text-align: left; min-width: 0; }
+        .hero-box-value {
+            font-size: 1rem;
             font-weight: 800;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.03em;
             color: #C96A2B;
             line-height: 1;
             font-variant-numeric: tabular-nums;
         }
-        @media (min-width: 768px) {
-            .hero-ring-value { font-size: 1.05rem; }
-        }
-        .hero-ring-label {
+        .hero-box-label {
+            margin-top: 0.3rem;
             font-size: 0.5625rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.05em;
             color: #6B7280;
-            line-height: 1.15;
-            max-width: 6.5rem;
+            line-height: 1.2;
+        }
+
+        /* Kart varyasyonları — dağınık hissi güçlendirir */
+        .hero-scatter--b .hero-box {
+            min-width: 10.25rem;
+            padding: 0.8rem 0.95rem;
+            border-radius: 1.15rem;
+        }
+        .hero-scatter--c .hero-box {
+            flex-direction: row-reverse;
+            background: linear-gradient(155deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.95) 100%);
+            border-color: rgba(229, 231, 235, 0.95);
+        }
+        .hero-scatter--c .hero-box-text { text-align: right; }
+        .hero-scatter--d .hero-box {
+            min-width: 9rem;
+            box-shadow:
+                0 16px 40px -12px rgba(201, 106, 43, 0.16),
+                0 0 0 1px rgba(255, 255, 255, 0.7) inset;
         }
 
         .hero-text-frame {
             position: relative;
             z-index: 10;
             text-align: center;
-            padding: 1.25rem 5.25rem 1.5rem;
+            padding: 1.5rem 5.75rem 1.75rem;
         }
         @media (min-width: 768px) {
-            .hero-text-frame { padding: 1.5rem 6.25rem 1.75rem; }
+            .hero-text-frame { padding: 1.75rem 7rem 2rem; }
         }
         @media (min-width: 1024px) {
-            .hero-text-frame { padding: 1.75rem 7rem 2rem; }
+            .hero-text-frame { padding: 2rem 8rem 2.25rem; }
         }
         .hero-search-block {
             position: relative;
@@ -205,51 +213,53 @@
             text-align: center;
             margin-top: 1.75rem;
         }
+
+        /* Mobil: hafif dağınık 2x2, yine dikdörtgen */
         @media (max-width: 639px) {
-            /* Mobil: daireler yazının üstünde 2x2 grid */
             .hero-stage { max-width: 100%; }
-            .hero-ring-stat {
-                position: static;
-                width: auto;
-                animation: hero-fade-up 0.5s ease-out both;
-            }
-            .hero-ring-stats-mobile {
+            .hero-scatter-desktop { display: none !important; }
+            .hero-scatter-mobile {
                 display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0.85rem 0.5rem;
-                justify-items: center;
-                margin-bottom: 1.25rem;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.65rem 0.55rem;
+                margin-bottom: 1.15rem;
+                align-items: start;
             }
-            .hero-text-frame { padding: 0 0.25rem 0.5rem; }
-            .hero-ring-stats-desktop { display: none !important; }
-            .hero-ring { width: 5rem; height: 5rem; }
-            .hero-ring-bob { animation: none; }
+            .hero-scatter-mobile .hero-box {
+                min-width: 0;
+                max-width: none;
+                width: 100%;
+                pointer-events: auto;
+            }
+            .hero-scatter-mobile .hero-scatter {
+                position: static;
+                animation: hero-card-in 0.55s ease-out both;
+            }
+            .hero-scatter-mobile .hero-scatter--a { --hero-rot: -3deg; margin-top: 0.35rem; }
+            .hero-scatter-mobile .hero-scatter--b { --hero-rot: 3deg; margin-top: 0; }
+            .hero-scatter-mobile .hero-scatter--c { --hero-rot: 2deg; margin-top: 0.15rem; }
+            .hero-scatter-mobile .hero-scatter--d { --hero-rot: -2.5deg; margin-top: 0.55rem; }
+            .hero-scatter-mobile .hero-scatter-float { animation: none; transform: rotate(var(--hero-rot)); }
+            .hero-text-frame { padding: 0 0.15rem 0.5rem; }
         }
         @media (min-width: 640px) {
-            .hero-ring-stats-mobile { display: none !important; }
-            .hero-ring-stats-desktop { display: contents; }
+            .hero-scatter-mobile { display: none !important; }
+            .hero-scatter-desktop { display: contents; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .hero-ring-progress,
-            .hero-ring svg,
-            .hero-ring-bob,
-            .hero-ring-stat,
-            .hero-ring {
+            .hero-scatter,
+            .hero-scatter-float {
                 animation: none !important;
             }
-            .hero-ring svg {
-                transform: rotate(-90deg);
-            }
-            .hero-ring-progress {
-                stroke-dashoffset: 0 !important;
+            .hero-scatter-float {
+                transform: rotate(var(--hero-rot));
             }
         }
     </style>
 
     <!-- Hero Section -->
     <section class="relative bg-white border-b border-[#E5E7EB] pt-12 pb-14 md:pt-20 md:pb-24 lg:pt-24 lg:pb-28 select-none">
-        <!-- Background Ambient Lights (ayrı katmanda clip — daireler kesilmesin) -->
         <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
             <div class="absolute top-[-30%] right-[-10%] w-[550px] h-[550px] rounded-full bg-[#E7B58A]/10 blur-[130px]"></div>
             <div class="absolute bottom-[-20%] left-[-10%] w-[550px] h-[550px] rounded-full bg-[#C96A2B]/4 blur-[130px]"></div>
@@ -258,47 +268,58 @@
         <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="hero-stage">
                 @if(!empty($heroStats))
-                    {{-- Mobil: yazının üstünde 2x2 daireler --}}
-                    <div class="hero-ring-stats-mobile" role="list" aria-label="Platform istatistikleri">
+                    {{-- Mobil: dağınık 2x2 dikdörtgen --}}
+                    <div class="hero-scatter-mobile" role="list" aria-label="Platform istatistikleri">
                         @foreach($heroStats as $stat)
-                            <div class="hero-ring-stat" role="listitem" style="animation-delay: {{ $stat['draw'] }}">
-                                <div class="hero-ring-bob">
-                                    <div class="hero-ring">
-                                        <svg viewBox="0 0 100 100" style="animation-delay: {{ $stat['delay'] }}">
-                                            <circle class="hero-ring-track" cx="50" cy="50" r="42"></circle>
-                                            <circle class="hero-ring-progress" cx="50" cy="50" r="42"
-                                                    style="animation-delay: {{ $stat['draw'] }}"></circle>
-                                        </svg>
-                                        <div class="hero-ring-core">
-                                            <span class="hero-ring-value">{{ $stat['value'] }}</span>
+                            <div class="hero-scatter hero-scatter--{{ $stat['side'] }}" role="listitem">
+                                <div class="hero-scatter-float">
+                                    <div class="hero-box">
+                                        <div class="hero-box-icon" aria-hidden="true">
+                                            @if($stat['icon'] === 'users')
+                                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                            @elseif($stat['icon'] === 'check')
+                                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                            @elseif($stat['icon'] === 'chat')
+                                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                            @else
+                                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                                            @endif
+                                        </div>
+                                        <div class="hero-box-text">
+                                            <div class="hero-box-value">{{ $stat['value'] }}</div>
+                                            <div class="hero-box-label">{{ $stat['label'] }}</div>
                                         </div>
                                     </div>
                                 </div>
-                                <span class="hero-ring-label">{{ $stat['label'] }}</span>
                             </div>
                         @endforeach
                     </div>
                 @endif
 
-                {{-- Başlık metni + 4 kenar daire --}}
                 <div class="hero-text-frame">
                     @if(!empty($heroStats))
-                        <div class="hero-ring-stats-desktop" role="list" aria-label="Platform istatistikleri">
+                        <div class="hero-scatter-desktop" role="list" aria-label="Platform istatistikleri">
                             @foreach($heroStats as $stat)
-                                <div class="hero-ring-stat hero-ring-stat--{{ $stat['side'] }}" role="listitem">
-                                    <div class="hero-ring-bob">
-                                        <div class="hero-ring">
-                                            <svg viewBox="0 0 100 100" style="animation-delay: {{ $stat['delay'] }}">
-                                                <circle class="hero-ring-track" cx="50" cy="50" r="42"></circle>
-                                                <circle class="hero-ring-progress" cx="50" cy="50" r="42"
-                                                        style="animation-delay: {{ $stat['draw'] }}"></circle>
-                                            </svg>
-                                            <div class="hero-ring-core">
-                                                <span class="hero-ring-value">{{ $stat['value'] }}</span>
+                                <div class="hero-scatter hero-scatter--{{ $stat['side'] }}" role="listitem">
+                                    <div class="hero-scatter-float">
+                                        <div class="hero-box">
+                                            <div class="hero-box-icon" aria-hidden="true">
+                                                @if($stat['icon'] === 'users')
+                                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                                @elseif($stat['icon'] === 'check')
+                                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                                @elseif($stat['icon'] === 'chat')
+                                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                                @else
+                                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                                                @endif
+                                            </div>
+                                            <div class="hero-box-text">
+                                                <div class="hero-box-value">{{ $stat['value'] }}</div>
+                                                <div class="hero-box-label">{{ $stat['label'] }}</div>
                                             </div>
                                         </div>
                                     </div>
-                                    <span class="hero-ring-label">{{ $stat['label'] }}</span>
                                 </div>
                             @endforeach
                         </div>
@@ -323,7 +344,6 @@
                     </p>
                 </div>
 
-                {{-- Arama (dairelerin dışında) --}}
                 <div class="hero-search-block">
                     <form action="{{ route('frontend.hekimler') }}" method="GET" class="max-w-2xl mx-auto p-2 bg-white rounded-2xl border border-[#E5E7EB] shadow-lg shadow-slate-200/50 flex flex-col sm:flex-row gap-2">
                         <div class="flex-grow relative">
