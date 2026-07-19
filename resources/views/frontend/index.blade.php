@@ -627,7 +627,7 @@
     </style>
 
     {{-- Öne çıkan uzmanlar --}}
-    <section id="doktorlar" class="ra-rail-section max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-8 md:pt-20 md:pb-10 select-none">
+    <section id="doktorlar" class="ra-rail-section max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-8 md:pt-4 md:pb-10 select-none">
         <div class="ra-rail-head">
             <div>
                 <div class="ra-rail-kicker">Seçkiler</div>
@@ -686,7 +686,7 @@
     </section>
 
     {{-- Öne çıkan klinikler --}}
-    <section id="klinikler" class="ra-rail-section bg-white border-y border-[#E5E7EB] py-12 md:py-16 select-none">
+    <section id="klinikler" class="ra-rail-section bg-white border-y border-[#E5E7EB] py-4 md:py-4 select-none">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
             <div class="ra-rail-head">
                 <div>
@@ -747,7 +747,7 @@
     </section>
 
     {{-- Hizmetler --}}
-    <section id="hizmetler" class="ra-rail-section max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16 select-none">
+    <section id="hizmetler" class="ra-rail-section max-w-7xl mx-auto px-4 sm:px-6 py-4 md:py-4 select-none">
         <div class="ra-rail-head">
             <div>
                 <div class="ra-rail-kicker">Hizmetler</div>
@@ -807,7 +807,7 @@
 
     {{-- Uzman blogları --}}
     @if(isset($sonBloglar) && $sonBloglar->count() > 0)
-    <section id="bloglar" class="ra-rail-section bg-white border-t border-[#E5E7EB] py-12 md:py-16 select-none">
+    <section id="bloglar" class="ra-rail-section bg-white border-t border-[#E5E7EB] py-4 md:py-4 select-none">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
             <div class="ra-rail-head">
                 <div>
@@ -864,7 +864,7 @@
 
     {{-- Yorumlar --}}
     @if(isset($sonYorumlar) && $sonYorumlar->count() > 0)
-    <section class="ra-rail-section border-t border-[#E5E7EB] py-12 md:py-16 select-none">
+    <section class="ra-rail-section border-t border-[#E5E7EB] py-4 md:py-4 select-none">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
             <div class="ra-rail-head">
                 <div>
