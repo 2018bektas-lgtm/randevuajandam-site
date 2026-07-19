@@ -32,22 +32,31 @@ class AnasayfaController extends Controller
                 ->values();
         });
 
-        // 2) Öne çıkan doktorlar: aktif, platformda listelenen, en yüksek puan
-        $oneCikanDoktorlar = Cache::remember('anasayfa:one_cikan_doktorlar', now()->addMinutes(10), function () {
+        // 2) Öne çıkan doktorlar: aktif, platformda listelenen, en çok randevusu olan ve ortalama puanı >= 4.0 olanlar (Haftalık güncellenir)
+        $oneCikanDoktorlar = Cache::remember('anasayfa:one_cikan_doktorlar', now()->addDays(7), function () {
             return Doktor::platformdaListelenen()
-                ->withCount(['yorumlar' => function ($q) {
+                ->withCount([
+                    'randevular' => function ($q) {
+                        $q->whereIn('durum', ['onaylandi', 'tamamlandi']);
+                    },
+                    'yorumlar' => function ($q) {
+                        $q->onaylandi();
+                    }
+                ])
+                ->withAvg(['yorumlar' => function ($q) {
                     $q->onaylandi();
-                }])
+                }], 'puan')
                 ->with(['branslar', 'il', 'ilce'])
-                ->whereHas('yorumlar', function ($q) {
-                    $q->onaylandi();
-                })
                 ->get()
-                ->sortByDesc('yorumlar_count')
+                ->filter(function ($doktor) {
+                    $ortalamaPuan = $doktor->yorumlar_avg_puan;
+                    return !is_null($ortalamaPuan) && $ortalamaPuan >= 4.0;
+                })
+                ->sortByDesc('randevular_count')
                 ->take(6)
                 ->values()
                 ->map(function ($doktor) {
-                    $doktor->ortalama_puan_cache = $doktor->ortalama_puan;
+                    $doktor->ortalama_puan_cache = round($doktor->yorumlar_avg_puan, 1);
                     $doktor->yorum_sayisi_cache = $doktor->yorumlar_count;
                     return $doktor;
                 });
