@@ -365,252 +365,387 @@
         </div>
     </section>
 
-    <!-- Categories Section (Dinamik) -->
-    <section id="hizmetler" class="max-w-7xl mx-auto px-6 py-20 select-none">
-        <div class="text-center max-w-xl mx-auto mb-16">
-            <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Kategorilere Göre Keşfedin</h2>
-            <p class="text-sm text-[#6B7280] mt-2.5">Aradığınız desteği ve uzmanlığı kategorilerimiz üzerinden hızlıca listeleyebilirsiniz.</p>
-        </div>
+    <style>
+        .ra-slider { position: relative; }
+        .ra-slider-track {
+            display: flex;
+            gap: 1.25rem;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            padding: 0.35rem 0.15rem 1rem;
+            scrollbar-width: none;
+        }
+        .ra-slider-track::-webkit-scrollbar { display: none; }
+        .ra-slider-item {
+            flex: 0 0 min(86vw, 20.5rem);
+            scroll-snap-align: start;
+            min-width: 0;
+        }
+        @media (min-width: 768px) {
+            .ra-slider-item { flex-basis: calc((100% - 2.5rem) / 2); }
+        }
+        @media (min-width: 1024px) {
+            .ra-slider-item { flex-basis: calc((100% - 3.75rem) / 3); }
+        }
+        .ra-slider-nav {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid #E5E7EB;
+            background: #fff;
+            color: #6B7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .ra-slider-nav:hover {
+            border-color: rgba(231, 181, 138, 0.55);
+            color: #C96A2B;
+            background: #FFF7ED;
+        }
+        .ra-slider-nav:disabled {
+            opacity: 0.35;
+            cursor: default;
+            pointer-events: none;
+        }
+        .ra-card {
+            height: 100%;
+            background: #fff;
+            border: 1px solid #E5E7EB;
+            border-radius: 1rem;
+            box-shadow: 0 4px 24px rgba(31, 41, 55, 0.03);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .ra-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(31, 41, 55, 0.07);
+        }
+    </style>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            @forelse($branslar->take(8) as $brans)
-                <a href="{{ route('frontend.hekimler', ['brans' => $brans->slug]) }}"
-                   class="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.03)] hover:-translate-y-0.5 transition-all duration-300 group block no-underline">
-                    <div class="w-12 h-12 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center mb-5 transition-transform group-hover:scale-105">
-                        @include('frontend.partials.brans_ikon', ['slug' => $brans->slug])
-                    </div>
-                    <h3 class="text-base font-bold font-display text-[#111827] mb-1.5">{{ $brans->ad }}</h3>
-                    <p class="text-xs text-[#6B7280] leading-relaxed mb-4">
-                        @if($brans->aciklama)
-                            {{ Str::limit($brans->aciklama, 80) }}
-                        @else
-                            {{ $brans->doktorlar_count }} aktif uzman bu alanda hizmet veriyor.
-                        @endif
-                    </p>
-                    <span class="text-xs font-semibold text-[#C96A2B] flex items-center gap-1 group-hover:underline cursor-pointer font-display">
-                        {{ $brans->doktorlar_count }} Uzmanı Gör →
-                    </span>
-                </a>
-            @empty
-                <div class="col-span-4 text-center text-[#6B7280] py-10">
-                    Henüz branş eklenmemiş.
-                </div>
-            @endforelse
-        </div>
-    </section>
-
-    <!-- How it works -->
-    <section id="nasil-calisir" class="bg-white border-t border-b border-[#E5E7EB] py-20 select-none">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center max-w-xl mx-auto mb-16">
-                <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Nasıl Çalışır?</h2>
-                <p class="text-sm text-[#6B7280] mt-2.5">Sadece 3 adımda dilediğiniz uzmanla görüşmenizi planlayın.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-                <!-- Step 1 -->
-                <div class="text-center space-y-4">
-                    <div class="w-12 h-12 rounded-full bg-[#FFF7ED] text-[#C96A2B] font-bold font-display text-lg flex items-center justify-center mx-auto shadow-inner">1</div>
-                    <h3 class="text-base font-bold font-display text-[#111827]">Uzmanını Seç</h3>
-                    <p class="text-xs text-[#6B7280] leading-relaxed max-w-xs mx-auto">
-                        @if(isset($istatistikler))
-                            {{ number_format($istatistikler['doktor_sayisi']) }} uzman ve {{ $istatistikler['brans_sayisi'] }} farklı branş arasından filtreleri kullanarak aradığınız uzmanı bulun.
-                        @else
-                            Binlerce hekim ve danışan arasından filtreleri kullanarak aradığınız uzmanı bulun.
-                        @endif
-                    </p>
-                </div>
-
-                <!-- Step 2 -->
-                <div class="text-center space-y-4">
-                    <div class="w-12 h-12 rounded-full bg-[#FFF7ED] text-[#C96A2B] font-bold font-display text-lg flex items-center justify-center mx-auto shadow-inner">2</div>
-                    <h3 class="text-base font-bold font-display text-[#111827]">Günü ve Saati Belirle</h3>
-                    <p class="text-xs text-[#6B7280] leading-relaxed max-w-xs mx-auto">
-                        Uzmanın güncel ajandasına doğrudan erişerek size en uygun seansı seçin.
-                    </p>
-                </div>
-
-                <!-- Step 3 -->
-                <div class="text-center space-y-4">
-                    <div class="w-12 h-12 rounded-full bg-[#FFF7ED] text-[#C96A2B] font-bold font-display text-lg flex items-center justify-center mx-auto shadow-inner">3</div>
-                    <h3 class="text-base font-bold font-display text-[#111827]">Randevunu Tamamla</h3>
-                    <p class="text-xs text-[#6B7280] leading-relaxed max-w-xs mx-auto">
-                        Kaydınızı tamamlayın. Onay SMS ve e-postanız anında cebinize gelsin.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Doctors / Experts Grid (Dinamik) -->
-    <section id="doktorlar" class="max-w-7xl mx-auto px-6 py-20 select-none">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-16">
+    {{-- Öne çıkan uzmanlar --}}
+    <section id="doktorlar" class="max-w-7xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12 select-none">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
             <div>
-                <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Öne Çıkan Uzmanlarımız</h2>
-                <p class="text-sm text-[#6B7280] mt-2.5">Danışan memnuniyeti en yüksek olan bazı aktif uzman kadromuz.</p>
+                <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Öne Çıkan Uzmanlar</h2>
+                <p class="text-sm text-[#6B7280] mt-2">Danışan memnuniyeti yüksek aktif uzmanlarımız.</p>
             </div>
-            <div>
-                <a href="{{ route('frontend.hekimler') }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline">
-                    Tümünü Gör
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
-                    </svg>
+            <div class="flex items-center gap-2">
+                <div class="ra-slider-controls flex items-center gap-2" data-slider-controls="uzmanlar">
+                    <button type="button" class="ra-slider-nav" data-slider-prev="uzmanlar" aria-label="Önceki">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button type="button" class="ra-slider-nav" data-slider-next="uzmanlar" aria-label="Sonraki">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+                <a href="{{ route('frontend.hekimler') }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline ml-1">
+                    Tümü
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </a>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="expertsGrid">
-            @forelse($oneCikanDoktorlar as $doktor)
-                @php
-                    $brans = $doktor->branslar->first();
-                    $bransAd = $brans ? $brans->ad : 'Uzman';
-                    $initials = collect(explode(' ', $doktor->ad_soyad))->map(fn($w) => mb_strtoupper(mb_substr($w, 0, 1)))->take(2)->implode('');
-                    $ortalamaPuan = $doktor->ortalama_puan_cache ?? $doktor->ortalama_puan ?? 0;
-                    $yorumSayisi = $doktor->yorum_sayisi_cache ?? 0;
-                @endphp
-                <div class="bg-white border border-[#E5E7EB] rounded-2xl shadow-[0_4px_24px_rgba(31,41,55,0.03)] hover:-translate-y-0.5 transition-all duration-300 p-6 flex flex-col justify-between">
-                    <div>
-                        <!-- Doctor Header Info -->
-                        <div class="flex gap-4 mb-6">
-                            <!-- Avatar -->
-                            @if($doktor->profil_resmi)
-                                <img src="{{ asset('storage/' . $doktor->profil_resmi) }}"
-                                     alt="{{ $doktor->ad_soyad }}"
-                                     class="w-14 h-14 rounded-full object-cover border border-[#E7B58A]/30 flex-shrink-0">
-                            @else
-                                <div class="w-14 h-14 rounded-full bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 flex items-center justify-center font-extrabold text-sm font-display flex-shrink-0">
-                                    {{ $initials }}
-                                </div>
-                            @endif
+        <div class="ra-slider" data-slider="uzmanlar">
+            <div class="ra-slider-track" data-slider-track="uzmanlar">
+                @forelse($oneCikanDoktorlar as $doktor)
+                    @php
+                        $brans = $doktor->branslar->first();
+                        $bransAd = $brans ? $brans->ad : 'Uzman';
+                        $initials = collect(explode(' ', $doktor->ad_soyad))->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->take(2)->implode('');
+                        $ortalamaPuan = $doktor->ortalama_puan_cache ?? 0;
+                        $yorumSayisi = $doktor->yorum_sayisi_cache ?? 0;
+                    @endphp
+                    <div class="ra-slider-item">
+                        <div class="ra-card p-5 flex flex-col justify-between min-h-[240px]">
                             <div>
-                                <span class="inline-block px-2.5 py-0.5 bg-[#FFF7ED] text-[#C96A2B] text-[10px] font-bold rounded-full font-display uppercase tracking-wider">{{ $bransAd }}</span>
-                                <h3 class="text-base font-bold font-display text-[#111827] mt-1.5">
-                                    {{ $doktor->unvan ? $doktor->unvan . ' ' : '' }}{{ $doktor->ad_soyad }}
-                                </h3>
-                                <p class="text-[11px] text-[#6B7280] mt-0.5">
-                                    {{ $doktor->uzmanlik_alani ?? $bransAd }}
-                                    @if($doktor->il)
-                                        · {{ $doktor->il->ad }}
+                                <div class="flex gap-3.5 mb-5">
+                                    @if($doktor->profil_resmi)
+                                        <img src="{{ asset('storage/' . $doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}"
+                                             class="w-14 h-14 rounded-full object-cover border border-[#E7B58A]/30 flex-shrink-0" loading="lazy">
+                                    @else
+                                        <div class="w-14 h-14 rounded-full bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 flex items-center justify-center font-extrabold text-sm font-display flex-shrink-0">{{ $initials }}</div>
                                     @endif
-                                </p>
+                                    <div class="min-w-0">
+                                        <span class="inline-block px-2.5 py-0.5 bg-[#FFF7ED] text-[#C96A2B] text-[10px] font-bold rounded-full font-display uppercase tracking-wider">{{ $bransAd }}</span>
+                                        <h3 class="text-sm font-bold font-display text-[#111827] mt-1.5 truncate">
+                                            {{ $doktor->unvan ? $doktor->unvan.' ' : '' }}{{ $doktor->ad_soyad }}
+                                        </h3>
+                                        <p class="text-[11px] text-[#6B7280] mt-0.5 truncate">
+                                            {{ $doktor->uzmanlik_alani ?? $bransAd }}@if($doktor->il) · {{ $doktor->il->ad }}@endif
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3 py-3 border-t border-b border-[#E5E7EB] mb-5 text-xs font-semibold">
+                                    <div>
+                                        <span class="text-[10px] text-[#6B7280] block font-bold uppercase font-display">Memnuniyet</span>
+                                        <span class="text-[#111827] mt-1 flex items-center gap-1">
+                                            <span class="text-[#C96A2B]">★</span> {{ $ortalamaPuan ?: '—' }}
+                                            <span class="text-[#6B7280] font-normal">({{ $yorumSayisi }})</span>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-[#6B7280] block font-bold uppercase font-display">Konum</span>
+                                        <span class="text-[#111827] mt-1 block truncate">
+                                            {{ $doktor->il?->ad ?? '—' }}{{ $doktor->ilce ? ', '.$doktor->ilce->ad : '' }}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
-                        <!-- Statistics & Reviews -->
-                        <div class="grid grid-cols-2 gap-4 py-3 border-t border-b border-[#E5E7EB] mb-6 text-xs font-semibold">
-                            <div>
-                                <span class="text-[10px] text-[#6B7280] block font-bold uppercase font-display">Memnuniyet</span>
-                                <span class="text-[#111827] mt-1 block flex items-center gap-1">
-                                    <span class="text-[#C96A2B]">★</span> {{ $ortalamaPuan }} <span class="text-[#6B7280] font-normal">({{ $yorumSayisi }} Değerlendirme)</span>
-                                </span>
-                            </div>
-                            <div>
-                                <span class="text-[10px] text-[#6B7280] block font-bold uppercase font-display">Konum</span>
-                                <span class="text-[#111827] mt-1 block">
-                                    {{ $doktor->il ? $doktor->il->ad : '—' }}{{ $doktor->ilce ? ', ' . $doktor->ilce->ad : '' }}
-                                </span>
-                            </div>
+                            <a href="{{ $doktor->profil_url }}" class="w-full text-center py-2.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm block font-display no-underline">
+                                Online Randevu Al
+                            </a>
                         </div>
                     </div>
+                @empty
+                    <div class="ra-slider-item w-full">
+                        <div class="text-center text-[#6B7280] py-10 text-sm">Henüz öne çıkan uzman bulunmuyor.</div>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </section>
 
-                    <a href="{{ $doktor->profil_url }}" class="w-full text-center py-2.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm block font-display no-underline">
-                        Online Randevu Al
+    {{-- Öne çıkan klinikler --}}
+    <section id="klinikler" class="bg-white border-t border-b border-[#E5E7EB] py-12 md:py-16 select-none">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Öne Çıkan Klinikler</h2>
+                    <p class="text-sm text-[#6B7280] mt-2">Platformdaki aktif klinik ve poliklinikler.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2">
+                        <button type="button" class="ra-slider-nav" data-slider-prev="klinikler" aria-label="Önceki">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <button type="button" class="ra-slider-nav" data-slider-next="klinikler" aria-label="Sonraki">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                    <a href="{{ route('frontend.hekimler', ['sadece_klinik' => 1]) }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline ml-1">
+                        Tümü
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </a>
                 </div>
-            @empty
-                <div class="col-span-3 text-center text-[#6B7280] py-10">
-                    Henüz uzman kaydı bulunmamaktadır.
+            </div>
+
+            <div class="ra-slider" data-slider="klinikler">
+                <div class="ra-slider-track" data-slider-track="klinikler">
+                    @forelse(($oneCikanKlinikler ?? collect()) as $klinik)
+                        @php
+                            $klinikUrl = route('frontend.klinik.profil', [
+                                'il_slug' => $klinik->il->slug ?? 'il',
+                                'ilce_slug' => $klinik->ilce->slug ?? 'ilce',
+                                'klinik_slug' => $klinik->slug,
+                            ]);
+                            $initials = mb_strtoupper(mb_substr($klinik->ad, 0, 2));
+                        @endphp
+                        <div class="ra-slider-item">
+                            <a href="{{ $klinikUrl }}" class="ra-card p-5 flex flex-col justify-between min-h-[200px] block no-underline group">
+                                <div class="flex items-start gap-4">
+                                    @if($klinik->logo)
+                                        <img src="{{ asset($klinik->logo) }}" alt="{{ $klinik->ad }}" class="w-14 h-14 rounded-2xl object-cover border border-[#E5E7EB] flex-shrink-0" loading="lazy">
+                                    @else
+                                        <div class="w-14 h-14 rounded-2xl bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 flex items-center justify-center font-extrabold text-sm font-display flex-shrink-0">{{ $initials }}</div>
+                                    @endif
+                                    <div class="min-w-0">
+                                        <span class="inline-block px-2 py-0.5 text-[9px] uppercase font-bold tracking-wider rounded bg-[#C96A2B]/10 text-[#C96A2B] border border-[#C96A2B]/20">Klinik</span>
+                                        <h3 class="text-sm font-bold font-display text-[#111827] mt-1.5 group-hover:text-[#C96A2B] transition-colors line-clamp-2">{{ $klinik->ad }}</h3>
+                                        <p class="text-[11px] text-[#6B7280] mt-1 truncate">
+                                            {{ $klinik->il?->ad }}{{ $klinik->ilce?->ad ? ', '.$klinik->ilce->ad : '' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                    <span class="text-[10px] font-bold text-[#C96A2B] bg-[#FFF7ED] px-2.5 py-1 rounded-full">
+                                        {{ (int) ($klinik->doktorlar_count ?? 0) }} Uzman
+                                    </span>
+                                    <span class="text-xs font-bold text-[#C96A2B]">İncele →</span>
+                                </div>
+                            </a>
+                        </div>
+                    @empty
+                        <div class="ra-slider-item w-full">
+                            <div class="text-center text-[#6B7280] py-10 text-sm">Henüz öne çıkan klinik bulunmuyor.</div>
+                        </div>
+                    @endforelse
                 </div>
-            @endforelse
+            </div>
         </div>
     </section>
 
-    <!-- Son Yorumlar / Testimonials (Dinamik) -->
-    @if(isset($sonYorumlar) && $sonYorumlar->count() > 0)
-    <section class="bg-white border-t border-b border-[#E5E7EB] py-20 select-none">
+    {{-- Hizmetler --}}
+    <section id="hizmetler" class="max-w-7xl mx-auto px-6 py-12 md:py-16 select-none">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+            <div>
+                <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Hizmetler</h2>
+                <p class="text-sm text-[#6B7280] mt-2">Uzmanların sunduğu randevu alınabilir hizmetler.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" class="ra-slider-nav" data-slider-prev="hizmetler" aria-label="Önceki">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <button type="button" class="ra-slider-nav" data-slider-next="hizmetler" aria-label="Sonraki">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </button>
+                <a href="{{ route('frontend.hekimler') }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline ml-1">
+                    Keşfet
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </a>
+            </div>
+        </div>
+
+        <div class="ra-slider" data-slider="hizmetler">
+            <div class="ra-slider-track" data-slider-track="hizmetler">
+                @forelse(($oneCikanHizmetler ?? collect()) as $hizmet)
+                    <div class="ra-slider-item">
+                        <a href="{{ $hizmet->url }}" class="ra-card overflow-hidden flex flex-col min-h-[260px] block no-underline group">
+                            @if($hizmet->resim)
+                                <div class="aspect-[16/10] overflow-hidden bg-slate-50">
+                                    <img src="{{ asset(str_starts_with($hizmet->resim, 'storage/') || str_starts_with($hizmet->resim, 'http') ? $hizmet->resim : 'storage/'.$hizmet->resim) }}"
+                                         alt="{{ $hizmet->ad }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                </div>
+                            @else
+                                <div class="aspect-[16/10] bg-gradient-to-br from-[#FFF7ED] to-[#FEE2C5] flex items-center justify-center">
+                                    <svg class="w-10 h-10 text-[#C96A2B]/40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                            @endif
+                            <div class="p-4 flex flex-col flex-grow">
+                                <h3 class="text-sm font-bold font-display text-[#111827] group-hover:text-[#C96A2B] transition-colors line-clamp-2">{{ $hizmet->ad }}</h3>
+                                <p class="text-[11px] text-[#6B7280] mt-1.5 line-clamp-2 flex-grow">
+                                    @if($hizmet->aciklama)
+                                        {{ Str::limit(strip_tags($hizmet->aciklama), 90) }}
+                                    @else
+                                        {{ $hizmet->doktor ? (($hizmet->doktor->unvan ? $hizmet->doktor->unvan.' ' : '').$hizmet->doktor->ad_soyad) : 'Uzman hizmeti' }}
+                                    @endif
+                                </p>
+                                <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                                    <span class="font-semibold text-[#6B7280] truncate max-w-[55%]">
+                                        {{ $hizmet->doktor ? (($hizmet->doktor->unvan ? $hizmet->doktor->unvan.' ' : '').$hizmet->doktor->ad_soyad) : '' }}
+                                    </span>
+                                    @if($hizmet->fiyat)
+                                        <span class="font-bold text-[#C96A2B] tabular-nums">{{ number_format((float) $hizmet->fiyat, 0, ',', '.') }} ₺</span>
+                                    @elseif($hizmet->sure)
+                                        <span class="font-bold text-[#C96A2B]">{{ $hizmet->sure }} dk</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                @empty
+                    <div class="ra-slider-item w-full">
+                        <div class="text-center text-[#6B7280] py-10 text-sm">Henüz listelenecek hizmet bulunmuyor.</div>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
+    {{-- Blog yazıları --}}
+    @if(isset($sonBloglar) && $sonBloglar->count() > 0)
+    <section id="bloglar" class="bg-white border-t border-[#E5E7EB] py-12 md:py-16 select-none">
         <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center max-w-xl mx-auto mb-16">
-                <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Hastalarımız Ne Diyor?</h2>
-                <p class="text-sm text-[#6B7280] mt-2.5">Platformumuzdan hizmet alan hastaların değerlendirmeleri.</p>
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Uzman Yazıları</h2>
+                    <p class="text-sm text-[#6B7280] mt-2">Uzmanlarımızın güncel bilgilendirme yazıları.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="ra-slider-nav" data-slider-prev="bloglar" aria-label="Önceki">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button type="button" class="ra-slider-nav" data-slider-next="bloglar" aria-label="Sonraki">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                    <a href="{{ route('frontend.blog.index') }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline ml-1">
+                        Tüm Yazılar
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </a>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                @foreach($sonYorumlar->take(3) as $yorum)
-                    <div class="p-6 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.03)]">
-                        <!-- Yıldızlar -->
-                        <div class="flex items-center gap-0.5 mb-4">
-                            @for($i = 1; $i <= 5; $i++)
-                                <span class="{{ $i <= $yorum->puan ? 'text-[#C96A2B]' : 'text-[#D1D5DB]' }} text-sm">★</span>
-                            @endfor
+            <div class="ra-slider" data-slider="bloglar">
+                <div class="ra-slider-track" data-slider-track="bloglar">
+                    @foreach($sonBloglar as $blog)
+                        <div class="ra-slider-item">
+                            <a href="{{ $blog->url }}" class="ra-card overflow-hidden flex flex-col min-h-[260px] block no-underline group">
+                                @if($blog->resim)
+                                    <div class="aspect-video overflow-hidden">
+                                        <img src="{{ asset($blog->resim) }}" alt="{{ $blog->baslik }}"
+                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                    </div>
+                                @else
+                                    <div class="aspect-video bg-gradient-to-br from-[#FFF7ED] to-[#FEE2C5] flex items-center justify-center">
+                                        <svg class="w-12 h-12 text-[#C96A2B]/30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                                        </svg>
+                                    </div>
+                                @endif
+                                <div class="p-4 flex flex-col flex-grow">
+                                    <h3 class="text-sm font-bold font-display text-[#111827] mb-2 group-hover:text-[#C96A2B] transition-colors line-clamp-2">{{ $blog->baslik }}</h3>
+                                    <div class="mt-auto flex items-center justify-between text-[10px] text-[#6B7280] pt-2">
+                                        <span class="truncate max-w-[65%]">{{ $blog->doktor ? (($blog->doktor->unvan ? $blog->doktor->unvan.' ' : '').$blog->doktor->ad_soyad) : '' }}</span>
+                                        <span>{{ $blog->created_at->format('d.m.Y') }}</span>
+                                    </div>
+                                </div>
+                            </a>
                         </div>
-
-                        <!-- Yorum -->
-                        <p class="text-sm text-[#374151] leading-relaxed mb-5 italic">
-                            "{{ Str::limit($yorum->yorum, 150) }}"
-                        </p>
-
-                        <!-- Hasta ve Doktor bilgisi -->
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-[#111827]">
-                                    {{ $yorum->hasta ? $yorum->hasta->maskeli_ad : 'Anonim Hasta' }}
-                                </p>
-                                <p class="text-[10px] text-[#6B7280] mt-0.5">
-                                    {{ $yorum->doktor ? ($yorum->doktor->unvan ? $yorum->doktor->unvan . ' ' : '') . $yorum->doktor->ad_soyad : '' }}
-                                </p>
-                            </div>
-                            <span class="text-[10px] text-[#9CA3AF]">{{ $yorum->created_at->diffForHumans() }}</span>
-                        </div>
-                    </div>
-                @endforeach
+                    @endforeach
+                </div>
             </div>
         </div>
     </section>
     @endif
 
-    <!-- Son Blog Yazıları (Dinamik) -->
-    @if(isset($sonBloglar) && $sonBloglar->count() > 0)
-    <section class="max-w-7xl mx-auto px-6 py-20 select-none">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-16">
-            <div>
-                <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Uzman Yazıları</h2>
-                <p class="text-sm text-[#6B7280] mt-2.5">Uzmanlarımızın kaleme aldığı güncel sağlık ve bilgilendirme yazıları.</p>
+    {{-- Yorumlar (kısa slider) --}}
+    @if(isset($sonYorumlar) && $sonYorumlar->count() > 0)
+    <section class="border-t border-[#E5E7EB] py-12 md:py-16 select-none">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Hastalarımız Ne Diyor?</h2>
+                    <p class="text-sm text-[#6B7280] mt-2">Platformumuzdan hizmet alan hastaların değerlendirmeleri.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="ra-slider-nav" data-slider-prev="yorumlar" aria-label="Önceki">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button type="button" class="ra-slider-nav" data-slider-next="yorumlar" aria-label="Sonraki">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
             </div>
-            <div>
-                <a href="{{ route('frontend.blog.index') }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline">
-                    Tüm Yazılar
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                </a>
-            </div>
-        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            @foreach($sonBloglar as $blog)
-                <a href="{{ $blog->url }}" class="rounded-2xl bg-white border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.03)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden group block no-underline">
-                    @if($blog->resim)
-                        <div class="aspect-video overflow-hidden">
-                            <img src="{{ asset($blog->resim) }}"
-                                 alt="{{ $blog->baslik }}"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="ra-slider" data-slider="yorumlar">
+                <div class="ra-slider-track" data-slider-track="yorumlar">
+                    @foreach($sonYorumlar as $yorum)
+                        <div class="ra-slider-item">
+                            <div class="ra-card p-5 min-h-[200px] flex flex-col bg-[#FAFAFA]">
+                                <div class="flex items-center gap-0.5 mb-3">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        <span class="{{ $i <= $yorum->puan ? 'text-[#C96A2B]' : 'text-[#D1D5DB]' }} text-sm">★</span>
+                                    @endfor
+                                </div>
+                                <p class="text-sm text-[#374151] leading-relaxed mb-4 italic flex-grow">"{{ Str::limit($yorum->yorum, 140) }}"</p>
+                                <div class="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-bold text-[#111827] truncate">{{ $yorum->hasta ? $yorum->hasta->maskeli_ad : 'Anonim Hasta' }}</p>
+                                        <p class="text-[10px] text-[#6B7280] mt-0.5 truncate">
+                                            {{ $yorum->doktor ? (($yorum->doktor->unvan ? $yorum->doktor->unvan.' ' : '').$yorum->doktor->ad_soyad) : '' }}
+                                        </p>
+                                    </div>
+                                    <span class="text-[10px] text-[#9CA3AF] flex-shrink-0 ml-2">{{ $yorum->created_at->diffForHumans() }}</span>
+                                </div>
+                            </div>
                         </div>
-                    @else
-                        <div class="aspect-video bg-gradient-to-br from-[#FFF7ED] to-[#FEE2C5] flex items-center justify-center">
-                            <svg class="w-12 h-12 text-[#C96A2B]/30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
-                            </svg>
-                        </div>
-                    @endif
-                    <div class="p-5">
-                        <h3 class="text-sm font-bold font-display text-[#111827] mb-2 group-hover:text-[#C96A2B] transition-colors line-clamp-2">{{ $blog->baslik }}</h3>
-                        <div class="flex items-center justify-between text-[10px] text-[#6B7280]">
-                            <span>{{ $blog->doktor ? ($blog->doktor->unvan ? $blog->doktor->unvan . ' ' : '') . $blog->doktor->ad_soyad : '' }}</span>
-                            <span>{{ $blog->created_at->format('d.m.Y') }}</span>
-                        </div>
-                    </div>
-                </a>
-            @endforeach
+                    @endforeach
+                </div>
+            </div>
         </div>
     </section>
     @endif
@@ -620,7 +755,7 @@
     <script>
         function setSearch(val) {
             const bar = document.getElementById('searchBar');
-            if(bar) {
+            if (bar) {
                 bar.value = val;
                 performSearch();
             }
@@ -634,5 +769,48 @@
                 window.location.href = "{{ route('frontend.hekimler') }}";
             }
         }
+
+        (function initRaSliders() {
+            function step(track) {
+                const item = track.querySelector('.ra-slider-item');
+                if (!item) return 280;
+                const styles = window.getComputedStyle(track);
+                const gap = parseFloat(styles.columnGap || styles.gap || '20') || 20;
+                return item.getBoundingClientRect().width + gap;
+            }
+
+            function updateNav(name) {
+                const track = document.querySelector('[data-slider-track="' + name + '"]');
+                const prev = document.querySelector('[data-slider-prev="' + name + '"]');
+                const next = document.querySelector('[data-slider-next="' + name + '"]');
+                if (!track) return;
+                const max = track.scrollWidth - track.clientWidth - 2;
+                if (prev) prev.disabled = track.scrollLeft <= 2;
+                if (next) next.disabled = track.scrollLeft >= max;
+            }
+
+            document.querySelectorAll('[data-slider-track]').forEach(function (track) {
+                const name = track.getAttribute('data-slider-track');
+                track.addEventListener('scroll', function () { updateNav(name); }, { passive: true });
+                updateNav(name);
+            });
+
+            document.querySelectorAll('[data-slider-prev], [data-slider-next]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const name = btn.getAttribute('data-slider-prev') || btn.getAttribute('data-slider-next');
+                    const track = document.querySelector('[data-slider-track="' + name + '"]');
+                    if (!track) return;
+                    const dir = btn.hasAttribute('data-slider-prev') ? -1 : 1;
+                    track.scrollBy({ left: dir * step(track), behavior: 'smooth' });
+                    setTimeout(function () { updateNav(name); }, 350);
+                });
+            });
+
+            window.addEventListener('resize', function () {
+                document.querySelectorAll('[data-slider-track]').forEach(function (track) {
+                    updateNav(track.getAttribute('data-slider-track'));
+                });
+            });
+        })();
     </script>
 @endsection
