@@ -366,92 +366,287 @@
     </section>
 
     <style>
-        .ra-slider { position: relative; }
-        .ra-slider-track {
+        /* E-ticaret tarzı otomatik kayan ürün rayı */
+        .ra-rail-section { position: relative; }
+        .ra-rail-head {
             display: flex;
-            gap: 1.25rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .ra-rail-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.625rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #C96A2B;
+            margin-bottom: 0.4rem;
+        }
+        .ra-rail-kicker::before {
+            content: '';
+            width: 1.25rem;
+            height: 2px;
+            border-radius: 99px;
+            background: linear-gradient(90deg, #C96A2B, #E7B58A);
+        }
+        .ra-rail {
+            position: relative;
+            margin-left: -0.25rem;
+            margin-right: -0.25rem;
+        }
+        .ra-rail::before,
+        .ra-rail::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 1rem;
+            width: 2.5rem;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .ra-rail::before {
+            left: 0;
+            background: linear-gradient(90deg, var(--ra-fade, #FAFAFA) 0%, transparent 100%);
+        }
+        .ra-rail::after {
+            right: 0;
+            background: linear-gradient(270deg, var(--ra-fade, #FAFAFA) 0%, transparent 100%);
+        }
+        .ra-rail--white { --ra-fade: #ffffff; }
+        .ra-rail--stone { --ra-fade: #FAFAFA; }
+
+        .ra-rail-track {
+            display: flex;
+            gap: 1.1rem;
             overflow-x: auto;
             scroll-snap-type: x mandatory;
-            scroll-behavior: smooth;
+            scroll-behavior: auto;
             -webkit-overflow-scrolling: touch;
-            padding: 0.35rem 0.15rem 1rem;
+            padding: 0.5rem 1.75rem 1.25rem;
             scrollbar-width: none;
+            cursor: grab;
         }
-        .ra-slider-track::-webkit-scrollbar { display: none; }
-        .ra-slider-item {
-            flex: 0 0 min(86vw, 20.5rem);
+        .ra-rail-track.is-dragging { cursor: grabbing; scroll-snap-type: none; }
+        .ra-rail-track::-webkit-scrollbar { display: none; }
+
+        .ra-rail-item {
+            flex: 0 0 min(78vw, 17.5rem);
             scroll-snap-align: start;
             min-width: 0;
         }
-        @media (min-width: 768px) {
-            .ra-slider-item { flex-basis: calc((100% - 2.5rem) / 2); }
+        @media (min-width: 640px) {
+            .ra-rail-item { flex-basis: 16.5rem; }
         }
         @media (min-width: 1024px) {
-            .ra-slider-item { flex-basis: calc((100% - 3.75rem) / 3); }
+            .ra-rail-item { flex-basis: 17.25rem; }
         }
-        .ra-slider-nav {
+        @media (min-width: 1280px) {
+            .ra-rail-item { flex-basis: 18rem; }
+        }
+
+        .ra-rail-nav {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 0.75rem;
-            border: 1px solid #E5E7EB;
-            background: #fff;
+            width: 2.6rem;
+            height: 2.6rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(229, 231, 235, 0.95);
+            background: rgba(255,255,255,0.95);
             color: #6B7280;
+            box-shadow: 0 8px 22px -10px rgba(31,41,55,0.25);
             cursor: pointer;
             transition: all 0.2s ease;
             flex-shrink: 0;
         }
-        .ra-slider-nav:hover {
-            border-color: rgba(231, 181, 138, 0.55);
+        .ra-rail-nav:hover {
             color: #C96A2B;
+            border-color: rgba(231, 181, 138, 0.65);
             background: #FFF7ED;
+            transform: scale(1.04);
         }
-        .ra-slider-nav:disabled {
+        .ra-rail-nav:disabled {
             opacity: 0.35;
-            cursor: default;
             pointer-events: none;
+            transform: none;
         }
-        .ra-card {
+
+        /* Ürün kartı (şeffaf e-ticaret hissi) */
+        .ra-product {
             height: 100%;
+            display: flex;
+            flex-direction: column;
             background: #fff;
-            border: 1px solid #E5E7EB;
-            border-radius: 1rem;
-            box-shadow: 0 4px 24px rgba(31, 41, 55, 0.03);
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            border: 1px solid rgba(229, 231, 235, 0.95);
+            border-radius: 1.35rem;
+            overflow: hidden;
+            box-shadow: 0 10px 30px -18px rgba(31, 41, 55, 0.28);
+            transition: transform 0.28s cubic-bezier(0.22,1,0.36,1), box-shadow 0.28s ease, border-color 0.28s ease;
+            text-decoration: none;
+            color: inherit;
         }
-        .ra-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(31, 41, 55, 0.07);
+        .ra-product:hover {
+            transform: translateY(-6px);
+            border-color: rgba(231, 181, 138, 0.55);
+            box-shadow: 0 22px 40px -18px rgba(201, 106, 43, 0.28);
+        }
+        .ra-product-media {
+            position: relative;
+            aspect-ratio: 4 / 3;
+            background: linear-gradient(145deg, #FFF7ED 0%, #F8FAFC 100%);
+            overflow: hidden;
+        }
+        .ra-product-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.55s cubic-bezier(0.22,1,0.36,1);
+        }
+        .ra-product:hover .ra-product-media img { transform: scale(1.07); }
+        .ra-product-badge {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            z-index: 2;
+            padding: 0.28rem 0.55rem;
+            border-radius: 9999px;
+            font-size: 0.5625rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #C96A2B;
+            background: rgba(255,255,255,0.94);
+            border: 1px solid rgba(231, 181, 138, 0.35);
+            backdrop-filter: blur(8px);
+        }
+        .ra-product-body {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 1rem 1.05rem 1.1rem;
+            gap: 0.35rem;
+        }
+        .ra-product-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #111827;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            transition: color 0.2s ease;
+        }
+        .ra-product:hover .ra-product-title { color: #C96A2B; }
+        .ra-product-meta {
+            font-size: 0.7rem;
+            color: #6B7280;
+            line-height: 1.35;
+        }
+        .ra-product-foot {
+            margin-top: auto;
+            padding-top: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            border-top: 1px solid #F1F5F9;
+        }
+        .ra-product-price {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #C96A2B;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+        }
+        .ra-product-cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.1rem;
+            padding: 0 0.85rem;
+            border-radius: 0.75rem;
+            background: #C96A2B;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .ra-product:hover .ra-product-cta {
+            background: #B55A20;
+            transform: translateX(1px);
+        }
+
+        /* Uzman kartı (profil odaklı ürün) */
+        .ra-expert-top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 1.35rem 1.1rem 0.85rem;
+            background: linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 72%);
+            border-bottom: 1px solid #F8FAFC;
+        }
+        .ra-expert-avatar {
+            width: 4.5rem;
+            height: 4.5rem;
+            border-radius: 1.15rem;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.95);
+            box-shadow: 0 10px 24px -12px rgba(201, 106, 43, 0.55);
+            background: #FFF7ED;
+            color: #C96A2B;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1rem;
+        }
+        .ra-stars { color: #C96A2B; letter-spacing: 0.05em; font-size: 0.7rem; }
+
+        .ra-quote-card {
+            height: 100%;
+            padding: 1.15rem;
+            border-radius: 1.35rem;
+            background: linear-gradient(160deg, #FFFFFF 0%, #FFFBF7 100%);
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 10px 30px -18px rgba(31, 41, 55, 0.25);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ra-product, .ra-product-media img { transition: none; }
         }
     </style>
 
     {{-- Öne çıkan uzmanlar --}}
-    <section id="doktorlar" class="max-w-7xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12 select-none">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+    <section id="doktorlar" class="ra-rail-section max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-8 md:pt-20 md:pb-10 select-none">
+        <div class="ra-rail-head">
             <div>
-                <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Öne Çıkan Uzmanlar</h2>
-                <p class="text-sm text-[#6B7280] mt-2">Danışan memnuniyeti yüksek aktif uzmanlarımız.</p>
+                <div class="ra-rail-kicker">Seçkiler</div>
+                <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Öne Çıkan Uzmanlar</h2>
+                <p class="text-sm text-[#6B7280] mt-1.5">Danışan memnuniyeti yüksek, randevuya açık uzmanlar.</p>
             </div>
             <div class="flex items-center gap-2">
-                <div class="ra-slider-controls flex items-center gap-2" data-slider-controls="uzmanlar">
-                    <button type="button" class="ra-slider-nav" data-slider-prev="uzmanlar" aria-label="Önceki">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <button type="button" class="ra-slider-nav" data-slider-next="uzmanlar" aria-label="Sonraki">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                </div>
-                <a href="{{ route('frontend.hekimler') }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline ml-1">
-                    Tümü
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </a>
+                <button type="button" class="ra-rail-nav" data-rail-prev="uzmanlar" aria-label="Önceki">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <button type="button" class="ra-rail-nav" data-rail-next="uzmanlar" aria-label="Sonraki">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </button>
+                <a href="{{ route('frontend.hekimler') }}" class="ml-1 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] font-display no-underline">Tümü →</a>
             </div>
         </div>
 
-        <div class="ra-slider" data-slider="uzmanlar">
-            <div class="ra-slider-track" data-slider-track="uzmanlar">
+        <div class="ra-rail ra-rail--stone" data-rail="uzmanlar">
+            <div class="ra-rail-track" data-rail-track="uzmanlar" data-autoplay="1" data-speed="0.55">
                 @forelse($oneCikanDoktorlar as $doktor)
                     @php
                         $brans = $doktor->branslar->first();
@@ -460,82 +655,58 @@
                         $ortalamaPuan = $doktor->ortalama_puan_cache ?? 0;
                         $yorumSayisi = $doktor->yorum_sayisi_cache ?? 0;
                     @endphp
-                    <div class="ra-slider-item">
-                        <div class="ra-card p-5 flex flex-col justify-between min-h-[240px]">
-                            <div>
-                                <div class="flex gap-3.5 mb-5">
-                                    @if($doktor->profil_resmi)
-                                        <img src="{{ asset($doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}"
-                                             class="w-14 h-14 rounded-full object-cover border border-[#E7B58A]/30 flex-shrink-0" loading="lazy">
-                                    @else
-                                        <div class="w-14 h-14 rounded-full bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 flex items-center justify-center font-extrabold text-sm font-display flex-shrink-0">{{ $initials }}</div>
-                                    @endif
-                                    <div class="min-w-0">
-                                        <span class="inline-block px-2.5 py-0.5 bg-[#FFF7ED] text-[#C96A2B] text-[10px] font-bold rounded-full font-display uppercase tracking-wider">{{ $bransAd }}</span>
-                                        <h3 class="text-sm font-bold font-display text-[#111827] mt-1.5 truncate">
-                                            {{ $doktor->unvan ? $doktor->unvan.' ' : '' }}{{ $doktor->ad_soyad }}
-                                        </h3>
-                                        <p class="text-[11px] text-[#6B7280] mt-0.5 truncate">
-                                            {{ $doktor->uzmanlik_alani ?? $bransAd }}@if($doktor->il) · {{ $doktor->il->ad }}@endif
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-2 gap-3 py-3 border-t border-b border-[#E5E7EB] mb-5 text-xs font-semibold">
-                                    <div>
-                                        <span class="text-[10px] text-[#6B7280] block font-bold uppercase font-display">Memnuniyet</span>
-                                        <span class="text-[#111827] mt-1 flex items-center gap-1">
-                                            <span class="text-[#C96A2B]">★</span> {{ $ortalamaPuan ?: '—' }}
-                                            <span class="text-[#6B7280] font-normal">({{ $yorumSayisi }})</span>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="text-[10px] text-[#6B7280] block font-bold uppercase font-display">Konum</span>
-                                        <span class="text-[#111827] mt-1 block truncate">
-                                            {{ $doktor->il?->ad ?? '—' }}{{ $doktor->ilce ? ', '.$doktor->ilce->ad : '' }}
-                                        </span>
-                                    </div>
+                    <div class="ra-rail-item">
+                        <a href="{{ $doktor->profil_url }}" class="ra-product group">
+                            <div class="ra-expert-top">
+                                <span class="ra-product-badge" style="position:static;margin-bottom:0.75rem">{{ $bransAd }}</span>
+                                @if($doktor->profil_resmi)
+                                    <img src="{{ asset($doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}" class="ra-expert-avatar" loading="lazy">
+                                @else
+                                    <div class="ra-expert-avatar">{{ $initials }}</div>
+                                @endif
+                                <h3 class="ra-product-title mt-3 px-1">{{ $doktor->unvan ? $doktor->unvan.' ' : '' }}{{ $doktor->ad_soyad }}</h3>
+                                <p class="ra-product-meta mt-1 line-clamp-1">{{ $doktor->uzmanlik_alani ?? $bransAd }}@if($doktor->il) · {{ $doktor->il->ad }}@endif</p>
+                                @if($ortalamaPuan)
+                                    <div class="ra-stars mt-2">★ {{ $ortalamaPuan }} <span class="text-[#9CA3AF] font-semibold">({{ $yorumSayisi }})</span></div>
+                                @endif
+                            </div>
+                            <div class="ra-product-body">
+                                <div class="ra-product-foot !border-0 !pt-0">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">{{ $doktor->il?->ad ?? 'Türkiye' }}</span>
+                                    <span class="ra-product-cta">Randevu Al</span>
                                 </div>
                             </div>
-                            <a href="{{ $doktor->profil_url }}" class="w-full text-center py-2.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm block font-display no-underline">
-                                Online Randevu Al
-                            </a>
-                        </div>
+                        </a>
                     </div>
                 @empty
-                    <div class="ra-slider-item w-full">
-                        <div class="text-center text-[#6B7280] py-10 text-sm">Henüz öne çıkan uzman bulunmuyor.</div>
-                    </div>
+                    <div class="ra-rail-item" style="flex-basis:100%"><p class="text-center text-sm text-[#6B7280] py-10">Henüz öne çıkan uzman bulunmuyor.</p></div>
                 @endforelse
             </div>
         </div>
     </section>
 
     {{-- Öne çıkan klinikler --}}
-    <section id="klinikler" class="bg-white border-t border-b border-[#E5E7EB] py-12 md:py-16 select-none">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+    <section id="klinikler" class="ra-rail-section bg-white border-y border-[#E5E7EB] py-12 md:py-16 select-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="ra-rail-head">
                 <div>
-                    <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Öne Çıkan Klinikler</h2>
-                    <p class="text-sm text-[#6B7280] mt-2">Platformdaki aktif klinik ve poliklinikler.</p>
+                    <div class="ra-rail-kicker">Klinikler</div>
+                    <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Öne Çıkan Klinikler</h2>
+                    <p class="text-sm text-[#6B7280] mt-1.5">Aktif klinik ve poliklinikler, tek bakışta.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="flex items-center gap-2">
-                        <button type="button" class="ra-slider-nav" data-slider-prev="klinikler" aria-label="Önceki">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                        </button>
-                        <button type="button" class="ra-slider-nav" data-slider-next="klinikler" aria-label="Sonraki">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                        </button>
-                    </div>
-                    <a href="{{ route('frontend.hekimler', ['sadece_klinik' => 1]) }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline ml-1">
-                        Tümü
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </a>
+                    <button type="button" class="ra-rail-nav" data-rail-prev="klinikler" aria-label="Önceki">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button type="button" class="ra-rail-nav" data-rail-next="klinikler" aria-label="Sonraki">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                    <a href="{{ route('frontend.hekimler', ['sadece_klinik' => 1]) }}" class="ml-1 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] font-display no-underline">Tümü →</a>
                 </div>
             </div>
 
-            <div class="ra-slider" data-slider="klinikler">
-                <div class="ra-slider-track" data-slider-track="klinikler">
+            <div class="ra-rail ra-rail--white" data-rail="klinikler">
+                <div class="ra-rail-track" data-rail-track="klinikler" data-autoplay="1" data-speed="0.5">
                     @forelse(($oneCikanKlinikler ?? collect()) as $klinik)
                         @php
                             $klinikUrl = route('frontend.klinik.profil', [
@@ -545,34 +716,30 @@
                             ]);
                             $initials = mb_strtoupper(mb_substr($klinik->ad, 0, 2));
                         @endphp
-                        <div class="ra-slider-item">
-                            <a href="{{ $klinikUrl }}" class="ra-card p-5 flex flex-col justify-between min-h-[200px] block no-underline group">
-                                <div class="flex items-start gap-4">
+                        <div class="ra-rail-item">
+                            <a href="{{ $klinikUrl }}" class="ra-product">
+                                <div class="ra-product-media">
+                                    <span class="ra-product-badge">Klinik</span>
                                     @if($klinik->logo)
-                                        <img src="{{ asset($klinik->logo) }}" alt="{{ $klinik->ad }}" class="w-14 h-14 rounded-2xl object-cover border border-[#E5E7EB] flex-shrink-0" loading="lazy">
+                                        <img src="{{ asset($klinik->logo) }}" alt="{{ $klinik->ad }}" loading="lazy">
                                     @else
-                                        <div class="w-14 h-14 rounded-2xl bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 flex items-center justify-center font-extrabold text-sm font-display flex-shrink-0">{{ $initials }}</div>
+                                        <div class="w-full h-full flex items-center justify-center">
+                                            <div class="w-16 h-16 rounded-2xl bg-white border border-[#E7B58A]/35 text-[#C96A2B] flex items-center justify-center font-extrabold text-lg shadow-sm">{{ $initials }}</div>
+                                        </div>
                                     @endif
-                                    <div class="min-w-0">
-                                        <span class="inline-block px-2 py-0.5 text-[9px] uppercase font-bold tracking-wider rounded bg-[#C96A2B]/10 text-[#C96A2B] border border-[#C96A2B]/20">Klinik</span>
-                                        <h3 class="text-sm font-bold font-display text-[#111827] mt-1.5 group-hover:text-[#C96A2B] transition-colors line-clamp-2">{{ $klinik->ad }}</h3>
-                                        <p class="text-[11px] text-[#6B7280] mt-1 truncate">
-                                            {{ $klinik->il?->ad }}{{ $klinik->ilce?->ad ? ', '.$klinik->ilce->ad : '' }}
-                                        </p>
-                                    </div>
                                 </div>
-                                <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                    <span class="text-[10px] font-bold text-[#C96A2B] bg-[#FFF7ED] px-2.5 py-1 rounded-full">
-                                        {{ (int) ($klinik->doktorlar_count ?? 0) }} Uzman
-                                    </span>
-                                    <span class="text-xs font-bold text-[#C96A2B]">İncele →</span>
+                                <div class="ra-product-body">
+                                    <h3 class="ra-product-title">{{ $klinik->ad }}</h3>
+                                    <p class="ra-product-meta">{{ $klinik->il?->ad }}{{ $klinik->ilce?->ad ? ', '.$klinik->ilce->ad : '' }}</p>
+                                    <div class="ra-product-foot">
+                                        <span class="ra-product-price" style="font-size:0.8rem">{{ (int) ($klinik->doktorlar_count ?? 0) }} uzman</span>
+                                        <span class="ra-product-cta">İncele</span>
+                                    </div>
                                 </div>
                             </a>
                         </div>
                     @empty
-                        <div class="ra-slider-item w-full">
-                            <div class="text-center text-[#6B7280] py-10 text-sm">Henüz öne çıkan klinik bulunmuyor.</div>
-                        </div>
+                        <div class="ra-rail-item" style="flex-basis:100%"><p class="text-center text-sm text-[#6B7280] py-10">Henüz öne çıkan klinik bulunmuyor.</p></div>
                     @endforelse
                 </div>
             </div>
@@ -580,117 +747,110 @@
     </section>
 
     {{-- Hizmetler --}}
-    <section id="hizmetler" class="max-w-7xl mx-auto px-6 py-12 md:py-16 select-none">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+    <section id="hizmetler" class="ra-rail-section max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16 select-none">
+        <div class="ra-rail-head">
             <div>
-                <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Hizmetler</h2>
-                <p class="text-sm text-[#6B7280] mt-2">Uzmanların sunduğu randevu alınabilir hizmetler.</p>
+                <div class="ra-rail-kicker">Hizmetler</div>
+                <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Popüler Hizmetler</h2>
+                <p class="text-sm text-[#6B7280] mt-1.5">Randevu alınabilir hizmetler, ürün vitrini gibi kayar.</p>
             </div>
             <div class="flex items-center gap-2">
-                <button type="button" class="ra-slider-nav" data-slider-prev="hizmetler" aria-label="Önceki">
+                <button type="button" class="ra-rail-nav" data-rail-prev="hizmetler" aria-label="Önceki">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <button type="button" class="ra-slider-nav" data-slider-next="hizmetler" aria-label="Sonraki">
+                <button type="button" class="ra-rail-nav" data-rail-next="hizmetler" aria-label="Sonraki">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </button>
-                <a href="{{ route('frontend.hekimler') }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline ml-1">
-                    Keşfet
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </a>
+                <a href="{{ route('frontend.hekimler') }}" class="ml-1 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] font-display no-underline">Keşfet →</a>
             </div>
         </div>
 
-        <div class="ra-slider" data-slider="hizmetler">
-            <div class="ra-slider-track" data-slider-track="hizmetler">
+        <div class="ra-rail ra-rail--stone" data-rail="hizmetler">
+            <div class="ra-rail-track" data-rail-track="hizmetler" data-autoplay="1" data-speed="0.6">
                 @forelse(($oneCikanHizmetler ?? collect()) as $hizmet)
-                    <div class="ra-slider-item">
-                        <a href="{{ $hizmet->url }}" class="ra-card overflow-hidden flex flex-col min-h-[260px] block no-underline group">
-                            @if($hizmet->resim)
-                                <div class="aspect-[16/10] overflow-hidden bg-slate-50">
-                                    <img src="{{ asset($hizmet->resim) }}"
-                                         alt="{{ $hizmet->ad }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-                                </div>
-                            @else
-                                <div class="aspect-[16/10] bg-gradient-to-br from-[#FFF7ED] to-[#FEE2C5] flex items-center justify-center">
-                                    <svg class="w-10 h-10 text-[#C96A2B]/40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                </div>
-                            @endif
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h3 class="text-sm font-bold font-display text-[#111827] group-hover:text-[#C96A2B] transition-colors line-clamp-2">{{ $hizmet->ad }}</h3>
-                                <p class="text-[11px] text-[#6B7280] mt-1.5 line-clamp-2 flex-grow">
-                                    @if($hizmet->aciklama)
-                                        {{ Str::limit(strip_tags($hizmet->aciklama), 90) }}
-                                    @else
-                                        {{ $hizmet->doktor ? (($hizmet->doktor->unvan ? $hizmet->doktor->unvan.' ' : '').$hizmet->doktor->ad_soyad) : 'Uzman hizmeti' }}
-                                    @endif
+                    <div class="ra-rail-item">
+                        <a href="{{ $hizmet->url }}" class="ra-product">
+                            <div class="ra-product-media">
+                                @if($hizmet->sure)
+                                    <span class="ra-product-badge">{{ $hizmet->sure }} dk</span>
+                                @endif
+                                @if($hizmet->resim_url ?? $hizmet->resim)
+                                    <img src="{{ $hizmet->resim_url ?? asset($hizmet->resim) }}" alt="{{ $hizmet->ad }}" loading="lazy">
+                                @else
+                                    <div class="w-full h-full flex items-center justify-center text-[#C96A2B]/40">
+                                        <svg class="w-12 h-12" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="ra-product-body">
+                                <h3 class="ra-product-title">{{ $hizmet->ad }}</h3>
+                                <p class="ra-product-meta line-clamp-2">
+                                    {{ $hizmet->doktor ? (($hizmet->doktor->unvan ? $hizmet->doktor->unvan.' ' : '').$hizmet->doktor->ad_soyad) : 'Uzman hizmeti' }}
                                 </p>
-                                <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                                    <span class="font-semibold text-[#6B7280] truncate max-w-[55%]">
-                                        {{ $hizmet->doktor ? (($hizmet->doktor->unvan ? $hizmet->doktor->unvan.' ' : '').$hizmet->doktor->ad_soyad) : '' }}
-                                    </span>
+                                <div class="ra-product-foot">
                                     @if($hizmet->fiyat)
-                                        <span class="font-bold text-[#C96A2B] tabular-nums">{{ number_format((float) $hizmet->fiyat, 0, ',', '.') }} ₺</span>
-                                    @elseif($hizmet->sure)
-                                        <span class="font-bold text-[#C96A2B]">{{ $hizmet->sure }} dk</span>
+                                        <span class="ra-product-price">{{ number_format((float) $hizmet->fiyat, 0, ',', '.') }} ₺</span>
+                                    @else
+                                        <span class="ra-product-price" style="font-size:0.75rem;color:#6B7280">Fiyat sorunuz</span>
                                     @endif
+                                    <span class="ra-product-cta">Seç</span>
                                 </div>
                             </div>
                         </a>
                     </div>
                 @empty
-                    <div class="ra-slider-item w-full">
-                        <div class="text-center text-[#6B7280] py-10 text-sm">Henüz listelenecek hizmet bulunmuyor.</div>
-                    </div>
+                    <div class="ra-rail-item" style="flex-basis:100%"><p class="text-center text-sm text-[#6B7280] py-10">Henüz listelenecek hizmet bulunmuyor.</p></div>
                 @endforelse
             </div>
         </div>
     </section>
 
-    {{-- Blog yazıları --}}
+    {{-- Uzman blogları --}}
     @if(isset($sonBloglar) && $sonBloglar->count() > 0)
-    <section id="bloglar" class="bg-white border-t border-[#E5E7EB] py-12 md:py-16 select-none">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+    <section id="bloglar" class="ra-rail-section bg-white border-t border-[#E5E7EB] py-12 md:py-16 select-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="ra-rail-head">
                 <div>
-                    <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Uzman Yazıları</h2>
-                    <p class="text-sm text-[#6B7280] mt-2">Uzmanlarımızın güncel bilgilendirme yazıları.</p>
+                    <div class="ra-rail-kicker">İçerik</div>
+                    <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Uzman Blogları</h2>
+                    <p class="text-sm text-[#6B7280] mt-1.5">Uzmanlardan güncel yazılar, otomatik vitrin.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button type="button" class="ra-slider-nav" data-slider-prev="bloglar" aria-label="Önceki">
+                    <button type="button" class="ra-rail-nav" data-rail-prev="bloglar" aria-label="Önceki">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                     </button>
-                    <button type="button" class="ra-slider-nav" data-slider-next="bloglar" aria-label="Sonraki">
+                    <button type="button" class="ra-rail-nav" data-rail-next="bloglar" aria-label="Sonraki">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </button>
-                    <a href="{{ route('frontend.blog.index') }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] transition-colors font-display no-underline ml-1">
-                        Tüm Yazılar
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </a>
+                    <a href="{{ route('frontend.blog.index') }}" class="ml-1 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] font-display no-underline">Tüm Bloglar →</a>
                 </div>
             </div>
 
-            <div class="ra-slider" data-slider="bloglar">
-                <div class="ra-slider-track" data-slider-track="bloglar">
+            <div class="ra-rail ra-rail--white" data-rail="bloglar">
+                <div class="ra-rail-track" data-rail-track="bloglar" data-autoplay="1" data-speed="0.48">
                     @foreach($sonBloglar as $blog)
-                        <div class="ra-slider-item">
-                            <a href="{{ $blog->url }}" class="ra-card overflow-hidden flex flex-col min-h-[260px] block no-underline group">
-                                @if($blog->resim)
-                                    <div class="aspect-video overflow-hidden">
-                                        <img src="{{ asset($blog->resim) }}" alt="{{ $blog->baslik }}"
-                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-                                    </div>
-                                @else
-                                    <div class="aspect-video bg-gradient-to-br from-[#FFF7ED] to-[#FEE2C5] flex items-center justify-center">
-                                        <svg class="w-12 h-12 text-[#C96A2B]/30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
-                                        </svg>
-                                    </div>
-                                @endif
-                                <div class="p-4 flex flex-col flex-grow">
-                                    <h3 class="text-sm font-bold font-display text-[#111827] mb-2 group-hover:text-[#C96A2B] transition-colors line-clamp-2">{{ $blog->baslik }}</h3>
-                                    <div class="mt-auto flex items-center justify-between text-[10px] text-[#6B7280] pt-2">
-                                        <span class="truncate max-w-[65%]">{{ $blog->doktor ? (($blog->doktor->unvan ? $blog->doktor->unvan.' ' : '').$blog->doktor->ad_soyad) : '' }}</span>
-                                        <span>{{ $blog->created_at->format('d.m.Y') }}</span>
+                        <div class="ra-rail-item">
+                            <a href="{{ $blog->url }}" class="ra-product">
+                                <div class="ra-product-media">
+                                    <span class="ra-product-badge">Blog</span>
+                                    @if($blog->resim)
+                                        <img src="{{ asset($blog->resim) }}" alt="{{ $blog->baslik }}" loading="lazy">
+                                    @else
+                                        <div class="w-full h-full flex items-center justify-center text-[#C96A2B]/30">
+                                            <svg class="w-12 h-12" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                                            </svg>
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="ra-product-body">
+                                    <h3 class="ra-product-title">{{ $blog->baslik }}</h3>
+                                    <p class="ra-product-meta line-clamp-1">
+                                        {{ $blog->doktor ? (($blog->doktor->unvan ? $blog->doktor->unvan.' ' : '').$blog->doktor->ad_soyad) : 'Uzman' }}
+                                    </p>
+                                    <div class="ra-product-foot">
+                                        <span class="text-[10px] font-bold text-[#9CA3AF]">{{ $blog->created_at->format('d.m.Y') }}</span>
+                                        <span class="ra-product-cta">Oku</span>
                                     </div>
                                 </div>
                             </a>
@@ -702,44 +862,43 @@
     </section>
     @endif
 
-    {{-- Yorumlar (kısa slider) --}}
+    {{-- Yorumlar --}}
     @if(isset($sonYorumlar) && $sonYorumlar->count() > 0)
-    <section class="border-t border-[#E5E7EB] py-12 md:py-16 select-none">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+    <section class="ra-rail-section border-t border-[#E5E7EB] py-12 md:py-16 select-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="ra-rail-head">
                 <div>
-                    <h2 class="text-3xl font-bold font-display text-[#111827] tracking-tight">Hastalarımız Ne Diyor?</h2>
-                    <p class="text-sm text-[#6B7280] mt-2">Platformumuzdan hizmet alan hastaların değerlendirmeleri.</p>
+                    <div class="ra-rail-kicker">Güven</div>
+                    <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Hastalarımız Ne Diyor?</h2>
+                    <p class="text-sm text-[#6B7280] mt-1.5">Gerçek hasta değerlendirmeleri.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button type="button" class="ra-slider-nav" data-slider-prev="yorumlar" aria-label="Önceki">
+                    <button type="button" class="ra-rail-nav" data-rail-prev="yorumlar" aria-label="Önceki">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                     </button>
-                    <button type="button" class="ra-slider-nav" data-slider-next="yorumlar" aria-label="Sonraki">
+                    <button type="button" class="ra-rail-nav" data-rail-next="yorumlar" aria-label="Sonraki">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </button>
                 </div>
             </div>
 
-            <div class="ra-slider" data-slider="yorumlar">
-                <div class="ra-slider-track" data-slider-track="yorumlar">
+            <div class="ra-rail ra-rail--stone" data-rail="yorumlar">
+                <div class="ra-rail-track" data-rail-track="yorumlar" data-autoplay="1" data-speed="0.42">
                     @foreach($sonYorumlar as $yorum)
-                        <div class="ra-slider-item">
-                            <div class="ra-card p-5 min-h-[200px] flex flex-col bg-[#FAFAFA]">
-                                <div class="flex items-center gap-0.5 mb-3">
+                        <div class="ra-rail-item">
+                            <div class="ra-quote-card flex flex-col min-h-[200px]">
+                                <div class="flex items-center gap-0.5 mb-3 text-[#C96A2B] text-sm">
                                     @for($i = 1; $i <= 5; $i++)
-                                        <span class="{{ $i <= $yorum->puan ? 'text-[#C96A2B]' : 'text-[#D1D5DB]' }} text-sm">★</span>
+                                        <span class="{{ $i <= $yorum->puan ? '' : 'text-[#E5E7EB]' }}">★</span>
                                     @endfor
                                 </div>
-                                <p class="text-sm text-[#374151] leading-relaxed mb-4 italic flex-grow">"{{ Str::limit($yorum->yorum, 140) }}"</p>
-                                <div class="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
+                                <p class="text-sm text-[#374151] leading-relaxed italic flex-grow">"{{ Str::limit($yorum->yorum, 130) }}"</p>
+                                <div class="mt-4 pt-3 border-t border-[#F1F5F9] flex items-center justify-between gap-2">
                                     <div class="min-w-0">
                                         <p class="text-xs font-bold text-[#111827] truncate">{{ $yorum->hasta ? $yorum->hasta->maskeli_ad : 'Anonim Hasta' }}</p>
-                                        <p class="text-[10px] text-[#6B7280] mt-0.5 truncate">
-                                            {{ $yorum->doktor ? (($yorum->doktor->unvan ? $yorum->doktor->unvan.' ' : '').$yorum->doktor->ad_soyad) : '' }}
-                                        </p>
+                                        <p class="text-[10px] text-[#6B7280] truncate">{{ $yorum->doktor ? (($yorum->doktor->unvan ? $yorum->doktor->unvan.' ' : '').$yorum->doktor->ad_soyad) : '' }}</p>
                                     </div>
-                                    <span class="text-[10px] text-[#9CA3AF] flex-shrink-0 ml-2">{{ $yorum->created_at->diffForHumans() }}</span>
+                                    <span class="text-[10px] text-[#9CA3AF] shrink-0">{{ $yorum->created_at->diffForHumans() }}</span>
                                 </div>
                             </div>
                         </div>
@@ -770,45 +929,107 @@
             }
         }
 
-        (function initRaSliders() {
+        (function initRaRails() {
+            var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
             function step(track) {
-                const item = track.querySelector('.ra-slider-item');
-                if (!item) return 280;
-                const styles = window.getComputedStyle(track);
-                const gap = parseFloat(styles.columnGap || styles.gap || '20') || 20;
+                var item = track.querySelector('.ra-rail-item');
+                if (!item) return 300;
+                var styles = window.getComputedStyle(track);
+                var gap = parseFloat(styles.columnGap || styles.gap || '18') || 18;
                 return item.getBoundingClientRect().width + gap;
             }
 
-            function updateNav(name) {
-                const track = document.querySelector('[data-slider-track="' + name + '"]');
-                const prev = document.querySelector('[data-slider-prev="' + name + '"]');
-                const next = document.querySelector('[data-slider-next="' + name + '"]');
-                if (!track) return;
-                const max = track.scrollWidth - track.clientWidth - 2;
-                if (prev) prev.disabled = track.scrollLeft <= 2;
-                if (next) next.disabled = track.scrollLeft >= max;
+            function maxScroll(track) {
+                return Math.max(0, track.scrollWidth - track.clientWidth);
             }
 
-            document.querySelectorAll('[data-slider-track]').forEach(function (track) {
-                const name = track.getAttribute('data-slider-track');
-                track.addEventListener('scroll', function () { updateNav(name); }, { passive: true });
-                updateNav(name);
-            });
+            document.querySelectorAll('[data-rail-track]').forEach(function (track) {
+                var name = track.getAttribute('data-rail-track');
+                var autoplay = track.getAttribute('data-autoplay') === '1' && !reduceMotion;
+                var speed = parseFloat(track.getAttribute('data-speed') || '0.5') || 0.5;
+                var paused = false;
+                var dragging = false;
+                var dragStartX = 0;
+                var dragScrollLeft = 0;
+                var raf = null;
 
-            document.querySelectorAll('[data-slider-prev], [data-slider-next]').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    const name = btn.getAttribute('data-slider-prev') || btn.getAttribute('data-slider-next');
-                    const track = document.querySelector('[data-slider-track="' + name + '"]');
-                    if (!track) return;
-                    const dir = btn.hasAttribute('data-slider-prev') ? -1 : 1;
-                    track.scrollBy({ left: dir * step(track), behavior: 'smooth' });
-                    setTimeout(function () { updateNav(name); }, 350);
+                function updateNav() {
+                    var prev = document.querySelector('[data-rail-prev="' + name + '"]');
+                    var next = document.querySelector('[data-rail-next="' + name + '"]');
+                    var max = maxScroll(track);
+                    if (prev) prev.disabled = track.scrollLeft <= 2;
+                    if (next) next.disabled = track.scrollLeft >= max - 2;
+                }
+
+                // Sonsuz vitrin: içerik yetersizse kopyala
+                if (autoplay && track.children.length > 1) {
+                    var kids = Array.prototype.slice.call(track.children);
+                    kids.forEach(function (node) {
+                        var clone = node.cloneNode(true);
+                        clone.setAttribute('aria-hidden', 'true');
+                        track.appendChild(clone);
+                    });
+                }
+
+                function tick() {
+                    if (!autoplay || paused || dragging) {
+                        raf = requestAnimationFrame(tick);
+                        return;
+                    }
+                    var max = maxScroll(track);
+                    if (max <= 4) {
+                        raf = requestAnimationFrame(tick);
+                        return;
+                    }
+                    track.scrollLeft += speed;
+                    // Ortaya gelince başa sar (kopyalanmış set sayesinde akıcı)
+                    if (track.scrollLeft >= max / 2) {
+                        track.scrollLeft = track.scrollLeft - max / 2;
+                    }
+                    updateNav();
+                    raf = requestAnimationFrame(tick);
+                }
+
+                track.addEventListener('mouseenter', function () { paused = true; });
+                track.addEventListener('mouseleave', function () { paused = false; });
+                track.addEventListener('touchstart', function () { paused = true; }, { passive: true });
+                track.addEventListener('touchend', function () { setTimeout(function () { paused = false; }, 1200); }, { passive: true });
+
+                // Sürükle-kaydır
+                track.addEventListener('mousedown', function (e) {
+                    dragging = true;
+                    track.classList.add('is-dragging');
+                    dragStartX = e.pageX;
+                    dragScrollLeft = track.scrollLeft;
+                    paused = true;
                 });
+                window.addEventListener('mouseup', function () {
+                    if (!dragging) return;
+                    dragging = false;
+                    track.classList.remove('is-dragging');
+                    setTimeout(function () { paused = false; }, 800);
+                });
+                window.addEventListener('mousemove', function (e) {
+                    if (!dragging) return;
+                    e.preventDefault();
+                    var dx = e.pageX - dragStartX;
+                    track.scrollLeft = dragScrollLeft - dx;
+                });
+
+                track.addEventListener('scroll', updateNav, { passive: true });
+                updateNav();
+
+                if (autoplay) raf = requestAnimationFrame(tick);
             });
 
-            window.addEventListener('resize', function () {
-                document.querySelectorAll('[data-slider-track]').forEach(function (track) {
-                    updateNav(track.getAttribute('data-slider-track'));
+            document.querySelectorAll('[data-rail-prev], [data-rail-next]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var name = btn.getAttribute('data-rail-prev') || btn.getAttribute('data-rail-next');
+                    var track = document.querySelector('[data-rail-track="' + name + '"]');
+                    if (!track) return;
+                    var dir = btn.hasAttribute('data-rail-prev') ? -1 : 1;
+                    track.scrollBy({ left: dir * step(track), behavior: 'smooth' });
                 });
             });
         })();
