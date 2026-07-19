@@ -65,6 +65,7 @@ class PaketSeeder extends Seeder
                 'yillik_fiyat' => 12990.00,
                 'yillik_indirimli_fiyat' => 9999.00,
                 'ozellikler' => [
+                    '14 gün ücretsiz deneme (kart gerekmez)',
                     'Online Randevu Takvimi ve Yönetimi',
                     'Hasta / Danışan Kartı Kayıt Yönetimi (CRM)',
                     'Hizmet ve Tedavi Tanımlama Modülü',
@@ -73,6 +74,7 @@ class PaketSeeder extends Seeder
                     'Arama Sonuçlarında Standart Listeleme',
                 ],
                 'aktif_mi' => true,
+                'deneme_gun' => 14,
                 'sistem_ozellikleri' => [],
                 'max_hasta_sayisi' => null,
                 'max_randevu_sayisi' => null,

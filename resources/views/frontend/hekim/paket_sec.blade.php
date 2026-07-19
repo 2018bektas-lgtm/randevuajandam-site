@@ -273,6 +273,8 @@
             @forelse($bireyselPaketler as $p)
                 @php
                     $isFree = (float) $p->aylik_fiyat == 0;
+                    $trialDays = (int) ($p->deneme_gun ?? 0);
+                    $canTrial = $trialDays > 0 && $doktor && $doktor->canStartTrial($p);
                     $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'web sitesi')
                         || $p->hasFeature('web_sitesi')
                         || (bool) ($p->domain_dahil_mi ?? false);
@@ -296,7 +298,9 @@
                     if ($isWebsite) $cardClass .= ' website';
                 @endphp
                 <article class="{{ $cardClass }}">
-                    @if($isFeatured)
+                    @if($canTrial)
+                        <span class="ribbon ribbon-free">{{ $trialDays }} gün deneme</span>
+                    @elseif($isFeatured)
                         <span class="ribbon ribbon-popular">Popüler</span>
                     @elseif($isWebsite)
                         <span class="ribbon ribbon-web">Web sitesi</span>
@@ -311,6 +315,11 @@
                         <div class="mb-5 pr-16">
                             <h3 class="text-[17px] font-bold font-display text-[#0F172A]">{{ $p->ad }}</h3>
                             <p class="text-[12.5px] text-slate-500 mt-2 leading-relaxed min-h-[40px]">{{ $p->aciklama }}</p>
+                            @if($canTrial)
+                                <p class="text-[11px] font-semibold text-emerald-700 mt-2">Kart istemeden {{ $trialDays }} gün ücretsiz dene. Süre bitince paket seçip ödersin.</p>
+                            @elseif($trialDays > 0 && $doktor && $doktor->deneme_kullanildi)
+                                <p class="text-[11px] text-amber-700 mt-2">Deneme hakkınız kullanılmış — ödeme ile devam.</p>
+                            @endif
                         </div>
 
                         <div class="mb-6 pb-6 border-b border-slate-100 min-h-[88px]">
@@ -375,13 +384,28 @@
                             @endif
                         </ul>
 
-                        <a href="{{ $ctaBase }}?paket={{ $p->id }}&periyot=aylik"
-                           class="btn-select-package btn-plan {{ $isFeatured || $isWebsite ? 'btn-plan-primary' : 'btn-plan-ghost' }} mt-auto"
-                           data-base-url="{{ $ctaBase }}"
-                           data-paket-id="{{ $p->id }}">
-                            {{ $needsDomainStep ? ($isFree ? 'Domain seç' : 'Domain seç → öde') : ($isFree ? 'Hemen başla' : 'Seç ve öde') }}
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                        </a>
+                        @if($canTrial)
+                            <form action="{{ route('frontend.hekim.paket_deneme') }}" method="POST" class="mt-auto">
+                                @csrf
+                                <input type="hidden" name="paket_id" value="{{ $p->id }}">
+                                <button type="submit" class="btn-plan btn-plan-primary w-full">
+                                    {{ $trialDays }} gün ücretsiz dene
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                                </button>
+                            </form>
+                            <a href="{{ $ctaBase }}?paket={{ $p->id }}&periyot=aylik"
+                               class="block text-center text-[11px] text-slate-500 mt-2 underline hover:text-[#C96A2B]">
+                                Denemesiz öde →
+                            </a>
+                        @else
+                            <a href="{{ $ctaBase }}?paket={{ $p->id }}&periyot=aylik"
+                               class="btn-select-package btn-plan {{ $isFeatured || $isWebsite ? 'btn-plan-primary' : 'btn-plan-ghost' }} mt-auto"
+                               data-base-url="{{ $ctaBase }}"
+                               data-paket-id="{{ $p->id }}">
+                                {{ $needsDomainStep ? ($isFree ? 'Domain seç' : 'Domain seç → öde') : ($isFree ? 'Hemen başla' : 'Seç ve öde') }}
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                            </a>
+                        @endif
                     </div>
                 </article>
             @empty

@@ -32,6 +32,7 @@ class Paket extends Model
         'domain_dahil_mi',
         'domain_dahil_yil',
         'domain_dahil_tlds',
+        'deneme_gun',
     ];
 
     protected function casts(): array
@@ -46,6 +47,7 @@ class Paket extends Model
             'domain_dahil_mi' => 'boolean',
             'domain_dahil_yil' => 'integer',
             'domain_dahil_tlds' => 'array',
+            'deneme_gun' => 'integer',
         ];
     }
 
@@ -53,6 +55,17 @@ class Paket extends Model
     public function domainDahilMi(): bool
     {
         return (bool) ($this->domain_dahil_mi ?? false);
+    }
+
+    /** Ücretsiz deneme günü (örn. Başlangıç = 14). */
+    public function denemeGun(): int
+    {
+        return max(0, (int) ($this->deneme_gun ?? 0));
+    }
+
+    public function denemeVarMi(): bool
+    {
+        return $this->denemeGun() > 0;
     }
 
     /**

@@ -4,6 +4,25 @@
 @section('sayfa_baslik', 'Panel Özeti')
 
 @section('icerik')
+    @if($doktor->isOnTrial() && $doktor->uyelik_bitis)
+        <div class="mb-6 p-5 md:p-6 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <h4 class="font-bold text-emerald-950 text-sm font-display">Ücretsiz deneme aktif</h4>
+                <p class="text-xs text-emerald-900/80 mt-1 max-w-xl">
+                    Denemeniz <strong>{{ $doktor->uyelik_bitis->format('d.m.Y') }}</strong> tarihinde bitiyor
+                    @if($doktor->membershipDaysLeft() !== null)
+                        (yaklaşık {{ max(0, $doktor->membershipDaysLeft()) }} gün kaldı)
+                    @endif.
+                    Süre dolunca girişte paket seçip ödeme ekranına yönlendirilirsiniz.
+                </p>
+            </div>
+            <a href="{{ route('frontend.hekim.paket_sec') }}"
+               class="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all">
+                Paket yükselt / öde
+            </a>
+        </div>
+    @endif
+
     @if(!empty($needsDomainOnboarding))
         <div class="mb-6 p-5 md:p-6 rounded-2xl bg-orange-50 border border-orange-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>

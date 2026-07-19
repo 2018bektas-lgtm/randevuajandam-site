@@ -31,6 +31,7 @@ class Doktor extends Authenticatable
         'odeme_periyodu',
         'uyelik_baslangic',
         'uyelik_bitis',
+        'deneme_kullanildi',
         'aktif_mi',
         'platformda_gorunur',
         'unvan',
@@ -128,6 +129,7 @@ class Doktor extends Authenticatable
             'sifre' => 'hashed',
             'uyelik_baslangic' => 'datetime',
             'uyelik_bitis' => 'datetime',
+            'deneme_kullanildi' => 'boolean',
             'aktif_mi' => 'boolean',
             'platformda_gorunur' => 'boolean',
             'mezuniyet' => 'array',
@@ -344,6 +346,58 @@ class Doktor extends Authenticatable
         $paket = $this->aktifPaket();
 
         return $paket && $paket->hasFeature('web_sitesi');
+    }
+
+    /** Bu pakette ücretsiz deneme hakkı var mı? (bir kez) */
+    public function canStartTrial(?Paket $paket = null): bool
+    {
+        $paket = $paket ?? $this->paket;
+        if (! $paket || ! $paket->denemeVarMi()) {
+            return false;
+        }
+        if ($this->klinikteMi()) {
+            return false;
+        }
+        if ((bool) ($this->deneme_kullanildi ?? false)) {
+            return false;
+        }
+
+        // Aktif ücretli üyelik varsa deneme yok
+        if ($this->uyelik_bitis && $this->uyelik_bitis->isFuture() && $this->odeme_periyodu !== 'deneme') {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function isOnTrial(): bool
+    {
+        return $this->odeme_periyodu === 'deneme'
+            && $this->uyelik_bitis
+            && $this->uyelik_bitis->isFuture();
+    }
+
+    public function isMembershipExpired(): bool
+    {
+        if ($this->klinikteMi()) {
+            $klinik = $this->klinik;
+
+            return $klinik && $klinik->uyelik_bitis && $klinik->uyelik_bitis->isPast();
+        }
+
+        return $this->uyelik_bitis && $this->uyelik_bitis->isPast();
+    }
+
+    /** Deneme veya üyelik süresi (gün) kalan — yoksa null. */
+    public function membershipDaysLeft(): ?int
+    {
+        if (! $this->uyelik_bitis || $this->uyelik_bitis->isPast()) {
+            return null;
+        }
+
+        $days = (int) floor(now()->diffInSeconds($this->uyelik_bitis, false) / 86400);
+
+        return max(0, $days);
     }
 
     /**

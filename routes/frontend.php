@@ -173,6 +173,7 @@ Route::middleware(['auth:doktor'])->group(function () {
     Route::get('/hekim/paket-sec', [PaketController::class, 'paketSecFormu'])->name('frontend.hekim.paket_sec');
     Route::get('/hekim/paket-ode', [PaketController::class, 'paketOdeFormu'])->name('frontend.hekim.paket_ode');
     Route::post('/hekim/paket-ode', [PaketController::class, 'paketOde'])->name('frontend.hekim.paket_ode.post');
+    Route::post('/hekim/paket-deneme', [PaketController::class, 'paketDenemeBaslat'])->name('frontend.hekim.paket_deneme');
 
     // Domain: ödeme ÖNCESİ (paket query) + ödeme sonrası (üyelik varken)
     Route::get('/hekim/onboarding/domain', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domain'])

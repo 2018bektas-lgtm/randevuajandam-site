@@ -79,6 +79,19 @@ class HekimController extends Controller
                 return redirect()->route('two-factor.challenge');
             }
 
+            // Deneme / üyelik dolmuşsa panele değil paket seçimine
+            if (is_null($user->paket_id) && ! $user->klinikteMi()) {
+                return redirect()->route('frontend.hekim.paket_sec')
+                    ->with('basarili', 'Hoş geldiniz. Başlamak için paket seçin — Başlangıç paketinde 14 gün ücretsiz deneme.');
+            }
+            if (! $user->klinikteMi() && $user->uyelik_bitis && $user->uyelik_bitis->isPast()) {
+                $msg = $user->odeme_periyodu === 'deneme'
+                    ? '14 günlük denemeniz bitti. Devam etmek için paket seçip ödeme yapın.'
+                    : 'Üyelik süreniz dolmuş. Devam etmek için paket seçip ödeme yapın.';
+
+                return redirect()->route('frontend.hekim.paket_sec')->with('hata', $msg);
+            }
+
             return redirect()->route('hekim.panel');
         }
 

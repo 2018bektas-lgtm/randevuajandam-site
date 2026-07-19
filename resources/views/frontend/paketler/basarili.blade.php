@@ -19,14 +19,25 @@
 
         <!-- Success Header -->
         <div class="space-y-3">
-            <h1 class="text-3xl font-extrabold font-display text-[#111827] tracking-tight">Üyeliğiniz Başarıyla Oluşturuldu!</h1>
-            @if($doktor->paket->aylik_fiyat == 0)
+            <h1 class="text-3xl font-extrabold font-display text-[#111827] tracking-tight">
+                @if($doktor->isOnTrial())
+                    Denemeniz başladı!
+                @else
+                    Üyeliğiniz Başarıyla Oluşturuldu!
+                @endif
+            </h1>
+            @if($doktor->isOnTrial())
                 <p class="text-xs text-[#6B7280] leading-relaxed max-w-sm mx-auto">
-                    Aramıza hoş geldiniz! Ücretsiz deneme profiliniz başarıyla oluşturuldu ve aktif hale getirildi.
+                    Aramıza hoş geldiniz! <strong class="text-emerald-700">{{ $doktor->uyelik_bitis?->format('d.m.Y') }}</strong> tarihine kadar
+                    ücretsiz deneme aktif. Süre bitince girişte paket seçip ödeme yapmanız istenir.
+                </p>
+            @elseif($doktor->paket && (float) $doktor->paket->aylik_fiyat == 0)
+                <p class="text-xs text-[#6B7280] leading-relaxed max-w-sm mx-auto">
+                    Aramıza hoş geldiniz! Ücretsiz planınız aktif hale getirildi.
                 </p>
             @else
                 <p class="text-xs text-[#6B7280] leading-relaxed max-w-sm mx-auto">
-                    Aramıza hoş geldiniz! Ödemeniz başarıyla simüle edildi ve hekim profiliniz aktif hale getirildi.
+                    Aramıza hoş geldiniz! Ödemeniz alındı ve hekim profiliniz aktif hale getirildi.
                 </p>
             @endif
         </div>
@@ -56,15 +67,23 @@
                 <div class="flex items-center justify-between">
                     <span class="text-[#6B7280]">Ödeme Periyodu</span>
                     <span class="font-semibold text-[#111827] capitalize">
-                        {{ $doktor->paket->aylik_fiyat == 0 ? 'Ücretsiz Plan' : ($doktor->odeme_periyodu === 'aylik' ? 'Aylık Plan' : 'Yıllık Plan') }}
+                        @if($doktor->odeme_periyodu === 'deneme')
+                            Ücretsiz deneme
+                        @elseif($doktor->paket && (float) $doktor->paket->aylik_fiyat == 0)
+                            Ücretsiz Plan
+                        @elseif($doktor->odeme_periyodu === 'aylik')
+                            Aylık Plan
+                        @else
+                            Yıllık Plan
+                        @endif
                     </span>
                 </div>
 
-                @if($doktor->paket->aylik_fiyat > 0)
+                @if($doktor->uyelik_bitis)
                 <div class="flex items-center justify-between border-t border-dashed border-slate-100 pt-3 text-[11px]">
-                    <span class="text-[#6B7280]">Sonraki Ödeme Tarihi</span>
+                    <span class="text-[#6B7280]">{{ $doktor->isOnTrial() ? 'Deneme bitiş' : 'Sonraki dönem' }}</span>
                     <span class="font-bold text-[#111827] font-mono">
-                        {{ $doktor->uyelik_bitis ? $doktor->uyelik_bitis->format('d.m.Y H:i') : '-' }}
+                        {{ $doktor->uyelik_bitis->format('d.m.Y H:i') }}
                     </span>
                 </div>
                 @endif

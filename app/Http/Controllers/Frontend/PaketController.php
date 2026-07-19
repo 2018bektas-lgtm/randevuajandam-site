@@ -189,9 +189,11 @@ class PaketController extends Controller
             return redirect()->route('frontend.paketler');
         }
 
+        // Deneme aktifken domain adımına zorlama (starter'da web yok)
         // Ödeme sonrası zorunlu domain adımı (atlandıysa veya tamamlandıysa değil)
         if (
-            $doktor->needsWebsiteDomainOnboarding()
+            ! $doktor->isOnTrial()
+            && $doktor->needsWebsiteDomainOnboarding()
             && ! session('onboarding_domain_skipped')
             && ! session('onboarding_domain_done')
             && ! session('plain_api_secret')
@@ -544,6 +546,61 @@ class PaketController extends Controller
     }
 
     /**
+     * Başlangıç paketi 14 gün ücretsiz deneme — ödeme yok.
+     */
+    public function paketDenemeBaslat(Request $request)
+    {
+        $doktor = Auth::guard('doktor')->user();
+        $paket = Paket::where('aktif_mi', true)->findOrFail($request->input('paket_id'));
+
+        if ($paket->klinikPaketiMi()) {
+            return redirect()->route('frontend.hekim.paket_sec')
+                ->with('hata', 'Deneme yalnızca bireysel Başlangıç paketi içindir.');
+        }
+
+        if (! $paket->denemeVarMi()) {
+            return redirect()->route('frontend.hekim.paket_ode', [
+                'paket' => $paket->id,
+                'periyot' => 'aylik',
+            ])->with('hata', 'Bu pakette ücretsiz deneme yok.');
+        }
+
+        if (! $doktor->canStartTrial($paket)) {
+            return redirect()->route('frontend.hekim.paket_ode', [
+                'paket' => $paket->id,
+                'periyot' => 'aylik',
+            ])->with(
+                'hata',
+                $doktor->deneme_kullanildi
+                    ? 'Ücretsiz deneme hakkınızı daha önce kullandınız. Lütfen ödeme ile devam edin.'
+                    : 'Deneme başlatılamıyor. Lütfen ödeme ile paket seçin.'
+            );
+        }
+
+        $gun = $paket->denemeGun();
+        $baslangic = now();
+        $bitis = now()->addDays($gun);
+
+        $doktor->update([
+            'paket_id' => $paket->id,
+            'odeme_periyodu' => 'deneme',
+            'uyelik_baslangic' => $baslangic,
+            'uyelik_bitis' => $bitis,
+            'deneme_kullanildi' => true,
+            'iyzico_subscription_reference_code' => 'trial_'.$gun.'d_'.Str::random(10),
+            'iyzico_subscription_status' => 'TRIAL',
+            'tur' => 'bireysel',
+        ]);
+
+        return redirect()
+            ->route('frontend.hekim.basarili')
+            ->with(
+                'basarili',
+                "{$gun} günlük ücretsiz denemeniz başladı. Süre bitince paket seçip ödeme yapmanız gerekecek."
+            );
+    }
+
+    /**
      * Show package payment form for logged-in doctor.
      * Web sitesi paketinde domain seçilmediyse önce domain adımına yönlendir.
      */
@@ -555,6 +612,17 @@ class PaketController extends Controller
         $secilenPaket = Paket::where('aktif_mi', true)->with('sistemOzellikleri')->find($paketId);
         if (! $secilenPaket) {
             return redirect()->route('frontend.hekim.paket_sec')->with('hata', 'Lütfen geçerli bir paket seçin.');
+        }
+
+        // Deneme hakkı varsa ödeme formuna girmeden deneme başlat sayfası / otomatik
+        $doktor = Auth::guard('doktor')->user();
+        if (
+            $request->query('mod') === 'deneme'
+            || ($secilenPaket->denemeVarMi() && $doktor && $doktor->canStartTrial($secilenPaket) && $request->boolean('auto_trial'))
+        ) {
+            if ($doktor && $doktor->canStartTrial($secilenPaket)) {
+                return $this->paketDenemeBaslat(new Request(['paket_id' => $secilenPaket->id]));
+            }
         }
 
         // Domain adımı zorunlu değil ama web paketinde seçim yoksa ve atlanmamışsa domain'e yönlendir
@@ -764,7 +832,7 @@ class PaketController extends Controller
                     'tur' => 'klinik',
                 ]);
             } else {
-                // Individual package
+                // Individual package (ücretli — deneme bittikten sonra da buraya düşer)
                 $doktor->update([
                     'paket_id' => $paket->id,
                     'odeme_periyodu' => $request->odeme_periyodu,
