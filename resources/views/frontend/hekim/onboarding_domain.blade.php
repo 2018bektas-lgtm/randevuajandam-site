@@ -258,18 +258,36 @@
             if (!rows.length) {
                 resultsEl.innerHTML = '<p class="text-sm text-slate-500">Sonuç yok.</p>';
             } else {
-                resultsEl.innerHTML = rows.map(r => {
+                const primary = rows.filter(r => !r.is_alternative);
+                const alts = rows.filter(r => !!r.is_alternative && !!r.is_available);
+                const renderRow = (r) => {
                     const d = r.domain || '';
                     const ok = !!r.is_available;
+                    const alt = !!r.is_alternative;
                     const mock = r.mock ? ' <span class="text-[10px] text-amber-600">(simülasyon)</span>' : '';
-                    return `<div class="flex items-center justify-between gap-3 p-3 rounded-xl border ${ok ? 'border-emerald-100 bg-emerald-50/50' : 'border-slate-100 bg-slate-50'}">
+                    let badge = ok
+                        ? (alt ? 'Benzer öneri — uygun' : 'Uygun — pakete dahil')
+                        : 'Uygun değil (dolu)';
+                    const border = ok
+                        ? (alt ? 'border-sky-100 bg-sky-50/50' : 'border-emerald-100 bg-emerald-50/50')
+                        : 'border-slate-100 bg-slate-50';
+                    const text = ok ? (alt ? 'text-sky-800' : 'text-emerald-700') : 'text-slate-500';
+                    return `<div class="flex items-center justify-between gap-3 p-3 rounded-xl border ${border}">
                         <div>
                             <span class="font-semibold text-sm text-slate-900">${d}</span>${mock}
-                            <span class="block text-xs ${ok ? 'text-emerald-700' : 'text-slate-500'}">${ok ? 'Müsait — pakete dahil' : 'Dolu'}</span>
+                            <span class="block text-xs ${text}">${badge}</span>
                         </div>
-                        ${ok ? `<button type="button" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold" data-pick="${d}">Seç</button>` : ''}
+                        ${ok ? `<button type="button" class="px-3 py-1.5 rounded-lg ${alt ? 'bg-sky-600' : 'bg-emerald-600'} text-white text-xs font-bold" data-pick="${d}">Seç</button>` : ''}
                     </div>`;
-                }).join('');
+                };
+                let html = primary.map(renderRow).join('');
+                if (alts.length) {
+                    html += `<p class="text-xs font-bold text-sky-800 pt-2">Benzer / alternatif uygun domainler</p>`;
+                    html += alts.map(renderRow).join('');
+                } else if (primary.length && primary.every(r => !r.is_available)) {
+                    html += `<p class="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-1">Bu isimler dolu. Farklı bir kelime deneyin veya “Domainim var” ile mevcut domaininizi yazın.</p>`;
+                }
+                resultsEl.innerHTML = html;
                 resultsEl.querySelectorAll('[data-pick]').forEach(btn => {
                     btn.addEventListener('click', () => {
                         document.getElementById('claim-domain-val').value = btn.dataset.pick;

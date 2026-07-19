@@ -30,6 +30,9 @@ class HostingerClient
     }
 
     /**
+     * Hostinger kuralı: with_alternatives=true yalnızca TEK TLD ile çalışır.
+     * Çoklu TLD (com+net) için önce alternatives=false; doluysa benzer SLD + opsiyonel tek-TLD alternatif.
+     *
      * @param  list<string>  $tlds
      * @return list<array{domain:?string,is_available:bool,is_alternative:bool,restriction:?string}>
      */
@@ -45,20 +48,102 @@ class HostingerClient
             throw new RuntimeException('Domain adı ve en az bir TLD gerekli.');
         }
 
+        // 1) Asıl istek: tüm TLD'ler, alternatif YOK (Domains:2038 hatasını önler)
+        $rows = $this->requestAvailability($sld, $tlds, false);
+        $primaryDomains = [];
+        foreach ($rows as $row) {
+            if (! empty($row['domain'])) {
+                $primaryDomains[$row['domain']] = true;
+            }
+        }
+
+        $anyAvailable = false;
+        foreach ($rows as $row) {
+            if (! empty($row['is_available'])) {
+                $anyAvailable = true;
+                break;
+            }
+        }
+
+        if (! $withAlternatives) {
+            return $rows;
+        }
+
+        // 2) Hostinger alternatifleri (yalnızca tek TLD) — varsa ekle
+        $preferredTld = in_array('com', $tlds, true) ? 'com' : $tlds[0];
+        try {
+            $altFromApi = $this->requestAvailability($sld, [$preferredTld], true);
+            foreach ($altFromApi as $row) {
+                $d = $row['domain'] ?? null;
+                if (! $d || isset($primaryDomains[$d])) {
+                    continue;
+                }
+                if (! empty($row['is_available'])) {
+                    $row['is_alternative'] = true;
+                    $rows[] = $row;
+                    $primaryDomains[$d] = true;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::debug('Hostinger alternatives skip', ['error' => $e->getMessage()]);
+        }
+
+        // 3) Hâlâ müsait yoksa (veya az varsa) benzer SLD önerileri (bizim üretim + müsaitlik)
+        if (! $anyAvailable) {
+            foreach ($this->similarSlds($sld) as $sim) {
+                try {
+                    $simRows = $this->requestAvailability($sim, $tlds, false);
+                } catch (\Throwable) {
+                    continue;
+                }
+                foreach ($simRows as $row) {
+                    $d = $row['domain'] ?? null;
+                    if (! $d || isset($primaryDomains[$d]) || empty($row['is_available'])) {
+                        continue;
+                    }
+                    $row['is_alternative'] = true;
+                    $rows[] = $row;
+                    $primaryDomains[$d] = true;
+                }
+                // En fazla birkaç öneri yeterli
+                $altCount = count(array_filter($rows, fn ($r) => ! empty($r['is_alternative'])));
+                if ($altCount >= 6) {
+                    break;
+                }
+            }
+        }
+
+        return array_values($rows);
+    }
+
+    /**
+     * @param  list<string>  $tlds
+     * @return list<array{domain:?string,is_available:bool,is_alternative:bool,restriction:?string}>
+     */
+    protected function requestAvailability(string $sld, array $tlds, bool $withAlternatives): array
+    {
         $res = $this->http()->post('/api/domains/v1/availability', [
             'domain' => $sld,
-            'tlds' => $tlds,
-            'with_alternatives' => $withAlternatives,
+            'tlds' => array_values($tlds),
+            // Hostinger: alternatives only with single TLD
+            'with_alternatives' => $withAlternatives && count($tlds) === 1,
         ]);
 
         if (! $res->successful()) {
+            $body = $res->json() ?? $res->body();
             Log::warning('Hostinger availability failed', [
                 'status' => $res->status(),
-                'body' => $res->json() ?? $res->body(),
+                'body' => $body,
+                'sld' => $sld,
+                'tlds' => $tlds,
+                'alternatives' => $withAlternatives,
             ]);
-            throw new RuntimeException(
-                $res->json('error') ?? $res->json('message') ?? 'Domain müsaitlik sorgusu başarısız ('.$res->status().').'
-            );
+            $msg = $res->json('message') ?? $res->json('error') ?? null;
+            // Ham [Domains:2038] mesajını kullanıcıya sadeleştir
+            if (is_string($msg) && str_contains($msg, '2038')) {
+                $msg = 'Domain sorgusu başarısız. Lütfen tekrar deneyin.';
+            }
+            throw new RuntimeException($msg ?: 'Domain müsaitlik sorgusu başarısız ('.$res->status().').');
         }
 
         $json = $res->json();
@@ -67,6 +152,11 @@ class HostingerClient
         }
         if (! is_array($json)) {
             return [];
+        }
+
+        // Liste değilse (tek obje) sarmala
+        if (isset($json['domain']) || array_key_exists('is_available', $json)) {
+            $json = [$json];
         }
 
         return array_values(array_map(function ($row) {
@@ -79,6 +169,54 @@ class HostingerClient
                 'restriction' => $row['restriction'] ?? null,
             ];
         }, $json));
+    }
+
+    /**
+     * Dolu isimler için basit benzer SLD adayları.
+     *
+     * @return list<string>
+     */
+    protected function similarSlds(string $sld): array
+    {
+        $sld = strtolower(trim($sld, '-'));
+        if ($sld === '') {
+            return [];
+        }
+
+        $candidates = [];
+        $noHyphen = str_replace('-', '', $sld);
+        if ($noHyphen !== $sld && strlen($noHyphen) >= 2) {
+            $candidates[] = $noHyphen;
+        }
+
+        foreach (['dr', 'hekim', 'klinik', 'med', 'pro'] as $prefix) {
+            $c = $prefix.'-'.$sld;
+            if (strlen($c) <= 63) {
+                $candidates[] = $c;
+            }
+        }
+        foreach (['hekim', 'klinik', 'online', 'tr'] as $suffix) {
+            $c = $sld.'-'.$suffix;
+            if (strlen($c) <= 63) {
+                $candidates[] = $c;
+            }
+        }
+
+        // Tekilleştir, orijinali çıkar
+        $out = [];
+        foreach ($candidates as $c) {
+            $c = strtolower(preg_replace('/[^a-z0-9\-]/', '', $c) ?? '');
+            $c = trim($c, '-');
+            if ($c === '' || $c === $sld || isset($out[$c])) {
+                continue;
+            }
+            $out[$c] = $c;
+            if (count($out) >= 4) {
+                break;
+            }
+        }
+
+        return array_values($out);
     }
 
     /**
