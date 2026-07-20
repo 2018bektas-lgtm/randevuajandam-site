@@ -4,7 +4,21 @@
 @section('sayfa_baslik', 'Panel Özeti')
 
 @section('icerik')
-    @if($doktor->isOnTrial() && $doktor->uyelik_bitis)
+    @if($doktor->isSubscriptionCancelPending() && $doktor->uyelik_bitis)
+        <div class="mb-6 p-5 md:p-6 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <h4 class="font-bold text-amber-950 text-sm font-display">Abonelik iptal — dönem sonuna kadar aktif</h4>
+                <p class="text-xs text-amber-900/80 mt-1 max-w-xl">
+                    Yenileme kapalı. Erişiminiz <strong>{{ $doktor->uyelik_bitis->format('d.m.Y') }}</strong> tarihine kadar sürer;
+                    bu tarihten sonra yeni çekim yapılmaz.
+                </p>
+            </div>
+            <a href="{{ route('hekim.uyelik') }}"
+               class="shrink-0 px-4 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold transition-all">
+                Üyelik detayı
+            </a>
+        </div>
+    @elseif($doktor->isOnTrial() && $doktor->uyelik_bitis)
         <div class="mb-6 p-5 md:p-6 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
                 <h4 class="font-bold text-emerald-950 text-sm font-display">Ücretsiz deneme aktif</h4>

@@ -220,6 +220,10 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     Route::get('/hekim/profil', [HekimController::class, 'profilDuzenle'])->name('hekim.profil');
     Route::post('/hekim/profil', [HekimController::class, 'profilGuncelle'])->name('hekim.profil.post');
 
+    // Üyelik / abonelik iptal (dönem sonuna kadar erişim)
+    Route::get('/hekim/uyelik', [\App\Http\Controllers\Frontend\HekimUyelikController::class, 'index'])->name('hekim.uyelik');
+    Route::post('/hekim/uyelik/iptal', [\App\Http\Controllers\Frontend\HekimUyelikController::class, 'iptal'])->name('hekim.uyelik.iptal');
+
     // Change Password
     Route::get('/hekim/sifre-degistir', [HekimController::class, 'sifreFormu'])->name('hekim.sifre');
     Route::post('/hekim/sifre-degistir', [HekimController::class, 'sifreGuncelle'])->name('hekim.sifre.post');

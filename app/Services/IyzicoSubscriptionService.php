@@ -242,4 +242,104 @@ class IyzicoSubscriptionService
             ];
         }
     }
+
+    /**
+     * Aboneliği iptal et (iyzico yenilemeyi durdurur).
+     * Dönem sonu erişimi uygulama tarafında uyelik_bitis ile yönetilir.
+     *
+     * @return array{status: string, errorMessage?: string, raw?: mixed}
+     */
+    public function cancelSubscription(?string $subscriptionReferenceCode): array
+    {
+        $ref = trim((string) $subscriptionReferenceCode);
+        if ($ref === '') {
+            return [
+                'status' => 'success',
+                'skipped' => true,
+                'message' => 'no_reference',
+            ];
+        }
+
+        // Mock / trial kodları
+        if (str_starts_with($ref, 'sub_mock_') || str_starts_with($ref, 'trial_') || str_starts_with($ref, 'free_trial_')) {
+            return [
+                'status' => 'success',
+                'skipped' => true,
+                'message' => 'local_or_trial',
+            ];
+        }
+
+        if (! $this->isConfigured()) {
+            if ($this->allowsMock()) {
+                return ['status' => 'success', 'skipped' => true, 'message' => 'mock_unconfigured'];
+            }
+
+            return [
+                'status' => 'failure',
+                'errorMessage' => 'Ödeme yapılandırması eksik; iyzico aboneliği iptal edilemedi.',
+            ];
+        }
+
+        $uri = '/v2/subscription/subscriptions/'.$ref.'/cancel';
+        $payload = [
+            'locale' => 'tr',
+            'conversationId' => (string) rand(100000000, 999999999),
+        ];
+        $requestJson = json_encode($payload);
+
+        try {
+            $response = Http::withHeaders($this->getHeaders($uri, $requestJson))
+                ->post($this->baseUrl.$uri, $payload);
+
+            $data = $response->json() ?? [];
+
+            if ($response->successful() && (($data['status'] ?? '') === 'success')) {
+                return [
+                    'status' => 'success',
+                    'subscriptionStatus' => $data['subscriptionStatus']
+                        ?? ($data['data']['subscriptionStatus'] ?? 'CANCELED'),
+                    'raw' => $data,
+                ];
+            }
+
+            // Zaten iptal / bulunamadı — uygulama tarafında yine yenilemeyi kapat
+            $msg = (string) ($data['errorMessage'] ?? '');
+            $code = (string) ($data['errorCode'] ?? '');
+            Log::warning('iyzico subscription cancel non-success', [
+                'http' => $response->status(),
+                'code' => $code,
+                'message' => $msg,
+                'ref' => $ref,
+            ]);
+
+            if (
+                str_contains(strtolower($msg), 'cancel')
+                || str_contains(strtolower($msg), 'iptal')
+                || in_array($code, ['5001', '5002', '5003'], true)
+            ) {
+                return [
+                    'status' => 'success',
+                    'skipped' => true,
+                    'message' => $msg ?: 'already_canceled',
+                ];
+            }
+
+            return [
+                'status' => 'failure',
+                'errorMessage' => $msg !== '' ? $msg : 'Abonelik iptali iyzico tarafında başarısız (HTTP '.$response->status().').',
+                'errorCode' => $code ?: null,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('iyzico subscription cancel error: '.$e->getMessage(), ['ref' => $ref]);
+
+            if ($this->allowsMock()) {
+                return ['status' => 'success', 'skipped' => true, 'message' => 'mock_exception'];
+            }
+
+            return [
+                'status' => 'failure',
+                'errorMessage' => 'Ödeme sistemi ile iletişim kurulamadı (iptal).',
+            ];
+        }
+    }
 }

@@ -50,6 +50,9 @@ class Doktor extends Authenticatable
         'web_sitesi',
         'iyzico_subscription_reference_code',
         'iyzico_subscription_status',
+        'abonelik_yenileme_kapali',
+        'abonelik_iptal_at',
+        'abonelik_iptal_nedeni',
         'klinik_id',
         'klinik_rolu',
         'klinik_katilma_tarihi',
@@ -130,6 +133,8 @@ class Doktor extends Authenticatable
             'uyelik_baslangic' => 'datetime',
             'uyelik_bitis' => 'datetime',
             'deneme_kullanildi' => 'boolean',
+            'abonelik_yenileme_kapali' => 'boolean',
+            'abonelik_iptal_at' => 'datetime',
             'aktif_mi' => 'boolean',
             'platformda_gorunur' => 'boolean',
             'mezuniyet' => 'array',
@@ -398,6 +403,45 @@ class Doktor extends Authenticatable
         $days = (int) floor(now()->diffInSeconds($this->uyelik_bitis, false) / 86400);
 
         return max(0, $days);
+    }
+
+    /** Aktif üyelik var ve henüz bitmemiş mi? */
+    public function hasActiveMembership(): bool
+    {
+        if ($this->klinikteMi()) {
+            return true;
+        }
+
+        return $this->paket_id
+            && $this->uyelik_bitis
+            && $this->uyelik_bitis->isFuture();
+    }
+
+    /**
+     * Grok tarzı: iptal istendi, dönem sonuna kadar erişim açık, yenileme yok.
+     */
+    public function isSubscriptionCancelPending(): bool
+    {
+        return (bool) ($this->abonelik_yenileme_kapali ?? false)
+            && $this->hasActiveMembership();
+    }
+
+    public function canCancelSubscription(): bool
+    {
+        if ($this->klinikteMi() && ! $this->klinikSahibiMi()) {
+            return false;
+        }
+
+        if (! $this->hasActiveMembership()) {
+            return false;
+        }
+
+        // Zaten iptal / yenileme kapalı
+        if ($this->abonelik_yenileme_kapali) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

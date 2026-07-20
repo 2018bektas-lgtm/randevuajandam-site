@@ -590,6 +590,9 @@ class PaketController extends Controller
             'iyzico_subscription_reference_code' => 'trial_'.$gun.'d_'.Str::random(10),
             'iyzico_subscription_status' => 'TRIAL',
             'tur' => 'bireysel',
+            'abonelik_yenileme_kapali' => false,
+            'abonelik_iptal_at' => null,
+            'abonelik_iptal_nedeni' => null,
         ]);
 
         return redirect()
@@ -841,6 +844,10 @@ class PaketController extends Controller
                     'iyzico_subscription_reference_code' => $paymentResult['referenceCode'],
                     'iyzico_subscription_status' => $paymentResult['subscriptionStatus'],
                     'tur' => 'bireysel',
+                    // Yeni ödeme = iptal bayraklarını temizle
+                    'abonelik_yenileme_kapali' => false,
+                    'abonelik_iptal_at' => null,
+                    'abonelik_iptal_nedeni' => null,
                 ]);
             }
         });
