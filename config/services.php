@@ -47,6 +47,19 @@ return [
         'allow_mock' => env('IYZICO_ALLOW_MOCK', false),
     ],
 
+    /*
+    | PayTR iFrame API — aktif kartlı ödeme sağlayıcısı
+    | merchant_id / key / salt: PayTR mağaza paneli → Bilgi
+    */
+    'paytr' => [
+        'merchant_id' => env('PAYTR_MERCHANT_ID'),
+        'merchant_key' => env('PAYTR_MERCHANT_KEY'),
+        'merchant_salt' => env('PAYTR_MERCHANT_SALT'),
+        'test_mode' => filter_var(env('PAYTR_TEST_MODE', true), FILTER_VALIDATE_BOOLEAN),
+        'debug_on' => filter_var(env('PAYTR_DEBUG_ON', true), FILTER_VALIDATE_BOOLEAN),
+        'fallback_ip' => env('PAYTR_FALLBACK_IP', '85.34.78.112'),
+    ],
+
     'hostinger' => [
         'api_key' => env('HOSTINGER_API_KEY', ''),
         'partner_id' => env('HOSTINGER_PARTNER_ID', ''),

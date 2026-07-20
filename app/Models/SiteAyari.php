@@ -60,6 +60,10 @@ class SiteAyari extends Model
         'iyzico_api_key',
         'iyzico_secret_key',
         'iyzico_base_url',
+        'paytr_merchant_id',
+        'paytr_merchant_key',
+        'paytr_merchant_salt',
+        'paytr_test_mode',
         'banka_adi',
         'banka_hesap_sahibi',
         'banka_iban',
@@ -73,6 +77,9 @@ class SiteAyari extends Model
             'recaptcha_secret_key' => 'encrypted',
             'iyzico_api_key' => 'encrypted',
             'iyzico_secret_key' => 'encrypted',
+            'paytr_merchant_key' => 'encrypted',
+            'paytr_merchant_salt' => 'encrypted',
+            'paytr_test_mode' => 'boolean',
         ];
     }
 }

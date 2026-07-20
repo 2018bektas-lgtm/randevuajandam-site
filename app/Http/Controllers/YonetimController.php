@@ -360,9 +360,9 @@ class YonetimController extends Controller
     public function odemeAyarlariGuncelle(Request $request)
     {
         $request->validate([
-            'iyzico_api_key' => ['nullable', 'string', 'max:500'],
-            'iyzico_secret_key' => ['nullable', 'string', 'max:500'],
-            'iyzico_base_url' => ['nullable', 'url', 'max:255'],
+            'paytr_merchant_id' => ['nullable', 'string', 'max:64'],
+            'paytr_merchant_key' => ['nullable', 'string', 'max:500'],
+            'paytr_merchant_salt' => ['nullable', 'string', 'max:500'],
             'banka_adi' => ['nullable', 'string', 'max:150'],
             'banka_hesap_sahibi' => ['nullable', 'string', 'max:150'],
             'banka_iban' => ['nullable', 'string', 'max:34', 'regex:/^TR[0-9]{24}$/'],
@@ -372,15 +372,15 @@ class YonetimController extends Controller
         ]);
 
         $ayarlar = SiteAyari::first() ?? SiteAyari::create(['meta_baslik' => config('app.name')]);
-        $data = $request->only(['iyzico_base_url', 'banka_adi', 'banka_hesap_sahibi', 'banka_aciklama']);
-        $data['iyzico_base_url'] = trim((string) ($data['iyzico_base_url'] ?? '')) ?: null;
+        $data = $request->only(['paytr_merchant_id', 'banka_adi', 'banka_hesap_sahibi', 'banka_aciklama']);
+        $data['paytr_merchant_id'] = trim((string) ($data['paytr_merchant_id'] ?? '')) ?: null;
         $data['banka_adi'] = trim((string) ($data['banka_adi'] ?? '')) ?: null;
         $data['banka_hesap_sahibi'] = trim((string) ($data['banka_hesap_sahibi'] ?? '')) ?: null;
         $data['banka_aciklama'] = trim((string) ($data['banka_aciklama'] ?? '')) ?: null;
         $data['banka_iban'] = strtoupper(preg_replace('/\s+/', '', (string) $request->input('banka_iban')) ?: '') ?: null;
+        $data['paytr_test_mode'] = $request->boolean('paytr_test_mode');
 
-        // Empty credential inputs retain existing encrypted values.
-        foreach (['iyzico_api_key', 'iyzico_secret_key'] as $field) {
+        foreach (['paytr_merchant_key', 'paytr_merchant_salt'] as $field) {
             $value = trim((string) $request->input($field));
             if ($value !== '') {
                 $data[$field] = $value;
@@ -389,6 +389,6 @@ class YonetimController extends Controller
 
         $ayarlar->update($data);
 
-        return back()->with('basarili', 'Ödeme ayarları güncellendi.');
+        return back()->with('basarili', 'Ödeme ayarları güncellendi (PayTR + havale).');
     }
 }

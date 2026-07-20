@@ -276,11 +276,11 @@
                     </ul>
                 </div>
 
-                {{-- iyzico / kart logoları (ödeme sayfası şartı) --}}
+                {{-- PayTR / kart logoları --}}
                 <div class="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm space-y-3">
                     @include('frontend.layouts.partials.payment-methods')
                     <p class="text-[10px] text-[#9CA3AF] leading-relaxed">
-                        Ödeme altyapısı <strong class="text-[#6B7280]">iyzico</strong> ile sağlanır.
+                        Kartlı ödemeler <strong class="text-[#6B7280]">PayTR</strong> güvenli altyapısı ile alınır. Kart bilgileriniz sitemizde saklanmaz.
                         <a href="{{ route('frontend.legal.mesafeli') }}" class="text-[#C96A2B] font-semibold underline">Mesafeli satış</a>
                         ·
                         <a href="{{ route('frontend.legal.iade') }}" class="text-[#C96A2B] font-semibold underline">İade / iptal</a>
@@ -374,99 +374,43 @@
                             </button>
                         </div>
                     @else
-                        @if($iyzicoAvailable && $bankAvailable)
+                        @php $paytrOk = $paytrAvailable ?? $iyzicoAvailable ?? false; @endphp
+                        @if($paytrOk && $bankAvailable)
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <label class="cursor-pointer rounded-2xl border-2 border-[#C96A2B] bg-[#FFF7ED] p-4">
-                                    <input type="radio" name="odeme_yontemi" value="iyzico" checked class="sr-only">
-                                    <span class="block text-xs font-bold text-[#111827]">Kredi kartı ile öde</span>
-                                    <span class="mt-1 block text-[11px] text-slate-500">Güvenli iyzico ödeme altyapısı</span>
+                                <label class="cursor-pointer rounded-2xl border-2 border-[#C96A2B] bg-[#FFF7ED] p-4 payment-method-card is-active">
+                                    <input type="radio" name="odeme_yontemi" value="paytr" checked class="sr-only">
+                                    <span class="block text-xs font-bold text-[#111827]">Kredi kartı (PayTR)</span>
+                                    <span class="mt-1 block text-[11px] text-slate-500">3D Secure güvenli ödeme — kart bilgisi sitede tutulmaz</span>
                                 </label>
-                                <label class="cursor-pointer rounded-2xl border border-[#E5E7EB] bg-white p-4">
+                                <label class="cursor-pointer rounded-2xl border border-[#E5E7EB] bg-white p-4 payment-method-card">
                                     <input type="radio" name="odeme_yontemi" value="havale" class="sr-only">
                                     <span class="block text-xs font-bold text-[#111827]">Banka havalesi</span>
                                     <span class="mt-1 block text-[11px] text-slate-500">Yönetici onayı sonrası aktifleşir</span>
                                 </label>
                             </div>
-                        @elseif($iyzicoAvailable)
-                            <input type="hidden" name="odeme_yontemi" value="iyzico">
+                        @elseif($paytrOk)
+                            <input type="hidden" name="odeme_yontemi" value="paytr">
                         @else
                             <input type="hidden" name="odeme_yontemi" value="havale">
                         @endif
 
-                        @if(! $bankAvailable && ! $iyzicoAvailable)
+                        @if(! $bankAvailable && ! $paytrOk)
                             <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-                                Havale ödeme bilgileri henüz yapılandırılmamış. Lütfen daha sonra tekrar deneyin.
+                                Kartlı ödeme (PayTR) ve havale bilgileri henüz yapılandırılmamış. Yönetici panelinden PayTR merchant bilgilerini girin.
                             </div>
                         @endif
 
-                        <!-- Ücretli Paket Ödeme Formu -->
-                        <div id="card-payment-fields" class="grid grid-cols-1 md:grid-cols-12 gap-8 {{ $iyzicoAvailable ? '' : 'hidden' }}">
-                            <!-- Form Inputs (Sol) -->
-                            <div class="md:col-span-6 space-y-4">
-                                <h3 class="text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display pb-2 border-b border-[#E5E7EB]">
-                                    💳 Kredi Kartı Ödeme Bilgileri
-                                </h3>
-
-                                <div class="space-y-3">
-                                    <!-- Kart Sahibi -->
-                                    <div>
-                                        <label for="kart_sahibi" class="block text-[10px] font-bold text-[#4B5563] uppercase mb-1 font-display">Kart Sahibi Adı</label>
-                                        <input type="text" name="kart_sahibi" id="kart_sahibi" placeholder="Kart Üzerindeki İsim" required
-                                            class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
-                                    </div>
-
-                                    <!-- Kart Numarası -->
-                                    <div>
-                                        <label for="kart_no" class="block text-[10px] font-bold text-[#4B5563] uppercase mb-1 font-display">Kart Numarası</label>
-                                        <input type="text" name="kart_no" id="kart_no" maxlength="19" placeholder="Kart Numarası" required
-                                            class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
-                                    </div>
-
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <!-- SKT -->
-                                        <div>
-                                            <label for="kart_skt" class="block text-[10px] font-bold text-[#4B5563] uppercase mb-1 font-display">Son Kullanma</label>
-                                            <input type="text" name="kart_skt" id="kart_skt" maxlength="5" placeholder="AA/YY" required
-                                                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
-                                        </div>
-                                        <!-- CVV -->
-                                        <div>
-                                            <label for="kart_cvv" class="block text-[10px] font-bold text-[#4B5563] uppercase mb-1 font-display">CVC / CVV</label>
-                                            <input type="text" name="kart_cvv" id="kart_cvv" maxlength="4" placeholder="CVV" required
-                                                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Sanal Kart Görseli (Sağ) -->
-                            <div class="md:col-span-6 flex flex-col justify-between space-y-6">
-                                <div class="space-y-4">
-                                    <!-- İnteraktif Kredi Kartı Görseli -->
-                                    <div class="credit-card w-full aspect-[1.58/1] rounded-2xl p-5 text-white flex flex-col justify-between relative overflow-hidden select-none">
-                                        <div class="absolute w-32 h-32 bg-white/5 rounded-full -top-10 -right-10 pointer-events-none"></div>
-                                        <div class="flex items-center justify-between relative z-10">
-                                            <div class="card-chip w-10 h-7"></div>
-                                            <span class="text-xs font-black tracking-widest font-display text-white/50">MOCK PAY</span>
-                                        </div>
-                                        <div class="text-lg font-mono tracking-widest text-center py-2 relative z-10" id="visualCardNo">
-                                            •••• •••• •••• ••••
-                                        </div>
-                                        <div class="flex items-center justify-between relative z-10">
-                                            <div class="text-left">
-                                                <span class="block text-[8px] text-white/45 tracking-wider font-semibold font-display uppercase">Kart Sahibi</span>
-                                                <span class="block text-xs font-bold font-display uppercase truncate max-w-[150px]" id="visualCardOwner">İSİM SOYAD</span>
-                                            </div>
-                                            <div class="text-right">
-                                                <span class="block text-[8px] text-white/45 tracking-wider font-semibold font-display uppercase">Son Kul. Tar.</span>
-                                                <span class="block text-xs font-bold font-display font-mono" id="visualCardExpiry">AA/YY</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Navigasyon Butonları -->
-                                <div class="space-y-3">
+                        <!-- PayTR: kart formu sitede yok -->
+                        <div id="card-payment-fields" class="{{ $paytrOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5 space-y-3">
+                            <h3 class="text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display">
+                                💳 PayTR ile güvenli ödeme
+                            </h3>
+                            <p class="text-xs text-[#6B7280] leading-relaxed">
+                                “Ödemeyi tamamla”ya tıkladığınızda PayTR güvenli ödeme ekranı açılır.
+                                Kart bilgileriniz yalnızca PayTR üzerinde işlenir; sitemizde saklanmaz.
+                                Dönem sonunda abonelik otomatik çekilmez — yenileme için tekrar ödeme alırsınız.
+                            </p>
+                            <div class="space-y-3">
                                     <button type="submit"
                                             class="w-full inline-flex items-center justify-center py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
                                         Ödemeyi Tamamla ve Sistemi Kur
@@ -481,7 +425,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div id="bank-transfer-fields" class="{{ $iyzicoAvailable ? 'hidden' : '' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5">
+                        <div id="bank-transfer-fields" class="{{ $paytrOk ? 'hidden' : '' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-[#1F2937]">Banka havalesi ile ödeme</h3>
                             @if($bankAvailable)
                                 <dl class="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
@@ -581,76 +525,31 @@
             });
         }
 
-        // Kredi Kartı Görsel Güncelleme
-        const kartSahibiInput = document.getElementById('kart_sahibi');
-        const kartNoInput = document.getElementById('kart_no');
-        const kartSktInput = document.getElementById('kart_skt');
-        
-        const visualCardOwner = document.getElementById('visualCardOwner');
-        const visualCardNo = document.getElementById('visualCardNo');
-        const visualCardExpiry = document.getElementById('visualCardExpiry');
-
-        if (kartSahibiInput) {
-            kartSahibiInput.addEventListener('input', function(e) {
-                let val = e.target.value;
-                if (visualCardOwner) {
-                    visualCardOwner.innerText = val.trim() ? val.toUpperCase() : 'İSİM SOYAD';
-                }
+        // PayTR / havale seçimi
+        const paymentMethods = document.querySelectorAll('input[name="odeme_yontemi"]');
+        const cardFields = document.getElementById('card-payment-fields');
+        const bankFields = document.getElementById('bank-transfer-fields');
+        const bankReference = document.getElementById('havale_referans');
+        function updatePaymentMethod() {
+            const method = document.querySelector('input[name="odeme_yontemi"]:checked')?.value
+                || document.querySelector('input[name="odeme_yontemi"]')?.value;
+            const isCard = method === 'paytr' || method === 'iyzico';
+            cardFields?.classList.toggle('hidden', !isCard);
+            bankFields?.classList.toggle('hidden', isCard);
+            if (bankReference) bankReference.required = !isCard;
+            document.querySelectorAll('.payment-method-card').forEach(function (lab) {
+                const on = lab.querySelector('input')?.checked;
+                lab.classList.toggle('border-[#C96A2B]', !!on);
+                lab.classList.toggle('bg-[#FFF7ED]', !!on);
+                lab.classList.toggle('border-2', !!on);
+                lab.classList.toggle('border-[#E5E7EB]', !on);
+                lab.classList.toggle('bg-white', !on);
             });
         }
-
-        if (kartNoInput) {
-            kartNoInput.addEventListener('input', function(e) {
-                let val = e.target.value.replace(/\D/g, '');
-                let formatted = '';
-                
-                for(let i = 0; i < val.length; i++) {
-                    if(i > 0 && i % 4 === 0) {
-                        formatted += ' ';
-                    }
-                    formatted += val[i];
-                }
-                
-                e.target.value = formatted.substring(0, 19);
-                
-                let displayVal = formatted;
-                let placeholders = '•••• •••• •••• ••••';
-                if (visualCardNo) {
-                    visualCardNo.innerText = displayVal + placeholders.substring(displayVal.length);
-                }
-            });
-        }
-
-        if (kartSktInput) {
-            kartSktInput.addEventListener('input', function(e) {
-                let val = e.target.value.replace(/\D/g, '');
-                if(val.length > 2) {
-                    val = val.substring(0, 2) + '/' + val.substring(2, 4);
-                }
-                e.target.value = val;
-                
-                if (visualCardExpiry) {
-                    visualCardExpiry.innerText = val.trim() ? val : 'AA/YY';
-                }
-
-                const paymentMethods = document.querySelectorAll('input[name="odeme_yontemi"]');
-                const cardFields = document.getElementById('card-payment-fields');
-                const bankFields = document.getElementById('bank-transfer-fields');
-                const cardInputs = cardFields ? cardFields.querySelectorAll('input[name^="kart_"]') : [];
-                const bankReference = document.getElementById('havale_referans');
-                function updatePaymentMethod() {
-                    const method = document.querySelector('input[name="odeme_yontemi"]:checked')?.value
-                        || document.querySelector('input[name="odeme_yontemi"]')?.value;
-                    const isCard = method === 'iyzico';
-                    cardFields?.classList.toggle('hidden', !isCard);
-                    bankFields?.classList.toggle('hidden', isCard);
-                    cardInputs.forEach((input) => { input.required = isCard; });
-                    if (bankReference) bankReference.required = !isCard;
-                }
-                paymentMethods.forEach((input) => input.addEventListener('change', updatePaymentMethod));
-                updatePaymentMethod();
-            });
-        }
+        paymentMethods.forEach(function (input) {
+            input.addEventListener('change', updatePaymentMethod);
+        });
+        updatePaymentMethod();
     });
 </script>
 @endsection

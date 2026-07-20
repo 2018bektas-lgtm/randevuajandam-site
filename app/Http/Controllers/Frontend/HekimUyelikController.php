@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Services\IyzicoSubscriptionService;
+use App\Services\PaytrService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Hekim abonelik / paket yönetimi — iptal (dönem sonuna kadar erişim, iyzico yenileme kapalı).
+ * Hekim abonelik / paket yönetimi — iptal (dönem sonuna kadar erişim).
+ * PayTR tek seferlik ödemedir; iptal yerelde yenileme kapatır (otomatik çekim yok).
  */
 class HekimUyelikController extends Controller
 {
@@ -32,7 +34,7 @@ class HekimUyelikController extends Controller
      * Kartlı (gerçek iyzico ref): önce iyzico cancel BAŞARILI olmalı, sonra yerel bayrak.
      * Trial/havale: sadece yerel bayrak (çekim yok).
      */
-    public function iptal(Request $request, IyzicoSubscriptionService $iyzico)
+    public function iptal(Request $request, IyzicoSubscriptionService $iyzico, PaytrService $paytr)
     {
         $doktor = Auth::guard('doktor')->user();
 
@@ -47,7 +49,7 @@ class HekimUyelikController extends Controller
         $hedef = $request->input('hedef', 'bireysel');
 
         if ($hedef === 'klinik' || ($doktor->klinikSahibiMi() && $doktor->klinik && $request->boolean('klinik'))) {
-            return $this->iptalKlinik($request, $doktor, $iyzico);
+            return $this->iptalKlinik($request, $doktor, $iyzico, $paytr);
         }
 
         if ($doktor->klinikteMi() && ! $doktor->klinikSahibiMi()) {
@@ -64,33 +66,25 @@ class HekimUyelikController extends Controller
         }
 
         $ref = (string) ($doktor->iyzico_subscription_reference_code ?? '');
-        $isReal = $iyzico->isRealSubscriptionReference($ref);
-        $paidPeriod = in_array($doktor->odeme_periyodu, ['aylik', 'yillik'], true);
+        $isPaytr = $paytr->isPaytrReference($ref);
+        $isRealIyzico = $iyzico->isRealSubscriptionReference($ref);
 
-        // Kartlı abonelikte ref yoksa tehlikeli — iyzico panelde kalmış olabilir
-        if ($paidPeriod && ! $isReal && $iyzico->isConfigured()) {
-            return back()->with(
-                'hata',
-                'Kartlı abonelik referansı bulunamadı. iyzico tarafında yenileme devam edebilir. '
-                .'Lütfen destek ile iletişime geçin (info@randevuajandam.com) veya iyzico merchant panelinden aboneliği iptal edin.'
-            );
-        }
+        // Eski iyzico aboneliği varsa API iptal dene
+        if ($isRealIyzico && ! $isPaytr && $iyzico->isConfigured()) {
+            $cancelResult = $iyzico->cancelSubscription($ref);
+            if (($cancelResult['status'] ?? '') !== 'success') {
+                Log::error('BLOCKED local cancel — iyzico cancel failed', [
+                    'doktor_id' => $doktor->id,
+                    'ref' => $ref,
+                    'result' => $cancelResult,
+                ]);
 
-        $cancelResult = $iyzico->cancelSubscription($ref);
-
-        // GERÇEK iyzico aboneliğinde cancel başarısızsa yerel iptal YAZMA
-        if ($isReal && ($cancelResult['status'] ?? '') !== 'success') {
-            Log::error('BLOCKED local cancel — iyzico cancel failed', [
-                'doktor_id' => $doktor->id,
-                'ref' => $ref,
-                'result' => $cancelResult,
-            ]);
-
-            return back()->with(
-                'hata',
-                ($cancelResult['errorMessage'] ?? 'iyzico abonelik iptali başarısız.')
-                .' Abonelik sitede iptal edilmedi; yenileme devam edebilir. Lütfen tekrar deneyin veya destek alın.'
-            );
+                return back()->with(
+                    'hata',
+                    ($cancelResult['errorMessage'] ?? 'Eski iyzico abonelik iptali başarısız.')
+                    .' Lütfen destek alın veya iyzico panelinden iptal edin.'
+                );
+            }
         }
 
         $doktor->forceFill([
@@ -101,21 +95,22 @@ class HekimUyelikController extends Controller
         ])->save();
 
         $bitis = $doktor->uyelik_bitis?->format('d.m.Y H:i') ?? 'dönem sonu';
-        $iyzicoNote = ! empty($cancelResult['iyzico_canceled'])
-            ? ' iyzico otomatik yenileme kapatıldı; dönem sonunda karttan yeni çekim yapılmaz.'
-            : ' (Yerel deneme/havale — kartlı yenileme kaydı yok.)';
+        $note = $isPaytr
+            ? ' PayTR tek seferlik ödeme olduğu için otomatik yenileme zaten yoktur.'
+            : ' Dönem sonunda erişim sona erer.';
 
         return redirect()
             ->route('hekim.uyelik')
             ->with(
                 'basarili',
-                "Aboneliğiniz iptal edildi.{$iyzicoNote} "
+                "Aboneliğiniz iptal edildi.{$note} "
                 ."Mevcut paketinizi {$bitis} tarihine kadar kullanmaya devam edebilirsiniz."
             );
     }
 
-    protected function iptalKlinik(Request $request, $doktor, IyzicoSubscriptionService $iyzico)
+    protected function iptalKlinik(Request $request, $doktor, IyzicoSubscriptionService $iyzico, ?PaytrService $paytr = null)
     {
+        $paytr = $paytr ?? app(PaytrService::class);
         $klinik = $doktor->klinik;
         if (! $doktor->klinikSahibiMi() || ! $klinik) {
             return back()->with('hata', 'Klinik aboneliğini yalnızca sahip iptal edebilir.');
@@ -137,30 +132,24 @@ class HekimUyelikController extends Controller
             ?: $doktor->iyzico_subscription_reference_code
             ?: ''
         );
-        $isReal = $iyzico->isRealSubscriptionReference($ref);
-        $paidPeriod = in_array($klinik->odeme_periyodu ?? $doktor->odeme_periyodu, ['aylik', 'yillik'], true);
+        $isPaytr = $paytr->isPaytrReference($ref);
+        $isRealIyzico = $iyzico->isRealSubscriptionReference($ref);
 
-        if ($paidPeriod && ! $isReal && $iyzico->isConfigured()) {
-            return back()->with(
-                'hata',
-                'Klinik kartlı abonelik referansı bulunamadı. iyzico’da yenileme devam edebilir. Destek ile iletişime geçin.'
-            );
-        }
+        if ($isRealIyzico && ! $isPaytr && $iyzico->isConfigured()) {
+            $cancelResult = $iyzico->cancelSubscription($ref);
+            if (($cancelResult['status'] ?? '') !== 'success') {
+                Log::error('BLOCKED clinic local cancel — iyzico failed', [
+                    'klinik_id' => $klinik->id,
+                    'ref' => $ref,
+                    'result' => $cancelResult,
+                ]);
 
-        $cancelResult = $iyzico->cancelSubscription($ref);
-
-        if ($isReal && ($cancelResult['status'] ?? '') !== 'success') {
-            Log::error('BLOCKED clinic local cancel — iyzico failed', [
-                'klinik_id' => $klinik->id,
-                'ref' => $ref,
-                'result' => $cancelResult,
-            ]);
-
-            return back()->with(
-                'hata',
-                ($cancelResult['errorMessage'] ?? 'iyzico klinik iptali başarısız.')
-                .' Yerel iptal yapılmadı.'
-            );
+                return back()->with(
+                    'hata',
+                    ($cancelResult['errorMessage'] ?? 'Eski iyzico klinik iptali başarısız.')
+                    .' Yerel iptal yapılmadı.'
+                );
+            }
         }
 
         $attrs = [
@@ -183,15 +172,13 @@ class HekimUyelikController extends Controller
         ])->save();
 
         $bitis = $klinik->uyelik_bitis->format('d.m.Y H:i');
-        $iyzicoNote = ! empty($cancelResult['iyzico_canceled'])
-            ? ' iyzico yenileme kapatıldı.'
-            : '';
+        $note = $isPaytr ? ' PayTR otomatik yenileme yapmaz.' : '';
 
         return redirect()
             ->route('hekim.uyelik')
             ->with(
                 'basarili',
-                "Klinik aboneliği iptal edildi.{$iyzicoNote} Erişim {$bitis} tarihine kadar devam eder; sonrasında yeni çekim olmaz."
+                "Klinik aboneliği iptal edildi.{$note} Erişim {$bitis} tarihine kadar devam eder."
             );
     }
 }

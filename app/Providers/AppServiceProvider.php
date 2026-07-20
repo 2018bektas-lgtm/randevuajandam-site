@@ -106,11 +106,8 @@ class AppServiceProvider extends ServiceProvider
             if (config('app.debug')) {
                 \Illuminate\Support\Facades\Log::critical('APP_DEBUG=true production ortamında açık — kapatın!');
             }
-            if (! config('services.iyzico.api_key') || ! config('services.iyzico.secret_key')) {
-                \Illuminate\Support\Facades\Log::critical('IYZICO API anahtarları production ortamında eksik.');
-            }
-            if (! config('services.iyzico.webhook_secret')) {
-                \Illuminate\Support\Facades\Log::critical('IYZICO_WEBHOOK_SECRET production ortamında eksik.');
+            if (! config('services.paytr.merchant_id') || ! config('services.paytr.merchant_key') || ! config('services.paytr.merchant_salt')) {
+                \Illuminate\Support\Facades\Log::critical('PAYTR merchant bilgileri production ortamında eksik.');
             }
             if (config('sms.driver') === 'log') {
                 \Illuminate\Support\Facades\Log::critical('SMS_DRIVER=log production ortamında — gerçek SMS sürücüsü ayarlayın.');

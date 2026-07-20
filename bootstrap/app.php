@@ -49,9 +49,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', \App\Http\Middleware\CachePublicGet::class);
 
         // Public doctor-site + panel APIs live in the separate `api/` project.
-        // Iyzico webhook stays on the main site (frontend route).
+        // Ödeme bildirimleri (iyzico legacy + PayTR) CSRF dışı.
         $middleware->validateCsrfTokens(except: [
             'api/iyzico/webhook',
+            'api/paytr/notify',
             'api/mobile/*',
         ]);
 

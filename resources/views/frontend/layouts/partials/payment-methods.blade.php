@@ -1,7 +1,5 @@
 {{--
-  iyzico mağaza şartı: sitede “iyzico ile Öde”, Visa, Mastercard yer almalı.
-  https://docs.iyzico.com/ek-bilgiler/iyzico-logo-paketi
-  Resmî paket: iyzico docs’tan indirilip public/assets/images/payment/ altına konabilir.
+  PayTR + kart markaları (Visa / Mastercard / Troy) + 3D Secure.
 --}}
 @php
     $compact = $compact ?? false;
@@ -14,10 +12,9 @@
         </p>
     @endunless
     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-        <img src="{{ $payBase }}/iyzico-ile-ode.svg"
-             alt="iyzico ile Öde"
-             class="h-8 w-auto rounded-md shadow-sm ring-1 ring-slate-200/80"
-             loading="lazy" width="140" height="32">
+        <span class="inline-flex items-center justify-center h-8 px-3 rounded-md bg-[#0B1F3A] text-white text-[11px] font-extrabold tracking-wide shadow-sm ring-1 ring-slate-200/80" title="PayTR">
+            PayTR
+        </span>
 
         <span class="inline-flex items-center justify-center h-8 px-2 rounded-md bg-white ring-1 ring-slate-200/80 shadow-sm">
             <img src="{{ $payBase }}/visa.svg" alt="Visa" class="h-4 w-auto" loading="lazy" width="48" height="16">
@@ -41,7 +38,7 @@
     </div>
     @unless($compact)
         <p class="mt-2 text-[10px] text-[#9CA3AF] leading-relaxed max-w-lg">
-            Kartlı ödemeler <strong class="text-[#6B7280]">iyzico</strong> altyapısı ile alınır. Kart bilgileriniz sitemizde saklanmaz.
+            Kartlı ödemeler <strong class="text-[#6B7280]">PayTR</strong> altyapısı ile alınır. Kart bilgileriniz sitemizde saklanmaz.
         </p>
     @endunless
 </div>

@@ -542,6 +542,14 @@ Route::middleware(['auth:personel'])->group(function () {
 
 Route::post('/api/iyzico/webhook', [\App\Http\Controllers\Frontend\IyzicoWebhookController::class, 'handle'])->name('api.iyzico.webhook');
 
+// PayTR iFrame — bildirim (CSRF kapalı) + müşteri dönüş sayfaları
+Route::post('/api/paytr/notify', [\App\Http\Controllers\Frontend\PaytrCallbackController::class, 'notify'])->name('api.paytr.notify');
+Route::get('/odeme/paytr/basarili', [\App\Http\Controllers\Frontend\PaytrCallbackController::class, 'ok'])->name('frontend.odeme.paytr.ok');
+Route::get('/odeme/paytr/hata', [\App\Http\Controllers\Frontend\PaytrCallbackController::class, 'fail'])->name('frontend.odeme.paytr.fail');
+Route::get('/odeme/paytr/iframe/{merchantOid}', [\App\Http\Controllers\Frontend\PaytrCallbackController::class, 'iframe'])
+    ->name('frontend.odeme.paytr.iframe')
+    ->middleware('auth:doktor');
+
 Route::get('/iller/{il_id}/ilceler', function ($il_id) {
     return Cache::remember("ilceler_il_{$il_id}", 86400, function () use ($il_id) {
         return Ilce::where('il_id', $il_id)->orderBy('ad')->get(['id', 'ad']);

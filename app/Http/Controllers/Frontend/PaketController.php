@@ -15,6 +15,7 @@ use App\Models\SiteAyari;
 use App\Models\UyelikOdeme;
 use App\Models\Unvan;
 use App\Services\IyzicoSubscriptionService;
+use App\Services\PaytrService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -662,7 +663,8 @@ class PaketController extends Controller
 
         $doktor = Auth::guard('doktor')->user();
         $iller = Il::orderBy('ad')->get();
-        $iyzicoAvailable = app(IyzicoSubscriptionService::class)->isConfigured();
+        $paytrAvailable = app(PaytrService::class)->isConfigured();
+        $iyzicoAvailable = $paytrAvailable; // blade geriye uyum (kartlı ödeme var mı)
         $paymentSettings = SiteAyari::query()->first();
         $bankAvailable = filled($paymentSettings?->banka_adi)
             && filled($paymentSettings?->banka_hesap_sahibi)
@@ -684,6 +686,7 @@ class PaketController extends Controller
             'periyot',
             'doktor',
             'iller',
+            'paytrAvailable',
             'iyzicoAvailable',
             'paymentSettings',
             'bankAvailable',
@@ -726,17 +729,7 @@ class PaketController extends Controller
         }
 
         if (! $isFree) {
-            $rules['odeme_yontemi'] = 'required|in:iyzico,havale';
-        }
-
-        // Kartlı abonelikte T.C. kimlik (iyzico zorunlu)
-        if (! $isFree && $request->input('odeme_yontemi', 'iyzico') === 'iyzico') {
-            if (! filled($doktor->tc_kimlik_no)) {
-                return redirect()
-                    ->route('hekim.profil')
-                    ->with('hata', 'Kredi kartı ile abonelik için profilinizde 11 haneli T.C. kimlik numarası kaydedilmelidir.')
-                    ->withInput();
-            }
+            $rules['odeme_yontemi'] = 'required|in:paytr,iyzico,havale';
         }
 
         $request->validate($rules, [
@@ -747,21 +740,23 @@ class PaketController extends Controller
             'adres.required' => 'Klinik adresi zorunludur.',
             'il_id.required' => 'İl seçimi zorunludur.',
             'ilce_id.required' => 'İlçe seçimi zorunludur.',
-            'kart_sahibi.required' => 'Kart sahibi adı zorunludur.',
-            'kart_no.required' => 'Kredi kartı numarası zorunludur.',
-            'kart_skt.required' => 'Son kullanma tarihi zorunludur.',
-            'kart_cvv.required' => 'CVV kodu zorunludur.',
         ]);
+
+        // Eski formlar iyzico gönderebilir → paytr kabul et
+        $odemeYontemi = $request->input('odeme_yontemi', 'paytr');
+        if ($odemeYontemi === 'iyzico') {
+            $odemeYontemi = 'paytr';
+        }
 
         $paymentSettings = SiteAyari::query()->first();
 
         if ($isFree) {
             $paymentResult = [
                 'status' => 'success',
-                'referenceCode' => 'free_trial_' . Str::random(12),
+                'referenceCode' => 'free_trial_'.Str::random(12),
                 'subscriptionStatus' => 'ACTIVE',
             ];
-        } elseif ($request->odeme_yontemi === 'havale') {
+        } elseif ($odemeYontemi === 'havale') {
             if (! filled($paymentSettings?->banka_adi)
                 || ! filled($paymentSettings?->banka_hesap_sahibi)
                 || ! filled($paymentSettings?->banka_iban)) {
@@ -778,6 +773,7 @@ class PaketController extends Controller
                 'doktor_id' => $doktor->id,
                 'paket_id' => $paket->id,
                 'odeme_yontemi' => 'havale',
+                'provider' => 'banka',
                 'odeme_periyodu' => $request->odeme_periyodu,
                 'tutar' => $tutar,
                 'durum' => 'beklemede',
@@ -797,27 +793,54 @@ class PaketController extends Controller
                 'Havale bildiriminiz alındı. Banka hareketi doğrulandığında üyeliğiniz yönetici tarafından aktifleştirilecektir.'
             );
         } else {
-            // Initialize iyzico subscription payment
-            $subscriptionService = app(IyzicoSubscriptionService::class);
-            if (! $subscriptionService->isConfigured()) {
-                return back()->withInput()->withErrors(['odeme_yontemi' => 'Kredi kartı ödemesi şu anda kullanıma açık değil.']);
+            // PayTR iFrame — kart formu sitede yok; güvenli iframe
+            $paytr = app(PaytrService::class);
+            if (! $paytr->isConfigured()) {
+                return back()->withInput()->withErrors(['odeme_yontemi' => 'Kartlı ödeme (PayTR) şu anda kullanıma açık değil.']);
             }
 
-            $request->validate([
-                'kart_sahibi' => ['required', 'string', 'max:255'],
-                'kart_no' => ['required', 'string', 'min:16', 'max:19'],
-                'kart_skt' => ['required', 'string', 'max:5'],
-                'kart_cvv' => ['required', 'string', 'min:3', 'max:4'],
+            $merchantOid = $paytr->makeMerchantOid();
+            UyelikOdeme::create([
+                'doktor_id' => $doktor->id,
+                'paket_id' => $paket->id,
+                'odeme_yontemi' => 'paytr',
+                'provider' => 'paytr',
+                'odeme_periyodu' => $request->odeme_periyodu,
+                'tutar' => $tutar,
+                'durum' => 'beklemede',
+                'merchant_oid' => $merchantOid,
+                'kurulum_verisi' => $paket->klinikPaketiMi() ? $request->only([
+                    'klinik_adi',
+                    'telefon',
+                    'e_posta',
+                    'adres',
+                    'il_id',
+                    'ilce_id',
+                ]) : null,
             ]);
 
-            $cardDetails = $request->only(['kart_sahibi', 'kart_no', 'kart_skt', 'kart_cvv']);
-            $paymentResult = $subscriptionService->subscribeDoctor($doktor, $paket, $request->odeme_periyodu, $cardDetails);
+            $tokenResult = $paytr->createIframeToken([
+                'merchant_oid' => $merchantOid,
+                'email' => (string) $doktor->e_posta,
+                'payment_amount' => $tutar,
+                'user_name' => (string) $doktor->ad_soyad,
+                'user_address' => (string) ($doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye')),
+                'user_phone' => (string) $doktor->telefon,
+                'user_ip' => $request->ip(),
+                'basket_name' => 'Randevu Ajandam - '.$paket->ad.' ('.$request->odeme_periyodu.')',
+            ]);
 
-            if ($paymentResult['status'] !== 'success') {
+            if (($tokenResult['status'] ?? '') !== 'success') {
+                UyelikOdeme::where('merchant_oid', $merchantOid)->update(['durum' => 'reddedildi']);
+
                 return back()->withInput()->withErrors([
-                    'kart_no' => $paymentResult['errorMessage'] ?? 'Ödeme işlemi gerçekleştirilemedi.',
+                    'odeme_yontemi' => $tokenResult['errorMessage'] ?? 'PayTR ödeme oturumu açılamadı.',
                 ]);
             }
+
+            session(['paytr_iframe_token_'.$merchantOid => $tokenResult['token']]);
+
+            return redirect()->route('frontend.odeme.paytr.iframe', ['merchantOid' => $merchantOid]);
         }
 
         // Calculate membership dates
