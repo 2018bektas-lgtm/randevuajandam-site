@@ -240,7 +240,8 @@
 
                 <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-[11px] text-amber-900 leading-relaxed">
                     <strong>Kimlik ve meslek belgesi zorunludur.</strong>
-                    Ödeme ve paket seçiminden önce yönetici, T.C. kimlik + diploma/hekimlik belgenizi inceleyerek kaydınızı onaylar.
+                    Yönetici belgenizi inceleyip onaylamadan paket seçimi ve ödeme yapılamaz.
+                    e-Devlet barkodlu belgeniz varsa barkod numarasını da girebilirsiniz (admin e-Devlet’ten manuel doğrular).
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -272,6 +273,14 @@
                             class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                         @error('diploma_no')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
                     </div>
+                </div>
+
+                <div>
+                    <label for="edevlet_barkod" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">e-Devlet barkod no <span class="normal-case font-semibold text-[#9CA3AF]">(opsiyonel)</span></label>
+                    <input type="text" name="edevlet_barkod" id="edevlet_barkod" value="{{ old('edevlet_barkod') }}" maxlength="64" placeholder="Örn. MEB0639… veya belgenizdeki barkod"
+                        class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all font-mono uppercase">
+                    <p class="mt-1.5 text-[10px] text-[#9CA3AF]">Barkodlu e-Devlet belgesi (diploma vb.) varsa yazın. Yönetici <a href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener" class="text-[#C96A2B] font-semibold underline">turkiye.gov.tr/belge-dogrulama</a> üzerinden manuel doğrular.</p>
+                    @error('edevlet_barkod')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div>

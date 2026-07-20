@@ -35,6 +35,10 @@
                         <dd class="mt-1 font-semibold text-slate-800">{{ $doktor->diploma_no ?: '—' }}</dd>
                     </div>
                     <div class="sm:col-span-2 rounded-xl bg-slate-50 border border-slate-100 p-3">
+                        <dt class="text-[10px] font-bold uppercase text-slate-500">e-Devlet barkod</dt>
+                        <dd class="mt-1 font-mono font-semibold text-slate-800">{{ $doktor->edevlet_barkod ?: 'Girilmedi' }}</dd>
+                    </div>
+                    <div class="sm:col-span-2 rounded-xl bg-slate-50 border border-slate-100 p-3">
                         <dt class="text-[10px] font-bold uppercase text-slate-500">Yüklenen belge</dt>
                         <dd class="mt-1">
                             @if($doktor->meslek_belge_yolu)
@@ -76,6 +80,11 @@
                         <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1.5">Diploma / tescil no</label>
                         <input type="text" name="diploma_no" value="{{ old('diploma_no', $doktor->diploma_no) }}" required
                                class="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1.5">e-Devlet barkod (opsiyonel)</label>
+                        <input type="text" name="edevlet_barkod" value="{{ old('edevlet_barkod', $doktor->edevlet_barkod) }}"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs font-mono uppercase">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1.5">Yeni belge (PDF/JPG/PNG)</label>

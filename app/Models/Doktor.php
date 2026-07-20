@@ -25,6 +25,7 @@ class Doktor extends Authenticatable
         'telefon',
         'tc_kimlik_no',
         'diploma_no',
+        'edevlet_barkod',
         'meslek_belge_yolu',
         'meslek_dogrulama_durumu',
         'meslek_dogrulama_notu',

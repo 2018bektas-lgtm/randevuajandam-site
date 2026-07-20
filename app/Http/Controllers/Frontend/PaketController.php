@@ -136,6 +136,7 @@ class PaketController extends Controller
             'tc_kimlik_no.required' => 'T.C. kimlik numarası zorunludur.',
             'tc_kimlik_no.unique' => 'Bu T.C. kimlik numarası ile kayıtlı bir hekim zaten var.',
             'diploma_no.required' => 'Diploma / tescil numarası zorunludur.',
+            'edevlet_barkod.regex' => 'e-Devlet barkod numarası yalnızca harf, rakam ve tire içerebilir.',
             'meslek_belgesi.required' => 'Diploma veya hekimlik belgesi yüklemeniz zorunludur.',
             'meslek_belgesi.mimes' => 'Belge PDF, JPG veya PNG olmalıdır.',
             'meslek_belgesi.max' => 'Belge en fazla 5 MB olabilir.',
@@ -185,6 +186,9 @@ class PaketController extends Controller
                 'telefon' => $request->telefon,
                 'tc_kimlik_no' => $tc,
                 'diploma_no' => trim((string) $request->diploma_no),
+                'edevlet_barkod' => $request->filled('edevlet_barkod')
+                    ? strtoupper(trim((string) $request->edevlet_barkod))
+                    : null,
                 'meslek_belge_yolu' => $belgePublic,
                 'meslek_dogrulama_durumu' => 'beklemede',
                 'il_id' => $ilModel?->id,
@@ -252,6 +256,7 @@ class PaketController extends Controller
         $request->validate([
             'tc_kimlik_no' => ['required', 'string', 'size:11', 'unique:doktorlar,tc_kimlik_no,'.$doktor->id, new TcKimlikNo],
             'diploma_no' => ['required', 'string', 'min:3', 'max:64'],
+            'edevlet_barkod' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-]+$/'],
             'meslek_belgesi' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
             'tc_kimlik_no.required' => 'T.C. kimlik numarası zorunludur.',
@@ -270,6 +275,9 @@ class PaketController extends Controller
         $doktor->forceFill([
             'tc_kimlik_no' => $tc,
             'diploma_no' => trim((string) $request->diploma_no),
+            'edevlet_barkod' => $request->filled('edevlet_barkod')
+                ? strtoupper(trim((string) $request->edevlet_barkod))
+                : null,
             'meslek_belge_yolu' => 'uploads/meslek-belgeleri/'.$fname,
             'meslek_dogrulama_durumu' => 'beklemede',
             'meslek_dogrulama_notu' => null,
