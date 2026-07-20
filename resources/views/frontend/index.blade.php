@@ -788,11 +788,7 @@
                                     {{ $hizmet->doktor ? (($hizmet->doktor->unvan ? $hizmet->doktor->unvan.' ' : '').$hizmet->doktor->ad_soyad) : 'Uzman hizmeti' }}
                                 </p>
                                 <div class="ra-product-foot">
-                                    @if($hizmet->fiyat)
-                                        <span class="ra-product-price">{{ number_format((float) $hizmet->fiyat, 0, ',', '.') }} ₺</span>
-                                    @else
-                                        <span class="ra-product-price" style="font-size:0.75rem;color:#6B7280">Fiyat sorunuz</span>
-                                    @endif
+                                    <span class="ra-product-price" style="font-size:0.8rem">Randevu al</span>
                                     <span class="ra-product-cta">Seç</span>
                                 </div>
                             </div>
