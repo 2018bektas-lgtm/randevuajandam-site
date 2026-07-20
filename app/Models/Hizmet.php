@@ -79,20 +79,20 @@ class Hizmet extends Model
     public function getUrlAttribute(): string
     {
         $doktor = $this->doktor;
+        if (! $doktor) {
+            return route('frontend.hekimler');
+        }
+
         $ilSlug = $doktor->il?->slug ?? 'il';
         $ilceSlug = $doktor->ilce?->slug ?? 'ilce';
-
-        $bransSlug = 'hekim';
-        $brans = $doktor->branslar->first();
-        if ($brans) {
-            $bransSlug = $brans->slug;
-        }
+        $bransSlug = $doktor->branslar?->first()?->slug ?? 'hekim';
+        $doctorSlug = $doktor->slug ?: 'hekim';
 
         return route('frontend.hekim.hizmet.detay', [
             'il_slug' => $ilSlug,
             'ilce_slug' => $ilceSlug,
             'brans_slug' => $bransSlug,
-            'doctor_slug' => $doktor->slug,
+            'doctor_slug' => $doctorSlug,
             'hizmet_slug' => $this->slug,
         ]);
     }

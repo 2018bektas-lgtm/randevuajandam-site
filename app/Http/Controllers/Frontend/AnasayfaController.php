@@ -103,7 +103,7 @@ class AnasayfaController extends Controller
         });
 
         // Öne çıkan hizmetler
-        $oneCikanHizmetler = Cache::remember('anasayfa:one_cikan_hizmetler', now()->addMinutes(15), function () {
+        $oneCikanHizmetler = Cache::remember('anasayfa:one_cikan_hizmetler_v2', now()->addMinutes(15), function () {
             return Hizmet::query()
                 ->where('aktif_mi', true)
                 ->whereHas('doktor', function ($q) {
@@ -127,9 +127,10 @@ class AnasayfaController extends Controller
             ];
         });
 
-        // Blog yazıları (slider için daha fazla)
-        $sonBloglar = Cache::remember('anasayfa:son_bloglar_v2', now()->addMinutes(15), function () {
+        // Blog yazıları (slider için daha fazla) — doktoru silinmiş kayıtlar hariç
+        $sonBloglar = Cache::remember('anasayfa:son_bloglar_v3', now()->addMinutes(15), function () {
             return Blog::where('aktif_mi', true)
+                ->whereHas('doktor')
                 ->with(['doktor' => function ($q) {
                     $q->select('id', 'ad_soyad', 'unvan', 'slug', 'profil_resmi', 'il_id', 'ilce_id');
                 }, 'doktor.branslar', 'doktor.il', 'doktor.ilce'])

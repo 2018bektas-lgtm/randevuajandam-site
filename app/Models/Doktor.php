@@ -595,18 +595,13 @@ class Doktor extends Authenticatable
     {
         $ilSlug = $this->il?->slug ?? 'il';
         $ilceSlug = $this->ilce?->slug ?? 'ilce';
-
-        $bransSlug = 'hekim';
-        $brans = $this->branslar->first();
-        if ($brans) {
-            $bransSlug = $brans->slug;
-        }
+        $bransSlug = $this->branslar?->first()?->slug ?? 'hekim';
 
         return route('frontend.hekim.detay', [
             'il_slug' => $ilSlug,
             'ilce_slug' => $ilceSlug,
             'brans_slug' => $bransSlug,
-            'doctor_slug' => $this->slug,
+            'doctor_slug' => $this->slug ?: 'hekim',
         ]);
     }
 }
