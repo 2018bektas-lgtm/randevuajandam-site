@@ -14,6 +14,7 @@ use App\Models\Paket;
 use App\Models\SiteAyari;
 use App\Models\UyelikOdeme;
 use App\Models\Unvan;
+use App\Rules\TcKimlikNo;
 use App\Services\IyzicoSubscriptionService;
 use App\Services\PaytrService;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class PaketController extends Controller
@@ -109,6 +111,9 @@ class PaketController extends Controller
                 'confirmed',
             ],
             'telefon' => ['required', 'string', 'regex:/^0\s\(5[0-9]{2}\)\s[0-9]{3}\s[0-9]{2}\s[0-9]{2}$/'],
+            'tc_kimlik_no' => ['required', 'string', 'size:11', 'unique:doktorlar,tc_kimlik_no', new TcKimlikNo],
+            'diploma_no' => ['required', 'string', 'min:3', 'max:64'],
+            'meslek_belgesi' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'unvan' => 'required|string|exists:unvanlar,ad',
             'il' => 'required|string|max:255',
             'ilce' => 'required|string|max:255',
@@ -128,6 +133,12 @@ class PaketController extends Controller
             'sifre.confirmed' => 'Şifre tekrarı uyuşmuyor.',
             'telefon.required' => 'Telefon numarası zorunludur.',
             'telefon.regex' => 'Telefon numarası 0 (5xx) xxx xx xx formatında olmalıdır.',
+            'tc_kimlik_no.required' => 'T.C. kimlik numarası zorunludur.',
+            'tc_kimlik_no.unique' => 'Bu T.C. kimlik numarası ile kayıtlı bir hekim zaten var.',
+            'diploma_no.required' => 'Diploma / tescil numarası zorunludur.',
+            'meslek_belgesi.required' => 'Diploma veya hekimlik belgesi yüklemeniz zorunludur.',
+            'meslek_belgesi.mimes' => 'Belge PDF, JPG veya PNG olmalıdır.',
+            'meslek_belgesi.max' => 'Belge en fazla 5 MB olabilir.',
             'unvan.required' => 'Mesleki unvan seçimi zorunludur.',
             'il.required' => 'Hizmet verilen il seçimi zorunludur.',
             'ilce.required' => 'Hizmet verilen ilçe seçimi zorunludur.',
@@ -137,36 +148,61 @@ class PaketController extends Controller
         $ilModel = Il::where('ad', $request->il)->first();
         $ilceModel = Ilce::where('il_id', $ilModel?->id)->where('ad', $request->ilce)->first();
 
-        // Get branch names as a comma-separated string for compatibility
         $bransIsimleri = Brans::whereIn('id', $request->branslar)->pluck('ad')->toArray();
         $uzmanlikAlaniString = implode(', ', $bransIsimleri);
 
-        // Filter out empty graduation values
         $mezuniyetDizisi = array_values(array_filter($request->input('mezuniyet', []), function ($val) {
             return ! is_null($val) && trim($val) !== '';
         }));
 
-        // Create doctor account and attach branches atomically
-        $doktor = DB::transaction(function () use ($request, $uzmanlikAlaniString, $mezuniyetDizisi, $ilModel, $ilceModel) {
+        $tc = preg_replace('/\D/', '', (string) $request->tc_kimlik_no) ?? '';
+
+        $belgePath = $request->file('meslek_belgesi')->store('uploads/meslek-belgeleri', 'public');
+        // public disk path for asset()
+        $belgePublic = 'storage/'.$belgePath;
+        // Prefer path under public/uploads for consistency with other media
+        try {
+            $destDir = public_path('uploads/meslek-belgeleri');
+            if (! is_dir($destDir)) {
+                mkdir($destDir, 0755, true);
+            }
+            $fname = 'belge_'.time().'_'.Str::random(6).'.'.$request->file('meslek_belgesi')->getClientOriginalExtension();
+            $request->file('meslek_belgesi')->move($destDir, $fname);
+            $belgePublic = 'uploads/meslek-belgeleri/'.$fname;
+            // remove storage copy if created
+            if (Storage::disk('public')->exists($belgePath)) {
+                Storage::disk('public')->delete($belgePath);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Meslek belgesi public kopya: '.$e->getMessage());
+        }
+
+        $doktor = DB::transaction(function () use ($request, $uzmanlikAlaniString, $mezuniyetDizisi, $ilModel, $ilceModel, $tc, $belgePublic) {
             $doktor = Doktor::create([
                 'ad_soyad' => $request->ad_soyad,
                 'e_posta' => $request->e_posta,
                 'sifre' => Hash::make($request->sifre),
                 'telefon' => $request->telefon,
+                'tc_kimlik_no' => $tc,
+                'diploma_no' => trim((string) $request->diploma_no),
+                'meslek_belge_yolu' => $belgePublic,
+                'meslek_dogrulama_durumu' => 'beklemede',
                 'il_id' => $ilModel?->id,
                 'ilce_id' => $ilceModel?->id,
                 'unvan' => $request->unvan,
                 'uzmanlik_alani' => $uzmanlikAlaniString,
                 'mezuniyet' => $mezuniyetDizisi,
                 'biyografi' => $request->biyografi,
-                'tur' => 'bireysel', // default initially
-                'paket_id' => null,  // no package chosen yet
+                'tur' => 'bireysel',
+                'paket_id' => null,
                 'odeme_periyodu' => null,
                 'uyelik_baslangic' => null,
                 'uyelik_bitis' => null,
                 'iyzico_subscription_reference_code' => null,
                 'iyzico_subscription_status' => null,
+                // Onaylanana kadar platformda görünmesin / ödeme yok
                 'aktif_mi' => true,
+                'platformda_gorunur' => false,
             ]);
 
             $doktor->branslar()->attach($request->branslar);
@@ -174,10 +210,74 @@ class PaketController extends Controller
             return $doktor;
         });
 
-        // Automatically log in the doctor after registration
         Auth::guard('doktor')->login($doktor);
 
-        return redirect()->route('frontend.hekim.paket_sec');
+        // Ödeme YOK — önce meslek belgesi onayı
+        return redirect()
+            ->route('frontend.hekim.meslek.bekleme')
+            ->with('basarili', 'Kaydınız alındı. Diploma/hekimlik belgeniz incelendikten sonra paket seçimi ve ödeme adımına geçebilirsiniz.');
+    }
+
+    /**
+     * Meslek belgesi onay bekleme ekranı + reddedildiyse yeniden yükleme.
+     */
+    public function meslekBekleme()
+    {
+        $doktor = Auth::guard('doktor')->user();
+        if (! $doktor) {
+            return redirect()->route('frontend.hekim.giris');
+        }
+
+        if ($doktor->canProceedToPayment()) {
+            return redirect()->route('frontend.hekim.paket_sec');
+        }
+
+        return view('frontend.hekim.meslek_bekleme', compact('doktor'));
+    }
+
+    /**
+     * Reddedilen / eksik belgeyi yeniden yükle.
+     */
+    public function meslekBelgeYenile(Request $request)
+    {
+        $doktor = Auth::guard('doktor')->user();
+        if (! $doktor) {
+            return redirect()->route('frontend.hekim.giris');
+        }
+
+        if ($doktor->isMeslekOnayli()) {
+            return redirect()->route('frontend.hekim.paket_sec');
+        }
+
+        $request->validate([
+            'tc_kimlik_no' => ['required', 'string', 'size:11', 'unique:doktorlar,tc_kimlik_no,'.$doktor->id, new TcKimlikNo],
+            'diploma_no' => ['required', 'string', 'min:3', 'max:64'],
+            'meslek_belgesi' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ], [
+            'tc_kimlik_no.required' => 'T.C. kimlik numarası zorunludur.',
+            'diploma_no.required' => 'Diploma / tescil numarası zorunludur.',
+            'meslek_belgesi.required' => 'Belge yüklemeniz zorunludur.',
+        ]);
+
+        $tc = preg_replace('/\D/', '', (string) $request->tc_kimlik_no) ?? '';
+        $destDir = public_path('uploads/meslek-belgeleri');
+        if (! is_dir($destDir)) {
+            mkdir($destDir, 0755, true);
+        }
+        $fname = 'belge_'.$doktor->id.'_'.time().'.'.$request->file('meslek_belgesi')->getClientOriginalExtension();
+        $request->file('meslek_belgesi')->move($destDir, $fname);
+
+        $doktor->forceFill([
+            'tc_kimlik_no' => $tc,
+            'diploma_no' => trim((string) $request->diploma_no),
+            'meslek_belge_yolu' => 'uploads/meslek-belgeleri/'.$fname,
+            'meslek_dogrulama_durumu' => 'beklemede',
+            'meslek_dogrulama_notu' => null,
+            'meslek_dogrulandi_at' => null,
+            'meslek_dogrulayan_yonetici_id' => null,
+        ])->save();
+
+        return back()->with('basarili', 'Belgeleriniz yeniden gönderildi. İnceleme sonrası bilgilendirileceksiniz.');
     }
 
     /**
@@ -544,6 +644,13 @@ class PaketController extends Controller
      */
     public function paketSecFormu()
     {
+        $doktorGate = Auth::guard('doktor')->user();
+        if ($doktorGate && ! $doktorGate->canProceedToPayment()) {
+            return redirect()
+                ->route('frontend.hekim.meslek.bekleme')
+                ->with('hata', 'Paket seçimi ve ödeme için önce meslek belgenizin onaylanması gerekir.');
+        }
+
         $doktor = Auth::guard('doktor')->user();
 
         // Get all active packages
@@ -626,6 +733,13 @@ class PaketController extends Controller
      */
     public function paketOdeFormu(Request $request)
     {
+        $doktorGate = Auth::guard('doktor')->user();
+        if ($doktorGate && ! $doktorGate->canProceedToPayment()) {
+            return redirect()
+                ->route('frontend.hekim.meslek.bekleme')
+                ->with('hata', 'Ödeme adımına geçmeden önce meslek belgenizin onaylanması gerekir.');
+        }
+
         $paketId = $request->query('paket');
         $periyot = $request->query('periyot', 'aylik');
 
@@ -700,6 +814,13 @@ class PaketController extends Controller
      */
     public function paketOde(Request $request)
     {
+        $doktorGate = Auth::guard('doktor')->user();
+        if ($doktorGate && ! $doktorGate->canProceedToPayment()) {
+            return redirect()
+                ->route('frontend.hekim.meslek.bekleme')
+                ->with('hata', 'Meslek belgesi onaylanmadan ödeme yapılamaz.');
+        }
+
         $paket = Paket::where('aktif_mi', true)->findOrFail($request->paket_id);
         $periodPrice = $request->odeme_periyodu === 'yillik'
             ? (float) $paket->yillik_fiyat

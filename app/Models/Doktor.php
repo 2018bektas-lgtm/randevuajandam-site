@@ -24,6 +24,12 @@ class Doktor extends Authenticatable
         'sifre',
         'telefon',
         'tc_kimlik_no',
+        'diploma_no',
+        'meslek_belge_yolu',
+        'meslek_dogrulama_durumu',
+        'meslek_dogrulama_notu',
+        'meslek_dogrulandi_at',
+        'meslek_dogrulayan_yonetici_id',
         'il_id',
         'ilce_id',
         'tur',
@@ -136,6 +142,7 @@ class Doktor extends Authenticatable
             'deneme_kullanildi' => 'boolean',
             'abonelik_yenileme_kapali' => 'boolean',
             'abonelik_iptal_at' => 'datetime',
+            'meslek_dogrulandi_at' => 'datetime',
             'aktif_mi' => 'boolean',
             'platformda_gorunur' => 'boolean',
             'mezuniyet' => 'array',
@@ -530,6 +537,32 @@ class Doktor extends Authenticatable
                 $sq->where('kod', 'web_sitesi');
             });
         });
+    }
+
+    /**
+     * Meslek belgesi / kimlik admin onayı tamam mı? (ödeme öncesi zorunlu)
+     */
+    public function isMeslekOnayli(): bool
+    {
+        return ($this->meslek_dogrulama_durumu ?? 'beklemede') === 'onaylandi';
+    }
+
+    public function isMeslekBeklemede(): bool
+    {
+        return ($this->meslek_dogrulama_durumu ?? 'beklemede') === 'beklemede';
+    }
+
+    public function isMeslekReddedildi(): bool
+    {
+        return ($this->meslek_dogrulama_durumu ?? '') === 'reddedildi';
+    }
+
+    /**
+     * Ödeme / paket seçimine geçebilir mi? (admin meslek onayı şart)
+     */
+    public function canProceedToPayment(): bool
+    {
+        return $this->isMeslekOnayli();
     }
 
     /**

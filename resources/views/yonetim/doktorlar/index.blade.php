@@ -13,6 +13,12 @@
             </h2>
             <p class="text-xs text-[#6B7280] mt-1.5 ml-4">Sistemde kayıtlı olan hekimlerin listesi, üyelik detayları ve durum yönetimi.</p>
         </div>
+        @if(($bekleyenMeslek ?? 0) > 0)
+            <a href="{{ route('yonetim.doktorlar.index', ['meslek' => 'beklemede']) }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
+                {{ $bekleyenMeslek }} meslek belgesi onay bekliyor →
+            </a>
+        @endif
     </div>
 
     <!-- Table Card Container -->
@@ -57,6 +63,7 @@
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Paket / Periyot</th>
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Üyelik Süresi</th>
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Durum</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Meslek</th>
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display text-right">İşlemler</th>
                     </tr>
                 </thead>
@@ -129,6 +136,16 @@
                                         </span>
                                     </label>
                                 </form>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @php $md = $d->meslek_dogrulama_durumu ?? 'beklemede'; @endphp
+                                @if($md === 'onaylandi')
+                                    <span class="inline-flex px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">Onaylı</span>
+                                @elseif($md === 'reddedildi')
+                                    <span class="inline-flex px-2 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-100">Red</span>
+                                @else
+                                    <span class="inline-flex px-2 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-100">Bekliyor</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                                 <div class="inline-flex items-center gap-2">

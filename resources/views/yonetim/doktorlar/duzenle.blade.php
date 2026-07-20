@@ -161,6 +161,50 @@
                 <input type="hidden" name="tur" value="bireysel">
                 <input type="hidden" name="klinik_adi" value="">
 
+                {{-- Meslek belgesi doğrulama --}}
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-4 mb-2">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 font-display">Meslek belgesi / kimlik doğrulama</h3>
+                            <p class="text-[11px] text-slate-500 mt-1">Ödeme öncesi: TC + diploma belgesi — “bu hekim gerçekten var mı?” kontrolü</p>
+                        </div>
+                        @php $md = $doktor->meslek_dogrulama_durumu ?? 'beklemede'; @endphp
+                        @if($md === 'onaylandi')
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Onaylı</span>
+                        @elseif($md === 'reddedildi')
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800">Reddedildi</span>
+                        @else
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900">Onay bekliyor</span>
+                        @endif
+                    </div>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div><dt class="text-[10px] font-bold uppercase text-slate-500">T.C. Kimlik</dt><dd class="mt-0.5 font-mono font-semibold">{{ $doktor->tc_kimlik_no ?: '—' }}</dd></div>
+                        <div><dt class="text-[10px] font-bold uppercase text-slate-500">Diploma / tescil no</dt><dd class="mt-0.5 font-semibold">{{ $doktor->diploma_no ?: '—' }}</dd></div>
+                        <div class="sm:col-span-2">
+                            <dt class="text-[10px] font-bold uppercase text-slate-500">Belge</dt>
+                            <dd class="mt-0.5">
+                                @if($doktor->meslek_belge_yolu)
+                                    <a href="{{ asset($doktor->meslek_belge_yolu) }}" target="_blank" class="text-[#C96A2B] font-bold underline">Belgeyi aç / indir</a>
+                                @else
+                                    <span class="text-slate-400">Yüklenmemiş</span>
+                                @endif
+                            </dd>
+                        </div>
+                        @if($doktor->meslek_dogrulama_notu)
+                            <div class="sm:col-span-2 text-slate-600">Son not: {{ $doktor->meslek_dogrulama_notu }}</div>
+                        @endif
+                    </dl>
+                    <form action="{{ route('yonetim.doktorlar.meslek-dogrula', $doktor->id) }}" method="POST" class="flex flex-col sm:flex-row gap-2 sm:items-end border-t border-slate-200 pt-4">
+                        @csrf
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Not (red gerekçesi vb.)</label>
+                            <input type="text" name="not" placeholder="Opsiyonel" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs">
+                        </div>
+                        <button type="submit" name="karar" value="onaylandi" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Onayla</button>
+                        <button type="submit" name="karar" value="reddedildi" class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold">Reddet</button>
+                    </form>
+                </div>
+
                 <!-- Unvan & Ad Soyad -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div>

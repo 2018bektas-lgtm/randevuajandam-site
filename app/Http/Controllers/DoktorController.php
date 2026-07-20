@@ -8,6 +8,7 @@ use App\Models\Il;
 use App\Models\Ilce;
 use App\Models\Paket;
 use App\Models\Yonetici;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -16,13 +17,49 @@ class DoktorController extends Controller
     /**
      * Display a listing of the doctors.
      */
-    public function index()
+    public function index(Request $request)
     {
         /** @var Yonetici $yonetici */
         $yonetici = Auth::guard('yonetici')->user();
-        $doktorlar = Doktor::with('paket', 'il', 'ilce')->orderBy('id', 'desc')->get();
+        $query = Doktor::with('paket', 'il', 'ilce')->orderBy('id', 'desc');
+        if ($request->query('meslek') === 'beklemede') {
+            $query->where('meslek_dogrulama_durumu', 'beklemede');
+        }
+        $doktorlar = $query->get();
+        $bekleyenMeslek = Doktor::where('meslek_dogrulama_durumu', 'beklemede')->count();
 
-        return view('yonetim.doktorlar.index', compact('yonetici', 'doktorlar'));
+        return view('yonetim.doktorlar.index', compact('yonetici', 'doktorlar', 'bekleyenMeslek'));
+    }
+
+    /**
+     * Meslek belgesi onay / red.
+     */
+    public function meslekDogrula(Request $request, $id)
+    {
+        $doktor = Doktor::findOrFail($id);
+        $request->validate([
+            'karar' => ['required', 'in:onaylandi,reddedildi'],
+            'not' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $yonetici = Auth::guard('yonetici')->user();
+        $onay = $request->input('karar') === 'onaylandi';
+
+        $doktor->forceFill([
+            'meslek_dogrulama_durumu' => $onay ? 'onaylandi' : 'reddedildi',
+            'meslek_dogrulama_notu' => $request->input('not'),
+            'meslek_dogrulandi_at' => now(),
+            'meslek_dogrulayan_yonetici_id' => $yonetici?->id,
+            // Onaylanınca platform listesine izin (hekim isterse kapatır)
+            'platformda_gorunur' => $onay ? true : false,
+        ])->save();
+
+        return back()->with(
+            'basarili',
+            $onay
+                ? 'Meslek belgesi onaylandı. Hekim paket seçimi ve ödemeye geçebilir.'
+                : 'Meslek belgesi reddedildi. Hekim yeni belge yükleyebilir.'
+        );
     }
 
     /**

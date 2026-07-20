@@ -174,6 +174,8 @@ Route::middleware('guest:doktor')->group(function () {
 
 // Doctor Auth Routes (Without membership check) — kayıt / paket / domain / ödeme
 Route::middleware(['auth:doktor'])->group(function () {
+    Route::get('/hekim/meslek-belgesi', [PaketController::class, 'meslekBekleme'])->name('frontend.hekim.meslek.bekleme');
+    Route::post('/hekim/meslek-belgesi', [PaketController::class, 'meslekBelgeYenile'])->name('frontend.hekim.meslek.yenile');
     Route::get('/hekim/paket-sec', [PaketController::class, 'paketSecFormu'])->name('frontend.hekim.paket_sec');
     Route::get('/hekim/paket-ode', [PaketController::class, 'paketOdeFormu'])->name('frontend.hekim.paket_ode');
     Route::post('/hekim/paket-ode', [PaketController::class, 'paketOde'])->name('frontend.hekim.paket_ode.post');

@@ -56,6 +56,7 @@ Route::prefix('yonetim')->name('yonetim.')->group(function () {
             Route::get('/', [DoktorController::class, 'index'])->name('index');
             Route::get('/duzenle/{id}', [DoktorController::class, 'edit'])->name('duzenle');
             Route::post('/duzenle/{id}', [DoktorController::class, 'update'])->name('update');
+            Route::post('/{id}/meslek-dogrula', [DoktorController::class, 'meslekDogrula'])->name('meslek-dogrula');
             Route::post('/sil/{id}', [DoktorController::class, 'destroy'])->name('sil');
             Route::post('/durum/{id}', [DoktorController::class, 'toggleDurum'])->name('durum');
         });

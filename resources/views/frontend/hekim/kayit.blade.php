@@ -228,7 +228,7 @@
             </div>
         </div>
 
-        <form action="{{ route('frontend.hekim.kayit.post') }}" method="POST" id="wizardForm" class="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm">
+        <form action="{{ route('frontend.hekim.kayit.post') }}" method="POST" id="wizardForm" enctype="multipart/form-data" class="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm">
             @csrf
             @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'wizardForm', 'recaptchaAction' => 'hekim_kayit'])
             
@@ -237,6 +237,11 @@
                 <h3 class="text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display pb-2 border-b border-[#E5E7EB]">
                     1. Kişisel ve Hesap Bilgileri
                 </h3>
+
+                <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-[11px] text-amber-900 leading-relaxed">
+                    <strong>Kimlik ve meslek belgesi zorunludur.</strong>
+                    Ödeme ve paket seçiminden önce yönetici, T.C. kimlik + diploma/hekimlik belgenizi inceleyerek kaydınızı onaylar.
+                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <!-- Ad Soyad -->
@@ -252,6 +257,29 @@
                         <input type="text" name="telefon" id="telefon" value="{{ old('telefon') }}" placeholder="0 (5XX) XXX XX XX" required
                             class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                     </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="tc_kimlik_no" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">T.C. Kimlik No</label>
+                        <input type="text" name="tc_kimlik_no" id="tc_kimlik_no" value="{{ old('tc_kimlik_no') }}" maxlength="11" inputmode="numeric" pattern="[0-9]{11}" placeholder="11 haneli TC" required
+                            class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all font-mono">
+                        @error('tc_kimlik_no')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label for="diploma_no" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Diploma / Tescil No</label>
+                        <input type="text" name="diploma_no" id="diploma_no" value="{{ old('diploma_no') }}" placeholder="Diploma veya hekim tescil no" required
+                            class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                        @error('diploma_no')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+
+                <div>
+                    <label for="meslek_belgesi" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Diploma / Hekimlik Belgesi</label>
+                    <input type="file" name="meslek_belgesi" id="meslek_belgesi" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" required
+                        class="w-full text-xs text-[#4B5563] file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#FFF7ED] file:text-[#C96A2B] file:font-bold file:text-[11px]">
+                    <p class="mt-1.5 text-[10px] text-[#9CA3AF]">PDF, JPG veya PNG · en fazla 5 MB. Belge net okunur olmalıdır.</p>
+                    @error('meslek_belgesi')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <!-- E-Posta -->
