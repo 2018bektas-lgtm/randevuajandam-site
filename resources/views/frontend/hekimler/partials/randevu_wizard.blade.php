@@ -20,7 +20,7 @@
 @endphp
 
 @if($doktor->randevuya_acik_mi && $aktifHizmetler->isNotEmpty())
-<section id="randevu-wizard" class="rw">
+<section id="randevu-wizard" class="rw{{ !empty($wizardCompact) ? ' rw--compact' : '' }}">
     <div class="rw-shell">
         <header class="rw-head">
             <div class="rw-head-main">
@@ -272,6 +272,9 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 #randevu-wizard .rw-shell {
     flex: 1 1 auto;
@@ -279,6 +282,23 @@
     flex-direction: column;
     min-height: 32rem;
     height: 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+/* Hizmet detay sidebar: tam yükseklik zorlamasın, taşma olmasın */
+#randevu-wizard.rw--compact {
+    height: auto;
+}
+#randevu-wizard.rw--compact .rw-shell {
+    height: auto;
+    min-height: 0;
+}
+#randevu-wizard.rw--compact .rw-body {
+    flex: 0 1 auto;
+}
+#randevu-wizard.rw--compact .rw-panel:not([hidden]) {
+    flex: 0 1 auto;
 }
 #randevu-wizard .rw-body {
     flex: 1 1 auto;

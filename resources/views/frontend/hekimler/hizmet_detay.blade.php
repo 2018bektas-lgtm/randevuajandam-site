@@ -7,132 +7,423 @@
 @section('og_type', 'website')
 
 @section('icerik')
-<section class="relative bg-[#FAFAFA] py-12 md:py-20 overflow-hidden min-h-[85vh]">
-    <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#E7B58A]/8 blur-[120px] pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#C96A2B]/3 blur-[120px] pointer-events-none"></div>
+<style>
+    .svc-page {
+        position: relative;
+        background: #FAFAFA;
+        padding: 2.5rem 0 3.5rem;
+        min-height: 70vh;
+    }
+    @media (min-width: 768px) {
+        .svc-page { padding: 3rem 0 4rem; }
+    }
+    .svc-page-bg {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 0;
+    }
+    .svc-page-bg span {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(120px);
+    }
+    .svc-page-bg .a {
+        top: -12%;
+        right: -8%;
+        width: 28rem;
+        height: 28rem;
+        background: rgba(231, 181, 138, 0.12);
+    }
+    .svc-page-bg .b {
+        bottom: -14%;
+        left: -10%;
+        width: 26rem;
+        height: 26rem;
+        background: rgba(201, 106, 43, 0.06);
+    }
+    .svc-page-inner {
+        position: relative;
+        z-index: 1;
+        max-width: 80rem;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    @media (min-width: 640px) {
+        .svc-page-inner { padding: 0 1.5rem; }
+    }
+    .svc-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6B7280;
+        text-decoration: none;
+        transition: color 0.15s ease;
+    }
+    .svc-back:hover { color: #C96A2B; }
+    .svc-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    @media (min-width: 1024px) {
+        .svc-layout {
+            grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.95fr);
+            gap: 1.75rem;
+        }
+    }
+    .svc-main,
+    .svc-aside {
+        min-width: 0;
+        width: 100%;
+    }
+    @media (min-width: 1024px) {
+        .svc-aside {
+            position: sticky;
+            top: 5.5rem;
+        }
+    }
+    .svc-card {
+        background: #fff;
+        border: 1px solid #E5E7EB;
+        border-radius: 1.5rem;
+        overflow: hidden;
+        box-shadow: 0 8px 30px rgba(31, 41, 55, 0.03);
+    }
+    .svc-card + .svc-card { margin-top: 1.25rem; }
+    .svc-media {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        max-height: 22rem;
+        background: linear-gradient(145deg, #FFF7ED, #F8FAFC);
+        overflow: hidden;
+    }
+    .svc-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .svc-body {
+        padding: 1.35rem 1.35rem 1.5rem;
+    }
+    @media (min-width: 768px) {
+        .svc-body { padding: 1.75rem 2rem 2rem; }
+    }
+    .svc-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.55rem 0.75rem;
+        padding-bottom: 0.95rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid #F1F5F9;
+        font-size: 0.6875rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #C96A2B;
+    }
+    .svc-meta .dot { color: #D1D5DB; }
+    .svc-title {
+        margin: 0 0 0.85rem;
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
+        color: #111827;
+    }
+    @media (min-width: 768px) {
+        .svc-title { font-size: 1.85rem; }
+    }
+    .svc-content {
+        font-size: 0.9rem;
+        line-height: 1.7;
+        color: #4B5563;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+    }
+    .svc-content :where(p, ul, ol) { margin: 0 0 0.85rem; }
+    .svc-content :where(img, video, iframe) {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.75rem;
+    }
+    .svc-content :where(h1, h2, h3, h4) {
+        color: #111827;
+        font-weight: 800;
+        margin: 1.1rem 0 0.5rem;
+        line-height: 1.3;
+    }
+    .svc-doc {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.15rem 1.25rem;
+        align-items: stretch;
+    }
+    @media (min-width: 640px) {
+        .svc-doc {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+            padding: 1.25rem 1.5rem;
+        }
+    }
+    .svc-doc-info {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        min-width: 0;
+    }
+    .svc-doc-avatar {
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 1rem;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: #FFF7ED;
+        border: 1px solid rgba(231, 181, 138, 0.35);
+        color: #C96A2B;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 0.95rem;
+    }
+    .svc-doc-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .svc-doc-name {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #111827;
+        line-height: 1.25;
+    }
+    .svc-doc-brans {
+        margin: 0.2rem 0 0;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #C96A2B;
+    }
+    .svc-doc-loc {
+        margin: 0.25rem 0 0;
+        font-size: 0.7rem;
+        color: #6B7280;
+    }
+    .svc-doc-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        flex-shrink: 0;
+        padding: 0.7rem 1.1rem;
+        border-radius: 0.85rem;
+        background: #1F2937;
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-decoration: none;
+        transition: background 0.15s ease;
+        white-space: nowrap;
+    }
+    .svc-doc-btn:hover { background: #111827; color: #fff; }
+    .svc-guest-note {
+        margin: 0.85rem 0 0;
+        text-align: center;
+        font-size: 0.7rem;
+        line-height: 1.5;
+        color: #6B7280;
+        padding: 0 0.5rem;
+    }
+    .svc-guest-note a {
+        font-weight: 700;
+        color: #C96A2B;
+        text-decoration: none;
+    }
+    .svc-guest-note a:hover { text-decoration: underline; }
+    .svc-closed {
+        background: #fff;
+        border: 1px solid #E5E7EB;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 8px 30px rgba(31, 41, 55, 0.03);
+    }
+    .svc-closed-icon {
+        width: 3rem;
+        height: 3rem;
+        margin: 0 auto 0.85rem;
+        border-radius: 1rem;
+        background: #FFF7ED;
+        border: 1px solid rgba(231, 181, 138, 0.35);
+        color: #C96A2B;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .svc-closed h3 {
+        margin: 0 0 0.4rem;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #111827;
+    }
+    .svc-closed p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #6B7280;
+        line-height: 1.55;
+    }
+    .svc-closed-actions {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #F1F5F9;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .svc-closed-actions a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.7rem 1rem;
+        border-radius: 0.85rem;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-decoration: none;
+    }
+    .svc-closed-actions .primary {
+        background: #C96A2B;
+        color: #fff;
+    }
+    .svc-closed-actions .primary:hover { background: #B55A20; color: #fff; }
+    .svc-closed-actions .ghost {
+        border: 1px solid #E5E7EB;
+        color: #1F2937;
+    }
+    .svc-closed-actions .ghost:hover { background: #F8FAFC; }
+</style>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-        <div class="mb-6">
-            <a href="{{ $doktor->profil_url }}" class="inline-flex items-center gap-2 text-xs font-bold text-[#6B7280] hover:text-[#C96A2B] transition-colors font-display uppercase tracking-wider">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path>
-                </svg>
-                Hekim Profiline Dön
-            </a>
-        </div>
+<section class="svc-page">
+    <div class="svc-page-bg" aria-hidden="true">
+        <span class="a"></span>
+        <span class="b"></span>
+    </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {{-- Sol: hizmet + hekim bilgisi --}}
-            <div class="lg:col-span-7 space-y-6">
-                <article class="bg-white border border-[#E5E7EB] rounded-3xl overflow-hidden shadow-[0_8px_30px_rgba(31,41,55,0.02)]">
+    <div class="svc-page-inner">
+        <a href="{{ $doktor->profil_url }}" class="svc-back">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path>
+            </svg>
+            Hekim Profiline Dön
+        </a>
+
+        <div class="svc-layout">
+            <div class="svc-main">
+                <article class="svc-card">
                     @if($hizmet->resim_url)
-                        <div class="w-full h-[240px] md:h-[320px] overflow-hidden relative">
-                            <img src="{{ $hizmet->resim_url }}" alt="{{ $hizmet->ad }}" class="w-full h-full object-cover">
+                        <div class="svc-media">
+                            <img src="{{ $hizmet->resim_url }}" alt="{{ $hizmet->ad }}">
                         </div>
                     @endif
-
-                    <div class="p-6 md:p-9 space-y-5">
-                        <div class="flex flex-wrap items-center gap-3 text-[11px] font-bold font-display uppercase tracking-wider text-[#C96A2B] border-b border-slate-100 pb-4">
+                    <div class="svc-body">
+                        <div class="svc-meta">
                             @if($hizmet->sure)
-                                <span class="flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    {{ $hizmet->sure }} Dakika
-                                </span>
-                                <span class="text-slate-300">•</span>
+                                <span>{{ $hizmet->sure }} dk süre</span>
+                                <span class="dot">•</span>
                             @endif
-                            <span>Hizmet ve Tedavi</span>
+                            <span>Hizmet ve tedavi</span>
                         </div>
-
-                        <h1 class="text-2xl md:text-3xl font-extrabold font-display text-[#111827] tracking-tight leading-tight">
-                            {{ $hizmet->ad }}
-                        </h1>
-
+                        <h1 class="svc-title">{{ $hizmet->ad }}</h1>
                         @if($hizmet->aciklama)
-                            <div class="text-sm text-[#4B5563] leading-relaxed space-y-4 font-normal prose prose-sm max-w-none">
+                            <div class="svc-content">
                                 {!! $hizmet->aciklama !!}
                             </div>
                         @else
-                            <p class="text-sm text-gray-400">Bu hizmet hakkında detaylı açıklama bulunmamaktadır.</p>
+                            <p class="svc-content" style="color:#9CA3AF">Bu hizmet hakkında detaylı açıklama bulunmamaktadır.</p>
                         @endif
                     </div>
                 </article>
 
-                <div class="bg-white border border-[#E5E7EB] rounded-3xl p-5 md:p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
-                    @php
-                        $words = preg_split('/\s+/', trim((string) $doktor->ad_soyad)) ?: [];
-                        $kisaAd = collect($words)->filter()->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->take(2)->implode('') ?: 'DR';
-                    @endphp
-                    <div class="flex items-center gap-4 text-center sm:text-left flex-col sm:flex-row min-w-0">
-                        <div class="w-14 h-14 rounded-2xl overflow-hidden bg-[#FFF7ED] border border-[#E7B58A]/30 text-[#C96A2B] flex items-center justify-center font-extrabold font-display text-base shadow-sm shrink-0">
+                @php
+                    $words = preg_split('/\s+/', trim((string) $doktor->ad_soyad)) ?: [];
+                    $kisaAd = collect($words)->filter()->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->take(2)->implode('') ?: 'DR';
+                @endphp
+                <div class="svc-card svc-doc">
+                    <div class="svc-doc-info">
+                        <div class="svc-doc-avatar">
                             @if($doktor->profil_resmi)
-                                <img src="{{ asset($doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}" class="w-full h-full object-cover">
+                                <img src="{{ asset($doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}">
                             @else
                                 {{ $kisaAd }}
                             @endif
                         </div>
-                        <div class="min-w-0">
-                            <h2 class="text-base font-bold font-display text-[#111827]">
-                                {{ $doktor->unvan ? $doktor->unvan.' ' : '' }}{{ $doktor->ad_soyad }}
-                            </h2>
-                            <p class="text-xs font-semibold text-[#C96A2B] font-display uppercase tracking-wider mt-0.5">
-                                {{ $doktor->uzmanlik_alani ?? 'Uzman Hekim' }}
-                            </p>
-                            <p class="text-[11px] text-[#6B7280] mt-1">
-                                {{ $doktor->il?->ad }}{{ $doktor->ilce?->ad ? ' / '.$doktor->ilce->ad : '' }}
-                            </p>
+                        <div style="min-width:0">
+                            <p class="svc-doc-name">{{ $doktor->unvan ? $doktor->unvan.' ' : '' }}{{ $doktor->ad_soyad }}</p>
+                            <p class="svc-doc-brans">{{ $doktor->uzmanlik_alani ?? 'Uzman Hekim' }}</p>
+                            <p class="svc-doc-loc">{{ $doktor->il?->ad }}{{ $doktor->ilce?->ad ? ' / '.$doktor->ilce->ad : '' }}</p>
                         </div>
                     </div>
-                    <a href="{{ $doktor->profil_url }}" class="shrink-0 inline-flex px-5 py-2.5 bg-[#1F2937] hover:bg-[#111827] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm font-display items-center gap-2">
+                    <a href="{{ $doktor->profil_url }}" class="svc-doc-btn">
                         Profili Görüntüle
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
                         </svg>
                     </a>
                 </div>
             </div>
 
-            {{-- Sağ: misafir + üye randevu wizard --}}
-            <aside class="lg:col-span-5 lg:sticky lg:top-24 space-y-4">
+            <aside class="svc-aside">
                 @if($doktor->randevuya_acik_mi)
                     @include('frontend.hekimler.partials.randevu_wizard', [
                         'doktor' => $doktor,
                         'preselectedHizmetId' => $hizmet->id,
+                        'wizardCompact' => true,
                     ])
 
                     @guest('hasta')
-                        <p class="text-[11px] text-center text-[#6B7280] leading-relaxed px-2">
+                        <p class="svc-guest-note">
                             Hesap oluşturmadan randevu alabilirsiniz.
                             İsterseniz
-                            <a href="{{ route('frontend.hasta.giris') }}" class="font-semibold text-[#C96A2B] hover:underline">giriş yapın</a>
+                            <a href="{{ route('frontend.hasta.giris') }}">giriş yapın</a>
                             veya
-                            <a href="{{ route('frontend.hasta.kayit') }}" class="font-semibold text-[#C96A2B] hover:underline">üye olun</a>.
+                            <a href="{{ route('frontend.hasta.kayit') }}">üye olun</a>.
                         </p>
                     @endguest
                 @else
-                    <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-md text-center space-y-4">
-                        <div class="w-12 h-12 bg-amber-50 text-[#C96A2B] rounded-2xl flex items-center justify-center mx-auto border border-[#E7B58A]/30">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z"></path>
+                    <div class="svc-closed">
+                        <div class="svc-closed-icon" aria-hidden="true">
+                            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z"/>
                             </svg>
                         </div>
-                        <div class="space-y-1">
-                            <h3 class="text-sm font-bold uppercase tracking-wider text-[#1F2937] font-display">Randevu Al</h3>
-                            <p class="text-xs text-[#6B7280] leading-relaxed">
-                                Hekimimiz online randevu alımına geçici olarak kapalıdır. Randevu bilgisi için lütfen iletişime geçiniz.
-                            </p>
-                        </div>
-                        <div class="pt-3 border-t border-slate-100 space-y-2">
+                        <h3>Randevu Al</h3>
+                        <p>Hekimimiz online randevu alımına geçici olarak kapalıdır. Randevu bilgisi için lütfen iletişime geçiniz.</p>
+                        <div class="svc-closed-actions">
                             @if($doktor->telefon)
-                                <a href="tel:{{ $doktor->telefon }}" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all font-display">
-                                    {{ $doktor->telefon }}
-                                </a>
+                                <a href="tel:{{ $doktor->telefon }}" class="primary">{{ $doktor->telefon }}</a>
                             @endif
                             @if($doktor->e_posta)
-                                <a href="mailto:{{ $doktor->e_posta }}" class="flex items-center justify-center gap-2 px-4 py-2.5 border border-[#E5E7EB] hover:bg-slate-50 text-[#1F2937] font-bold text-xs uppercase tracking-wider rounded-xl transition-all font-display">
-                                    E-Posta ile İletişim
-                                </a>
+                                <a href="mailto:{{ $doktor->e_posta }}" class="ghost">E-Posta ile İletişim</a>
                             @endif
                         </div>
                     </div>
