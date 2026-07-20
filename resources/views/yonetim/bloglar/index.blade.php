@@ -74,10 +74,15 @@
                             </td>
                             <!-- Author -->
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-semibold text-[#111827] font-display">
-                                    {{ $b->doktor->unvan }} {{ $b->doktor->ad_soyad }}
-                                </div>
-                                <div class="text-[10px] text-gray-500 mt-0.5">{{ $b->doktor->uzmanlik_alani }}</div>
+                                @if($b->doktor)
+                                    <div class="text-sm font-semibold text-[#111827] font-display">
+                                        {{ $b->doktor->unvan }} {{ $b->doktor->ad_soyad }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 mt-0.5">{{ $b->doktor->uzmanlik_alani }}</div>
+                                @else
+                                    <div class="text-sm font-semibold text-red-600 font-display">Hekim silinmiş</div>
+                                    <div class="text-[10px] text-gray-500 mt-0.5">doktor_id: {{ $b->doktor_id }}</div>
+                                @endif
                             </td>
                             <!-- Read Count -->
                             <td class="px-6 py-4 whitespace-nowrap">

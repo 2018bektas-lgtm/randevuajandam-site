@@ -907,53 +907,57 @@ class HekimController extends Controller
      */
     public function bloglarListesi(Request $request)
     {
-        $query = \App\Models\Blog::where('aktif_mi', true)
+        $query = \App\Models\Blog::query()
+            ->where('aktif_mi', true)
+            // Silinmiş / bulunamayan hekim bloglarını gösterme (null doktor → 500 riski)
             ->whereHas('doktor', function ($q) {
-                $q->platformdaListelenen()->whereNull('deleted_at');
+                $q->platformdaListelenen();
             })
-            ->with(['doktor', 'doktor.il', 'doktor.ilce', 'doktor.branslar']);
+            ->with([
+                'doktor:id,ad_soyad,unvan,slug,profil_resmi,klinik_adi,il_id,ilce_id,uzmanlik_alani',
+                'doktor.il:id,ad,slug',
+                'doktor.ilce:id,ad,slug',
+                'doktor.branslar:id,ad,slug',
+            ]);
 
-        // Search filter
         if ($request->filled('arama')) {
             $arama = $request->input('arama');
             $query->where(function ($q) use ($arama) {
                 $q->where('baslik', 'like', "%{$arama}%")
-                  ->orWhere('icerik', 'like', "%{$arama}%")
-                  ->orWhereHas('doktor', function($dq) use ($arama) {
-                      $dq->where('ad_soyad', 'like', "%{$arama}%");
-                  });
+                    ->orWhere('icerik', 'like', "%{$arama}%")
+                    ->orWhereHas('doktor', function ($dq) use ($arama) {
+                        $dq->where('ad_soyad', 'like', "%{$arama}%");
+                    });
             });
         }
 
-        // Branch/Specialty filter
         if ($request->filled('brans')) {
             $bransAd = $request->input('brans');
-            $query->whereHas('doktor.branslar', function($q) use ($bransAd) {
+            $query->whereHas('doktor.branslar', function ($q) use ($bransAd) {
                 $q->where('ad', $bransAd);
             });
         }
 
-        // Ordering
         $siralama = $request->input('sirala', 'yeni');
         if ($siralama === 'populer') {
-            $query->orderBy('okunma_sayisi', 'desc');
+            $query->orderByDesc('okunma_sayisi');
         } else {
-            $query->orderBy('created_at', 'desc');
+            $query->orderByDesc('created_at');
         }
 
         $bloglar = $query->paginate(9)->withQueryString();
         $toplamBlogSayisi = $bloglar->total();
 
-        // Get branches list for filters
         $branslar = Cache::remember('branslar_listesi', 86400, function () {
             return Brans::orderBy('ad')->pluck('ad')->all();
         });
 
         if ($request->ajax()) {
             $html = view('frontend.bloglar.partials.blog_cards', compact('bloglar'))->render();
+
             return response()->json([
                 'html' => $html,
-                'total' => $toplamBlogSayisi
+                'total' => $toplamBlogSayisi,
             ]);
         }
 
