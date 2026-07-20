@@ -88,10 +88,21 @@
         width: max-content;
         will-change: transform;
         cursor: grab;
+        touch-action: pan-y;
+    }
+    .ra-vitrin-track.is-dragging {
+        cursor: grabbing;
         user-select: none;
         -webkit-user-select: none;
     }
-    .ra-vitrin-track.is-dragging { cursor: grabbing; }
+    .ra-vitrin-track a.ra-card {
+        cursor: pointer;
+        -webkit-user-drag: none;
+        pointer-events: auto;
+    }
+    .ra-vitrin-track.is-dragging a.ra-card {
+        pointer-events: none;
+    }
     .ra-vitrin-item {
         flex: 0 0 min(78vw, 16.75rem);
         width: min(78vw, 16.75rem);
@@ -262,7 +273,7 @@
 </style>
 
 {{-- Öne çıkan uzmanlar --}}
-<section id="doktorlar" class="ra-vitrin-section max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-8 md:pt-10 md:pb-10 select-none">
+<section id="doktorlar" class="ra-vitrin-section max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-8 md:pt-10 md:pb-10">
     <div class="ra-vitrin-head">
         <div>
             <div class="ra-vitrin-kicker">Seçkiler</div>
@@ -325,7 +336,7 @@
 </section>
 
 {{-- Öne çıkan klinikler --}}
-<section id="klinikler" class="ra-vitrin-section bg-white border-y border-[#E5E7EB] py-8 md:py-10 select-none">
+<section id="klinikler" class="ra-vitrin-section bg-white border-y border-[#E5E7EB] py-8 md:py-10">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="ra-vitrin-head">
             <div>
@@ -388,7 +399,7 @@
 </section>
 
 {{-- Popüler hizmetler --}}
-<section id="hizmetler" class="ra-vitrin-section max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-10 select-none">
+<section id="hizmetler" class="ra-vitrin-section max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-10">
     <div class="ra-vitrin-head">
         <div>
             <div class="ra-vitrin-kicker">Hizmetler</div>
@@ -411,7 +422,7 @@
             <div class="ra-vitrin-track" data-vitrin-track="hizmetler" data-speed="0.7">
                 @forelse(($oneCikanHizmetler ?? collect()) as $hizmet)
                     <div class="ra-vitrin-item">
-                        <a href="{{ $hizmet->url }}" class="ra-card">
+                        <a href="{{ $hizmet->url }}" class="ra-card" draggable="false">
                             <div class="ra-card-media ra-card-media--wide">
                                 @if($hizmet->sure)
                                     <span class="ra-card-badge">{{ $hizmet->sure }} dk</span>
@@ -431,7 +442,7 @@
                                 </p>
                                 <div class="ra-card-foot">
                                     <span class="ra-card-price" style="font-size:0.75rem">Randevu al</span>
-                                    <span class="ra-card-cta">Seç</span>
+                                    <span class="ra-card-cta" role="presentation">Seç</span>
                                 </div>
                             </div>
                         </a>
@@ -448,7 +459,7 @@
 
 {{-- Uzman blogları --}}
 @if(isset($sonBloglar) && $sonBloglar->count() > 0)
-<section id="bloglar" class="ra-vitrin-section bg-white border-t border-[#E5E7EB] py-8 md:py-10 select-none">
+<section id="bloglar" class="ra-vitrin-section bg-white border-t border-[#E5E7EB] py-8 md:py-10">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="ra-vitrin-head">
             <div>
@@ -507,7 +518,7 @@
 
 {{-- Yorumlar --}}
 @if(isset($sonYorumlar) && $sonYorumlar->count() > 0)
-<section class="ra-vitrin-section border-t border-[#E5E7EB] py-8 md:py-10 select-none">
+<section class="ra-vitrin-section border-t border-[#E5E7EB] py-8 md:py-10">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="ra-vitrin-head">
             <div>

@@ -443,11 +443,14 @@
                 var x = 0;
                 var loopW = 0;
                 var paused = false;
+                var pointerDown = false;
                 var dragging = false;
                 var dragStartX = 0;
                 var dragStartOffset = 0;
+                var activePointerId = null;
                 var suppressClick = false;
                 var raf = null;
+                var DRAG_THRESHOLD = 8;
 
                 function measure() {
                     loopW = setWidth();
@@ -465,7 +468,7 @@
                 }
 
                 function tick() {
-                    if (canSlide && speed > 0 && !paused && !dragging) {
+                    if (canSlide && speed > 0 && !paused && !dragging && !pointerDown) {
                         x += speed;
                         normalize();
                         apply();
@@ -484,43 +487,74 @@
                 var root = track.closest('[data-vitrin]') || track.parentElement;
 
                 function pause() { paused = true; }
-                function resume() { if (!dragging) paused = false; }
+                function resume() { if (!dragging && !pointerDown) paused = false; }
 
+                // Hover'da yavaşlat (tam durdurma yok — tıklama hissi bozulmasın)
                 if (root) {
                     root.addEventListener('mouseenter', pause);
-                    root.addEventListener('mouseleave', resume);
+                    root.addEventListener('mouseleave', function () {
+                        if (!pointerDown && !dragging) resume();
+                    });
                 }
-                track.addEventListener('touchstart', pause, { passive: true });
-                track.addEventListener('touchend', function () { setTimeout(resume, 1400); }, { passive: true });
 
                 track.addEventListener('pointerdown', function (e) {
                     if (e.button !== undefined && e.button !== 0) return;
-                    dragging = true;
+                    // Link / buton tıklamasını bozma: önce sadece işaretle
+                    pointerDown = true;
+                    dragging = false;
                     suppressClick = false;
+                    activePointerId = e.pointerId;
                     dragStartX = e.clientX;
                     dragStartOffset = x;
-                    track.classList.add('is-dragging');
-                    try { track.setPointerCapture(e.pointerId); } catch (err) {}
                     pause();
                 });
+
                 track.addEventListener('pointermove', function (e) {
-                    if (!dragging) return;
+                    if (!pointerDown || (activePointerId !== null && e.pointerId !== activePointerId)) return;
                     var dx = e.clientX - dragStartX;
-                    if (Math.abs(dx) > 4) suppressClick = true;
+                    if (!dragging) {
+                        if (Math.abs(dx) < DRAG_THRESHOLD) return;
+                        // Eşik aşıldı → sürükleme başlar
+                        dragging = true;
+                        suppressClick = true;
+                        track.classList.add('is-dragging');
+                        try { track.setPointerCapture(e.pointerId); } catch (err) {}
+                    }
                     x = dragStartOffset - dx;
                     normalize();
                     apply();
+                    e.preventDefault();
                 });
-                function endDrag(e) {
-                    if (!dragging) return;
+
+                function endPointer(e) {
+                    if (!pointerDown) return;
+                    if (activePointerId !== null && e.pointerId !== activePointerId) return;
+                    var wasDragging = dragging;
+                    pointerDown = false;
                     dragging = false;
+                    activePointerId = null;
                     track.classList.remove('is-dragging');
                     try { track.releasePointerCapture(e.pointerId); } catch (err) {}
-                    setTimeout(resume, 900);
+                    // Sürüklemediyse tıklama normal aksın (link çalışsın)
+                    if (!wasDragging) {
+                        suppressClick = false;
+                        // Kısa bekleme sonra autoplay devam
+                        setTimeout(resume, 400);
+                    } else {
+                        setTimeout(function () {
+                            suppressClick = false;
+                            resume();
+                        }, 50);
+                    }
                 }
-                track.addEventListener('pointerup', endDrag);
-                track.addEventListener('pointercancel', endDrag);
+                track.addEventListener('pointerup', endPointer);
+                track.addEventListener('pointercancel', endPointer);
+                track.addEventListener('pointerleave', function (e) {
+                    // Capture yokken track dışına çıkış
+                    if (pointerDown && !dragging) endPointer(e);
+                });
 
+                // Sadece gerçek sürüklemede tıklamayı engelle
                 track.addEventListener('click', function (e) {
                     if (suppressClick) {
                         e.preventDefault();
