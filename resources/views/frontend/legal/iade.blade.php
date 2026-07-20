@@ -40,7 +40,7 @@
         <li>İptal, <strong>otomatik yenilemeyi kapatır</strong>.</li>
         <li>Ödenen dönem bitiş tarihine kadar erişim <strong>devam eder</strong>.</li>
         <li>Dönem sonunda yeni ücret çekilmez; erişim sona erer.</li>
-        <li>Kartlı aboneliklerde yenileme iyzico tarafında da durdurulur (yapılandırılmışsa).</li>
+        <li>Kartlı aboneliklerde iptal, önce iyzico aboneliğini kapatır (yenileme/çekim durur); iyzico başarısızsa sitede iptal tamamlanmaz.</li>
     </ul>
 
     <h2 id="iade">4. Ücret iadesi</h2>

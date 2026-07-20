@@ -19,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PaketController extends Controller
@@ -456,12 +457,17 @@ class PaketController extends Controller
             ]);
         }
 
-        // Cancel previous subscription if it exists
-        if ($doktor->iyzico_subscription_reference_code) {
-            try {
-                $subscriptionService->cancelSubscription($doktor->iyzico_subscription_reference_code);
-            } catch (\Exception $e) {
-                logger()->error('Bireysel abonelik iptal hatası: '.$e->getMessage());
+        // Eski bireysel aboneliği iyzico'da kapat (çift çekim olmasın)
+        $oldRef = $doktor->iyzico_subscription_reference_code;
+        if ($subscriptionService->isRealSubscriptionReference($oldRef)) {
+            $oldCancel = $subscriptionService->cancelSubscription($oldRef);
+            if (($oldCancel['status'] ?? '') !== 'success') {
+                Log::error('Failed to cancel old sub before clinic upgrade', [
+                    'doktor_id' => $doktor->id,
+                    'ref' => $oldRef,
+                    'result' => $oldCancel,
+                ]);
+                // Yine de yeni abonelik açıldı; log + devam (upgrade akışı)
             }
         }
 
@@ -470,7 +476,7 @@ class PaketController extends Controller
 
         $klinik = DB::transaction(function () use ($request, $doktor, $paket, $baslangic, $bitis, $ilModel, $ilceModel, $paymentResult) {
             // Create clinic
-            $klinik = Klinik::create([
+            $klinikAttrs = [
                 'ad' => $request->klinik_adi,
                 'sahip_doktor_id' => $doktor->id,
                 'paket_id' => $paket->id,
@@ -484,7 +490,14 @@ class PaketController extends Controller
                 'uyelik_bitis' => $bitis,
                 'max_doktor_sayisi' => $paket->max_doktor_sayisi ?? 3,
                 'aktif_mi' => true,
-            ]);
+            ];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('klinikler', 'iyzico_subscription_reference_code')) {
+                $klinikAttrs['iyzico_subscription_reference_code'] = $paymentResult['referenceCode'] ?? null;
+                $klinikAttrs['iyzico_subscription_status'] = $paymentResult['subscriptionStatus'] ?? 'ACTIVE';
+                $klinikAttrs['abonelik_yenileme_kapali'] = false;
+                $klinikAttrs['abonelik_iptal_at'] = null;
+            }
+            $klinik = Klinik::create($klinikAttrs);
 
             // Update doctor
             $doktor->update([
@@ -498,6 +511,9 @@ class PaketController extends Controller
                 'uyelik_bitis' => $bitis,
                 'iyzico_subscription_reference_code' => $paymentResult['referenceCode'],
                 'iyzico_subscription_status' => $paymentResult['subscriptionStatus'],
+                'abonelik_yenileme_kapali' => false,
+                'abonelik_iptal_at' => null,
+                'abonelik_iptal_nedeni' => null,
             ]);
 
             // Copy doctor's patients to clinic patient pool
