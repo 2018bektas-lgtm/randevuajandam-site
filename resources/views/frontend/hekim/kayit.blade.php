@@ -233,12 +233,17 @@
             <!-- Step 1 -->
             <div class="relative z-10 flex flex-col items-center gap-2">
                 <div class="step-circle active w-10 h-10 rounded-full border-2 border-gray-300 bg-white text-gray-500 flex items-center justify-center font-bold text-xs font-display" id="circleStep1">1</div>
-                <span class="text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display bg-[#FAFAFA] px-2">Hesap Bilgileri</span>
+                <span class="text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display bg-[#FAFAFA] px-2">Hesap</span>
             </div>
             <!-- Step 2 -->
             <div class="relative z-10 flex flex-col items-center gap-2">
                 <div class="step-circle w-10 h-10 rounded-full border-2 border-gray-300 bg-white text-gray-500 flex items-center justify-center font-bold text-xs font-display" id="circleStep2">2</div>
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-display bg-[#FAFAFA] px-2">Mesleki Bilgiler</span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-display bg-[#FAFAFA] px-2">Mezuniyet</span>
+            </div>
+            <!-- Step 3 -->
+            <div class="relative z-10 flex flex-col items-center gap-2">
+                <div class="step-circle w-10 h-10 rounded-full border-2 border-gray-300 bg-white text-gray-500 flex items-center justify-center font-bold text-xs font-display" id="circleStep3">3</div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-display bg-[#FAFAFA] px-2">Meslek</span>
             </div>
         </div>
 
@@ -254,10 +259,9 @@
                     1. Kişisel ve Hesap Bilgileri
                 </h3>
 
-                <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-[11px] text-amber-900 leading-relaxed">
-                    <strong>Kimlik ve meslek belgesi zorunludur.</strong>
-                    Yönetici belgenizi inceleyip onaylamadan paket seçimi ve ödeme yapılamaz.
-                    e-Devlet barkodlu belgeniz varsa barkod numarasını da girebilirsiniz (admin e-Devlet’ten manuel doğrular).
+                <div class="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[11px] text-emerald-900 leading-relaxed">
+                    <strong>Akış:</strong> Hesap → e-Devlet barkodlu mezuniyet belgesi doğrulama → unvan/branş (otomatik) → kayıt.
+                    Sağlık/yaşam bilimleri programlarında doğrulama başarılıysa meslek onayı otomatik verilir.
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -276,35 +280,11 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                        <label for="tc_kimlik_no" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">T.C. Kimlik No</label>
-                        <input type="text" name="tc_kimlik_no" id="tc_kimlik_no" value="{{ old('tc_kimlik_no') }}" maxlength="11" inputmode="numeric" pattern="[0-9]{11}" placeholder="11 haneli TC" required
-                            class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all font-mono">
-                        @error('tc_kimlik_no')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label for="diploma_no" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Diploma / Tescil No</label>
-                        <input type="text" name="diploma_no" id="diploma_no" value="{{ old('diploma_no') }}" placeholder="Diploma veya hekim tescil no" required
-                            class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
-                        @error('diploma_no')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-
                 <div>
-                    <label for="edevlet_barkod" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">e-Devlet barkod no <span class="normal-case font-semibold text-[#9CA3AF]">(opsiyonel)</span></label>
-                    <input type="text" name="edevlet_barkod" id="edevlet_barkod" value="{{ old('edevlet_barkod') }}" maxlength="64" placeholder="Örn. MEB0639… veya belgenizdeki barkod"
-                        class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all font-mono uppercase">
-                    <p class="mt-1.5 text-[10px] text-[#9CA3AF]">Barkodlu e-Devlet belgesi (diploma vb.) varsa yazın. Yönetici <a href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener" class="text-[#C96A2B] font-semibold underline">turkiye.gov.tr/belge-dogrulama</a> üzerinden manuel doğrular.</p>
-                    @error('edevlet_barkod')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
-                    <label for="meslek_belgesi" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Diploma / Hekimlik Belgesi</label>
-                    <input type="file" name="meslek_belgesi" id="meslek_belgesi" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" required
-                        class="w-full text-xs text-[#4B5563] file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#FFF7ED] file:text-[#C96A2B] file:font-bold file:text-[11px]">
-                    <p class="mt-1.5 text-[10px] text-[#9CA3AF]">PDF, JPG veya PNG · en fazla 5 MB. Belge net okunur olmalıdır.</p>
-                    @error('meslek_belgesi')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
+                    <label for="tc_kimlik_no" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">T.C. Kimlik No</label>
+                    <input type="text" name="tc_kimlik_no" id="tc_kimlik_no" value="{{ old('tc_kimlik_no') }}" maxlength="11" inputmode="numeric" pattern="[0-9]{11}" placeholder="11 haneli TC" required
+                        class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all font-mono">
+                    @error('tc_kimlik_no')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <!-- E-Posta -->
@@ -405,15 +385,68 @@
                 <div class="flex items-center justify-end pt-4 border-t border-[#E5E7EB]">
                     <button type="button" onclick="nextStep(2)"
                             class="px-6 py-3 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-150 font-display cursor-pointer select-none">
-                        Devam Et (Mesleki Bilgiler) →
+                        Devam Et (Mezuniyet) →
                     </button>
                 </div>
             </div>
 
-            <!-- ADIM 2: MESLEKİ BİLGİLER -->
+            <!-- ADIM 2: MEZUNİYET DOĞRULAMA -->
             <div id="step2" class="wizard-step hidden-step space-y-6">
                 <h3 class="text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display pb-2 border-b border-[#E5E7EB]">
-                    2. Mesleki ve Akademik Bilgileriniz
+                    2. Mezuniyet belgesi (e-Devlet barkod)
+                </h3>
+                <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-[11px] text-amber-900 leading-relaxed">
+                    e-Devlet’ten aldığınız <strong>YÖK mezun belgesi</strong> barkodunu girin ve/veya barkodlu PDF yükleyin.
+                    Sistem belgeyi doğrular; ad-soyad ve TC formdaki bilgilerle eşleşirse unvan/branş otomatik dolar.
+                    <a href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener" class="text-[#C96A2B] font-semibold underline">Belge doğrulama</a>
+                </div>
+
+                <div>
+                    <label for="edevlet_barkod" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Barkod no</label>
+                    <input type="text" name="edevlet_barkod" id="edevlet_barkod" value="{{ old('edevlet_barkod') }}" maxlength="64" placeholder="Örn. YOKME50DTYWEU0P9XV"
+                        class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all font-mono uppercase">
+                    @error('edevlet_barkod')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label for="meslek_belgesi" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Barkodlu PDF / görsel (önerilir)</label>
+                    <input type="file" name="meslek_belgesi" id="meslek_belgesi" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*"
+                        class="w-full text-xs text-[#4B5563] file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#FFF7ED] file:text-[#C96A2B] file:font-bold file:text-[11px]">
+                    <p class="mt-1.5 text-[10px] text-[#9CA3AF]">PDF, JPG veya PNG · en fazla 5 MB. Barkod PDF içindeyse otomatik okunmaya çalışılır.</p>
+                    @error('meslek_belgesi')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                <input type="hidden" name="diploma_no" id="diploma_no" value="{{ old('diploma_no') }}">
+
+                <button type="button" id="btnMezuniyetDogrula"
+                        class="w-full py-3 rounded-xl border-2 border-[#C96A2B] text-[#C96A2B] hover:bg-[#FFF7ED] font-bold text-xs uppercase tracking-wider">
+                    e-Devlet ile doğrula
+                </button>
+                <p id="mezuniyetDogrulaStatus" class="text-[11px] text-slate-500"></p>
+
+                <div id="mezuniyetSonucKarti" class="hidden rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-2 text-xs">
+                    <p class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Doğrulama sonucu</p>
+                    <p id="mz_ad" class="font-bold text-[#111827]"></p>
+                    <p id="mz_program" class="text-slate-600"></p>
+                    <p id="mz_detay" class="text-slate-500"></p>
+                    <p id="mz_auto" class="font-semibold"></p>
+                    <ul id="mz_nedenler" class="text-amber-800 space-y-0.5"></ul>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-[#E5E7EB]">
+                    <button type="button" onclick="prevStep(1)"
+                            class="px-5 py-3 rounded-xl border border-[#E5E7EB] hover:bg-slate-50 text-[#6B7280] font-bold text-xs uppercase tracking-wider">← Geri</button>
+                    <button type="button" id="btnToMeslekStep" onclick="goToMeslekStep()"
+                            class="px-6 py-3 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider">
+                        Devam Et (Meslek) →
+                    </button>
+                </div>
+            </div>
+
+            <!-- ADIM 3: MESLEKİ BİLGİLER -->
+            <div id="step3" class="wizard-step hidden-step space-y-6">
+                <h3 class="text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display pb-2 border-b border-[#E5E7EB]">
+                    3. Mesleki bilgiler (otomatik doldurulabilir)
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -518,7 +551,7 @@
                         <input type="checkbox" name="kvkk_onay" value="1" required @checked(old('kvkk_onay'))
                                class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
                         <span>
-                            <a href="{{ route('frontend.legal.kvkk') }}" target="_blank" class="text-[#C96A2B] font-bold underline">KVKK Aydınlatma Metni</a>’ni okudum, kişisel verilerimin işlenmesini kabul ediyorum.
+                            <a href="{{ route('frontend.legal.kvkk') }}" target="_blank" class="text-[#C96A2B] font-bold underline">KVKK Aydınlatma Metni</a>’ni okudum; kimlik ve mezuniyet doğrulaması (e-Devlet barkodlu belge) dahil kişisel verilerimin işlenmesini kabul ediyorum.
                         </span>
                     </label>
                     @error('kvkk_onay')<p class="text-[11px] text-red-600">{{ $message }}</p>@enderror
@@ -534,7 +567,7 @@
 
                 <!-- Navigasyon Butonları -->
                 <div class="flex items-center justify-between pt-4 border-t border-[#E5E7EB]">
-                    <button type="button" onclick="prevStep(1)"
+                    <button type="button" onclick="prevStep(2)"
                             class="px-5 py-3 rounded-xl border border-[#E5E7EB] hover:bg-slate-50 text-[#6B7280] font-bold text-xs uppercase tracking-wider transition-all select-none">
                         ← Geri Dön
                     </button>
@@ -655,14 +688,15 @@
     function updateProgressTracker() {
         const circles = [
             document.getElementById('circleStep1'),
-            document.getElementById('circleStep2')
+            document.getElementById('circleStep2'),
+            document.getElementById('circleStep3')
         ].filter(Boolean);
         const progressBar = document.getElementById('progressBar');
 
         if (currentActiveStep === 1) progressBar.style.width = '0%';
-        if (currentActiveStep === 2) progressBar.style.width = '100%';
+        if (currentActiveStep === 2) progressBar.style.width = '50%';
+        if (currentActiveStep === 3) progressBar.style.width = '100%';
 
-        // Update circles
         circles.forEach((circle, idx) => {
             const stepNum = idx + 1;
             circle.className = "step-circle w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-xs font-display transition-all duration-300";
@@ -680,7 +714,6 @@
                 circle.innerText = stepNum;
             }
             
-            // Label color toggle
             const label = circle.nextElementSibling;
             if (stepNum <= currentActiveStep) {
                 label.className = "text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display bg-[#FAFAFA] px-2 transition-colors duration-300";
@@ -689,6 +722,153 @@
             }
         });
     }
+
+    let mezuniyetVerified = false;
+
+    function goToMeslekStep() {
+        if (!mezuniyetVerified) {
+            const barkod = (document.getElementById('edevlet_barkod')?.value || '').trim();
+            const file = document.getElementById('meslek_belgesi')?.files?.[0];
+            if (!barkod && !file) {
+                alert('Devam etmeden önce barkod girin veya belge yükleyip “e-Devlet ile doğrula”ya basın.');
+                return;
+            }
+            if (!confirm('Doğrulama yapmadan devam ederseniz kayıt manuel onay kuyruğuna düşer. Yine de devam?')) {
+                return;
+            }
+        }
+        nextStep(3);
+    }
+
+    document.getElementById('btnMezuniyetDogrula')?.addEventListener('click', async function () {
+        const btn = this;
+        const statusEl = document.getElementById('mezuniyetDogrulaStatus');
+        const ad = document.getElementById('ad_soyad')?.value || '';
+        const tc = document.getElementById('tc_kimlik_no')?.value || '';
+        const barkod = document.getElementById('edevlet_barkod')?.value || '';
+        const fileInput = document.getElementById('meslek_belgesi');
+
+        if (!ad || !tc || tc.length !== 11) {
+            alert('Önce 1. adımda ad soyad ve 11 haneli TC girin.');
+            return;
+        }
+        if (!barkod.trim() && !fileInput?.files?.length) {
+            alert('Barkod girin veya PDF yükleyin.');
+            return;
+        }
+
+        const fd = new FormData();
+        fd.append('ad_soyad', ad);
+        fd.append('tc_kimlik_no', tc);
+        if (barkod.trim()) fd.append('edevlet_barkod', barkod.trim());
+        if (fileInput?.files?.[0]) fd.append('mezuniyet_belgesi', fileInput.files[0]);
+        fd.append('_token', document.querySelector('input[name="_token"]')?.value || '');
+
+        btn.disabled = true;
+        if (statusEl) statusEl.textContent = 'e-Devlet sorgulanıyor… Bu 10–25 sn sürebilir.';
+
+        try {
+            const res = await fetch(@json(route('frontend.hekim.kayit.mezuniyet_dogrula')), {
+                method: 'POST',
+                body: fd,
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+                throw new Error(data.error || data.message || 'Doğrulama başarısız');
+            }
+            mezuniyetVerified = true;
+            const p = data.payload || {};
+            const kart = document.getElementById('mezuniyetSonucKarti');
+            if (kart) kart.classList.remove('hidden');
+            document.getElementById('mz_ad').textContent = p.ad_soyad_belge || '—';
+            document.getElementById('mz_program').textContent = p.program || '—';
+            document.getElementById('mz_detay').textContent = [
+                p.diploma_no ? 'Diploma: ' + p.diploma_no : null,
+                p.mezuniyet_tarihi || null,
+                p.diploma_notu || null
+            ].filter(Boolean).join(' · ');
+            const autoEl = document.getElementById('mz_auto');
+            if (p.auto_onay_uygun) {
+                autoEl.textContent = '✓ Otomatik meslek onayı uygun — kayıt sonrası ödemeye geçebilirsiniz.';
+                autoEl.className = 'font-semibold text-emerald-700';
+            } else {
+                autoEl.textContent = 'Manuel inceleme gerekebilir.';
+                autoEl.className = 'font-semibold text-amber-700';
+            }
+            const ul = document.getElementById('mz_nedenler');
+            ul.innerHTML = '';
+            (p.nedenler || []).forEach(n => {
+                const li = document.createElement('li');
+                li.textContent = '• ' + n;
+                ul.appendChild(li);
+            });
+            if (data.uyari) {
+                const li = document.createElement('li');
+                li.textContent = '• ' + data.uyari;
+                ul.appendChild(li);
+            }
+
+            // Auto-fill unvan / branş / diploma / mezuniyet
+            if (p.diploma_no) {
+                const dip = document.getElementById('diploma_no');
+                if (dip) dip.value = p.diploma_no;
+            }
+            if (p.barkod) {
+                const b = document.getElementById('edevlet_barkod');
+                if (b) b.value = p.barkod;
+            }
+            if (p.onerilen_unvan) {
+                const sel = document.getElementById('unvan');
+                if (sel) {
+                    let found = false;
+                    for (const opt of sel.options) {
+                        if (opt.value === p.onerilen_unvan || opt.text.includes(p.onerilen_unvan.replace('.', ''))) {
+                            sel.value = opt.value;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        const o = document.createElement('option');
+                        o.value = p.onerilen_unvan;
+                        o.textContent = p.onerilen_unvan;
+                        o.selected = true;
+                        sel.appendChild(o);
+                    }
+                }
+            }
+            if (p.onerilen_brans_id && typeof window.selectBransById === 'function') {
+                window.selectBransById(p.onerilen_brans_id, p.onerilen_brans);
+            } else if (p.onerilen_brans) {
+                // multiselect: try click option by name
+                document.querySelectorAll('.multiselect-option').forEach(el => {
+                    if ((el.dataset.name || '').toLowerCase().includes((p.onerilen_brans || '').toLowerCase().slice(0, 8))) {
+                        if (!el.classList.contains('selected')) el.click();
+                    }
+                });
+            }
+            if (p.mezuniyet_satiri && typeof window.addMezuniyetTagValue === 'function') {
+                window.addMezuniyetTagValue(p.mezuniyet_satiri);
+            } else if (p.mezuniyet_satiri) {
+                // fallback: set via existing tag system if variables exist
+                const input = document.getElementById('mezuniyet_input');
+                if (input) {
+                    input.value = p.mezuniyet_satiri;
+                    if (typeof addMezuniyetTag === 'function') addMezuniyetTag();
+                }
+            }
+
+            if (statusEl) statusEl.textContent = 'Doğrulama tamamlandı.';
+        } catch (e) {
+            mezuniyetVerified = false;
+            if (statusEl) statusEl.textContent = e.message || 'Hata';
+            alert(e.message || 'Doğrulama başarısız');
+        } finally {
+            btn.disabled = false;
+        }
+    });
 
     // Turkish phone number formatting helper
     function formatTurkishPhoneNumber(value) {

@@ -60,6 +60,15 @@ return [
         'fallback_ip' => env('PAYTR_FALLBACK_IP', '85.34.78.112'),
     ],
 
+    /*
+    | e-Devlet barkodlu mezun belgesi otomatik doğrulama (resmi API yok; form otomasyonu)
+    */
+    'edevlet' => [
+        'auto_verify' => filter_var(env('EDEVLET_AUTO_VERIFY', true), FILTER_VALIDATE_BOOLEAN),
+        'timeout' => (int) env('EDEVLET_TIMEOUT', 25),
+        'ad_esik' => (float) env('EDEVLET_AD_ESIK', 0.85),
+    ],
+
     'hostinger' => [
         'api_key' => env('HOSTINGER_API_KEY', ''),
         'partner_id' => env('HOSTINGER_PARTNER_ID', ''),

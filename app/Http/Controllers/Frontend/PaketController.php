@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\KlinikKayitRequest;
 use App\Models\Brans;
 use App\Models\Doktor;
+use App\Models\DoktorMezuniyetBelgesi;
 use App\Models\Hasta;
 use App\Models\Il;
 use App\Models\Ilce;
@@ -15,7 +16,9 @@ use App\Models\SiteAyari;
 use App\Models\UyelikOdeme;
 use App\Models\Unvan;
 use App\Rules\TcKimlikNo;
+use App\Services\Edevlet\BelgeDogrulamaService;
 use App\Services\IyzicoSubscriptionService;
+use App\Services\Meslek\MeslekEslesmeService;
 use App\Services\PaytrService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -122,10 +125,187 @@ class PaketController extends Controller
     }
 
     /**
+     * AJAX: Barkod + TC ile e-Devlet mezun belgesi doğrula (kayıt öncesi session).
+     */
+    public function mezuniyetDogrula(
+        Request $request,
+        BelgeDogrulamaService $edevlet,
+        MeslekEslesmeService $eslesme
+    ) {
+        $request->validate([
+            'ad_soyad' => ['required', 'string', 'max:255'],
+            'tc_kimlik_no' => ['required', 'string', 'size:11', new TcKimlikNo],
+            'edevlet_barkod' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-]+$/'],
+            'mezuniyet_belgesi' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ], [
+            'tc_kimlik_no.required' => 'Doğrulama için T.C. kimlik zorunludur.',
+            'ad_soyad.required' => 'Ad soyad zorunludur.',
+        ]);
+
+        $tc = preg_replace('/\D/', '', (string) $request->tc_kimlik_no) ?? '';
+        $ad = trim((string) $request->ad_soyad);
+        $barkod = $request->filled('edevlet_barkod')
+            ? strtoupper(trim((string) $request->edevlet_barkod))
+            : null;
+
+        // PDF'den barkod dene
+        $uploadRel = null;
+        if ($request->hasFile('mezuniyet_belgesi')) {
+            $uploadRel = $request->file('mezuniyet_belgesi')->store('private/mezuniyet-yukleme', 'local');
+            $abs = Storage::disk('local')->path($uploadRel);
+            $mime = $request->file('mezuniyet_belgesi')->getMimeType() ?? '';
+            if (str_contains($mime, 'pdf') || str_ends_with(strtolower($abs), '.pdf')) {
+                $local = $edevlet->parseYuklenenPdf($abs, $uploadRel);
+                if ($local['ok'] && ! empty($local['parsed']['barkod']) && ! $barkod) {
+                    $barkod = $local['parsed']['barkod'];
+                }
+            }
+        }
+
+        if (! $barkod) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'Barkod bulunamadı. e-Devlet YÖK mezun belgesi barkodunu girin veya barkodlu PDF yükleyin.',
+            ], 422);
+        }
+
+        $result = $edevlet->dogrulaMezunBelgesi($barkod, $tc, $request->ip());
+        if (! $result['ok'] || empty($result['parsed'])) {
+            // Fallback: yüklenen PDF parse + barkod eşlemesi (e-Devlet down)
+            if ($uploadRel) {
+                $local = $edevlet->parseYuklenenPdf(Storage::disk('local')->path($uploadRel), $uploadRel);
+                if ($local['ok'] && ! empty($local['parsed'])) {
+                    $parsed = $local['parsed'];
+                    $match = $eslesme->eslestir($ad, $tc, $parsed);
+                    $payload = $this->buildMezuniyetSessionPayload(
+                        $parsed,
+                        $match,
+                        $uploadRel,
+                        null,
+                        false,
+                        'e-Devlet canlı sorgu başarısız; yüklenen belge parse edildi. Manuel onay gerekebilir. '.($result['error'] ?? '')
+                    );
+                    session(['mezuniyet_dogrulama' => $payload]);
+
+                    return response()->json([
+                        'ok' => true,
+                        'auto_onay_uygun' => false,
+                        'payload' => $this->publicMezuniyetPayload($payload),
+                        'uyari' => $payload['uyari'],
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'ok' => false,
+                'error' => $result['error'] ?? 'Doğrulama başarısız.',
+            ], 422);
+        }
+
+        $parsed = $result['parsed'];
+        $match = $eslesme->eslestir($ad, $tc, $parsed);
+        $pdfPath = $result['pdf_path'] ?? $uploadRel;
+
+        $payload = $this->buildMezuniyetSessionPayload(
+            $parsed,
+            $match,
+            $pdfPath,
+            $result['log_id'] ?? null,
+            (bool) $match['auto_onay_uygun'],
+            $match['auto_onay_uygun']
+                ? null
+                : implode(' ', $match['nedenler'] ?? [])
+        );
+        session(['mezuniyet_dogrulama' => $payload]);
+
+        return response()->json([
+            'ok' => true,
+            'auto_onay_uygun' => (bool) $payload['auto_onay_uygun'],
+            'payload' => $this->publicMezuniyetPayload($payload),
+            'uyari' => $payload['uyari'],
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $parsed
+     * @param  array<string, mixed>  $match
+     * @return array<string, mixed>
+     */
+    protected function buildMezuniyetSessionPayload(
+        array $parsed,
+        array $match,
+        ?string $pdfPath,
+        ?int $logId,
+        bool $autoOnay,
+        ?string $uyari
+    ): array {
+        $eslesme = app(MeslekEslesmeService::class);
+
+        return [
+            'verified_at' => now()->toIso8601String(),
+            'barkod' => $parsed['barkod'] ?? null,
+            'tc' => $parsed['tc'] ?? null,
+            'ad_soyad_belge' => $parsed['ad_soyad'] ?? null,
+            'program' => $parsed['program'] ?? null,
+            'universite' => $parsed['universite'] ?? null,
+            'fakulte' => $parsed['fakulte'] ?? null,
+            'bolum' => $parsed['bolum'] ?? null,
+            'diploma_no' => $parsed['diploma_no'] ?? null,
+            'diploma_notu' => $parsed['diploma_notu'] ?? null,
+            'mezuniyet_tarihi' => $parsed['mezuniyet_tarihi'] ?? null,
+            'mezuniyet_satiri' => $eslesme->mezuniyetSatiri($parsed),
+            'pdf_path' => $pdfPath,
+            'log_id' => $logId,
+            'tc_ok' => (bool) ($match['tc_ok'] ?? false),
+            'ad_ok' => (bool) ($match['ad_ok'] ?? false),
+            'ad_skor' => $match['ad_skor'] ?? 0,
+            'auto_onay_uygun' => $autoOnay,
+            'onerilen_unvan' => $match['onerilen_unvan'] ?? null,
+            'onerilen_brans' => $match['onerilen_brans'] ?? null,
+            'onerilen_brans_id' => $match['onerilen_brans_id'] ?? null,
+            'nedenler' => $match['nedenler'] ?? [],
+            'uyari' => $uyari,
+            'ham_parse' => $parsed,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    protected function publicMezuniyetPayload(array $payload): array
+    {
+        return [
+            'barkod' => $payload['barkod'] ?? null,
+            'ad_soyad_belge' => $payload['ad_soyad_belge'] ?? null,
+            'program' => $payload['program'] ?? null,
+            'universite' => $payload['universite'] ?? null,
+            'fakulte' => $payload['fakulte'] ?? null,
+            'bolum' => $payload['bolum'] ?? null,
+            'diploma_no' => $payload['diploma_no'] ?? null,
+            'diploma_notu' => $payload['diploma_notu'] ?? null,
+            'mezuniyet_tarihi' => $payload['mezuniyet_tarihi'] ?? null,
+            'mezuniyet_satiri' => $payload['mezuniyet_satiri'] ?? null,
+            'tc_ok' => $payload['tc_ok'] ?? false,
+            'ad_ok' => $payload['ad_ok'] ?? false,
+            'ad_skor' => $payload['ad_skor'] ?? 0,
+            'auto_onay_uygun' => $payload['auto_onay_uygun'] ?? false,
+            'onerilen_unvan' => $payload['onerilen_unvan'] ?? null,
+            'onerilen_brans' => $payload['onerilen_brans'] ?? null,
+            'onerilen_brans_id' => $payload['onerilen_brans_id'] ?? null,
+            'nedenler' => $payload['nedenler'] ?? [],
+            'uyari' => $payload['uyari'] ?? null,
+        ];
+    }
+
+    /**
      * Handle the doctor registration.
      */
     public function kayitOl(Request $request)
     {
+        $mezunSession = session('mezuniyet_dogrulama');
+        $hasVerified = is_array($mezunSession) && ! empty($mezunSession['barkod']);
+
         $request->validate([
             'ad_soyad' => 'required|string|max:255',
             'e_posta' => 'required|email|max:255|unique:doktorlar,e_posta',
@@ -138,10 +318,10 @@ class PaketController extends Controller
             ],
             'telefon' => ['required', 'string', 'regex:/^0\s\(5[0-9]{2}\)\s[0-9]{3}\s[0-9]{2}\s[0-9]{2}$/'],
             'tc_kimlik_no' => ['required', 'string', 'size:11', 'unique:doktorlar,tc_kimlik_no', new TcKimlikNo],
-            'diploma_no' => ['required', 'string', 'min:3', 'max:64'],
+            'diploma_no' => [$hasVerified ? 'nullable' : 'required', 'string', 'min:3', 'max:64'],
             'edevlet_barkod' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-]+$/'],
-            'meslek_belgesi' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'unvan' => 'required|string|exists:unvanlar,ad',
+            'meslek_belgesi' => [$hasVerified ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'unvan' => 'required|string|max:80',
             'il' => 'required|string|max:255',
             'ilce' => 'required|string|max:255',
             'branslar' => 'required|array|min:1',
@@ -168,9 +348,9 @@ class PaketController extends Controller
             'telefon.regex' => 'Telefon numarası 0 (5xx) xxx xx xx formatında olmalıdır.',
             'tc_kimlik_no.required' => 'T.C. kimlik numarası zorunludur.',
             'tc_kimlik_no.unique' => 'Bu T.C. kimlik numarası ile kayıtlı bir hekim zaten var.',
-            'diploma_no.required' => 'Diploma / tescil numarası zorunludur.',
+            'diploma_no.required' => 'Diploma / tescil numarası zorunludur (mezuniyet doğrulaması yapılmadıysa).',
             'edevlet_barkod.regex' => 'e-Devlet barkod numarası yalnızca harf, rakam ve tire içerebilir.',
-            'meslek_belgesi.required' => 'Diploma veya hekimlik belgesi yüklemeniz zorunludur.',
+            'meslek_belgesi.required' => 'Diploma veya mezuniyet belgesi yüklemeniz zorunludur.',
             'meslek_belgesi.mimes' => 'Belge PDF, JPG veya PNG olmalıdır.',
             'meslek_belgesi.max' => 'Belge en fazla 5 MB olabilir.',
             'unvan.required' => 'Mesleki unvan seçimi zorunludur.',
@@ -193,27 +373,69 @@ class PaketController extends Controller
         $mezuniyetDizisi = array_values(array_filter($request->input('mezuniyet', []), function ($val) {
             return ! is_null($val) && trim($val) !== '';
         }));
+        if ($hasVerified && ! empty($mezunSession['mezuniyet_satiri'])) {
+            array_unshift($mezuniyetDizisi, $mezunSession['mezuniyet_satiri']);
+            $mezuniyetDizisi = array_values(array_unique($mezuniyetDizisi));
+        }
 
         $tc = preg_replace('/\D/', '', (string) $request->tc_kimlik_no) ?? '';
 
-        $belgeRel = $request->file('meslek_belgesi')->store(
-            'private/meslek-belgeleri',
-            'local'
-        );
+        $belgeRel = $hasVerified
+            ? ($mezunSession['pdf_path'] ?? null)
+            : null;
+        if ($request->hasFile('meslek_belgesi')) {
+            $belgeRel = $request->file('meslek_belgesi')->store('private/meslek-belgeleri', 'local');
+        }
+        if (! $belgeRel) {
+            return back()->withInput()->withErrors([
+                'meslek_belgesi' => 'Mezuniyet belgesi doğrulanmalı veya yüklenmelidir.',
+            ]);
+        }
 
-        $doktor = DB::transaction(function () use ($request, $uzmanlikAlaniString, $mezuniyetDizisi, $ilModel, $ilceModel, $tc, $belgeRel, $kayitPaket, $kayitPeriyot) {
+        $diplomaNo = $hasVerified && ! empty($mezunSession['diploma_no'])
+            ? (string) $mezunSession['diploma_no']
+            : trim((string) $request->diploma_no);
+        $barkod = $hasVerified && ! empty($mezunSession['barkod'])
+            ? (string) $mezunSession['barkod']
+            : ($request->filled('edevlet_barkod') ? strtoupper(trim((string) $request->edevlet_barkod)) : null);
+
+        $autoOnay = $hasVerified && ! empty($mezunSession['auto_onay_uygun']);
+        $meslekDurum = $autoOnay ? 'onaylandi' : 'beklemede';
+        $meslekNot = $autoOnay
+            ? 'otomatik:edevlet'
+            : ($mezunSession['uyari'] ?? ($hasVerified ? implode(' ', $mezunSession['nedenler'] ?? []) : null));
+
+        $doktor = DB::transaction(function () use (
+            $request,
+            $uzmanlikAlaniString,
+            $mezuniyetDizisi,
+            $ilModel,
+            $ilceModel,
+            $tc,
+            $belgeRel,
+            $kayitPaket,
+            $kayitPeriyot,
+            $diplomaNo,
+            $barkod,
+            $meslekDurum,
+            $meslekNot,
+            $autoOnay,
+            $hasVerified,
+            $mezunSession
+        ) {
             $doktor = Doktor::create([
                 'ad_soyad' => $request->ad_soyad,
                 'e_posta' => $request->e_posta,
                 'sifre' => Hash::make($request->sifre),
                 'telefon' => $request->telefon,
                 'tc_kimlik_no' => $tc,
-                'diploma_no' => trim((string) $request->diploma_no),
-                'edevlet_barkod' => $request->filled('edevlet_barkod')
-                    ? strtoupper(trim((string) $request->edevlet_barkod))
-                    : null,
+                'diploma_no' => $diplomaNo,
+                'edevlet_barkod' => $barkod,
                 'meslek_belge_yolu' => $belgeRel,
-                'meslek_dogrulama_durumu' => 'beklemede',
+                'meslek_dogrulama_durumu' => $meslekDurum,
+                'meslek_dogrulama_notu' => $meslekNot ? Str::limit((string) $meslekNot, 500) : null,
+                'meslek_dogrulandi_at' => $autoOnay ? now() : null,
+                'meslek_dogrulayan_yonetici_id' => null,
                 'il_id' => $ilModel?->id,
                 'ilce_id' => $ilceModel?->id,
                 'unvan' => $request->unvan,
@@ -229,24 +451,57 @@ class PaketController extends Controller
                 'uyelik_bitis' => null,
                 'iyzico_subscription_reference_code' => null,
                 'iyzico_subscription_status' => null,
-                // Onaylanana kadar platformda görünmesin / ödeme yok
                 'aktif_mi' => true,
                 'platformda_gorunur' => false,
             ]);
 
             $doktor->branslar()->attach($request->branslar);
 
+            if ($hasVerified && is_array($mezunSession)) {
+                DoktorMezuniyetBelgesi::create([
+                    'doktor_id' => $doktor->id,
+                    'barkod' => $mezunSession['barkod'] ?? null,
+                    'tc_kimlik_no' => $mezunSession['tc'] ?? $tc,
+                    'ad_soyad_belge' => $mezunSession['ad_soyad_belge'] ?? null,
+                    'program' => $mezunSession['program'] ?? null,
+                    'universite' => $mezunSession['universite'] ?? null,
+                    'fakulte' => $mezunSession['fakulte'] ?? null,
+                    'bolum' => $mezunSession['bolum'] ?? null,
+                    'diploma_no' => $mezunSession['diploma_no'] ?? null,
+                    'diploma_notu' => $mezunSession['diploma_notu'] ?? null,
+                    'mezuniyet_tarihi' => $mezunSession['mezuniyet_tarihi'] ?? null,
+                    'dogrulama_durumu' => $autoOnay ? 'basarili' : 'basarili',
+                    'eslesme_skoru' => $mezunSession['ad_skor'] ?? null,
+                    'eslesme_detay' => [
+                        'tc_ok' => $mezunSession['tc_ok'] ?? null,
+                        'ad_ok' => $mezunSession['ad_ok'] ?? null,
+                        'nedenler' => $mezunSession['nedenler'] ?? [],
+                    ],
+                    'dosya_yolu' => $mezunSession['pdf_path'] ?? $belgeRel,
+                    'ham_parse' => $mezunSession['ham_parse'] ?? null,
+                    'edevlet_log_id' => $mezunSession['log_id'] ?? null,
+                    'auto_onay_uygun' => $autoOnay,
+                    'onerilen_unvan' => $mezunSession['onerilen_unvan'] ?? null,
+                    'onerilen_brans' => $mezunSession['onerilen_brans'] ?? null,
+                ]);
+            }
+
             return $doktor;
         });
 
         Auth::guard('doktor')->login($doktor);
 
-        session()->forget(['kayit_paket_id', 'kayit_periyot']);
+        session()->forget(['kayit_paket_id', 'kayit_periyot', 'mezuniyet_dogrulama']);
 
-        // Ödeme YOK — önce meslek belgesi onayı; paket zaten seçili (kayit_paket_id)
+        if ($autoOnay) {
+            return redirect()
+                ->to($doktor->checkoutUrlAfterMeslek())
+                ->with('basarili', 'Kaydınız tamamlandı. Mezuniyet belgeniz e-Devlet üzerinden doğrulandı; ödemeye geçebilirsiniz.');
+        }
+
         return redirect()
             ->route('frontend.hekim.meslek.bekleme')
-            ->with('basarili', 'Kaydınız alındı. Belgeleriniz onaylandıktan sonra seçtiğiniz paket için ödemeye geçeceksiniz.');
+            ->with('basarili', 'Kaydınız alındı. Belgeleriniz incelendikten sonra seçtiğiniz paket için ödemeye geçebilirsiniz.');
     }
 
     /**

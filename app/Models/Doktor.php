@@ -576,6 +576,11 @@ class Doktor extends Authenticatable
         return $this->belongsTo(Paket::class, 'kayit_paket_id');
     }
 
+    public function mezuniyetBelgeleri()
+    {
+        return $this->hasMany(DoktorMezuniyetBelgesi::class);
+    }
+
     public function hasKayitPaketNiyeti(): bool
     {
         return ! empty($this->kayit_paket_id);

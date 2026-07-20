@@ -156,7 +156,9 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @php $md = $d->meslek_dogrulama_durumu ?? 'beklemede'; @endphp
                                 @if($md === 'onaylandi')
-                                    <span class="inline-flex px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">Onaylı</span>
+                                    <span class="inline-flex px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                        {{ str_starts_with((string)($d->meslek_dogrulama_notu ?? ''), 'otomatik:') ? 'Onaylı (otomatik)' : 'Onaylı' }}
+                                    </span>
                                 @elseif($md === 'reddedildi')
                                     <span class="inline-flex px-2 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-100">Red</span>
                                 @else

@@ -161,6 +161,9 @@ Route::middleware('guest:doktor')->group(function () {
     Route::post('/hekim/kayit-ol', [PaketController::class, 'kayitOl'])
         ->middleware('recaptcha:hekim_kayit')
         ->name('frontend.hekim.kayit.post');
+    Route::post('/hekim/kayit-ol/mezuniyet-dogrula', [PaketController::class, 'mezuniyetDogrula'])
+        ->middleware('throttle:8,1')
+        ->name('frontend.hekim.kayit.mezuniyet_dogrula');
     Route::get('/hekim/klinik/kayit-ol', function () {
         return redirect()->route('frontend.paketler')
             ->with('hata', 'Klinik paketi seçerek kayda devam edin.');
