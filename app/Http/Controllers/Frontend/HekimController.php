@@ -729,6 +729,7 @@ class HekimController extends Controller
         $request->validate([
             'ad_soyad' => 'required|string|max:255',
             'telefon' => ['required', 'string', 'regex:/^0\s\(5[0-9]{2}\)\s[0-9]{3}\s[0-9]{2}\s[0-9]{2}$/'],
+            'tc_kimlik_no' => ['nullable', 'string', 'size:11', 'regex:/^[1-9][0-9]{10}$/'],
             'unvan' => 'required|string|exists:unvanlar,ad',
             'il' => 'required|string|max:255',
             'ilce' => 'required|string|max:255',
@@ -746,6 +747,8 @@ class HekimController extends Controller
             'ad_soyad.required' => 'Ad Soyad alanı zorunludur.',
             'telefon.required' => 'Telefon numarası zorunludur.',
             'telefon.regex' => 'Telefon numarası 0 (5xx) xxx xx xx formatında olmalıdır.',
+            'tc_kimlik_no.size' => 'T.C. kimlik 11 haneli olmalıdır.',
+            'tc_kimlik_no.regex' => 'T.C. kimlik numarası geçersiz.',
             'unvan.required' => 'Unvan seçimi zorunludur.',
             'il.required' => 'Hizmet verilen il zorunludur.',
             'ilce.required' => 'Hizmet verilen ilçe zorunludur.',
@@ -759,6 +762,7 @@ class HekimController extends Controller
         $data = [
             'ad_soyad' => $request->ad_soyad,
             'telefon' => $request->telefon,
+            'tc_kimlik_no' => $request->filled('tc_kimlik_no') ? $request->tc_kimlik_no : $doktor->tc_kimlik_no,
             'unvan' => $request->unvan,
             'il_id' => $ilModel?->id,
             'ilce_id' => $ilceModel?->id,

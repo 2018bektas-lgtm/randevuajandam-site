@@ -373,6 +373,7 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
         Route::post('/hekim/web-sitesi/kurulum', [\App\Http\Controllers\Frontend\HekimWebSitesiController::class, 'kurulumYap'])->name('hekim.web-sitesi.kurulum.post');
         Route::post('/hekim/web-sitesi/api-anahtari', [\App\Http\Controllers\Frontend\HekimWebSitesiController::class, 'apiAnahtariOlustur'])->name('hekim.web-sitesi.api-anahtari.post');
         Route::post('/hekim/web-sitesi/platform-gorunurluk', [\App\Http\Controllers\Frontend\HekimWebSitesiController::class, 'platformGorunurluk'])->name('hekim.web-sitesi.platform-gorunurluk');
+        Route::post('/hekim/web-sitesi/dns-dogrula', [\App\Http\Controllers\Frontend\HekimWebSitesiController::class, 'dnsVerify'])->name('hekim.web-sitesi.dns.verify');
         // Pakete dahil domain (ek ücret yok)
         Route::post('/hekim/web-sitesi/domain/check', [\App\Http\Controllers\Frontend\HekimWebSitesiController::class, 'domainCheck'])->name('hekim.web-sitesi.domain.check');
         Route::post('/hekim/web-sitesi/domain/claim', [\App\Http\Controllers\Frontend\HekimWebSitesiController::class, 'domainClaim'])->name('hekim.web-sitesi.domain.claim');

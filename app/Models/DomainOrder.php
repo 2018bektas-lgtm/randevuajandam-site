@@ -39,6 +39,9 @@ class DomainOrder extends Model
         'error_message',
         'registered_at',
         'expires_at',
+        'dns_verified_at',
+        'dns_last_check_at',
+        'dns_check_message',
     ];
 
     protected function casts(): array
@@ -46,6 +49,8 @@ class DomainOrder extends Model
         return [
             'registered_at' => 'datetime',
             'expires_at' => 'datetime',
+            'dns_verified_at' => 'datetime',
+            'dns_last_check_at' => 'datetime',
             'hostinger_cost_cents' => 'integer',
         ];
     }

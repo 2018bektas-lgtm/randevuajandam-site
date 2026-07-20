@@ -23,6 +23,7 @@ class Doktor extends Authenticatable
         'e_posta',
         'sifre',
         'telefon',
+        'tc_kimlik_no',
         'il_id',
         'ilce_id',
         'tur',

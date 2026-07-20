@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\ApiKey;
+use App\Models\DomainOrder;
+use App\Services\DnsVerificationService;
 use App\Services\DomainInclusionService;
 use App\Services\WebsiteProvisioningService;
 use Illuminate\Http\Request;
@@ -15,6 +17,7 @@ class HekimWebSitesiController extends Controller
     public function __construct(
         protected DomainInclusionService $domains,
         protected WebsiteProvisioningService $provisioning,
+        protected DnsVerificationService $dns,
     ) {}
 
     public function kurulumFormu()
@@ -26,6 +29,18 @@ class HekimWebSitesiController extends Controller
         $canHide = $doktor->canHideFromPlatform();
         $platformdaGorunur = (bool) ($doktor->platformda_gorunur ?? true);
         $domainEligibility = $this->publicEligibility($doktor);
+        $domainOrder = $webSite
+            ? DomainOrder::query()
+                ->where('owner_type', $doktor::class)
+                ->where('owner_id', $doktor->id)
+                ->where('domain', $webSite->domain)
+                ->latest('id')
+                ->first()
+            : null;
+        $dnsGuide = $webSite
+            ? $this->dns->steps($webSite->domain)
+            : $this->dns->steps('ornek-domain.com');
+        $dnsExpectedA = (string) config('services.hostinger.dns_a_record', env('DNS_A_RECORD', '46.202.158.83'));
 
         return view('hekim.web_site.kurulum', compact(
             'webSite',
@@ -34,8 +49,61 @@ class HekimWebSitesiController extends Controller
             'canHide',
             'platformdaGorunur',
             'doktor',
-            'domainEligibility'
+            'domainEligibility',
+            'domainOrder',
+            'dnsGuide',
+            'dnsExpectedA'
         ));
+    }
+
+    /**
+     * BYOD / domain DNS A kaydı doğrula.
+     */
+    public function dnsVerify(Request $request)
+    {
+        $doktor = Auth::guard('doktor')->user();
+        $webSite = $doktor->webSite;
+        if (! $webSite) {
+            return back()->with('hata', 'Önce domain kaydı yapın.');
+        }
+
+        $result = $this->dns->check($webSite->domain);
+
+        $order = DomainOrder::query()
+            ->where('owner_type', $doktor::class)
+            ->where('owner_id', $doktor->id)
+            ->where('domain', $webSite->domain)
+            ->latest('id')
+            ->first();
+
+        if ($order) {
+            $order->forceFill([
+                'dns_last_check_at' => now(),
+                'dns_check_message' => $result['message'],
+                'dns_verified_at' => $result['ok'] ? now() : $order->dns_verified_at,
+                'durum' => $result['ok'] ? DomainOrder::DURUM_ACTIVE : (
+                    $order->kaynak === DomainOrder::KAYNAK_BYOD
+                        ? DomainOrder::DURUM_DNS_PENDING
+                        : $order->durum
+                ),
+            ])->save();
+        }
+
+        if ($result['ok']) {
+            $webSite->forceFill([
+                'durum' => 'aktif',
+                'hata_mesaji' => null,
+            ])->save();
+
+            return back()->with('basarili', $result['message']);
+        }
+
+        $webSite->forceFill([
+            'durum' => 'dns_bekliyor',
+            'hata_mesaji' => $result['message'],
+        ])->save();
+
+        return back()->with('hata', $result['message'])->with('dns_check', $result);
     }
 
     public function domainCheck(Request $request)

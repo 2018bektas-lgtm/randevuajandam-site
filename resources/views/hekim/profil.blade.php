@@ -214,6 +214,16 @@
                                    class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                         </div>
 
+                        <div class="space-y-1.5">
+                            <label for="tc_kimlik_no" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">T.C. Kimlik No</label>
+                            <input type="text" name="tc_kimlik_no" id="tc_kimlik_no" value="{{ old('tc_kimlik_no', $doktor->tc_kimlik_no) }}" maxlength="11" inputmode="numeric" placeholder="11 hane (kartlı abonelik için)"
+                                   class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                            <p class="text-[10px] text-slate-400">iyzico abonelik ödemesi için gereklidir. Gizli tutulur.</p>
+                            @error('tc_kimlik_no')
+                                <p class="text-[10px] text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         <!-- İl -->
                         <div class="space-y-1.5">
                             <label for="il" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet Verilen İl</label>

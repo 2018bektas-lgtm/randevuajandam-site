@@ -74,6 +74,11 @@
     @endif
 
     @if($webSite)
+        @php
+            $dnsPending = in_array($webSite->durum, ['dns_bekliyor', 'beklemede'], true)
+                || (($domainOrder->durum ?? null) === 'dns_pending');
+            $dnsVerified = filled($domainOrder->dns_verified_at ?? null) || $webSite->durum === 'aktif';
+        @endphp
         <!-- Registered Web Site & API Keys Display -->
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="p-8 border-b border-gray-100 bg-gradient-to-r from-orange-50/40 to-amber-50/10">
@@ -85,14 +90,20 @@
                             </svg>
                         </div>
                         <div>
-                            <div class="flex items-center gap-2">
-                                <h2 class="text-xl font-bold text-gray-900 font-display">Alan Adı Kaydınız Aktif!</h2>
-                                <span class="px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded-full">Aktif</span>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="text-xl font-bold text-gray-900 font-display">{{ $webSite->domain }}</h2>
+                                @if($dnsPending)
+                                    <span class="px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 rounded-full">DNS bekleniyor</span>
+                                @elseif($dnsVerified)
+                                    <span class="px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded-full">Aktif</span>
+                                @else
+                                    <span class="px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-600 rounded-full">{{ $webSite->durum }}</span>
+                                @endif
                             </div>
-                            <p class="text-gray-500 text-sm mt-1">Hekim web siteniz sisteme tanımlandı ve API bağlantısı hazırlandı.</p>
+                            <p class="text-gray-500 text-sm mt-1">Domain sisteme kaydedildi. API anahtarları hazır. Kendi domaininizde A kaydı gerekir (NS değişikliği yok).</p>
                         </div>
                     </div>
-                    <a href="http://{{ $webSite->domain }}" target="_blank" class="px-5 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all font-medium text-sm flex items-center gap-2">
+                    <a href="https://{{ $webSite->domain }}" target="_blank" rel="noopener" class="px-5 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all font-medium text-sm flex items-center gap-2">
                         <span>Sitenizi Ziyaret Edin</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
@@ -115,6 +126,41 @@
                             Güvenli API Entegrasyonu (HMAC)
                         </span>
                     </div>
+                </div>
+
+                {{-- DNS talimatı + doğrula (kendi NS yok; A kaydı) --}}
+                <div class="border border-sky-100 rounded-2xl bg-sky-50/40 p-5 md:p-6 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 font-display">DNS yönlendirme (A kaydı)</h3>
+                            <p class="text-xs text-slate-500 mt-1">
+                                Domain sağlayıcınızda <strong>@ → {{ $dnsExpectedA ?? '46.202.158.83' }}</strong> A kaydı ekleyin.
+                                Nameserver değişikliği şimdilik gerekmez.
+                            </p>
+                            @if($domainOrder?->dns_check_message)
+                                <p class="text-xs mt-2 {{ $domainOrder->dns_verified_at ? 'text-emerald-700' : 'text-amber-800' }}">
+                                    Son kontrol: {{ $domainOrder->dns_check_message }}
+                                    @if($domainOrder->dns_last_check_at)
+                                        <span class="text-slate-400">({{ $domainOrder->dns_last_check_at->format('d.m.Y H:i') }})</span>
+                                    @endif
+                                </p>
+                            @endif
+                        </div>
+                        <form method="POST" action="{{ route('hekim.web-sitesi.dns.verify') }}">
+                            @csrf
+                            <button type="submit" class="px-4 py-2.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold shrink-0">
+                                DNS doğrula
+                            </button>
+                        </form>
+                    </div>
+                    <ol class="space-y-2 text-xs text-slate-700">
+                        @foreach(($dnsGuide ?? []) as $step)
+                            <li class="flex gap-2">
+                                <span class="font-bold text-sky-800 shrink-0">{{ $step['adim'] }}.</span>
+                                <span><strong>{{ $step['baslik'] }}:</strong> {{ $step['aciklama'] }}</span>
+                            </li>
+                        @endforeach
+                    </ol>
                 </div>
 
                 <!-- API Integration Keys Section -->

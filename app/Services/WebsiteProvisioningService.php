@@ -50,7 +50,7 @@ class WebsiteProvisioningService
                     'doktor_id' => $doktor->id,
                     'domain' => $domain,
                     'tema' => 'custom',
-                    'durum' => 'aktif',
+                    'durum' => $order->kaynak === DomainOrder::KAYNAK_BYOD ? 'dns_bekliyor' : 'aktif',
                     'hostinger_domain_id' => $order->hostinger_order_id,
                 ]);
                 $created = true;
@@ -58,7 +58,7 @@ class WebsiteProvisioningService
                 $site->forceFill([
                     'domain' => $domain,
                     'hostinger_domain_id' => $order->hostinger_order_id ?? $site->hostinger_domain_id,
-                    'durum' => 'aktif',
+                    'durum' => $order->kaynak === DomainOrder::KAYNAK_BYOD ? 'dns_bekliyor' : 'aktif',
                 ])->save();
             }
 
@@ -123,14 +123,14 @@ class WebsiteProvisioningService
                     'klinik_id' => $klinik->id,
                     'domain' => $domain,
                     'tema' => 'custom',
-                    'durum' => 'aktif',
+                    'durum' => $order->kaynak === DomainOrder::KAYNAK_BYOD ? 'dns_bekliyor' : 'aktif',
                     'hostinger_domain_id' => $order->hostinger_order_id,
                 ]);
                 $created = true;
             } else {
                 $attrs = [
                     'domain' => $domain,
-                    'durum' => 'aktif',
+                    'durum' => $order->kaynak === DomainOrder::KAYNAK_BYOD ? 'dns_bekliyor' : 'aktif',
                 ];
                 if (\Illuminate\Support\Facades\Schema::hasColumn($site->getTable(), 'hostinger_domain_id')) {
                     $attrs['hostinger_domain_id'] = $order->hostinger_order_id ?? $site->hostinger_domain_id;

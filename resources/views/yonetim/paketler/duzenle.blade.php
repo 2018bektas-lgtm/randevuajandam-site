@@ -133,6 +133,38 @@
                         class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200">{{ old('aciklama', $paket->aciklama) }}</textarea>
                 </div>
 
+                <!-- iyzico + deneme + domain -->
+                <div class="space-y-4 p-5 border border-[#E5E7EB] rounded-2xl bg-slate-50/50">
+                    <h3 class="text-xs font-bold text-[#C96A2B] uppercase tracking-wider font-display">Ödeme planı & domain</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">iyzico plan (aylık)</label>
+                            <input type="text" name="iyzico_plan_aylik" value="{{ old('iyzico_plan_aylik', $paket->iyzico_plan_aylik) }}"
+                                   class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs" placeholder="pricingPlanReferenceCode">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">iyzico plan (yıllık)</label>
+                            <input type="text" name="iyzico_plan_yillik" value="{{ old('iyzico_plan_yillik', $paket->iyzico_plan_yillik) }}"
+                                   class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs" placeholder="pricingPlanReferenceCode">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">Deneme günü</label>
+                            <input type="number" name="deneme_gun" min="0" max="90" value="{{ old('deneme_gun', $paket->deneme_gun) }}"
+                                   class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs" placeholder="0 = yok, 14 = başlangıç">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">Domain dahil TLD</label>
+                            <input type="text" name="domain_dahil_tlds" value="{{ old('domain_dahil_tlds', is_array($paket->domain_dahil_tlds) ? implode(',', $paket->domain_dahil_tlds) : '') }}"
+                                   class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs" placeholder="com,net">
+                        </div>
+                    </div>
+                    <label class="inline-flex items-center gap-2 text-xs text-slate-700">
+                        <input type="checkbox" name="domain_dahil_mi" value="1" @checked(old('domain_dahil_mi', $paket->domain_dahil_mi)) class="rounded border-slate-300 text-[#C96A2B]">
+                        Domain pakete dahil (1 yıl com/net)
+                    </label>
+                    <input type="hidden" name="domain_dahil_yil" value="{{ old('domain_dahil_yil', $paket->domain_dahil_yil ?? 1) }}">
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4.5 bg-slate-50/30 border border-[#E5E7EB] rounded-xl">
                     <!-- Aylık Fiyat Grubu -->
                     <div class="space-y-4">

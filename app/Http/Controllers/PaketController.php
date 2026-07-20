@@ -100,6 +100,14 @@ class PaketController extends Controller
             'raporlama_mi' => $request->tur === 'klinik' && $request->has('raporlama_mi'),
             'hasta_havuzu_mi' => $request->tur === 'klinik' && $request->has('hasta_havuzu_mi'),
             'sira' => $request->sira ?? 0,
+            'iyzico_plan_aylik' => $request->input('iyzico_plan_aylik') ?: null,
+            'iyzico_plan_yillik' => $request->input('iyzico_plan_yillik') ?: null,
+            'deneme_gun' => $request->filled('deneme_gun') ? (int) $request->deneme_gun : null,
+            'domain_dahil_mi' => $request->boolean('domain_dahil_mi'),
+            'domain_dahil_yil' => (int) ($request->input('domain_dahil_yil') ?: 1),
+            'domain_dahil_tlds' => $request->filled('domain_dahil_tlds')
+                ? array_values(array_filter(array_map('trim', explode(',', (string) $request->domain_dahil_tlds))))
+                : null,
         ]);
 
         return redirect()->route('yonetim.paketler.index')->with('basarili', 'Paket başarıyla güncellendi.');

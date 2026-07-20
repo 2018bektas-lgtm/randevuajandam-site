@@ -713,6 +713,16 @@ class PaketController extends Controller
             $rules['odeme_yontemi'] = 'required|in:iyzico,havale';
         }
 
+        // Kartlı abonelikte T.C. kimlik (iyzico zorunlu)
+        if (! $isFree && $request->input('odeme_yontemi', 'iyzico') === 'iyzico') {
+            if (! filled($doktor->tc_kimlik_no)) {
+                return redirect()
+                    ->route('hekim.profil')
+                    ->with('hata', 'Kredi kartı ile abonelik için profilinizde 11 haneli T.C. kimlik numarası kaydedilmelidir.')
+                    ->withInput();
+            }
+        }
+
         $request->validate($rules, [
             'paket_id.exists' => 'Lütfen geçerli bir üyelik paketi seçin.',
             'odeme_periyodu.in' => 'Ödeme periyodu aylık veya yıllık olmalıdır.',

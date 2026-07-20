@@ -95,7 +95,7 @@
                 bu tarihten sonra panele girişte paket seçip yeniden abone olmanız gerekir.
             </p>
         </div>
-    @elseif($doktor->canCancelSubscription())
+    @elseif($doktor->canCancelSubscription() || ($doktor->klinikSahibiMi() && $klinik && $klinik->uyelik_bitis && $klinik->uyelik_bitis->isFuture() && !($klinik->abonelik_yenileme_kapali ?? false)))
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
             <h2 class="text-lg font-bold font-display text-slate-900">Aboneliği iptal et</h2>
             <p class="text-xs text-slate-500 leading-relaxed">
@@ -107,6 +107,15 @@
             <form method="POST" action="{{ route('hekim.uyelik.iptal') }}" class="space-y-4"
                   onsubmit="return confirm('Aboneliği iptal etmek istediğinize emin misiniz? Dönem sonuna kadar erişiminiz devam eder; yenileme yapılmaz.');">
                 @csrf
+                @if($doktor->klinikSahibiMi() && $klinik)
+                    <input type="hidden" name="hedef" value="klinik">
+                    <input type="hidden" name="klinik" value="1">
+                    <p class="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                        Klinik sahibi olarak <strong>klinik aboneliği</strong> iptal edilecek.
+                    </p>
+                @else
+                    <input type="hidden" name="hedef" value="bireysel">
+                @endif
                 <div>
                     <label for="neden" class="block text-xs font-semibold text-slate-600 mb-1">İptal nedeni (opsiyonel)</label>
                     <input type="text" name="neden" id="neden" maxlength="255"
@@ -116,8 +125,8 @@
                 <label class="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
                     <input type="checkbox" name="onay" value="1" class="mt-0.5 rounded border-slate-300 text-[#C96A2B]" required>
                     <span>
-                        İptali onaylıyorum. <strong>{{ $doktor->uyelik_bitis?->format('d.m.Y') ?? 'Dönem sonu' }}</strong>
-                        tarihine kadar erişimim sürecek; sonrasında otomatik yenileme olmayacak.
+                        İptali onaylıyorum. <strong>{{ ($klinik && $doktor->klinikSahibiMi() ? $klinik->uyelik_bitis : $doktor->uyelik_bitis)?->format('d.m.Y') ?? 'Dönem sonu' }}</strong>
+                        tarihine kadar erişim sürecek; sonrasında otomatik yenileme olmayacak.
                     </span>
                 </label>
                 <button type="submit"
