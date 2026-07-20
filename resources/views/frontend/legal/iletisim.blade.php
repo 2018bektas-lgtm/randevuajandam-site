@@ -18,24 +18,16 @@
     'ozet' => 'iyzico mağaza şartları kapsamında site üzerinden doğrudan ulaşılabilir iletişim bilgileri.',
     'sections' => $sections,
 ])
-    <h2 id="bilgi">1. İletişim bilgileri</h2>
-    <div class="not-prose grid sm:grid-cols-2 gap-4 my-4">
-        <div class="p-4 rounded-xl border border-slate-200 bg-white">
-            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">E-posta</p>
-            <a href="mailto:info@randevuajandam.com" class="text-sm font-bold text-[#C96A2B]">info@randevuajandam.com</a>
-        </div>
-        <div class="p-4 rounded-xl border border-slate-200 bg-white">
-            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">WhatsApp / telefon</p>
-            <a href="https://wa.me/905319912427" target="_blank" rel="noopener" class="text-sm font-bold text-emerald-700">+90 531 991 24 27</a>
-        </div>
-        <div class="p-4 rounded-xl border border-slate-200 bg-white sm:col-span-2">
-            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Web</p>
-            <a href="https://randevuajandam.com" class="text-sm font-bold text-slate-800">https://randevuajandam.com</a>
-        </div>
-    </div>
+    <h2 id="bilgi">1. İletişim ve ticari bilgiler</h2>
+    @include('frontend.layouts.partials.company-identity')
     <p class="text-xs text-slate-500">
-        Ticari unvan, vergi no ve açık adres bilgilerinizi şirket kuruluşu tamamlandıkça bu sayfaya ekleyin
-        (iyzico üye işyeri incelemesi için önerilir).
+        Şirket bilgileri .env üzerinden girilir:
+        <code class="text-[10px] bg-slate-100 px-1 rounded">COMPANY_UNVAN</code>,
+        <code class="text-[10px] bg-slate-100 px-1 rounded">COMPANY_ADRES</code>,
+        <code class="text-[10px] bg-slate-100 px-1 rounded">COMPANY_VERGI_NO</code>,
+        <code class="text-[10px] bg-slate-100 px-1 rounded">COMPANY_MERSIS</code>,
+        <code class="text-[10px] bg-slate-100 px-1 rounded">COMPANY_VERBIS</code> vb.
+        Dolu olmayan alanlar “—” olarak görünür.
     </p>
 
     <h2 id="destek">2. Destek konuları</h2>

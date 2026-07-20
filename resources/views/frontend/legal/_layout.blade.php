@@ -76,20 +76,16 @@
                     {{ $slot }}
                 </article>
 
-                <div class="mt-8 rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-3.5 text-[11px] text-amber-900 leading-relaxed">
-                    <strong class="font-bold font-display">Not:</strong>
-                    Bu metinler Randevu Ajandam platformunun iş modeline göre hazırlanmış genel bilgilendirme taslaklarıdır.
-                    Ticari unvan, adres, MERSİS ve VERBİS bilgilerinizi güncellemeniz; önemli değişikliklerde avukat / KVKK danışmanı onayı almanız önerilir.
-                </div>
-
                 <div class="mt-6 flex flex-wrap gap-3 text-xs">
-                    <a href="mailto:info@randevuajandam.com" class="font-semibold text-[#C96A2B] hover:underline">info@randevuajandam.com</a>
+                    <a href="mailto:{{ config('company.email', 'info@randevuajandam.com') }}" class="font-semibold text-[#C96A2B] hover:underline">{{ config('company.email', 'info@randevuajandam.com') }}</a>
                     <span class="text-slate-300">·</span>
                     <a href="{{ route('frontend.legal.kullanim') }}" class="text-[#6B7280] hover:text-[#C96A2B]">Kullanım Koşulları</a>
                     <span class="text-slate-300">·</span>
                     <a href="{{ route('frontend.legal.gizlilik') }}" class="text-[#6B7280] hover:text-[#C96A2B]">Gizlilik</a>
                     <span class="text-slate-300">·</span>
                     <a href="{{ route('frontend.legal.kvkk') }}" class="text-[#6B7280] hover:text-[#C96A2B]">KVKK</a>
+                    <span class="text-slate-300">·</span>
+                    <a href="{{ route('frontend.legal.iletisim') }}" class="text-[#6B7280] hover:text-[#C96A2B]">İletişim</a>
                 </div>
             </div>
         </div>

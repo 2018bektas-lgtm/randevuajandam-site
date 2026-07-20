@@ -116,19 +116,18 @@
             </div>
         </div>
 
-        {{-- iyzico ödeme yöntemleri (mağaza şartı) --}}
+        {{-- iyzico ödeme logoları (mağaza şartı) --}}
         <div class="mt-10 pt-8 border-t border-[#E5E7EB]">
-            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
                 @include('frontend.layouts.partials.payment-methods')
-                <div class="text-[11px] text-[#9CA3AF] max-w-sm lg:text-right leading-relaxed">
-                    <p class="font-semibold text-[#6B7280] mb-1">İletişim</p>
-                    <p>info@randevuajandam.com</p>
+                <div class="text-[11px] text-[#9CA3AF] md:text-right leading-relaxed shrink-0">
+                    <p class="font-semibold text-[#6B7280]">İletişim</p>
+                    <p><a href="mailto:{{ config('company.email', 'info@randevuajandam.com') }}" class="hover:text-[#C96A2B]">{{ config('company.email', 'info@randevuajandam.com') }}</a></p>
                     <p>
-                        <a href="https://wa.me/905319912427" class="hover:text-[#C96A2B]" target="_blank" rel="noopener">+90 531 991 24 27</a>
-                        (WhatsApp)
+                        <a href="https://wa.me/{{ config('company.whatsapp', '905319912427') }}" class="hover:text-[#C96A2B]" target="_blank" rel="noopener">{{ config('company.telefon', '+90 531 991 24 27') }}</a>
                     </p>
                     <p class="mt-1">
-                        <a href="{{ route('frontend.legal.iletisim') }}" class="text-[#C96A2B] font-semibold hover:underline">İletişim sayfası →</a>
+                        <a href="{{ route('frontend.legal.iletisim') }}" class="text-[#C96A2B] font-semibold hover:underline">İletişim →</a>
                     </p>
                 </div>
             </div>
@@ -139,8 +138,13 @@
             <p class="text-center sm:text-left">
                 © {{ date('Y') }} <span class="font-semibold text-[#6B7280]">Randevu Ajandam</span>. Tüm hakları saklıdır.
             </p>
-            <p class="text-center sm:text-right font-medium">
-                Online randevu &amp; hekim ajanda · Güvenli ödeme: iyzico
+            <p class="text-center sm:text-right">
+                Bu web sitesi
+                <a href="https://lunzasoft.com" target="_blank" rel="noopener noreferrer"
+                   class="font-semibold text-[#6B7280] hover:text-[#C96A2B] underline-offset-2 hover:underline">
+                    LunzaSoft
+                </a>
+                tarafından geliştirilmiştir.
             </p>
         </div>
     </div>

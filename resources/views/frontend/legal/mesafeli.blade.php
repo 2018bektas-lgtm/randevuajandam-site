@@ -31,10 +31,11 @@
     </p>
 
     <h2 id="taraf">1. Taraflar</h2>
+    <p><strong>Satıcı / Hizmet sağlayıcı</strong></p>
+    @include('frontend.layouts.partials.company-identity')
     <p>
-        <strong>Satıcı / Hizmet sağlayıcı:</strong> Randevu Ajandam (randevuajandam.com)<br>
-        İletişim: <a href="mailto:info@randevuajandam.com">info@randevuajandam.com</a> ·
-        <a href="{{ route('frontend.legal.iletisim') }}">İletişim sayfası</a>
+        Platform: <a href="{{ config('company.web', 'https://randevuajandam.com') }}">{{ config('company.web', 'https://randevuajandam.com') }}</a>
+        · <a href="{{ route('frontend.legal.iletisim') }}">İletişim</a>
     </p>
     <p>
         <strong>Alıcı / Abone:</strong> Platforma hekim veya klinik olarak kayıt olup
