@@ -14,6 +14,9 @@
         ->map(fn ($g) => (int) $g)
         ->values()
         ->all();
+    // Hizmet detay vb. sayfalardan gelen ön seçim
+    $preselectedHizmetId = $preselectedHizmetId ?? null;
+    $initialHizmetId = old('hizmet_id', $preselectedHizmetId);
 @endphp
 
 @if($doktor->randevuya_acik_mi && $aktifHizmetler->isNotEmpty())
@@ -60,7 +63,7 @@
         <form action="{{ $formAction }}" method="POST" id="rw-form" class="rw-body">
             @csrf
             <input type="hidden" name="doktor_id" value="{{ $doktor->id }}">
-            <input type="hidden" name="hizmet_id" id="rw-hizmet-id" value="{{ old('hizmet_id') }}">
+            <input type="hidden" name="hizmet_id" id="rw-hizmet-id" value="{{ $initialHizmetId }}">
             <input type="hidden" name="tarih" id="rw-tarih" value="{{ old('tarih') }}">
             <input type="hidden" name="saat" id="rw-saat" value="{{ old('saat') }}">
             @unless($hastaAuth)
@@ -1420,6 +1423,7 @@
         });
     });
     var oldH = document.getElementById('rw-hizmet-id').value;
+    var preselectedService = @json((bool) $preselectedHizmetId);
     if (oldH) {
         var c = document.querySelector('.rw-hizmet-card[data-id="' + oldH + '"]');
         if (c) c.click();
@@ -1807,7 +1811,12 @@
         if (od) { calYear = od.getFullYear(); calMonth = od.getMonth(); }
     }
 
-    setStep(1);
+    // Hizmet detaydan gelindiyse hizmet ön seçili; tarih adımına geç
+    if (preselectedService && document.getElementById('rw-hizmet-id').value) {
+        setStep(2);
+    } else {
+        setStep(1);
+    }
 })();
 </script>
 @elseif($doktor->randevuya_acik_mi)

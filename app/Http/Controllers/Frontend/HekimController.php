@@ -696,11 +696,28 @@ class HekimController extends Controller
             $q->where('branslar.id', $brans->id);
         });
 
-        $doktor = $query->firstOrFail();
+        // Randevu wizard (misafir + üye) için gerekli ilişkiler
+        $doktor = $query->with([
+            'paket',
+            'il',
+            'ilce',
+            'branslar',
+            'hizmetler',
+            'calismaSaatleri',
+            'randevuAyari',
+        ])->firstOrFail();
+
         if (! $doktor->isListedOnPlatform()) {
             abort(404, 'Bu hekim profili platform vitrininde yayınlanmıyor.');
         }
-        $hizmet = $doktor->hizmetler()->where('aktif_mi', true)->where('slug', $hizmet_slug)->firstOrFail();
+
+        $hizmet = $doktor->hizmetler
+            ->where('aktif_mi', true)
+            ->firstWhere('slug', $hizmet_slug);
+
+        if (! $hizmet) {
+            abort(404);
+        }
 
         return view('frontend.hekimler.hizmet_detay', compact('doktor', 'hizmet'));
     }
