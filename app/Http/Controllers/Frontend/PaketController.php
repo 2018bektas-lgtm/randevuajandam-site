@@ -113,6 +113,7 @@ class PaketController extends Controller
             'telefon' => ['required', 'string', 'regex:/^0\s\(5[0-9]{2}\)\s[0-9]{3}\s[0-9]{2}\s[0-9]{2}$/'],
             'tc_kimlik_no' => ['required', 'string', 'size:11', 'unique:doktorlar,tc_kimlik_no', new TcKimlikNo],
             'diploma_no' => ['required', 'string', 'min:3', 'max:64'],
+            'edevlet_barkod' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-]+$/'],
             'meslek_belgesi' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'unvan' => 'required|string|exists:unvanlar,ad',
             'il' => 'required|string|max:255',
