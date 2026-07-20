@@ -365,545 +365,7 @@
         </div>
     </section>
 
-    <style>
-        /* E-ticaret tarzı otomatik kayan ürün rayı */
-        .ra-rail-section { position: relative; }
-        .ra-rail-head {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .ra-rail-kicker {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.625rem;
-            font-weight: 800;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #C96A2B;
-            margin-bottom: 0.4rem;
-        }
-        .ra-rail-kicker::before {
-            content: '';
-            width: 1.25rem;
-            height: 2px;
-            border-radius: 99px;
-            background: linear-gradient(90deg, #C96A2B, #E7B58A);
-        }
-        .ra-rail {
-            position: relative;
-            margin-left: -0.25rem;
-            margin-right: -0.25rem;
-        }
-        .ra-rail::before,
-        .ra-rail::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 1rem;
-            width: 2.5rem;
-            z-index: 5;
-            pointer-events: none;
-        }
-        .ra-rail::before {
-            left: 0;
-            background: linear-gradient(90deg, var(--ra-fade, #FAFAFA) 0%, transparent 100%);
-        }
-        .ra-rail::after {
-            right: 0;
-            background: linear-gradient(270deg, var(--ra-fade, #FAFAFA) 0%, transparent 100%);
-        }
-        .ra-rail--white { --ra-fade: #ffffff; }
-        .ra-rail--stone { --ra-fade: #FAFAFA; }
-
-        .ra-rail-track {
-            display: flex;
-            gap: 1.1rem;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            scroll-behavior: auto;
-            -webkit-overflow-scrolling: touch;
-            padding: 0.5rem 1.75rem 1.25rem;
-            scrollbar-width: none;
-            cursor: grab;
-        }
-        .ra-rail-track.is-dragging { cursor: grabbing; scroll-snap-type: none; }
-        .ra-rail-track::-webkit-scrollbar { display: none; }
-
-        .ra-rail-item {
-            flex: 0 0 min(78vw, 17.5rem);
-            scroll-snap-align: start;
-            min-width: 0;
-        }
-        @media (min-width: 640px) {
-            .ra-rail-item { flex-basis: 16.5rem; }
-        }
-        @media (min-width: 1024px) {
-            .ra-rail-item { flex-basis: 17.25rem; }
-        }
-        @media (min-width: 1280px) {
-            .ra-rail-item { flex-basis: 18rem; }
-        }
-
-        .ra-rail-nav {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.6rem;
-            height: 2.6rem;
-            border-radius: 9999px;
-            border: 1px solid rgba(229, 231, 235, 0.95);
-            background: rgba(255,255,255,0.95);
-            color: #6B7280;
-            box-shadow: 0 8px 22px -10px rgba(31,41,55,0.25);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .ra-rail-nav:hover {
-            color: #C96A2B;
-            border-color: rgba(231, 181, 138, 0.65);
-            background: #FFF7ED;
-            transform: scale(1.04);
-        }
-        .ra-rail-nav:disabled {
-            opacity: 0.35;
-            pointer-events: none;
-            transform: none;
-        }
-
-        /* Ürün kartı (şeffaf e-ticaret hissi) */
-        .ra-product {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: #fff;
-            border: 1px solid rgba(229, 231, 235, 0.95);
-            border-radius: 1.35rem;
-            overflow: hidden;
-            box-shadow: 0 10px 30px -18px rgba(31, 41, 55, 0.28);
-            transition: transform 0.28s cubic-bezier(0.22,1,0.36,1), box-shadow 0.28s ease, border-color 0.28s ease;
-            text-decoration: none;
-            color: inherit;
-        }
-        .ra-product:hover {
-            transform: translateY(-6px);
-            border-color: rgba(231, 181, 138, 0.55);
-            box-shadow: 0 22px 40px -18px rgba(201, 106, 43, 0.28);
-        }
-        .ra-product-media {
-            position: relative;
-            aspect-ratio: 4 / 3;
-            background: linear-gradient(145deg, #FFF7ED 0%, #F8FAFC 100%);
-            overflow: hidden;
-        }
-        .ra-product-media img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.55s cubic-bezier(0.22,1,0.36,1);
-        }
-        .ra-product:hover .ra-product-media img { transform: scale(1.07); }
-        .ra-product-badge {
-            position: absolute;
-            top: 0.75rem;
-            left: 0.75rem;
-            z-index: 2;
-            padding: 0.28rem 0.55rem;
-            border-radius: 9999px;
-            font-size: 0.5625rem;
-            font-weight: 800;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: #C96A2B;
-            background: rgba(255,255,255,0.94);
-            border: 1px solid rgba(231, 181, 138, 0.35);
-            backdrop-filter: blur(8px);
-        }
-        .ra-product-body {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            padding: 1rem 1.05rem 1.1rem;
-            gap: 0.35rem;
-        }
-        .ra-product-title {
-            font-size: 0.9rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            color: #111827;
-            line-height: 1.3;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            transition: color 0.2s ease;
-        }
-        .ra-product:hover .ra-product-title { color: #C96A2B; }
-        .ra-product-meta {
-            font-size: 0.7rem;
-            color: #6B7280;
-            line-height: 1.35;
-        }
-        .ra-product-foot {
-            margin-top: auto;
-            padding-top: 0.85rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.5rem;
-            border-top: 1px solid #F1F5F9;
-        }
-        .ra-product-price {
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: #C96A2B;
-            font-variant-numeric: tabular-nums;
-            letter-spacing: -0.02em;
-        }
-        .ra-product-cta {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 2.1rem;
-            padding: 0 0.85rem;
-            border-radius: 0.75rem;
-            background: #C96A2B;
-            color: #fff;
-            font-size: 0.65rem;
-            font-weight: 800;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            transition: background 0.2s ease, transform 0.2s ease;
-        }
-        .ra-product:hover .ra-product-cta {
-            background: #B55A20;
-            transform: translateX(1px);
-        }
-
-        /* Uzman kartı (profil odaklı ürün) */
-        .ra-expert-top {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 1.35rem 1.1rem 0.85rem;
-            background: linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 72%);
-            border-bottom: 1px solid #F8FAFC;
-        }
-        .ra-expert-avatar {
-            width: 4.5rem;
-            height: 4.5rem;
-            border-radius: 1.15rem;
-            object-fit: cover;
-            border: 2px solid rgba(255,255,255,0.95);
-            box-shadow: 0 10px 24px -12px rgba(201, 106, 43, 0.55);
-            background: #FFF7ED;
-            color: #C96A2B;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1rem;
-        }
-        .ra-stars { color: #C96A2B; letter-spacing: 0.05em; font-size: 0.7rem; }
-
-        .ra-quote-card {
-            height: 100%;
-            padding: 1.15rem;
-            border-radius: 1.35rem;
-            background: linear-gradient(160deg, #FFFFFF 0%, #FFFBF7 100%);
-            border: 1px solid #E5E7EB;
-            box-shadow: 0 10px 30px -18px rgba(31, 41, 55, 0.25);
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .ra-product, .ra-product-media img { transition: none; }
-        }
-    </style>
-
-    {{-- Öne çıkan uzmanlar --}}
-    <section id="doktorlar" class="ra-rail-section max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-8 md:pt-4 md:pb-10 select-none">
-        <div class="ra-rail-head">
-            <div>
-                <div class="ra-rail-kicker">Seçkiler</div>
-                <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Öne Çıkan Uzmanlar</h2>
-                <p class="text-sm text-[#6B7280] mt-1.5">Danışan memnuniyeti yüksek, randevuya açık uzmanlar.</p>
-            </div>
-            <div class="flex items-center gap-2">
-                <button type="button" class="ra-rail-nav" data-rail-prev="uzmanlar" aria-label="Önceki">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <button type="button" class="ra-rail-nav" data-rail-next="uzmanlar" aria-label="Sonraki">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </button>
-                <a href="{{ route('frontend.hekimler') }}" class="ml-1 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] font-display no-underline">Tümü →</a>
-            </div>
-        </div>
-
-        <div class="ra-rail ra-rail--stone" data-rail="uzmanlar">
-            <div class="ra-rail-track" data-rail-track="uzmanlar" data-autoplay="1" data-speed="0.55">
-                @forelse($oneCikanDoktorlar as $doktor)
-                    @php
-                        $brans = $doktor->branslar->first();
-                        $bransAd = $brans ? $brans->ad : 'Uzman';
-                        $initials = collect(explode(' ', $doktor->ad_soyad))->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->take(2)->implode('');
-                        $ortalamaPuan = $doktor->ortalama_puan_cache ?? 0;
-                        $yorumSayisi = $doktor->yorum_sayisi_cache ?? 0;
-                    @endphp
-                    <div class="ra-rail-item">
-                        <a href="{{ $doktor->profil_url }}" class="ra-product group">
-                            <div class="ra-expert-top">
-                                <span class="ra-product-badge" style="position:static;margin-bottom:0.75rem">{{ $bransAd }}</span>
-                                @if($doktor->profil_resmi)
-                                    <img src="{{ asset($doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}" class="ra-expert-avatar" loading="lazy">
-                                @else
-                                    <div class="ra-expert-avatar">{{ $initials }}</div>
-                                @endif
-                                <h3 class="ra-product-title mt-3 px-1">{{ $doktor->unvan ? $doktor->unvan.' ' : '' }}{{ $doktor->ad_soyad }}</h3>
-                                <p class="ra-product-meta mt-1 line-clamp-1">{{ $doktor->uzmanlik_alani ?? $bransAd }}@if($doktor->il) · {{ $doktor->il->ad }}@endif</p>
-                                @if($ortalamaPuan)
-                                    <div class="ra-stars mt-2">★ {{ $ortalamaPuan }} <span class="text-[#9CA3AF] font-semibold">({{ $yorumSayisi }})</span></div>
-                                @endif
-                            </div>
-                            <div class="ra-product-body">
-                                <div class="ra-product-foot !border-0 !pt-0">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">{{ $doktor->il?->ad ?? 'Türkiye' }}</span>
-                                    <span class="ra-product-cta">Randevu Al</span>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                @empty
-                    <div class="ra-rail-item" style="flex-basis:100%"><p class="text-center text-sm text-[#6B7280] py-10">Henüz öne çıkan uzman bulunmuyor.</p></div>
-                @endforelse
-            </div>
-        </div>
-    </section>
-
-    {{-- Öne çıkan klinikler --}}
-    <section id="klinikler" class="ra-rail-section bg-white border-y border-[#E5E7EB] py-4 md:py-4 select-none">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6">
-            <div class="ra-rail-head">
-                <div>
-                    <div class="ra-rail-kicker">Klinikler</div>
-                    <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Öne Çıkan Klinikler</h2>
-                    <p class="text-sm text-[#6B7280] mt-1.5">Aktif klinik ve poliklinikler, tek bakışta.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" class="ra-rail-nav" data-rail-prev="klinikler" aria-label="Önceki">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <button type="button" class="ra-rail-nav" data-rail-next="klinikler" aria-label="Sonraki">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                    <a href="{{ route('frontend.hekimler', ['sadece_klinik' => 1]) }}" class="ml-1 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] font-display no-underline">Tümü →</a>
-                </div>
-            </div>
-
-            <div class="ra-rail ra-rail--white" data-rail="klinikler">
-                <div class="ra-rail-track" data-rail-track="klinikler" data-autoplay="1" data-speed="0.5">
-                    @forelse(($oneCikanKlinikler ?? collect()) as $klinik)
-                        @php
-                            $klinikUrl = route('frontend.klinik.profil', [
-                                'il_slug' => $klinik->il->slug ?? 'il',
-                                'ilce_slug' => $klinik->ilce->slug ?? 'ilce',
-                                'klinik_slug' => $klinik->slug,
-                            ]);
-                            $initials = mb_strtoupper(mb_substr($klinik->ad, 0, 2));
-                        @endphp
-                        <div class="ra-rail-item">
-                            <a href="{{ $klinikUrl }}" class="ra-product">
-                                <div class="ra-product-media">
-                                    <span class="ra-product-badge">Klinik</span>
-                                    @if($klinik->logo)
-                                        <img src="{{ asset($klinik->logo) }}" alt="{{ $klinik->ad }}" loading="lazy">
-                                    @else
-                                        <div class="w-full h-full flex items-center justify-center">
-                                            <div class="w-16 h-16 rounded-2xl bg-white border border-[#E7B58A]/35 text-[#C96A2B] flex items-center justify-center font-extrabold text-lg shadow-sm">{{ $initials }}</div>
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="ra-product-body">
-                                    <h3 class="ra-product-title">{{ $klinik->ad }}</h3>
-                                    <p class="ra-product-meta">{{ $klinik->il?->ad }}{{ $klinik->ilce?->ad ? ', '.$klinik->ilce->ad : '' }}</p>
-                                    <div class="ra-product-foot">
-                                        <span class="ra-product-price" style="font-size:0.8rem">{{ (int) ($klinik->doktorlar_count ?? 0) }} uzman</span>
-                                        <span class="ra-product-cta">İncele</span>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    @empty
-                        <div class="ra-rail-item" style="flex-basis:100%"><p class="text-center text-sm text-[#6B7280] py-10">Henüz öne çıkan klinik bulunmuyor.</p></div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {{-- Hizmetler --}}
-    <section id="hizmetler" class="ra-rail-section max-w-7xl mx-auto px-4 sm:px-6 py-4 md:py-4 select-none">
-        <div class="ra-rail-head">
-            <div>
-                <div class="ra-rail-kicker">Hizmetler</div>
-                <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Popüler Hizmetler</h2>
-                <p class="text-sm text-[#6B7280] mt-1.5">Randevu alınabilir hizmetler, ürün vitrini gibi kayar.</p>
-            </div>
-            <div class="flex items-center gap-2">
-                <button type="button" class="ra-rail-nav" data-rail-prev="hizmetler" aria-label="Önceki">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <button type="button" class="ra-rail-nav" data-rail-next="hizmetler" aria-label="Sonraki">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </button>
-                <a href="{{ route('frontend.hekimler') }}" class="ml-1 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] font-display no-underline">Keşfet →</a>
-            </div>
-        </div>
-
-        <div class="ra-rail ra-rail--stone" data-rail="hizmetler">
-            <div class="ra-rail-track" data-rail-track="hizmetler" data-autoplay="1" data-speed="0.6">
-                @forelse(($oneCikanHizmetler ?? collect()) as $hizmet)
-                    <div class="ra-rail-item">
-                        <a href="{{ $hizmet->url }}" class="ra-product">
-                            <div class="ra-product-media">
-                                @if($hizmet->sure)
-                                    <span class="ra-product-badge">{{ $hizmet->sure }} dk</span>
-                                @endif
-                                @if($hizmet->resim_url ?? $hizmet->resim)
-                                    <img src="{{ $hizmet->resim_url ?? asset($hizmet->resim) }}" alt="{{ $hizmet->ad }}" loading="lazy">
-                                @else
-                                    <div class="w-full h-full flex items-center justify-center text-[#C96A2B]/40">
-                                        <svg class="w-12 h-12" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    </div>
-                                @endif
-                            </div>
-                            <div class="ra-product-body">
-                                <h3 class="ra-product-title">{{ $hizmet->ad }}</h3>
-                                <p class="ra-product-meta line-clamp-2">
-                                    {{ $hizmet->doktor ? (($hizmet->doktor->unvan ? $hizmet->doktor->unvan.' ' : '').$hizmet->doktor->ad_soyad) : 'Uzman hizmeti' }}
-                                </p>
-                                <div class="ra-product-foot">
-                                    <span class="ra-product-price" style="font-size:0.8rem">Randevu al</span>
-                                    <span class="ra-product-cta">Seç</span>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                @empty
-                    <div class="ra-rail-item" style="flex-basis:100%"><p class="text-center text-sm text-[#6B7280] py-10">Henüz listelenecek hizmet bulunmuyor.</p></div>
-                @endforelse
-            </div>
-        </div>
-    </section>
-
-    {{-- Uzman blogları --}}
-    @if(isset($sonBloglar) && $sonBloglar->count() > 0)
-    <section id="bloglar" class="ra-rail-section bg-white border-t border-[#E5E7EB] py-4 md:py-4 select-none">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6">
-            <div class="ra-rail-head">
-                <div>
-                    <div class="ra-rail-kicker">İçerik</div>
-                    <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Uzman Blogları</h2>
-                    <p class="text-sm text-[#6B7280] mt-1.5">Uzmanlardan güncel yazılar, otomatik vitrin.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" class="ra-rail-nav" data-rail-prev="bloglar" aria-label="Önceki">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <button type="button" class="ra-rail-nav" data-rail-next="bloglar" aria-label="Sonraki">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                    <a href="{{ route('frontend.blog.index') }}" class="ml-1 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:text-[#B55A20] font-display no-underline">Tüm Bloglar →</a>
-                </div>
-            </div>
-
-            <div class="ra-rail ra-rail--white" data-rail="bloglar">
-                <div class="ra-rail-track" data-rail-track="bloglar" data-autoplay="1" data-speed="0.48">
-                    @foreach($sonBloglar as $blog)
-                        <div class="ra-rail-item">
-                            <a href="{{ $blog->url }}" class="ra-product">
-                                <div class="ra-product-media">
-                                    <span class="ra-product-badge">Blog</span>
-                                    @if($blog->resim)
-                                        <img src="{{ asset($blog->resim) }}" alt="{{ $blog->baslik }}" loading="lazy">
-                                    @else
-                                        <div class="w-full h-full flex items-center justify-center text-[#C96A2B]/30">
-                                            <svg class="w-12 h-12" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
-                                            </svg>
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="ra-product-body">
-                                    <h3 class="ra-product-title">{{ $blog->baslik }}</h3>
-                                    <p class="ra-product-meta line-clamp-1">
-                                        {{ $blog->doktor ? (($blog->doktor->unvan ? $blog->doktor->unvan.' ' : '').$blog->doktor->ad_soyad) : 'Uzman' }}
-                                    </p>
-                                    <div class="ra-product-foot">
-                                        <span class="text-[10px] font-bold text-[#9CA3AF]">{{ $blog->created_at->format('d.m.Y') }}</span>
-                                        <span class="ra-product-cta">Oku</span>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    </section>
-    @endif
-
-    {{-- Yorumlar --}}
-    @if(isset($sonYorumlar) && $sonYorumlar->count() > 0)
-    <section class="ra-rail-section border-t border-[#E5E7EB] py-4 md:py-4 select-none">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6">
-            <div class="ra-rail-head">
-                <div>
-                    <div class="ra-rail-kicker">Güven</div>
-                    <h2 class="text-2xl md:text-3xl font-bold font-display text-[#111827] tracking-tight">Hastalarımız Ne Diyor?</h2>
-                    <p class="text-sm text-[#6B7280] mt-1.5">Gerçek hasta değerlendirmeleri.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" class="ra-rail-nav" data-rail-prev="yorumlar" aria-label="Önceki">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <button type="button" class="ra-rail-nav" data-rail-next="yorumlar" aria-label="Sonraki">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="ra-rail ra-rail--stone" data-rail="yorumlar">
-                <div class="ra-rail-track" data-rail-track="yorumlar" data-autoplay="1" data-speed="0.42">
-                    @foreach($sonYorumlar as $yorum)
-                        <div class="ra-rail-item">
-                            <div class="ra-quote-card flex flex-col min-h-[200px]">
-                                <div class="flex items-center gap-0.5 mb-3 text-[#C96A2B] text-sm">
-                                    @for($i = 1; $i <= 5; $i++)
-                                        <span class="{{ $i <= $yorum->puan ? '' : 'text-[#E5E7EB]' }}">★</span>
-                                    @endfor
-                                </div>
-                                <p class="text-sm text-[#374151] leading-relaxed italic flex-grow">"{{ Str::limit($yorum->yorum, 130) }}"</p>
-                                <div class="mt-4 pt-3 border-t border-[#F1F5F9] flex items-center justify-between gap-2">
-                                    <div class="min-w-0">
-                                        <p class="text-xs font-bold text-[#111827] truncate">{{ $yorum->hasta ? $yorum->hasta->maskeli_ad : 'Anonim Hasta' }}</p>
-                                        <p class="text-[10px] text-[#6B7280] truncate">{{ $yorum->doktor ? (($yorum->doktor->unvan ? $yorum->doktor->unvan.' ' : '').$yorum->doktor->ad_soyad) : '' }}</p>
-                                    </div>
-                                    <span class="text-[10px] text-[#9CA3AF] shrink-0">{{ $yorum->created_at->diffForHumans() }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    </section>
-    @endif
+    @include('frontend.partials.home-vitrin')
 @endsection
 
 @section('script')
@@ -925,108 +387,162 @@
             }
         }
 
-        (function initRaRails() {
+        (function initRaVitrin() {
             var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            function step(track) {
-                var item = track.querySelector('.ra-rail-item');
-                if (!item) return 300;
+            function itemStep(track) {
+                var item = track.querySelector('.ra-vitrin-item');
+                if (!item) return 280;
                 var styles = window.getComputedStyle(track);
-                var gap = parseFloat(styles.columnGap || styles.gap || '18') || 18;
+                var gap = parseFloat(styles.columnGap || styles.gap || '16') || 16;
                 return item.getBoundingClientRect().width + gap;
             }
 
-            function maxScroll(track) {
-                return Math.max(0, track.scrollWidth - track.clientWidth);
-            }
+            document.querySelectorAll('[data-vitrin-track]').forEach(function (track) {
+                var name = track.getAttribute('data-vitrin-track');
+                var baseItems = Array.prototype.slice.call(track.children);
+                if (!baseItems.length) return;
 
-            document.querySelectorAll('[data-rail-track]').forEach(function (track) {
-                var name = track.getAttribute('data-rail-track');
-                var autoplay = track.getAttribute('data-autoplay') === '1' && !reduceMotion;
-                var speed = parseFloat(track.getAttribute('data-speed') || '0.5') || 0.5;
+                var baseCount = baseItems.length;
+                var canSlide = baseCount > 1;
+                var speed = parseFloat(track.getAttribute('data-speed') || '0.6') || 0.6;
+                if (reduceMotion) speed = 0;
+
+                function setWidth() {
+                    // gap + item widths for one original set
+                    var styles = window.getComputedStyle(track);
+                    var gap = parseFloat(styles.columnGap || styles.gap || '16') || 16;
+                    var total = 0;
+                    for (var i = 0; i < baseCount; i++) {
+                        var el = track.children[i];
+                        if (!el) continue;
+                        total += el.getBoundingClientRect().width;
+                        if (i < baseCount - 1) total += gap;
+                    }
+                    // set width includes full gap after last item for seamless loop
+                    if (baseCount > 0) total += gap;
+                    return total;
+                }
+
+                if (canSlide) {
+                    var viewportW = track.parentElement ? track.parentElement.clientWidth : 900;
+                    var copies = 0;
+                    var maxCopies = 10;
+                    // En az 1 kopya; viewport 2.5x dolana kadar çoğalt
+                    do {
+                        baseItems.forEach(function (node) {
+                            var clone = node.cloneNode(true);
+                            clone.setAttribute('aria-hidden', 'true');
+                            clone.querySelectorAll('a').forEach(function (a) { a.setAttribute('tabindex', '-1'); });
+                            track.appendChild(clone);
+                        });
+                        copies++;
+                    } while (setWidth() * (copies + 1) < viewportW * 2.5 && copies < maxCopies);
+                }
+
+                var x = 0;
+                var loopW = 0;
                 var paused = false;
                 var dragging = false;
                 var dragStartX = 0;
-                var dragScrollLeft = 0;
+                var dragStartOffset = 0;
+                var suppressClick = false;
                 var raf = null;
 
-                function updateNav() {
-                    var prev = document.querySelector('[data-rail-prev="' + name + '"]');
-                    var next = document.querySelector('[data-rail-next="' + name + '"]');
-                    var max = maxScroll(track);
-                    if (prev) prev.disabled = track.scrollLeft <= 2;
-                    if (next) next.disabled = track.scrollLeft >= max - 2;
+                function measure() {
+                    loopW = setWidth();
+                    if (loopW <= 0) loopW = track.scrollWidth / 2 || 1;
                 }
 
-                // Sonsuz vitrin: içerik yetersizse kopyala
-                if (autoplay && track.children.length > 1) {
-                    var kids = Array.prototype.slice.call(track.children);
-                    kids.forEach(function (node) {
-                        var clone = node.cloneNode(true);
-                        clone.setAttribute('aria-hidden', 'true');
-                        track.appendChild(clone);
-                    });
+                function apply() {
+                    track.style.transform = 'translate3d(' + (-x) + 'px,0,0)';
+                }
+
+                function normalize() {
+                    if (loopW <= 0) return;
+                    while (x >= loopW) x -= loopW;
+                    while (x < 0) x += loopW;
                 }
 
                 function tick() {
-                    if (!autoplay || paused || dragging) {
-                        raf = requestAnimationFrame(tick);
-                        return;
+                    if (canSlide && speed > 0 && !paused && !dragging) {
+                        x += speed;
+                        normalize();
+                        apply();
                     }
-                    var max = maxScroll(track);
-                    if (max <= 4) {
-                        raf = requestAnimationFrame(tick);
-                        return;
-                    }
-                    track.scrollLeft += speed;
-                    // Ortaya gelince başa sar (kopyalanmış set sayesinde akıcı)
-                    if (track.scrollLeft >= max / 2) {
-                        track.scrollLeft = track.scrollLeft - max / 2;
-                    }
-                    updateNav();
                     raf = requestAnimationFrame(tick);
                 }
 
-                track.addEventListener('mouseenter', function () { paused = true; });
-                track.addEventListener('mouseleave', function () { paused = false; });
-                track.addEventListener('touchstart', function () { paused = true; }, { passive: true });
-                track.addEventListener('touchend', function () { setTimeout(function () { paused = false; }, 1200); }, { passive: true });
+                measure();
+                apply();
+                window.addEventListener('resize', function () {
+                    measure();
+                    normalize();
+                    apply();
+                }, { passive: true });
 
-                // Sürükle-kaydır
-                track.addEventListener('mousedown', function (e) {
+                var root = track.closest('[data-vitrin]') || track.parentElement;
+
+                function pause() { paused = true; }
+                function resume() { if (!dragging) paused = false; }
+
+                if (root) {
+                    root.addEventListener('mouseenter', pause);
+                    root.addEventListener('mouseleave', resume);
+                }
+                track.addEventListener('touchstart', pause, { passive: true });
+                track.addEventListener('touchend', function () { setTimeout(resume, 1400); }, { passive: true });
+
+                track.addEventListener('pointerdown', function (e) {
+                    if (e.button !== undefined && e.button !== 0) return;
                     dragging = true;
+                    suppressClick = false;
+                    dragStartX = e.clientX;
+                    dragStartOffset = x;
                     track.classList.add('is-dragging');
-                    dragStartX = e.pageX;
-                    dragScrollLeft = track.scrollLeft;
-                    paused = true;
+                    try { track.setPointerCapture(e.pointerId); } catch (err) {}
+                    pause();
                 });
-                window.addEventListener('mouseup', function () {
+                track.addEventListener('pointermove', function (e) {
+                    if (!dragging) return;
+                    var dx = e.clientX - dragStartX;
+                    if (Math.abs(dx) > 4) suppressClick = true;
+                    x = dragStartOffset - dx;
+                    normalize();
+                    apply();
+                });
+                function endDrag(e) {
                     if (!dragging) return;
                     dragging = false;
                     track.classList.remove('is-dragging');
-                    setTimeout(function () { paused = false; }, 800);
-                });
-                window.addEventListener('mousemove', function (e) {
-                    if (!dragging) return;
-                    e.preventDefault();
-                    var dx = e.pageX - dragStartX;
-                    track.scrollLeft = dragScrollLeft - dx;
-                });
+                    try { track.releasePointerCapture(e.pointerId); } catch (err) {}
+                    setTimeout(resume, 900);
+                }
+                track.addEventListener('pointerup', endDrag);
+                track.addEventListener('pointercancel', endDrag);
 
-                track.addEventListener('scroll', updateNav, { passive: true });
-                updateNav();
+                track.addEventListener('click', function (e) {
+                    if (suppressClick) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        suppressClick = false;
+                    }
+                }, true);
 
-                if (autoplay) raf = requestAnimationFrame(tick);
-            });
+                var prev = document.querySelector('[data-vitrin-prev="' + name + '"]');
+                var next = document.querySelector('[data-vitrin-next="' + name + '"]');
+                function nudge(dir) {
+                    if (!canSlide) return;
+                    pause();
+                    x += dir * itemStep(track);
+                    normalize();
+                    apply();
+                    setTimeout(resume, 1600);
+                }
+                if (prev) prev.addEventListener('click', function () { nudge(-1); });
+                if (next) next.addEventListener('click', function () { nudge(1); });
 
-            document.querySelectorAll('[data-rail-prev], [data-rail-next]').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    var name = btn.getAttribute('data-rail-prev') || btn.getAttribute('data-rail-next');
-                    var track = document.querySelector('[data-rail-track="' + name + '"]');
-                    if (!track) return;
-                    var dir = btn.hasAttribute('data-rail-prev') ? -1 : 1;
-                    track.scrollBy({ left: dir * step(track), behavior: 'smooth' });
-                });
+                if (canSlide) raf = requestAnimationFrame(tick);
             });
         })();
     </script>
