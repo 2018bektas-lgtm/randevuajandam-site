@@ -130,24 +130,27 @@
             </nav>
         </div>
 
-        {{-- Ödeme logoları --}}
+        {{-- Ödeme + alt bar --}}
         <div class="mt-8 pt-6 border-t border-[#E5E7EB]">
-            @include('frontend.layouts.partials.payment-methods')
-        </div>
-
-        {{-- Alt bar --}}
-        <div class="mt-6 pt-5 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[#9CA3AF]">
-            <p class="text-center sm:text-left order-2 sm:order-1">
-                © {{ date('Y') }} <span class="font-semibold text-[#6B7280]">Randevu Ajandam</span>. Tüm hakları saklıdır.
-            </p>
-            <p class="text-center sm:text-right order-1 sm:order-2">
-                Bu web sitesi
-                <a href="https://lunzasoft.com" target="_blank" rel="noopener noreferrer"
-                   class="font-semibold text-[#6B7280] hover:text-[#C96A2B] underline-offset-2 hover:underline">
-                    LunzaSoft
-                </a>
-                tarafından geliştirilmiştir.
-            </p>
+            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+                <div class="min-w-0 flex-1">
+                    @include('frontend.layouts.partials.payment-methods')
+                </div>
+                <div class="text-[11px] text-[#9CA3AF] lg:text-right leading-relaxed shrink-0 space-y-1">
+                    <p>
+                        © {{ date('Y') }} <span class="font-semibold text-[#6B7280]">Randevu Ajandam</span>.
+                        Tüm hakları saklıdır.
+                    </p>
+                    <p>
+                        Bu web sitesi
+                        <a href="https://lunzasoft.com" target="_blank" rel="noopener noreferrer"
+                           class="font-semibold text-[#6B7280] hover:text-[#C96A2B] underline-offset-2 hover:underline">
+                            LunzaSoft
+                        </a>
+                        tarafından geliştirilmiştir.
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 </footer>
