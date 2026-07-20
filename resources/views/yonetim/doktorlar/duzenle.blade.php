@@ -195,7 +195,7 @@
                         </div>
                         <div class="sm:col-span-2 flex flex-wrap gap-2">
                             @if($doktor->meslek_belge_yolu)
-                                <a href="{{ asset($doktor->meslek_belge_yolu) }}" target="_blank" rel="noopener"
+                                <a href="{{ route('yonetim.doktorlar.meslek-belge', $doktor->id) }}" target="_blank" rel="noopener"
                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-[#C96A2B] hover:bg-[#FFF7ED]">
                                     Yüklenen belgeyi aç
                                 </a>
@@ -213,14 +213,15 @@
                         e-Devlet: önce barkodu, sonra TC’yi girin. Sonuç uyumluysa <strong>Onayla</strong>.
                         Otomatik bot yok — doğrulama sizin manuel onayınızla kesinleşir.
                     </p>
-                    <form action="{{ route('yonetim.doktorlar.meslek-dogrula', $doktor->id) }}" method="POST" class="flex flex-col sm:flex-row gap-2 sm:items-end border-t border-slate-200 pt-4">
+                    <form action="{{ route('yonetim.doktorlar.meslek-dogrula', $doktor->id) }}" method="POST" class="flex flex-col sm:flex-row gap-2 sm:items-end border-t border-slate-200 pt-4" id="meslekDogrulaForm">
                         @csrf
                         <div class="flex-1">
-                            <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Not (red gerekçesi vb.)</label>
-                            <input type="text" name="not" placeholder="Örn. Belge okunmuyor / TC uyuşmuyor" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs">
+                            <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Not (red için zorunlu)</label>
+                            <input type="text" name="not" id="meslekNot" placeholder="Örn. Belge okunmuyor / TC uyuşmuyor" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs" value="{{ old('not') }}">
+                            @error('not')<p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>@enderror
                         </div>
                         <button type="submit" name="karar" value="onaylandi" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Onayla → ödeme açılsın</button>
-                        <button type="submit" name="karar" value="reddedildi" class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold">Reddet</button>
+                        <button type="submit" name="karar" value="reddedildi" class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold" onclick="if(!document.getElementById('meslekNot').value.trim()){event.preventDefault();alert('Reddetmeden önce gerekçe notu girin.');}">Reddet</button>
                     </form>
                 </div>
 

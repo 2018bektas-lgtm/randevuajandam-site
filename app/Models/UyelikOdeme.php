@@ -17,9 +17,11 @@ class UyelikOdeme extends Model
         'odeme_periyodu',
         'tutar',
         'durum',
+        'fatura_durumu',
         'havale_referans',
         'merchant_oid',
         'kurulum_verisi',
+        'callback_payload',
         'onaylandi_at',
         'onaylayan_yonetici_id',
     ];
@@ -29,6 +31,7 @@ class UyelikOdeme extends Model
         return [
             'tutar' => 'decimal:2',
             'kurulum_verisi' => 'array',
+            'callback_payload' => 'array',
             'onaylandi_at' => 'datetime',
         ];
     }

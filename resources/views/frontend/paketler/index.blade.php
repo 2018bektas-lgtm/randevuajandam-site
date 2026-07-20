@@ -278,9 +278,21 @@
                 </span>
             </h1>
             <p class="text-sm md:text-[15px] text-slate-500 max-w-2xl mx-auto mt-5 leading-relaxed">
-                Randevu paneli, hasta yönetimi ve isteğe bağlı web sitesi — hepsi tek platformda.
+                Önce planınızı seçin, ardından kayıt ve belge onayı gelir; onay sonrası aynı paketle ödemeye geçersiniz.
                 Yıllık ödemede daha avantajlı fiyat.
             </p>
+            <p class="mt-3 text-xs font-bold text-[#C96A2B]">Fiyatlara KDV dahildir.</p>
+
+            @if(session('hata'))
+                <div class="mt-6 max-w-md mx-auto p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-600 font-semibold">
+                    {{ session('hata') }}
+                </div>
+            @endif
+            @if(session('basarili'))
+                <div class="mt-6 max-w-md mx-auto p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 font-semibold">
+                    {{ session('basarili') }}
+                </div>
+            @endif
 
             <!-- Toggles -->
             <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -421,6 +433,9 @@
                                     </div>
                                 @endif
                             </div>
+                            @if(! $isFree)
+                                @include('frontend.partials.kdv-dahil')
+                            @endif
                         </div>
 
                         <div class="flex-1 mb-7">
@@ -534,6 +549,7 @@
                                     </div>
                                 @endif
                             </div>
+                            @include('frontend.partials.kdv-dahil')
                         </div>
 
                         <div class="flex-1 mb-7">

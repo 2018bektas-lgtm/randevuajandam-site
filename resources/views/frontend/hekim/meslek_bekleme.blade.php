@@ -22,9 +22,18 @@
                     <p class="mt-2 text-sm text-[#6B7280] leading-relaxed">
                         Kaydınız alındı. Yönetici ekibimiz T.C. kimlik ve diploma/hekimlik belgenizi kontrol ederek
                         <strong class="text-[#111827]">gerçek bir hekim kaydı olup olmadığını</strong> doğrular.
-                        Onaylanmadan paket seçimi ve ödeme adımına geçilemez.
+                        Onaylanınca seçtiğiniz paket için doğrudan ödemeye geçersiniz.
                     </p>
                 </div>
+                @if($doktor->kayitPaketi)
+                    <div class="rounded-2xl border border-[#E7B58A]/40 bg-[#FFF7ED] px-4 py-3 text-xs">
+                        <p class="text-[10px] font-extrabold uppercase tracking-wider text-[#C96A2B]">Seçilen paket</p>
+                        <p class="mt-1 font-bold text-[#111827]">{{ $doktor->kayitPaketi->ad }}</p>
+                        <p class="mt-0.5 text-slate-600">
+                            {{ ($doktor->kayit_periyot ?? 'aylik') === 'yillik' ? 'Yıllık' : 'Aylık' }} · Fiyatlara KDV dahildir
+                        </p>
+                    </div>
+                @endif
                 <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div class="rounded-xl bg-slate-50 border border-slate-100 p-3">
                         <dt class="text-[10px] font-bold uppercase text-slate-500">T.C. Kimlik</dt>
@@ -42,15 +51,46 @@
                         <dt class="text-[10px] font-bold uppercase text-slate-500">Yüklenen belge</dt>
                         <dd class="mt-1">
                             @if($doktor->meslek_belge_yolu)
-                                <a href="{{ asset($doktor->meslek_belge_yolu) }}" target="_blank" class="text-[#C96A2B] font-bold underline">Belgeyi görüntüle</a>
+                                <a href="{{ route('frontend.hekim.meslek.belge') }}" target="_blank" class="text-[#C96A2B] font-bold underline">Belgeyi görüntüle</a>
                             @else
                                 <span class="text-slate-500">Yüklenmemiş</span>
                             @endif
                         </dd>
                     </div>
                 </dl>
-                <p class="text-[11px] text-[#9CA3AF]">Onay sonrası e-posta / panel üzerinden paket seçimine devam edebilirsiniz. Sayfayı yenileyerek durumu kontrol edebilirsiniz.</p>
+                <p class="text-[11px] text-[#9CA3AF]">Onaylandığında bu sayfa otomatik olarak ödeme (veya domain) adımına yönlendirilir. E-posta ile de bilgilendirileceksiniz.</p>
+                <p id="meslek-poll-status" class="text-[11px] text-amber-700 font-semibold">Durum otomatik kontrol ediliyor…</p>
                 <a href="{{ route('frontend.hekim.meslek.bekleme') }}" class="inline-flex w-full justify-center py-3 rounded-xl bg-[#C96A2B] text-white text-xs font-bold uppercase tracking-wider">Durumu yenile</a>
+
+                <script>
+                    (function () {
+                        const statusEl = document.getElementById('meslek-poll-status');
+                        const url = @json(route('frontend.hekim.meslek.durum'));
+                        let ticks = 0;
+                        async function check() {
+                            try {
+                                const res = await fetch(url, {
+                                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                                    credentials: 'same-origin'
+                                });
+                                if (!res.ok) return;
+                                const data = await res.json();
+                                ticks++;
+                                if (statusEl) {
+                                    statusEl.textContent = data.can_proceed
+                                        ? 'Onaylandı — yönlendiriliyorsunuz…'
+                                        : ('Beklemede · son kontrol ' + new Date().toLocaleTimeString('tr-TR'));
+                                }
+                                if (data.can_proceed && data.redirect) {
+                                    window.location.href = data.redirect;
+                                    return;
+                                }
+                            } catch (e) { /* ignore */ }
+                            setTimeout(check, 20000);
+                        }
+                        setTimeout(check, 8000);
+                    })();
+                </script>
 
             @elseif($doktor->isMeslekReddedildi())
                 <div class="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 text-red-600 flex items-center justify-center">

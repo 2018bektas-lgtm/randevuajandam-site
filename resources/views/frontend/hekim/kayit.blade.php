@@ -189,7 +189,7 @@
                     <span class="w-1.5 h-7 rounded-full bg-[#C96A2B] block"></span>
                     Hekim Kaydı
                 </h2>
-                <p class="text-xs text-[#6B7280] mt-1.5 ml-4">Randevu Ajandam ailesine katılmak için bilgilerinizi girin.</p>
+                <p class="text-xs text-[#6B7280] mt-1.5 ml-4">Seçtiğiniz paket kaydedildi. Bilgilerinizi girin; belgeler onaylandıktan sonra ödemeye geçersiniz.</p>
             </div>
             <div>
                 <a href="{{ route('frontend.hasta.giris') }}" 
@@ -198,6 +198,20 @@
                 </a>
             </div>
         </div>
+
+        @if(!empty($secilenPaket))
+            <div class="mb-6 rounded-2xl border border-[#E7B58A]/50 bg-[#FFF7ED] px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <p class="text-[10px] font-extrabold uppercase tracking-wider text-[#C96A2B]">Seçilen paket</p>
+                    <p class="text-sm font-bold text-[#111827] font-display mt-0.5">{{ $secilenPaket->ad }}</p>
+                    <p class="text-[11px] text-slate-600 mt-1">
+                        {{ ($periyot ?? 'aylik') === 'yillik' ? 'Yıllık' : 'Aylık' }}
+                        · Fiyatlara KDV dahildir
+                    </p>
+                </div>
+                <a href="{{ route('frontend.paketler') }}" class="text-xs font-bold text-[#C96A2B] underline whitespace-nowrap">Paketi değiştir</a>
+            </div>
+        @endif
 
         @if($errors->any())
             <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-600 space-y-1 font-semibold">
@@ -230,6 +244,8 @@
 
         <form action="{{ route('frontend.hekim.kayit.post') }}" method="POST" id="wizardForm" enctype="multipart/form-data" class="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm">
             @csrf
+            <input type="hidden" name="paket_id" value="{{ old('paket_id', $secilenPaket->id ?? '') }}">
+            <input type="hidden" name="odeme_periyodu" value="{{ old('odeme_periyodu', $periyot ?? 'aylik') }}">
             @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'wizardForm', 'recaptchaAction' => 'hekim_kayit'])
             
             <!-- ADIM 1: HESAP BİLGİLERİ -->
@@ -494,6 +510,26 @@
                     <label for="biyografi" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Hakkında / Kısa Özgeçmiş</label>
                     <textarea name="biyografi" id="biyografi" rows="4" placeholder="Hastalarınıza kendinizi kısaca tanıtın (Eğitimler, sertifikalar, ilgi alanları vb.)..."
                         class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all duration-200">{{ old('biyografi') }}</textarea>
+                </div>
+
+                <!-- KVKK / sözleşme -->
+                <div class="space-y-3 pt-2 border-t border-[#E5E7EB]">
+                    <label class="flex items-start gap-2.5 text-xs text-[#4B5563] cursor-pointer">
+                        <input type="checkbox" name="kvkk_onay" value="1" required @checked(old('kvkk_onay'))
+                               class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
+                        <span>
+                            <a href="{{ route('frontend.legal.kvkk') }}" target="_blank" class="text-[#C96A2B] font-bold underline">KVKK Aydınlatma Metni</a>’ni okudum, kişisel verilerimin işlenmesini kabul ediyorum.
+                        </span>
+                    </label>
+                    @error('kvkk_onay')<p class="text-[11px] text-red-600">{{ $message }}</p>@enderror
+                    <label class="flex items-start gap-2.5 text-xs text-[#4B5563] cursor-pointer">
+                        <input type="checkbox" name="sozlesme_onay" value="1" required @checked(old('sozlesme_onay'))
+                               class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
+                        <span>
+                            <a href="{{ route('frontend.legal.kullanim') }}" target="_blank" class="text-[#C96A2B] font-bold underline">Kullanım Koşulları</a>’nı okudum ve kabul ediyorum.
+                        </span>
+                    </label>
+                    @error('sozlesme_onay')<p class="text-[11px] text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <!-- Navigasyon Butonları -->

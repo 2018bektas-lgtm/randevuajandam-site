@@ -239,8 +239,15 @@
                 </span>
             </h1>
             <p class="text-sm md:text-[15px] text-slate-500 max-w-2xl mx-auto mt-5 leading-relaxed">
-                Hesabınız hazır. Bireysel veya klinik planınızı seçip kurulumu tamamlayabilirsiniz.
+                @if($doktor->hasKayitPaketNiyeti() && $doktor->kayitPaketi)
+                    Kayıtta seçtiğiniz paket: <strong class="text-[#111827]">{{ $doktor->kayitPaketi->ad }}</strong>.
+                    Değiştirmek için yeni bir plan seçin; aksi halde
+                    <a href="{{ $doktor->checkoutUrlAfterMeslek() }}" class="text-[#C96A2B] font-bold underline">ödemeye devam edin</a>.
+                @else
+                    Planınızı seçip kurulumu tamamlayın (ödeme adımı).
+                @endif
             </p>
+            <p class="mt-3 text-xs font-bold text-[#C96A2B]">Fiyatlara KDV dahildir.</p>
 
             @if(session('hata'))
                 <div class="mt-6 max-w-md mx-auto p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-600 font-semibold">
@@ -369,6 +376,9 @@
                                     </div>
                                 @endif
                             </div>
+                            @if(! $isFree)
+                                @include('frontend.partials.kdv-dahil')
+                            @endif
                         </div>
 
                         <ul class="space-y-2.5 flex-1 mb-7">
@@ -483,6 +493,7 @@
                                     </div>
                                 @endif
                             </div>
+                            @include('frontend.partials.kdv-dahil')
                         </div>
 
                         <ul class="space-y-2.5 flex-1 mb-7">

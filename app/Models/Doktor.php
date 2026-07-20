@@ -36,6 +36,8 @@ class Doktor extends Authenticatable
         'tur',
         'klinik_adi',
         'paket_id',
+        'kayit_paket_id',
+        'kayit_periyot',
         'odeme_periyodu',
         'uyelik_baslangic',
         'uyelik_bitis',
@@ -564,6 +566,58 @@ class Doktor extends Authenticatable
     public function canProceedToPayment(): bool
     {
         return $this->isMeslekOnayli();
+    }
+
+    /**
+     * Kayıt sırasında seçilen paket (henüz ödenmemiş niyet).
+     */
+    public function kayitPaketi(): BelongsTo
+    {
+        return $this->belongsTo(Paket::class, 'kayit_paket_id');
+    }
+
+    public function hasKayitPaketNiyeti(): bool
+    {
+        return ! empty($this->kayit_paket_id);
+    }
+
+    /**
+     * Meslek onayı sonrası checkout URL (paket zaten seçildiyse ödeme; yoksa paket listesi).
+     */
+    public function checkoutUrlAfterMeslek(): string
+    {
+        if (! $this->hasKayitPaketNiyeti()) {
+            return route('frontend.hekim.paket_sec');
+        }
+
+        $periyot = in_array($this->kayit_periyot, ['aylik', 'yillik'], true)
+            ? $this->kayit_periyot
+            : 'aylik';
+
+        $paket = $this->relationLoaded('kayitPaketi')
+            ? $this->kayitPaketi
+            : $this->kayitPaketi()->first();
+
+        if (! $paket || ! $paket->aktif_mi) {
+            return route('frontend.hekim.paket_sec');
+        }
+
+        // Domain adımı paket_odeFormu içinde de kontrol edilir; web paketinde domain seçimine yönlenir
+        $needsDomain = $paket->hasFeature('web_sitesi')
+            || $paket->hasFeature('klinik_web_sitesi')
+            || (bool) ($paket->domain_dahil_mi ?? false);
+
+        if ($needsDomain) {
+            return route('frontend.hekim.onboarding.domain', [
+                'paket' => $paket->id,
+                'periyot' => $periyot,
+            ]);
+        }
+
+        return route('frontend.hekim.paket_ode', [
+            'paket' => $paket->id,
+            'periyot' => $periyot,
+        ]);
     }
 
     /**

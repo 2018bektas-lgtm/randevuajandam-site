@@ -13,12 +13,14 @@
             </h2>
             <p class="text-xs text-[#6B7280] mt-1.5 ml-4">Sistemde kayıtlı olan hekimlerin listesi, üyelik detayları ve durum yönetimi.</p>
         </div>
-        @if(($bekleyenMeslek ?? 0) > 0)
-            <a href="{{ route('yonetim.doktorlar.index', ['meslek' => 'beklemede']) }}"
-               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
-                {{ $bekleyenMeslek }} meslek belgesi onay bekliyor →
-            </a>
-        @endif
+        <div class="flex flex-wrap items-center gap-2">
+            @if(($bekleyenMeslek ?? 0) > 0)
+                <a href="{{ route('yonetim.doktorlar.index', ['meslek' => 'beklemede']) }}"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
+                    {{ $bekleyenMeslek }} meslek belgesi onay bekliyor →
+                </a>
+            @endif
+        </div>
     </div>
 
     <!-- Table Card Container -->
@@ -39,8 +41,16 @@
             
             <!-- Filters -->
             <div class="flex flex-wrap items-center gap-4">
-
-
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-[#6B7280]">Meslek:</span>
+                    <select id="meslekFilter" onchange="window.location.href=this.value"
+                            class="px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#4B5563] text-xs focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] font-semibold transition-all cursor-pointer">
+                        <option value="{{ route('yonetim.doktorlar.index') }}" @selected(($meslekFilter ?? 'hepsi') === 'hepsi')>Tümü</option>
+                        <option value="{{ route('yonetim.doktorlar.index', ['meslek' => 'beklemede']) }}" @selected(($meslekFilter ?? '') === 'beklemede')>Beklemede</option>
+                        <option value="{{ route('yonetim.doktorlar.index', ['meslek' => 'onaylandi']) }}" @selected(($meslekFilter ?? '') === 'onaylandi')>Onaylı</option>
+                        <option value="{{ route('yonetim.doktorlar.index', ['meslek' => 'reddedildi']) }}" @selected(($meslekFilter ?? '') === 'reddedildi')>Reddedildi</option>
+                    </select>
+                </div>
                 <!-- Status Filter -->
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-semibold text-[#6B7280]">Durum:</span>
@@ -91,6 +101,12 @@
                                         <span class="block text-[11px] text-[#6B7280] mt-0.5">{{ $d->e_posta }}</span>
                                         @if($d->telefon)
                                             <span class="block text-[10px] text-gray-400 mt-0.5">{{ $d->telefon }}</span>
+                                        @endif
+                                        @if(($meslekFilter ?? '') === 'beklemede' || ($d->meslek_dogrulama_durumu ?? '') === 'beklemede')
+                                            <span class="block text-[10px] font-mono text-slate-500 mt-1">TC: {{ $d->tc_kimlik_no ?: '—' }} · Dip: {{ $d->diploma_no ?: '—' }}</span>
+                                            @if($d->meslek_belge_yolu)
+                                                <a href="{{ route('yonetim.doktorlar.meslek-belge', $d->id) }}" target="_blank" class="text-[10px] font-bold text-[#C96A2B] underline">Belge</a>
+                                            @endif
                                         @endif
                                     </div>
                                 </div>

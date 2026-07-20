@@ -253,6 +253,7 @@
                             <span class="text-[9px] text-[#6B7280] block mt-0.5">
                                 {{ $periyot === 'aylik' ? 'Aylık Faturalandırılır' : 'Yıllık Faturalandırılır' }}
                             </span>
+                            <span class="text-[10px] font-bold text-[#C96A2B] block mt-1">Fiyatlara KDV dahildir.</span>
                         </div>
                     </div>
                 </div>
@@ -353,6 +354,27 @@
 
                 <!-- ÖDEME BİLGİLERİ -->
                 <div class="space-y-6">
+                    <div class="rounded-2xl border border-[#E5E7EB] bg-slate-50/80 p-4 space-y-3">
+                        <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Sözleşme onayı</p>
+                        <p class="text-[11px] text-slate-500">Ödenecek tutar <strong class="text-[#C96A2B]">KDV dahildir</strong>.</p>
+                        <label class="flex items-start gap-2.5 text-xs text-[#4B5563] cursor-pointer">
+                            <input type="checkbox" name="mesafeli_onay" value="1" required @checked(old('mesafeli_onay'))
+                                   class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
+                            <span>
+                                <a href="{{ route('frontend.legal.mesafeli') }}" target="_blank" class="text-[#C96A2B] font-bold underline">Mesafeli satış sözleşmesi</a>’ni okudum ve kabul ediyorum.
+                            </span>
+                        </label>
+                        @error('mesafeli_onay')<p class="text-[11px] text-red-600">{{ $message }}</p>@enderror
+                        <label class="flex items-start gap-2.5 text-xs text-[#4B5563] cursor-pointer">
+                            <input type="checkbox" name="kvkk_odeme_onay" value="1" required @checked(old('kvkk_odeme_onay'))
+                                   class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
+                            <span>
+                                <a href="{{ route('frontend.legal.kvkk') }}" target="_blank" class="text-[#C96A2B] font-bold underline">KVKK Aydınlatma Metni</a>’ni okudum, faturalama ve üyelik için verilerimin işlenmesini kabul ediyorum.
+                            </span>
+                        </label>
+                        @error('kvkk_odeme_onay')<p class="text-[11px] text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
                     @if($tutar <= 0)
                         <!-- Ücretsiz Paket Durumu -->
                         <div class="p-5 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-4">

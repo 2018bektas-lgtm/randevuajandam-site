@@ -34,7 +34,11 @@ class PaketController extends Controller
     {
         $doktor = Auth::guard('doktor')->user();
         if ($doktor) {
-            return redirect()->route('frontend.hekim.paket_sec');
+            if (! $doktor->canProceedToPayment()) {
+                return redirect()->route('frontend.hekim.meslek.bekleme');
+            }
+
+            return redirect()->to($doktor->checkoutUrlAfterMeslek());
         }
 
         $bireyselPaketler = Paket::query()
@@ -85,14 +89,36 @@ class PaketController extends Controller
     }
 
     /**
-     * Show the doctor registration/purchase form.
+     * Show the doctor registration form.
+     * Akış: önce paket seç (/paketler) → kayıt → meslek → ödeme (aynı paket).
      */
     public function kayitFormu(Request $request)
     {
+        $paketId = $request->query('paket') ?: session('kayit_paket_id');
+        $periyot = $request->query('periyot', session('kayit_periyot', 'aylik'));
+        if (! in_array($periyot, ['aylik', 'yillik'], true)) {
+            $periyot = 'aylik';
+        }
+
+        $secilenPaket = $paketId
+            ? Paket::where('aktif_mi', true)->find($paketId)
+            : null;
+
+        if (! $secilenPaket) {
+            return redirect()
+                ->route('frontend.paketler')
+                ->with('hata', 'Kayıt için önce bir paket seçin. Onay sonrası aynı paketle ödemeye geçersiniz.');
+        }
+
+        session([
+            'kayit_paket_id' => $secilenPaket->id,
+            'kayit_periyot' => $periyot,
+        ]);
+
         $branslar = Brans::orderBy('ad')->get();
         $unvanlar = Unvan::orderBy('ad')->get();
 
-        return view('frontend.hekim.kayit', compact('branslar', 'unvanlar'));
+        return view('frontend.hekim.kayit', compact('branslar', 'unvanlar', 'secilenPaket', 'periyot'));
     }
 
     /**
@@ -123,8 +149,14 @@ class PaketController extends Controller
             'mezuniyet' => 'nullable|array',
             'mezuniyet.*' => 'nullable|string|max:255',
             'biyografi' => 'nullable|string',
+            'kvkk_onay' => 'accepted',
+            'sozlesme_onay' => 'accepted',
+            'paket_id' => 'required|exists:paketler,id',
+            'odeme_periyodu' => 'required|in:aylik,yillik',
         ], [
             'ad_soyad.required' => 'Ad Soyad alanı zorunludur.',
+            'paket_id.required' => 'Kayıt için paket seçimi zorunludur.',
+            'paket_id.exists' => 'Seçilen paket geçersiz. Lütfen paketler sayfasından yeniden seçin.',
             'e_posta.required' => 'E-posta adresi zorunludur.',
             'e_posta.email' => 'Lütfen geçerli bir e-posta adresi girin.',
             'e_posta.unique' => 'Bu e-posta adresi zaten sisteme kayıtlı.',
@@ -145,7 +177,12 @@ class PaketController extends Controller
             'il.required' => 'Hizmet verilen il seçimi zorunludur.',
             'ilce.required' => 'Hizmet verilen ilçe seçimi zorunludur.',
             'branslar.required' => 'En az bir uzmanlık alanı / branş seçmelisiniz.',
+            'kvkk_onay.accepted' => 'KVKK aydınlatma metnini kabul etmelisiniz.',
+            'sozlesme_onay.accepted' => 'Kullanım koşullarını kabul etmelisiniz.',
         ]);
+
+        $kayitPaket = Paket::where('aktif_mi', true)->findOrFail($request->input('paket_id'));
+        $kayitPeriyot = $request->input('odeme_periyodu', 'aylik');
 
         $ilModel = Il::where('ad', $request->il)->first();
         $ilceModel = Ilce::where('il_id', $ilModel?->id)->where('ad', $request->ilce)->first();
@@ -159,27 +196,12 @@ class PaketController extends Controller
 
         $tc = preg_replace('/\D/', '', (string) $request->tc_kimlik_no) ?? '';
 
-        $belgePath = $request->file('meslek_belgesi')->store('uploads/meslek-belgeleri', 'public');
-        // public disk path for asset()
-        $belgePublic = 'storage/'.$belgePath;
-        // Prefer path under public/uploads for consistency with other media
-        try {
-            $destDir = public_path('uploads/meslek-belgeleri');
-            if (! is_dir($destDir)) {
-                mkdir($destDir, 0755, true);
-            }
-            $fname = 'belge_'.time().'_'.Str::random(6).'.'.$request->file('meslek_belgesi')->getClientOriginalExtension();
-            $request->file('meslek_belgesi')->move($destDir, $fname);
-            $belgePublic = 'uploads/meslek-belgeleri/'.$fname;
-            // remove storage copy if created
-            if (Storage::disk('public')->exists($belgePath)) {
-                Storage::disk('public')->delete($belgePath);
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Meslek belgesi public kopya: '.$e->getMessage());
-        }
+        $belgeRel = $request->file('meslek_belgesi')->store(
+            'private/meslek-belgeleri',
+            'local'
+        );
 
-        $doktor = DB::transaction(function () use ($request, $uzmanlikAlaniString, $mezuniyetDizisi, $ilModel, $ilceModel, $tc, $belgePublic) {
+        $doktor = DB::transaction(function () use ($request, $uzmanlikAlaniString, $mezuniyetDizisi, $ilModel, $ilceModel, $tc, $belgeRel, $kayitPaket, $kayitPeriyot) {
             $doktor = Doktor::create([
                 'ad_soyad' => $request->ad_soyad,
                 'e_posta' => $request->e_posta,
@@ -190,7 +212,7 @@ class PaketController extends Controller
                 'edevlet_barkod' => $request->filled('edevlet_barkod')
                     ? strtoupper(trim((string) $request->edevlet_barkod))
                     : null,
-                'meslek_belge_yolu' => $belgePublic,
+                'meslek_belge_yolu' => $belgeRel,
                 'meslek_dogrulama_durumu' => 'beklemede',
                 'il_id' => $ilModel?->id,
                 'ilce_id' => $ilceModel?->id,
@@ -198,8 +220,10 @@ class PaketController extends Controller
                 'uzmanlik_alani' => $uzmanlikAlaniString,
                 'mezuniyet' => $mezuniyetDizisi,
                 'biyografi' => $request->biyografi,
-                'tur' => 'bireysel',
+                'tur' => $kayitPaket->klinikPaketiMi() ? 'klinik' : 'bireysel',
                 'paket_id' => null,
+                'kayit_paket_id' => $kayitPaket->id,
+                'kayit_periyot' => $kayitPeriyot,
                 'odeme_periyodu' => null,
                 'uyelik_baslangic' => null,
                 'uyelik_bitis' => null,
@@ -217,10 +241,12 @@ class PaketController extends Controller
 
         Auth::guard('doktor')->login($doktor);
 
-        // Ödeme YOK — önce meslek belgesi onayı
+        session()->forget(['kayit_paket_id', 'kayit_periyot']);
+
+        // Ödeme YOK — önce meslek belgesi onayı; paket zaten seçili (kayit_paket_id)
         return redirect()
             ->route('frontend.hekim.meslek.bekleme')
-            ->with('basarili', 'Kaydınız alındı. Diploma/hekimlik belgeniz incelendikten sonra paket seçimi ve ödeme adımına geçebilirsiniz.');
+            ->with('basarili', 'Kaydınız alındı. Belgeleriniz onaylandıktan sonra seçtiğiniz paket için ödemeye geçeceksiniz.');
     }
 
     /**
@@ -234,10 +260,72 @@ class PaketController extends Controller
         }
 
         if ($doktor->canProceedToPayment()) {
-            return redirect()->route('frontend.hekim.paket_sec');
+            return redirect()->to($doktor->checkoutUrlAfterMeslek());
         }
 
+        $doktor->loadMissing('kayitPaketi');
+
         return view('frontend.hekim.meslek_bekleme', compact('doktor'));
+    }
+
+    /**
+     * Poll: meslek durumu JSON (bekleme ekranı auto-redirect).
+     */
+    public function meslekDurumJson()
+    {
+        $doktor = Auth::guard('doktor')->user();
+        if (! $doktor) {
+            return response()->json(['ok' => false], 401);
+        }
+
+        $doktor->refresh();
+
+        return response()->json([
+            'ok' => true,
+            'durum' => $doktor->meslek_dogrulama_durumu ?? 'beklemede',
+            'can_proceed' => $doktor->canProceedToPayment(),
+            'redirect' => $doktor->canProceedToPayment()
+                ? $doktor->checkoutUrlAfterMeslek()
+                : null,
+        ]);
+    }
+
+    /**
+     * Hekim kendi meslek belgesini görüntüler (private storage).
+     */
+    public function meslekBelgeGoster()
+    {
+        $doktor = Auth::guard('doktor')->user();
+        if (! $doktor) {
+            return redirect()->route('frontend.hekim.giris');
+        }
+
+        $path = (string) ($doktor->meslek_belge_yolu ?? '');
+        if ($path === '') {
+            abort(404);
+        }
+
+        if (str_starts_with($path, 'private/') || str_starts_with($path, 'meslek-belgeleri/')) {
+            $diskPath = str_starts_with($path, 'private/') ? $path : 'private/'.$path;
+            if (! Storage::disk('local')->exists($diskPath) && Storage::disk('local')->exists($path)) {
+                $diskPath = $path;
+            }
+            if (! Storage::disk('local')->exists($diskPath)) {
+                abort(404);
+            }
+
+            return Storage::disk('local')->response($diskPath, basename($diskPath), [
+                'Content-Type' => Storage::disk('local')->mimeType($diskPath) ?: 'application/octet-stream',
+                'Content-Disposition' => 'inline; filename="'.basename($diskPath).'"',
+            ]);
+        }
+
+        $full = public_path(ltrim($path, '/'));
+        if (is_file($full)) {
+            return response()->file($full);
+        }
+
+        abort(404);
     }
 
     /**
@@ -251,7 +339,7 @@ class PaketController extends Controller
         }
 
         if ($doktor->isMeslekOnayli()) {
-            return redirect()->route('frontend.hekim.paket_sec');
+            return redirect()->to($doktor->checkoutUrlAfterMeslek());
         }
 
         $request->validate([
@@ -266,12 +354,10 @@ class PaketController extends Controller
         ]);
 
         $tc = preg_replace('/\D/', '', (string) $request->tc_kimlik_no) ?? '';
-        $destDir = public_path('uploads/meslek-belgeleri');
-        if (! is_dir($destDir)) {
-            mkdir($destDir, 0755, true);
-        }
-        $fname = 'belge_'.$doktor->id.'_'.time().'.'.$request->file('meslek_belgesi')->getClientOriginalExtension();
-        $request->file('meslek_belgesi')->move($destDir, $fname);
+        $belgeRel = $request->file('meslek_belgesi')->store(
+            'private/meslek-belgeleri',
+            'local'
+        );
 
         $doktor->forceFill([
             'tc_kimlik_no' => $tc,
@@ -279,7 +365,7 @@ class PaketController extends Controller
             'edevlet_barkod' => $request->filled('edevlet_barkod')
                 ? strtoupper(trim((string) $request->edevlet_barkod))
                 : null,
-            'meslek_belge_yolu' => 'uploads/meslek-belgeleri/'.$fname,
+            'meslek_belge_yolu' => $belgeRel,
             'meslek_dogrulama_durumu' => 'beklemede',
             'meslek_dogrulama_notu' => null,
             'meslek_dogrulandi_at' => null,
@@ -650,17 +736,24 @@ class PaketController extends Controller
 
     /**
      * Show packages selection for logged-in doctor.
+     * Kayıtta paket zaten seçildiyse ödeme/domain'e yönlendir (?degistir=1 ile değiştirilebilir).
      */
-    public function paketSecFormu()
+    public function paketSecFormu(Request $request)
     {
         $doktorGate = Auth::guard('doktor')->user();
         if ($doktorGate && ! $doktorGate->canProceedToPayment()) {
             return redirect()
                 ->route('frontend.hekim.meslek.bekleme')
-                ->with('hata', 'Paket seçimi ve ödeme için önce meslek belgenizin onaylanması gerekir.');
+                ->with('hata', 'Ödeme için önce meslek belgenizin onaylanması gerekir.');
         }
 
         $doktor = Auth::guard('doktor')->user();
+        $doktor->loadMissing('kayitPaketi');
+
+        // Kayıt niyeti varsa ve değiştirmek istemiyorsa tekrar seçtirme
+        if ($doktor->hasKayitPaketNiyeti() && ! $request->boolean('degistir')) {
+            return redirect()->to($doktor->checkoutUrlAfterMeslek());
+        }
 
         // Get all active packages
         $paketler = Paket::where('aktif_mi', true)->with('sistemOzellikleri')->orderBy('sira')->get();
@@ -716,6 +809,8 @@ class PaketController extends Controller
 
         $doktor->update([
             'paket_id' => $paket->id,
+            'kayit_paket_id' => null,
+            'kayit_periyot' => null,
             'odeme_periyodu' => 'deneme',
             'uyelik_baslangic' => $baslangic,
             'uyelik_bitis' => $bitis,
@@ -755,6 +850,17 @@ class PaketController extends Controller
         $secilenPaket = Paket::where('aktif_mi', true)->with('sistemOzellikleri')->find($paketId);
         if (! $secilenPaket) {
             return redirect()->route('frontend.hekim.paket_sec')->with('hata', 'Lütfen geçerli bir paket seçin.');
+        }
+
+        // Ödeme adımında seçim = kayıt niyetini güncelle (paket değiştiyse)
+        $doktor = Auth::guard('doktor')->user();
+        if ($doktor && (! $doktor->hasKayitPaketNiyeti()
+            || (int) $doktor->kayit_paket_id !== (int) $secilenPaket->id
+            || $doktor->kayit_periyot !== $periyot)) {
+            $doktor->forceFill([
+                'kayit_paket_id' => $secilenPaket->id,
+                'kayit_periyot' => $periyot,
+            ])->save();
         }
 
         // Deneme hakkı varsa ödeme formuna girmeden deneme başlat sayfası / otomatik
@@ -846,6 +952,8 @@ class PaketController extends Controller
         $rules = [
             'paket_id' => 'required|exists:paketler,id',
             'odeme_periyodu' => 'required|in:aylik,yillik',
+            'mesafeli_onay' => 'accepted',
+            'kvkk_odeme_onay' => 'accepted',
         ];
 
         // If it is a clinic package, we require clinic details
@@ -870,6 +978,8 @@ class PaketController extends Controller
             'adres.required' => 'Klinik adresi zorunludur.',
             'il_id.required' => 'İl seçimi zorunludur.',
             'ilce_id.required' => 'İlçe seçimi zorunludur.',
+            'mesafeli_onay.accepted' => 'Mesafeli satış sözleşmesini kabul etmelisiniz.',
+            'kvkk_odeme_onay.accepted' => 'KVKK aydınlatma metnini kabul etmelisiniz.',
         ]);
 
         // Eski formlar iyzico gönderebilir → paytr kabul et
@@ -1002,6 +1112,8 @@ class PaketController extends Controller
                 // Update the Doctor
                 $doktor->update([
                     'paket_id' => $paket->id,
+                    'kayit_paket_id' => null,
+                    'kayit_periyot' => null,
                     'odeme_periyodu' => $request->odeme_periyodu,
                     'uyelik_baslangic' => $baslangic,
                     'uyelik_bitis' => $bitis,
@@ -1017,6 +1129,8 @@ class PaketController extends Controller
                 // Individual package (ücretli — deneme bittikten sonra da buraya düşer)
                 $doktor->update([
                     'paket_id' => $paket->id,
+                    'kayit_paket_id' => null,
+                    'kayit_periyot' => null,
                     'odeme_periyodu' => $request->odeme_periyodu,
                     'uyelik_baslangic' => $baslangic,
                     'uyelik_bitis' => $bitis,

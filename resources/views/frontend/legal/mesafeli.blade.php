@@ -20,7 +20,7 @@
 @component('frontend.legal._layout', [
     'baslik' => $baslik,
     'guncelleme' => $guncelleme,
-    'ozet' => 'Hekim ve klinik abonelik paketlerinin (SaaS) mesafeli satışı ve abonelik koşulları. Kartlı ödemeler iyzico altyapısı ile alınır.',
+    'ozet' => 'Hekim ve klinik abonelik paketlerinin (SaaS) mesafeli satışı ve abonelik koşulları. Fiyatlara KDV dahildir. Kartlı ödemeler PayTR altyapısı ile alınır.',
     'sections' => $sections,
 ])
     <p>
@@ -59,9 +59,9 @@
     <h2 id="bedel">4. Bedel ve ödeme</h2>
     <ul>
         <li>Bedel, seçilen paket ve periyoda (aylık/yıllık) göre TL cinsinden tahsil edilir.</li>
-        <li>Kartlı ödemeler <strong>iyzico</strong> ödeme kuruluşu altyapısı ile alınır; kart verileri sitemizde saklanmaz.</li>
+        <li>Kartlı ödemeler <strong>PayTR</strong> ödeme kuruluşu altyapısı ile alınır; kart verileri sitemizde saklanmaz.</li>
         <li>Havale/EFT seçeneği sunulduğunda, onay sonrası üyelik yönetici onayıyla açılabilir.</li>
-        <li>Fiyatlar KDV dâhil veya hariç olarak ödeme ekranında açıkça belirtilir.</li>
+        <li><strong>Tüm paket fiyatlarına KDV dahildir.</strong> Gösterilen tutar ödenecek nihai bedeldir.</li>
     </ul>
 
     <h2 id="sure">5. Süre ve yenileme</h2>

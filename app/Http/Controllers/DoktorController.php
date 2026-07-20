@@ -8,9 +8,13 @@ use App\Models\Il;
 use App\Models\Ilce;
 use App\Models\Paket;
 use App\Models\Yonetici;
+use App\Notifications\MeslekBelgesiSonucBildirimi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DoktorController extends Controller
 {
@@ -22,13 +26,18 @@ class DoktorController extends Controller
         /** @var Yonetici $yonetici */
         $yonetici = Auth::guard('yonetici')->user();
         $query = Doktor::with('paket', 'il', 'ilce')->orderBy('id', 'desc');
-        if ($request->query('meslek') === 'beklemede') {
-            $query->where('meslek_dogrulama_durumu', 'beklemede');
+        $meslekFilter = $request->query('meslek');
+        if (in_array($meslekFilter, ['beklemede', 'onaylandi', 'reddedildi'], true)) {
+            $query->where('meslek_dogrulama_durumu', $meslekFilter);
+            if ($meslekFilter === 'beklemede') {
+                $query->orderBy('created_at', 'asc');
+            }
         }
         $doktorlar = $query->get();
         $bekleyenMeslek = Doktor::where('meslek_dogrulama_durumu', 'beklemede')->count();
+        $meslekFilter = $meslekFilter ?: 'hepsi';
 
-        return view('yonetim.doktorlar.index', compact('yonetici', 'doktorlar', 'bekleyenMeslek'));
+        return view('yonetim.doktorlar.index', compact('yonetici', 'doktorlar', 'bekleyenMeslek', 'meslekFilter'));
     }
 
     /**
@@ -39,7 +48,9 @@ class DoktorController extends Controller
         $doktor = Doktor::findOrFail($id);
         $request->validate([
             'karar' => ['required', 'in:onaylandi,reddedildi'],
-            'not' => ['nullable', 'string', 'max:500'],
+            'not' => ['nullable', 'string', 'max:500', 'required_if:karar,reddedildi'],
+        ], [
+            'not.required_if' => 'Reddetmeden önce gerekçe notu zorunludur.',
         ]);
 
         $yonetici = Auth::guard('yonetici')->user();
@@ -54,12 +65,64 @@ class DoktorController extends Controller
             'platformda_gorunur' => $onay ? true : false,
         ])->save();
 
+        try {
+            $doktor->notify(new MeslekBelgesiSonucBildirimi($onay, $request->input('not')));
+        } catch (\Throwable $e) {
+            Log::warning('Meslek belgesi e-posta gönderilemedi', [
+                'doktor_id' => $doktor->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
         return back()->with(
             'basarili',
             $onay
-                ? 'Meslek belgesi onaylandı. Hekim paket seçimi ve ödemeye geçebilir.'
-                : 'Meslek belgesi reddedildi. Hekim yeni belge yükleyebilir.'
+                ? 'Meslek belgesi onaylandı. Hekim e-posta ile bilgilendirildi; paket seçimine geçebilir.'
+                : 'Meslek belgesi reddedildi. Hekim e-posta ile bilgilendirildi.'
         );
+    }
+
+    /**
+     * Meslek belgesi stream (auth: yonetici). Public URL yerine.
+     */
+    public function meslekBelgeGoster($id): StreamedResponse|\Illuminate\Http\Response
+    {
+        $doktor = Doktor::findOrFail($id);
+        $path = (string) ($doktor->meslek_belge_yolu ?? '');
+        if ($path === '') {
+            abort(404);
+        }
+
+        // Private storage key: private/... or relative under storage/app
+        if (str_starts_with($path, 'private/') || str_starts_with($path, 'meslek-belgeleri/')) {
+            $diskPath = str_starts_with($path, 'private/') ? $path : 'private/'.$path;
+            if (! Storage::disk('local')->exists($diskPath) && Storage::disk('local')->exists($path)) {
+                $diskPath = $path;
+            }
+            if (! Storage::disk('local')->exists($diskPath)) {
+                abort(404);
+            }
+            $mime = Storage::disk('local')->mimeType($diskPath) ?: 'application/octet-stream';
+
+            return Storage::disk('local')->response($diskPath, basename($diskPath), [
+                'Content-Type' => $mime,
+                'Content-Disposition' => 'inline; filename="'.basename($diskPath).'"',
+            ]);
+        }
+
+        // Legacy public paths
+        $full = public_path(ltrim($path, '/'));
+        if (! is_file($full)) {
+            $full = public_path(ltrim(str_replace('storage/', '', $path), '/'));
+            if (! is_file($full) && Storage::disk('public')->exists(str_replace('storage/', '', $path))) {
+                return Storage::disk('public')->response(str_replace('storage/', '', $path));
+            }
+            if (! is_file($full)) {
+                abort(404);
+            }
+        }
+
+        return response()->file($full);
     }
 
     /**

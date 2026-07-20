@@ -162,7 +162,8 @@ Route::middleware('guest:doktor')->group(function () {
         ->middleware('recaptcha:hekim_kayit')
         ->name('frontend.hekim.kayit.post');
     Route::get('/hekim/klinik/kayit-ol', function () {
-        return redirect()->route('frontend.hekim.kayit');
+        return redirect()->route('frontend.paketler')
+            ->with('hata', 'Klinik paketi seçerek kayda devam edin.');
     });
 
     // Login
@@ -176,6 +177,8 @@ Route::middleware('guest:doktor')->group(function () {
 Route::middleware(['auth:doktor'])->group(function () {
     Route::get('/hekim/meslek-belgesi', [PaketController::class, 'meslekBekleme'])->name('frontend.hekim.meslek.bekleme');
     Route::post('/hekim/meslek-belgesi', [PaketController::class, 'meslekBelgeYenile'])->name('frontend.hekim.meslek.yenile');
+    Route::get('/hekim/meslek-belgesi/durum', [PaketController::class, 'meslekDurumJson'])->name('frontend.hekim.meslek.durum');
+    Route::get('/hekim/meslek-belgesi/dosya', [PaketController::class, 'meslekBelgeGoster'])->name('frontend.hekim.meslek.belge');
     Route::get('/hekim/paket-sec', [PaketController::class, 'paketSecFormu'])->name('frontend.hekim.paket_sec');
     Route::get('/hekim/paket-ode', [PaketController::class, 'paketOdeFormu'])->name('frontend.hekim.paket_ode');
     Route::post('/hekim/paket-ode', [PaketController::class, 'paketOde'])->name('frontend.hekim.paket_ode.post');

@@ -85,7 +85,7 @@
                 <h3 class="text-[11px] font-bold uppercase tracking-wider text-[#111827] font-display mb-3">Hekim &amp; Klinik</h3>
                 <ul class="space-y-2 text-[12px] text-[#6B7280]">
                     <li><a href="{{ route('frontend.paketler') }}" class="hover:text-[#C96A2B] transition-colors">Paketler</a></li>
-                    <li><a href="{{ route('frontend.hekim.kayit') }}" class="hover:text-[#C96A2B] transition-colors">Hekim kaydı</a></li>
+                    <li><a href="{{ route('frontend.paketler') }}" class="hover:text-[#C96A2B] transition-colors">Hekim kaydı / paketler</a></li>
                     <li><a href="{{ route('frontend.hekim.giris') }}" class="hover:text-[#C96A2B] transition-colors">Hekim girişi</a></li>
                     <li><a href="{{ route('frontend.egitimler.index') }}" class="hover:text-[#C96A2B] transition-colors">Eğitimler</a></li>
                     @auth('doktor')
