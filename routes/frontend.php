@@ -80,6 +80,10 @@ Route::get('/egitimler', [PublicEgitimController::class, 'platformListe'])->name
 Route::get('/gizlilik-politikasi', [LegalController::class, 'gizlilik'])->name('frontend.legal.gizlilik');
 Route::get('/kullanim-kosullari', [LegalController::class, 'kullanim'])->name('frontend.legal.kullanim');
 Route::get('/kvkk', [LegalController::class, 'kvkk'])->name('frontend.legal.kvkk');
+Route::get('/mesafeli-satis-sozlesmesi', [LegalController::class, 'mesafeli'])->name('frontend.legal.mesafeli');
+Route::get('/iade-ve-iptal', [LegalController::class, 'iade'])->name('frontend.legal.iade');
+Route::get('/hakkimizda', [LegalController::class, 'hakkimizda'])->name('frontend.legal.hakkimizda');
+Route::get('/iletisim', [LegalController::class, 'iletisim'])->name('frontend.legal.iletisim');
 
 // Patient Guest Routes (Hasta Ziyaretçi Rotaları)
 Route::middleware('guest:hasta')->group(function () {

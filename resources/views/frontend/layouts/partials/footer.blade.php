@@ -98,9 +98,13 @@
             <div class="col-span-1 md:col-span-2">
                 <h3 class="text-[11px] font-bold uppercase tracking-wider text-[#111827] font-display mb-3.5">Yasal</h3>
                 <ul class="space-y-2.5 text-xs text-[#6B7280]">
+                    <li><a href="{{ route('frontend.legal.hakkimizda') }}" class="hover:text-[#C96A2B] transition-colors">Hakkımızda</a></li>
+                    <li><a href="{{ route('frontend.legal.iletisim') }}" class="hover:text-[#C96A2B] transition-colors">İletişim</a></li>
                     <li><a href="{{ route('frontend.legal.kullanim') }}" class="hover:text-[#C96A2B] transition-colors">Kullanım koşulları</a></li>
                     <li><a href="{{ route('frontend.legal.gizlilik') }}" class="hover:text-[#C96A2B] transition-colors">Gizlilik politikası</a></li>
                     <li><a href="{{ route('frontend.legal.kvkk') }}" class="hover:text-[#C96A2B] transition-colors">KVKK aydınlatma</a></li>
+                    <li><a href="{{ route('frontend.legal.mesafeli') }}" class="hover:text-[#C96A2B] transition-colors">Mesafeli satış / abonelik</a></li>
+                    <li><a href="{{ route('frontend.legal.iade') }}" class="hover:text-[#C96A2B] transition-colors">İade &amp; iptal</a></li>
                     <li>
                         <a href="https://instagram.com/randevuajandam" target="_blank" rel="noopener noreferrer"
                            class="inline-flex items-center gap-1.5 hover:text-[#C96A2B] transition-colors">
@@ -112,13 +116,31 @@
             </div>
         </div>
 
+        {{-- iyzico ödeme yöntemleri (mağaza şartı) --}}
+        <div class="mt-10 pt-8 border-t border-[#E5E7EB]">
+            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+                @include('frontend.layouts.partials.payment-methods')
+                <div class="text-[11px] text-[#9CA3AF] max-w-sm lg:text-right leading-relaxed">
+                    <p class="font-semibold text-[#6B7280] mb-1">İletişim</p>
+                    <p>info@randevuajandam.com</p>
+                    <p>
+                        <a href="https://wa.me/905319912427" class="hover:text-[#C96A2B]" target="_blank" rel="noopener">+90 531 991 24 27</a>
+                        (WhatsApp)
+                    </p>
+                    <p class="mt-1">
+                        <a href="{{ route('frontend.legal.iletisim') }}" class="text-[#C96A2B] font-semibold hover:underline">İletişim sayfası →</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
         {{-- Alt bar --}}
-        <div class="mt-10 pt-6 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#9CA3AF]">
+        <div class="mt-8 pt-6 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#9CA3AF]">
             <p class="text-center sm:text-left">
                 © {{ date('Y') }} <span class="font-semibold text-[#6B7280]">Randevu Ajandam</span>. Tüm hakları saklıdır.
             </p>
             <p class="text-center sm:text-right font-medium">
-                Online randevu &amp; hekim ajanda platformu
+                Online randevu &amp; hekim ajanda · Güvenli ödeme: iyzico
             </p>
         </div>
     </div>

@@ -275,6 +275,17 @@
                         @endif
                     </ul>
                 </div>
+
+                {{-- iyzico / kart logoları (ödeme sayfası şartı) --}}
+                <div class="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm space-y-3">
+                    @include('frontend.layouts.partials.payment-methods')
+                    <p class="text-[10px] text-[#9CA3AF] leading-relaxed">
+                        Ödeme altyapısı <strong class="text-[#6B7280]">iyzico</strong> ile sağlanır.
+                        <a href="{{ route('frontend.legal.mesafeli') }}" class="text-[#C96A2B] font-semibold underline">Mesafeli satış</a>
+                        ·
+                        <a href="{{ route('frontend.legal.iade') }}" class="text-[#C96A2B] font-semibold underline">İade / iptal</a>
+                    </p>
+                </div>
             </div>
 
             <!-- Sağ Sütun: Ödeme ve Klinik Kurulum -->

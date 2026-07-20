@@ -1,9 +1,13 @@
 {{-- Ortak yasal sayfa iskeleti: $baslik, $guncelleme, $ozet, $sections (slug=>baslik) --}}
 @php
     $legalNav = [
-        ['route' => 'frontend.legal.kullanim', 'label' => 'Kullanım Koşulları'],
-        ['route' => 'frontend.legal.gizlilik', 'label' => 'Gizlilik Politikası'],
-        ['route' => 'frontend.legal.kvkk', 'label' => 'KVKK Aydınlatma'],
+        ['route' => 'frontend.legal.hakkimizda', 'label' => 'Hakkımızda'],
+        ['route' => 'frontend.legal.iletisim', 'label' => 'İletişim'],
+        ['route' => 'frontend.legal.kullanim', 'label' => 'Kullanım'],
+        ['route' => 'frontend.legal.gizlilik', 'label' => 'Gizlilik'],
+        ['route' => 'frontend.legal.kvkk', 'label' => 'KVKK'],
+        ['route' => 'frontend.legal.mesafeli', 'label' => 'Mesafeli satış'],
+        ['route' => 'frontend.legal.iade', 'label' => 'İade / iptal'],
     ];
 @endphp
 

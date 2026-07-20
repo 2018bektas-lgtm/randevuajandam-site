@@ -30,4 +30,36 @@ class LegalController extends Controller
             'guncelleme' => '18 Temmuz 2026',
         ]);
     }
+
+    public function mesafeli(): View
+    {
+        return view('frontend.legal.mesafeli', [
+            'baslik' => 'Mesafeli Satış ve Abonelik Sözleşmesi',
+            'guncelleme' => '20 Temmuz 2026',
+        ]);
+    }
+
+    public function iade(): View
+    {
+        return view('frontend.legal.iade', [
+            'baslik' => 'İade, Cayma ve Abonelik İptal Politikası',
+            'guncelleme' => '20 Temmuz 2026',
+        ]);
+    }
+
+    public function hakkimizda(): View
+    {
+        return view('frontend.legal.hakkimizda', [
+            'baslik' => 'Hakkımızda',
+            'guncelleme' => '20 Temmuz 2026',
+        ]);
+    }
+
+    public function iletisim(): View
+    {
+        return view('frontend.legal.iletisim', [
+            'baslik' => 'İletişim',
+            'guncelleme' => '20 Temmuz 2026',
+        ]);
+    }
 }
