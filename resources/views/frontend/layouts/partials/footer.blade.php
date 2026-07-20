@@ -29,14 +29,16 @@
         <div class="grid grid-cols-2 md:grid-cols-12 gap-8 md:gap-6">
             {{-- Marka --}}
             <div class="col-span-2 md:col-span-4 space-y-4">
-                <a href="/" class="inline-flex items-center gap-2.5 group">
-                    <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#E7B58A]/30 p-1.5 shrink-0">
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="relative w-10 h-10 select-none flex-shrink-0">
                         <img src="{{ asset('assets/images/logo.png') }}" alt="Randevu Ajandam"
-                             class="w-full h-full object-contain" style="mix-blend-mode: multiply;" loading="lazy" width="40" height="40">
+                             class="w-full h-full object-contain relative z-10"
+                             style="mix-blend-mode: multiply;"
+                             loading="lazy" width="40" height="40">
                     </div>
-                    <div class="flex flex-col">
-                        <span class="font-extrabold text-[#111827] text-base leading-none font-display">Randevu</span>
-                        <span class="font-bold text-[13px] text-[#C96A2B] mt-0.5 font-display">Ajandam</span>
+                    <div class="z-10 flex flex-col justify-center select-none">
+                        <span class="block font-extrabold text-[#111827] text-base leading-none font-display">Randevu</span>
+                        <span class="block font-bold text-[13px] text-[#C96A2B] mt-0.5 font-display">Ajandam</span>
                     </div>
                 </a>
                 <p class="text-xs text-[#6B7280] leading-relaxed max-w-xs">
