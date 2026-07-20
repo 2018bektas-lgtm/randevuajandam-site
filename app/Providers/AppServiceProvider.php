@@ -61,7 +61,7 @@ class AppServiceProvider extends ServiceProvider
                         $q->where('aktif_mi', true);
                     })
                     ->orderByDesc('doktorlar_count')
-                    ->limit(5)
+                    ->limit(4)
                     ->get();
 
                 if ($withDoctors->isNotEmpty()) {
@@ -85,7 +85,7 @@ class AppServiceProvider extends ServiceProvider
                     ->get()
                     ->sortBy(fn ($b) => array_search($b->slug, $preferredSlugs, true))
                     ->values()
-                    ->take(5);
+                    ->take(4);
 
                 if ($found->isNotEmpty()) {
                     return $found;
@@ -94,7 +94,7 @@ class AppServiceProvider extends ServiceProvider
                 return \App\Models\Brans::query()
                     ->select(['id', 'ad', 'slug'])
                     ->orderBy('ad')
-                    ->limit(5)
+                    ->limit(4)
                     ->get();
             });
 
