@@ -19,7 +19,7 @@
     $tipLabel = $egitim->tip ? str_replace('_', ' ', $egitim->tip) : 'Eğitim';
 @endphp
 
-<section class="relative bg-[#FAFAFA] py-12 md:py-20 overflow-hidden min-h-[85vh]">
+<section class="fe-page relative bg-[#FAFAFA] overflow-hidden">
     <div class="absolute top-[-10%] right-[-10%] w-[480px] h-[480px] rounded-full bg-[#E7B58A]/20 blur-[120px] pointer-events-none"></div>
     <div class="absolute bottom-[-15%] left-[-10%] w-[420px] h-[420px] rounded-full bg-[#C96A2B]/10 blur-[120px] pointer-events-none"></div>
 

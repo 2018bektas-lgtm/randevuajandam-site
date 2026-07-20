@@ -3,7 +3,7 @@
 @section('baslik', 'Klinik Üyelik Başarılı - Randevu Ajandam')
 
 @section('icerik')
-<section class="relative bg-[#FAFAFA] py-20 min-h-[70vh] flex items-center justify-center overflow-hidden select-none">
+<section class="fe-page fe-page--auth relative bg-[#FAFAFA] flex items-center justify-center overflow-hidden select-none">
     <!-- Ambient Lights -->
     <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#E7B58A]/8 blur-[120px] pointer-events-none"></div>
     <div class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#C96A2B]/3 blur-[120px] pointer-events-none"></div>

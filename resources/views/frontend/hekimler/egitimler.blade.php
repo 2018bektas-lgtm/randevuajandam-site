@@ -3,7 +3,7 @@
 @section('meta_aciklama', ($doktor->unvan ? $doktor->unvan.' ' : '').$doktor->ad_soyad.' tarafından sunulan eğitimler ve seminerler.')
 
 @section('icerik')
-<section class="relative bg-[#FAFAFA] py-12 md:py-20 overflow-hidden min-h-[70vh]">
+<section class="fe-page relative bg-[#FAFAFA] overflow-hidden">
     <div class="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#E7B58A]/15 blur-[100px] pointer-events-none"></div>
     <div class="absolute bottom-[-10%] left-[-10%] w-[360px] h-[360px] rounded-full bg-[#C96A2B]/8 blur-[100px] pointer-events-none"></div>
 

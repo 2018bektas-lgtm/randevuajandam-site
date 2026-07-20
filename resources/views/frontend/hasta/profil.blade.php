@@ -3,7 +3,7 @@
 @section('baslik', 'Profil Bilgilerim - Randevu Ajandam')
 
 @section('icerik')
-<section class="relative bg-[#FAFAFA] py-16 md:py-24 overflow-hidden min-h-[80vh]">
+<section class="fe-page relative bg-[#FAFAFA] overflow-hidden">
     <!-- Background lights -->
     <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#E7B58A]/8 blur-[120px] pointer-events-none"></div>
     <div class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#C96A2B]/3 blur-[120px] pointer-events-none"></div>

@@ -3,7 +3,7 @@
 @section('baslik', 'Randevu Yönetimi')
 
 @section('icerik')
-<section class="py-12 sm:py-16">
+<section class="fe-page">
     <div class="max-w-lg mx-auto px-4">
         <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-md">
             <p class="text-[10px] font-bold uppercase tracking-wider text-[#C96A2B] font-display">Randevu yönetimi</p>

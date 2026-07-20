@@ -13,7 +13,7 @@
 
 <section class="relative bg-[#FAFAFA] border-b border-[#E5E7EB] overflow-hidden">
     <div class="absolute top-[-20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#E7B58A]/15 blur-[100px] pointer-events-none"></div>
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-14 relative z-10">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-8 md:pt-8 md:pb-10 relative z-10">
         <nav class="flex flex-wrap items-center gap-2 text-[11px] font-bold font-display uppercase tracking-wider text-[#6B7280] mb-5">
             <a href="/" class="hover:text-[#C96A2B] transition-colors">Ana sayfa</a>
             <span class="text-slate-300">/</span>

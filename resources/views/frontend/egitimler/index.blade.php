@@ -259,9 +259,9 @@
     .eg-cta:hover { background: #B55A20; color: #fff; }
 </style>
 
-<section class="relative bg-[#FAFAFA] pb-16 md:pb-20 overflow-hidden min-h-[70vh]">
+<section class="relative bg-[#FAFAFA] pb-10 md:pb-14 overflow-hidden">
     {{-- Hero --}}
-    <div class="relative pt-12 md:pt-16 pb-10 md:pb-12 overflow-hidden">
+    <div class="relative fe-page--tight overflow-hidden">
         <div class="absolute inset-0 pointer-events-none">
             <div class="absolute top-[-30%] left-1/2 -translate-x-1/2 w-[720px] h-[420px] rounded-full bg-[#E7B58A]/15 blur-[100px]"></div>
             <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-[#FAFAFA]"></div>

@@ -118,6 +118,56 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
         letter-spacing: -0.02em;
     }
 
+    /*
+     * Frontend sayfa iskeleti — header altı boşluk tutarlılığı
+     * (py-16/md:py-24 gibi sayfa bazlı farkları bastırır)
+     */
+    .fe-page {
+        padding-top: 1.25rem;
+        padding-bottom: 2.25rem;
+    }
+    @media (min-width: 768px) {
+        .fe-page {
+            padding-top: 1.75rem;
+            padding-bottom: 3rem;
+        }
+    }
+    .fe-page--auth {
+        display: flex;
+        align-items: center;
+        min-height: calc(100dvh - 10rem);
+    }
+    @media (max-width: 767px) {
+        .fe-page--auth {
+            align-items: flex-start;
+            min-height: 0;
+        }
+    }
+    .fe-page--tight {
+        padding-top: 1rem;
+        padding-bottom: 1.75rem;
+    }
+    @media (min-width: 768px) {
+        .fe-page--tight {
+            padding-top: 1.25rem;
+            padding-bottom: 2.25rem;
+        }
+    }
+    .fe-container {
+        width: 100%;
+        max-width: 80rem;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    @media (min-width: 640px) {
+        .fe-container {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+    }
+
     /* Logo Breathing Animation for Small Icons */
     @keyframes logo-breathing-small {
         0%, 100% { transform: scale(1); }

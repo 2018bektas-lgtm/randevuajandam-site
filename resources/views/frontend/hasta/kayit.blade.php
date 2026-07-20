@@ -3,7 +3,7 @@
 @section('baslik', 'Kayıt Ol - Randevu Ajandam')
 
 @section('icerik')
-<section class="relative bg-[#FAFAFA] py-16 md:py-24 overflow-hidden min-h-[75vh] flex items-center">
+<section class="fe-page fe-page--auth relative bg-[#FAFAFA] overflow-hidden">
     <!-- Ambient light glow effects -->
     <div class="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#E7B58A]/8 blur-[100px] pointer-events-none"></div>
     <div class="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] rounded-full bg-[#C96A2B]/4 blur-[100px] pointer-events-none"></div>

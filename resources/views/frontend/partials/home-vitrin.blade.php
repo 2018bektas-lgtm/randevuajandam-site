@@ -273,7 +273,7 @@
 </style>
 
 {{-- Öne çıkan uzmanlar --}}
-<section id="doktorlar" class="ra-vitrin-section max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-8 md:pt-10 md:pb-10">
+<section id="doktorlar" class="ra-vitrin-section max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-8 md:pt-10 md:pb-10">
     <div class="ra-vitrin-head">
         <div>
             <div class="ra-vitrin-kicker">Seçkiler</div>

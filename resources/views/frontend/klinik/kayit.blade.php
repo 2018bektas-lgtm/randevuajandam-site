@@ -157,8 +157,8 @@
 @endsection
 
 @section('icerik')
-<section class="bg-[#FAFAFA] py-16 select-none min-h-screen">
-    <div class="max-w-7xl mx-auto px-6">
+<section class="fe-page bg-[#FAFAFA] select-none">
+    <div class="fe-container">
         <!-- Top Action Header -->
         <div class="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E5E7EB]">
             <div>

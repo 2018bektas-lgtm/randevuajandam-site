@@ -222,7 +222,7 @@
     }
 </style>
 
-<section class="pricing-page relative bg-[#F8FAFC] pt-16 pb-24 md:pt-20 md:pb-28 overflow-hidden select-none">
+<section class="pricing-page fe-page relative bg-[#F8FAFC] overflow-hidden select-none">
     <div class="absolute top-[-18%] right-[-12%] w-[640px] h-[640px] rounded-full bg-[#E7B58A]/15 blur-[130px] pointer-events-none"></div>
     <div class="absolute bottom-[-12%] left-[-10%] w-[560px] h-[560px] rounded-full bg-[#C96A2B]/10 blur-[120px] pointer-events-none"></div>
 

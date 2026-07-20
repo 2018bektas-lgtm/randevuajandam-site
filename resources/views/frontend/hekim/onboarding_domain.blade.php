@@ -14,7 +14,7 @@
     $periyot = $periyot ?? 'aylik';
 @endphp
 
-<section class="relative bg-[#FAFAFA] py-12 md:py-16 min-h-[70vh] overflow-hidden">
+<section class="fe-page relative bg-[#FAFAFA] overflow-hidden">
     <div class="absolute top-[-10%] right-[-10%] w-[420px] h-[420px] rounded-full bg-[#E7B58A]/15 blur-[100px] pointer-events-none"></div>
     <div class="max-w-3xl mx-auto px-4 relative z-10 space-y-8">
 

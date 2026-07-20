@@ -31,17 +31,17 @@
     }
 </style>
 
-<section class="relative bg-[#FAFAFA] py-8 md:py-8 overflow-hidden min-h-[80vh]">
+<section class="fe-page relative bg-[#FAFAFA] overflow-hidden">
     <!-- Ambient Background Light Glows -->
     <div class="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[#E7B58A]/8 blur-[120px] pointer-events-none"></div>
     <div class="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-[#C96A2B]/3 blur-[120px] pointer-events-none"></div>
 
-    <div class="max-w-7xl mx-auto px-6 relative z-10">
+    <div class="fe-container relative z-10">
 
         <!-- Header Text -->
-        <div class="max-w-3xl mx-auto text-center space-y-4 mb-12">
+        <div class="max-w-3xl mx-auto text-center space-y-3 mb-8 md:mb-10">
             <span class="text-xs font-bold text-[#C96A2B] uppercase tracking-widest font-display block">Uzman Hekim Yazıları</span>
-            <h1 class="text-3xl md:text-5xl font-black font-display text-[#111827] tracking-tight leading-none">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-black font-display text-[#111827] tracking-tight leading-tight">
                 Hekim Blogları & Sağlık Rehberi
             </h1>
             <p class="text-sm md:text-base text-[#6B7280] leading-relaxed">

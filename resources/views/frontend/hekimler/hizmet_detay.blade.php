@@ -11,11 +11,11 @@
     .svc-page {
         position: relative;
         background: #FAFAFA;
-        padding: 2.5rem 0 3.5rem;
-        min-height: 70vh;
+        padding: 1.25rem 0 2.25rem;
+        min-height: 0;
     }
     @media (min-width: 768px) {
-        .svc-page { padding: 3rem 0 4rem; }
+        .svc-page { padding: 1.75rem 0 3rem; }
     }
     .svc-page-bg {
         position: absolute;

@@ -1,6 +1,6 @@
 <!-- Top Contact & Social Bar -->
 <div class="bg-[#111827] text-gray-300 text-[11px] py-2 border-b border-gray-800 relative z-50 hidden md:block">
-    <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">
         <!-- Contact Info & Badges -->
         <div class="flex items-center gap-6">
             <a href="https://wa.me/905319912427" target="_blank" class="hover:text-white transition-colors flex items-center gap-2 font-semibold font-display">
@@ -50,7 +50,7 @@
 </div>
 
 <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#E5E7EB] transition-all duration-300">
-    <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
         <!-- Brand Logo -->
         <a href="/" class="flex items-center gap-3 relative group">
             <div class="logo-ambient-glow"></div>
