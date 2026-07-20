@@ -46,4 +46,13 @@ TXT;
         $this->assertGreaterThanOrEqual(0.85, $s->adBenzerlik('Ayşe Güven', 'AYŞE GÜVEN'));
         $this->assertLessThan(0.5, $s->adBenzerlik('Ayşe Güven', 'Mehmet Yılmaz'));
     }
+
+    public function test_fixes_mojibake_turkish(): void
+    {
+        $parser = new YokMezunBelgesiParser;
+        $fixed = $parser->fixTurkishEncoding('HACETTEPE ÜNÝVERSÝTESÝ/EDEBÝYAT FAKÜLTESÝ/PSÝKOLOJÝ');
+        $this->assertStringContainsString('ÜNİVERSİTESİ', $fixed);
+        $this->assertStringContainsString('PSİKOLOJİ', $fixed);
+        $this->assertStringNotContainsString('Ý', $fixed);
+    }
 }

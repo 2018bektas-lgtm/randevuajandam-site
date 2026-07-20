@@ -4,6 +4,7 @@ namespace App\Services\Edevlet;
 
 /**
  * YÖK e-Devlet mezun belgesi PDF / düz metin parse.
+ * Türkçe karakter (Windows-1254 / mojibake) düzeltmesi içerir.
  */
 class YokMezunBelgesiParser
 {
@@ -16,23 +17,44 @@ class YokMezunBelgesiParser
      */
     public function parseText(string $text): array
     {
-        $norm = $this->normalizeLines($text);
+        $norm = $this->normalizeLines($this->fixTurkishEncoding($text));
 
         $barkod = $this->match($norm, '/\b(YOKME[A-Z0-9]{8,})\b/i')
             ?? $this->match($norm, '/\b([A-Z]{3,}[A-Z0-9]{10,})\b/');
 
-        $tc = $this->fieldAfter($norm, ['T.C. Kimlik No', 'T.C. Kimlik No:', 'TC Kimlik No']);
+        $tc = $this->fieldAfter($norm, [
+            'T.C. Kimlik No', 'T.C. Kimlik No:', 'TC Kimlik No',
+            'T.C Kimlik No', 'TC. Kimlik No',
+        ]);
         if (! $tc) {
             $tc = $this->match($norm, '/\b([1-9][0-9]{10})\b/');
         }
         $tc = $tc ? preg_replace('/\D/', '', $tc) : null;
+        if ($tc && strlen($tc) !== 11) {
+            $tc = null;
+        }
 
-        $ad = $this->fieldAfter($norm, ['Adı Soyadı', 'Adi Soyadi', 'Ad Soyad']);
-        $program = $this->fieldAfter($norm, ['Program']);
-        $diplomaNo = $this->fieldAfter($norm, ['Diploma No']);
-        $diplomaNotu = $this->fieldAfter($norm, ['Diploma Notu']);
-        $mezuniyet = $this->fieldAfter($norm, ['Mezuniyet Tarihi', 'Mezuniyet Tarihi :']);
-        $durum = $this->fieldAfter($norm, ['Durum']);
+        $ad = $this->fieldAfter($norm, [
+            'Adı Soyadı', 'Adi Soyadi', 'Ad Soyad', 'Adı Soyadı:',
+            'ADI SOYADI', 'Ad Soyadı',
+        ]);
+        $program = $this->fieldAfter($norm, ['Program', 'PROGRAM']);
+        $diplomaNo = $this->fieldAfter($norm, ['Diploma No', 'DIPLOMA NO']);
+        $diplomaNotu = $this->fieldAfter($norm, ['Diploma Notu', 'DIPLOMA NOTU']);
+        $mezuniyet = $this->fieldAfter($norm, [
+            'Mezuniyet Tarihi', 'Mezuniyet Tarihi :', 'MEZUNIYET TARIHI', 'Mezuniyet Tarihi:',
+        ]);
+        $durum = $this->fieldAfter($norm, ['Durum', 'DURUM']);
+
+        // Program satırı bazen bozulmuş etiketle gelebilir; / içeren uzun satırı yakala
+        if (! $program || ! str_contains($program, '/')) {
+            if (preg_match('/([A-ZÇĞİÖŞÜÝÐÞ\s\.]+ÜN[İIÝ]VERS[İIÝ]TES[İIÝ]\s*\/[^\n]{5,200})/iu', $norm, $m)) {
+                $program = $this->fixTurkishEncoding(trim($m[1]));
+            }
+        }
+
+        $program = $program ? $this->fixTurkishEncoding($program) : null;
+        $ad = $ad ? $this->fixTurkishEncoding($ad) : null;
 
         $split = $this->splitProgram($program);
 
@@ -40,9 +62,9 @@ class YokMezunBelgesiParser
             'barkod' => $barkod ? strtoupper($barkod) : null,
             'tc' => $tc,
             'ad_soyad' => $ad,
-            'baba_adi' => $this->fieldAfter($norm, ['Baba Adı', 'Baba Adi']),
-            'anne_adi' => $this->fieldAfter($norm, ['Anne Adı', 'Anne Adi']),
-            'dogum_tarihi' => $this->fieldAfter($norm, ['Doğum Tarihi', 'Dogum Tarihi']),
+            'baba_adi' => $this->fieldAfter($norm, ['Baba Adı', 'Baba Adi', 'BABA ADI']),
+            'anne_adi' => $this->fieldAfter($norm, ['Anne Adı', 'Anne Adi', 'ANNE ADI']),
+            'dogum_tarihi' => $this->fieldAfter($norm, ['Doğum Tarihi', 'Dogum Tarihi', 'DOGUM TARIHI']),
             'program' => $program,
             'universite' => $split['universite'],
             'fakulte' => $split['fakulte'],
@@ -56,8 +78,6 @@ class YokMezunBelgesiParser
     }
 
     /**
-     * PDF dosyasından metin (smalot/pdfparser varsa).
-     *
      * @return array<string, mixed>
      */
     public function parsePdfFile(string $absolutePath): array
@@ -75,8 +95,84 @@ class YokMezunBelgesiParser
         return $this->parseText($text);
     }
 
+    /**
+     * PDF / Windows-1254 / mojibake Türkçe karakter düzeltmesi.
+     * Örn: ÜNÝVERSÝTESÝ → ÜNİVERSİTESİ, PSÝKOLOJÝ → PSİKOLOJİ
+     */
+    public function fixTurkishEncoding(string $text): string
+    {
+        if ($text === '') {
+            return $text;
+        }
+
+        // 1) Windows-1254 (Türkçe) olarak yorumlanabilecek bozulmuş UTF-8
+        if (preg_match('/[ÝýÞþÐð]/u', $text) || preg_match('/Ã.|Â./u', $text)) {
+            // Klasik CP1252/Latin1 mojibake: Ý = İ (0xDD)
+            $map = [
+                'Ý' => 'İ', 'ý' => 'ı',
+                'Þ' => 'Ş', 'þ' => 'ş',
+                'Ð' => 'Ğ', 'ð' => 'ğ',
+                'Ø' => 'Ö', // nadir
+            ];
+            $text = strtr($text, $map);
+
+            // UTF-8 double-encoding kalıntıları
+            $utf8Fixes = [
+                'Ã¼' => 'ü', 'Ãœ' => 'Ü', 'Ãœ' => 'Ü',
+                'Ã¶' => 'ö', 'Ã–' => 'Ö',
+                'Ã§' => 'ç', 'Ã‡' => 'Ç',
+                'Ä±' => 'ı', 'Ä°' => 'İ',
+                'ÄŸ' => 'ğ', 'Äž' => 'Ğ',
+                'ÅŸ' => 'ş', 'Åž' => 'Ş',
+                'ÃœNÄ°VERSÄ°TE' => 'ÜNİVERSİTE',
+            ];
+            $text = str_replace(array_keys($utf8Fixes), array_values($utf8Fixes), $text);
+        }
+
+        // 2) Ham byte dizisi Windows-1254 ise
+        if (! mb_check_encoding($text, 'UTF-8')) {
+            $converted = @mb_convert_encoding($text, 'UTF-8', 'Windows-1254');
+            if (is_string($converted) && $converted !== '') {
+                $text = $converted;
+            } else {
+                $converted = @iconv('Windows-1254', 'UTF-8//IGNORE', $text);
+                if (is_string($converted) && $converted !== '') {
+                    $text = $converted;
+                }
+            }
+        }
+
+        // 3) Hâlâ Ý varsa tekrar map
+        if (str_contains($text, 'Ý') || str_contains($text, 'ý')) {
+            $text = strtr($text, ['Ý' => 'İ', 'ý' => 'ı', 'Þ' => 'Ş', 'þ' => 'ş', 'Ð' => 'Ğ', 'ð' => 'ğ']);
+        }
+
+        // 4) Bilinen kelime düzeltmeleri (YÖK PDF)
+        $wordFixes = [
+            'ÜNÝVERSÝTESÝ' => 'ÜNİVERSİTESİ',
+            'ÜNIVERSITESI' => 'ÜNİVERSİTESİ',
+            'UNIVERSITESI' => 'ÜNİVERSİTESİ',
+            'FAKÜLTESÝ' => 'FAKÜLTESİ',
+            'FAKULTESI' => 'FAKÜLTESİ',
+            'PSÝKOLOJÝ' => 'PSİKOLOJİ',
+            'PSIKOLOJI' => 'PSİKOLOJİ',
+            'EDEBÝYAT' => 'EDEBİYAT',
+            'EDEBIYAT' => 'EDEBİYAT',
+            'TÝP' => 'TIP',
+            'DÝŞ' => 'DİŞ',
+            'DÝS' => 'DİŞ',
+            'HEKÝMLÝĞÝ' => 'HEKİMLİĞİ',
+            'HEKIMLIGI' => 'HEKİMLİĞİ',
+        ];
+        $text = str_ireplace(array_keys($wordFixes), array_values($wordFixes), $text);
+
+        return $text;
+    }
+
     protected function extractPdfText(string $absolutePath): string
     {
+        $candidates = [];
+
         // 1) smalot/pdfparser
         if (class_exists(\Smalot\PdfParser\Parser::class)) {
             try {
@@ -84,44 +180,80 @@ class YokMezunBelgesiParser
                 $pdf = $parser->parseFile($absolutePath);
                 $t = trim((string) $pdf->getText());
                 if ($t !== '') {
-                    return $t;
+                    $candidates[] = $this->fixTurkishEncoding($t);
                 }
             } catch (\Throwable) {
                 // fall through
             }
         }
 
-        // 2) pdftotext (poppler)
-        $bin = PHP_OS_FAMILY === 'Windows' ? 'pdftotext.exe' : 'pdftotext';
+        // 2) pdftotext (poppler) — genelde en iyi Türkçe
+        $bin = PHP_OS_FAMILY === 'Windows' ? 'pdftotext' : 'pdftotext';
         $out = $absolutePath.'.txt';
-        @exec(escapeshellcmd($bin).' -layout '.escapeshellarg($absolutePath).' '.escapeshellarg($out).' 2>&1');
+        @exec(escapeshellarg($bin).' -enc UTF-8 -layout '.escapeshellarg($absolutePath).' '.escapeshellarg($out).' 2>&1');
         if (is_file($out)) {
             $t = trim((string) file_get_contents($out));
             @unlink($out);
             if ($t !== '') {
-                return $t;
+                $candidates[] = $this->fixTurkishEncoding($t);
             }
         }
 
-        // 3) Ham binary: UTF-16BE/LE ve Latin metin parçaları (YÖK PDF)
+        // 3) UTF-16 metin akışları (YÖK PDF)
         $raw = (string) file_get_contents($absolutePath);
         $chunks = [];
-        // UTF-16BE pairs often used in Turkish PDFs
-        if (preg_match_all('/(?:\x00[\x20-\x7E]){4,}/', $raw, $m)) {
+        if (preg_match_all('/(?:\x00[\x09\x0A\x0D\x20-\x7E\xC0-\xFF]){4,}/', $raw, $m)) {
             foreach ($m[0] as $seq) {
-                $chunks[] = preg_replace('/\x00/', '', $seq) ?? '';
+                $decoded = @mb_convert_encoding($seq, 'UTF-8', 'UTF-16BE');
+                if (is_string($decoded) && preg_match('/[A-Za-zÇĞİÖŞÜçğıöşü]/u', $decoded)) {
+                    $chunks[] = $decoded;
+                } else {
+                    $chunks[] = preg_replace('/\x00/', '', $seq) ?? '';
+                }
             }
         }
-        if (preg_match_all('/(?:[\x20-\x7E]\x00){4,}/', $raw, $m)) {
+        if (preg_match_all('/(?:[\x09\x0A\x0D\x20-\x7E]\x00){4,}/', $raw, $m)) {
             foreach ($m[0] as $seq) {
-                $chunks[] = preg_replace('/\x00/', '', $seq) ?? '';
+                $decoded = @mb_convert_encoding($seq, 'UTF-8', 'UTF-16LE');
+                if (is_string($decoded) && preg_match('/[A-Za-zÇĞİÖŞÜçğıöşü]/u', $decoded)) {
+                    $chunks[] = $decoded;
+                }
             }
         }
-        if (preg_match_all('/[\x20-\x7E\xC0-\xFF]{5,}/u', $raw, $m)) {
-            $chunks = array_merge($chunks, $m[0]);
+        // Windows-1254 tek bayt Türkçe
+        if (preg_match_all('/[\x20-\x7E\x80-\xFF]{6,}/', $raw, $m)) {
+            foreach ($m[0] as $seq) {
+                $as1254 = @mb_convert_encoding($seq, 'UTF-8', 'Windows-1254');
+                if (is_string($as1254) && preg_match('/(ÜNİVERSİTE|PSİKOLOJİ|Kimlik|Diploma|Program|Mezun)/iu', $as1254)) {
+                    $chunks[] = $as1254;
+                }
+            }
+        }
+        if ($chunks !== []) {
+            $candidates[] = $this->fixTurkishEncoding(implode("\n", array_unique(array_filter($chunks))));
         }
 
-        return trim(implode("\n", array_unique(array_filter($chunks))));
+        // En iyi adayı seç: Türkçe anahtar kelime skoru
+        $best = '';
+        $bestScore = -1;
+        foreach ($candidates as $c) {
+            $score = 0;
+            foreach (['Kimlik', 'Adı', 'Program', 'Diploma', 'ÜNİVERSİTE', 'Mezun', 'YOKME'] as $kw) {
+                if (stripos($c, $kw) !== false) {
+                    $score += 2;
+                }
+            }
+            // Bozuk Ý cezası
+            if (str_contains($c, 'Ý') || str_contains($c, 'ý')) {
+                $score -= 3;
+            }
+            if ($score > $bestScore || ($score === $bestScore && mb_strlen($c) > mb_strlen($best))) {
+                $bestScore = $score;
+                $best = $c;
+            }
+        }
+
+        return trim($best);
     }
 
     protected function normalizeLines(string $text): string
@@ -148,12 +280,13 @@ class YokMezunBelgesiParser
     {
         foreach ($labels as $label) {
             $q = preg_quote($label, '/');
-            // Label : value aynı satır veya sonraki satır
-            if (preg_match('/'.$q.'\s*:?\s*([^\n]+)/iu', $text, $m)) {
+            // Aynı satır veya sonraki satır
+            if (preg_match('/'.$q.'\s*:?\s*\n?\s*([^\n]+)/iu', $text, $m)) {
                 $v = trim($m[1]);
                 $v = trim($v, " \t:-");
-                if ($v !== '' && mb_strlen($v) < 400) {
-                    return $v;
+                // Etiket tekrarı değilse
+                if ($v !== '' && mb_strlen($v) < 400 && ! preg_match('/^(T\.C\.|Adı|Program|Diploma|Durum)/iu', $v)) {
+                    return $this->fixTurkishEncoding($v);
                 }
             }
         }
@@ -169,12 +302,15 @@ class YokMezunBelgesiParser
         if (! $program) {
             return ['universite' => null, 'fakulte' => null, 'bolum' => null];
         }
+        $program = $this->fixTurkishEncoding($program);
         $parts = array_values(array_filter(array_map('trim', explode('/', $program))));
 
         return [
-            'universite' => $parts[0] ?? null,
-            'fakulte' => $parts[1] ?? null,
-            'bolum' => $parts[2] ?? ($parts[1] ?? null),
+            'universite' => isset($parts[0]) ? $this->fixTurkishEncoding($parts[0]) : null,
+            'fakulte' => isset($parts[1]) ? $this->fixTurkishEncoding($parts[1]) : null,
+            'bolum' => isset($parts[2])
+                ? $this->fixTurkishEncoding($parts[2])
+                : (isset($parts[1]) ? $this->fixTurkishEncoding($parts[1]) : null),
         ];
     }
 
@@ -186,6 +322,9 @@ class YokMezunBelgesiParser
         $d = trim($d);
         if (preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/', $d, $m)) {
             return $m[3].'-'.$m[2].'-'.$m[1];
+        }
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $d)) {
+            return $d;
         }
 
         return null;

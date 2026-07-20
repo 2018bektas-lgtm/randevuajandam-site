@@ -58,16 +58,36 @@ class MeslekEslesmeService
         }
 
         $nedenler = [];
-        if (! $tcOk) {
-            $nedenler[] = 'TC kimlik numarası belge ile uyuşmuyor.';
+        $kontroller = [];
+
+        if ($belgeTc === '') {
+            $kontroller[] = ['key' => 'tc', 'ok' => false, 'label' => 'T.C. kimlik', 'detay' => 'Belgeden TC okunamadı. 1. adımdaki TC ile manuel kontrol edilecek.'];
+            $nedenler[] = 'Belgeden T.C. kimlik okunamadı; kayıt sonrası ekibimiz formdaki TC ile belgeyi karşılaştıracak.';
+        } elseif (! $tcOk) {
+            $kontroller[] = ['key' => 'tc', 'ok' => false, 'label' => 'T.C. kimlik', 'detay' => 'Formdaki TC ile belgedeki TC uyuşmuyor.'];
+            $nedenler[] = 'T.C. kimlik numaranız belgedeki ile uyuşmuyor. Lütfen 1. adımdaki TC’yi kontrol edin.';
+        } else {
+            $kontroller[] = ['key' => 'tc', 'ok' => true, 'label' => 'T.C. kimlik', 'detay' => 'Formdaki TC ile belge eşleşti.'];
         }
-        if (! $adOk) {
-            $nedenler[] = 'Ad soyad benzerliği yetersiz (skor: '.number_format($adSkor, 2).').';
+
+        if (trim((string) ($parsed['ad_soyad'] ?? '')) === '') {
+            $kontroller[] = ['key' => 'ad', 'ok' => false, 'label' => 'Ad soyad', 'detay' => 'Belgeden ad soyad okunamadı.'];
+            $nedenler[] = 'Belgeden ad soyad okunamadı; kayıt sonrası ekibimiz formdaki ad ile belgeyi karşılaştıracak.';
+        } elseif (! $adOk) {
+            $kontroller[] = ['key' => 'ad', 'ok' => false, 'label' => 'Ad soyad', 'detay' => 'Benzerlik skoru: '.number_format($adSkor * 100, 0).'% (eşik %'.(int) ($this->adEsik * 100).').'];
+            $nedenler[] = 'Ad soyad belgedeki ile yeterince uyuşmuyor (benzerlik %'.number_format($adSkor * 100, 0).'). 1. adımdaki ad soyadı kontrol edin.';
+        } else {
+            $kontroller[] = ['key' => 'ad', 'ok' => true, 'label' => 'Ad soyad', 'detay' => 'Formdaki ad soyad ile belge eşleşti (%'.number_format($adSkor * 100, 0).').'];
         }
+
         if (! $esleme) {
-            $nedenler[] = 'Program sağlık/yaşam bilimleri eşleme listesinde yok; manuel inceleme gerekir.';
+            $kontroller[] = ['key' => 'program', 'ok' => false, 'label' => 'Meslek / branş', 'detay' => 'Program platform branş listesinde otomatik eşleşmedi.'];
+            $nedenler[] = 'Mezuniyet programınız otomatik branş listemizde net eşleşmedi. Yine de kayda devam edebilirsiniz; talebiniz incelenecektir.';
         } elseif (! $esleme->auto_onay) {
-            $nedenler[] = 'Bu program için otomatik onay kapalı.';
+            $kontroller[] = ['key' => 'program', 'ok' => false, 'label' => 'Meslek / branş', 'detay' => 'Program eşleşti ancak otomatik onay kapalı.'];
+            $nedenler[] = 'Bu program için otomatik onay kapalı; talebiniz incelenecektir.';
+        } else {
+            $kontroller[] = ['key' => 'program', 'ok' => true, 'label' => 'Meslek / branş', 'detay' => 'Program branş listemizde: '.($bransAd ?: $unvan ?: 'uygun')];
         }
 
         $auto = $tcOk && $adOk && $esleme && $esleme->auto_onay;
@@ -82,6 +102,13 @@ class MeslekEslesmeService
             'onerilen_brans' => $bransAd,
             'onerilen_brans_id' => $bransId,
             'nedenler' => $nedenler,
+            'kontroller' => $kontroller,
+            'sonuc_baslik' => $auto
+                ? 'Doğrulama başarılı — otomatik onay uygun'
+                : 'Kayıt tamamlanabilir; talebiniz incelenecek',
+            'sonuc_ozet' => $auto
+                ? 'TC, ad soyad ve mezuniyet programınız uyumlu. Kaydı tamamladığınızda meslek onayı otomatik verilir; paket ödemesine geçebilirsiniz.'
+                : 'Bazı kontroller otomatik geçilemedi veya e-Devlet anlık yanıt vermedi. Yine de kaydı tamamlayabilirsiniz. Belgeleriniz ekibimiz tarafından incelenecek; onay sonrası paket ödemesine yönlendirilirsiniz.',
         ];
     }
 

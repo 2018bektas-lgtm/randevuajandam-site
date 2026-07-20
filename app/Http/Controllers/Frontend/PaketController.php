@@ -182,14 +182,20 @@ class PaketController extends Controller
                         $match,
                         $uploadRel,
                         null,
-                        false,
-                        'e-Devlet canlı sorgu başarısız; yüklenen belge parse edildi. Manuel onay gerekebilir. '.($result['error'] ?? '')
+                        (bool) ($match['auto_onay_uygun'] ?? false),
+                        'e-Devlet anlık yanıt vermedi; yüklediğiniz PDF okundu. '
+                        .($match['auto_onay_uygun'] ? '' : 'Eşleşmeler tam değilse talebiniz incelenecektir. ')
+                        .($result['error'] ?? '')
                     );
+                    $payload['kontroller'] = $match['kontroller'] ?? [];
+                    $payload['sonuc_baslik'] = $match['sonuc_baslik'] ?? null;
+                    $payload['sonuc_ozet'] = $match['sonuc_ozet'] ?? null;
+                    $payload['nedenler'] = $match['nedenler'] ?? [];
                     session(['mezuniyet_dogrulama' => $payload]);
 
                     return response()->json([
                         'ok' => true,
-                        'auto_onay_uygun' => false,
+                        'auto_onay_uygun' => (bool) ($payload['auto_onay_uygun'] ?? false),
                         'payload' => $this->publicMezuniyetPayload($payload),
                         'uyari' => $payload['uyari'],
                     ]);
@@ -214,8 +220,13 @@ class PaketController extends Controller
             (bool) $match['auto_onay_uygun'],
             $match['auto_onay_uygun']
                 ? null
-                : implode(' ', $match['nedenler'] ?? [])
+                : ($match['sonuc_ozet'] ?? implode(' ', $match['nedenler'] ?? []))
         );
+        // match detaylarını session'a da yaz
+        $payload['kontroller'] = $match['kontroller'] ?? [];
+        $payload['sonuc_baslik'] = $match['sonuc_baslik'] ?? null;
+        $payload['sonuc_ozet'] = $match['sonuc_ozet'] ?? null;
+        $payload['nedenler'] = $match['nedenler'] ?? [];
         session(['mezuniyet_dogrulama' => $payload]);
 
         return response()->json([
@@ -259,11 +270,14 @@ class PaketController extends Controller
             'tc_ok' => (bool) ($match['tc_ok'] ?? false),
             'ad_ok' => (bool) ($match['ad_ok'] ?? false),
             'ad_skor' => $match['ad_skor'] ?? 0,
-            'auto_onay_uygun' => $autoOnay,
+            'auto_onay_uygun' => $autoOnay && (bool) ($match['auto_onay_uygun'] ?? false),
             'onerilen_unvan' => $match['onerilen_unvan'] ?? null,
             'onerilen_brans' => $match['onerilen_brans'] ?? null,
             'onerilen_brans_id' => $match['onerilen_brans_id'] ?? null,
             'nedenler' => $match['nedenler'] ?? [],
+            'kontroller' => $match['kontroller'] ?? [],
+            'sonuc_baslik' => $match['sonuc_baslik'] ?? null,
+            'sonuc_ozet' => $match['sonuc_ozet'] ?? null,
             'uyari' => $uyari,
             'ham_parse' => $parsed,
         ];
@@ -294,6 +308,9 @@ class PaketController extends Controller
             'onerilen_brans' => $payload['onerilen_brans'] ?? null,
             'onerilen_brans_id' => $payload['onerilen_brans_id'] ?? null,
             'nedenler' => $payload['nedenler'] ?? [],
+            'kontroller' => $payload['kontroller'] ?? [],
+            'sonuc_baslik' => $payload['sonuc_baslik'] ?? null,
+            'sonuc_ozet' => $payload['sonuc_ozet'] ?? null,
             'uyari' => $payload['uyari'] ?? null,
         ];
     }

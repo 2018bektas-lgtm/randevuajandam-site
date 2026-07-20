@@ -64,17 +64,25 @@ class MeslekProgramEsleme extends Model
 
     public static function normalize(string $s): string
     {
-        $s = Str::upper(Str::ascii(trim($s)));
-        // Türkçe karakterler için ek normalize (ascii sonrası)
-        $map = ['İ' => 'I', 'I' => 'I', 'Ş' => 'S', 'Ğ' => 'G', 'Ü' => 'U', 'Ö' => 'O', 'Ç' => 'C'];
-        $s = strtr(mb_strtoupper(trim($s), 'UTF-8'), [
+        $s = trim($s);
+        // Mojibake / Windows-1254 kalıntıları
+        $s = strtr($s, [
+            'Ý' => 'İ', 'ý' => 'ı', 'Þ' => 'Ş', 'þ' => 'ş', 'Ð' => 'Ğ', 'ð' => 'ğ',
+        ]);
+        $s = strtr(mb_strtoupper($s, 'UTF-8'), [
             'İ' => 'I', 'I' => 'I', 'ı' => 'I', 'i' => 'I',
             'Ş' => 'S', 'ş' => 'S', 'Ğ' => 'G', 'ğ' => 'G',
             'Ü' => 'U', 'ü' => 'U', 'Ö' => 'O', 'ö' => 'O',
             'Ç' => 'C', 'ç' => 'C',
+            'Â' => 'A', 'Ê' => 'E',
         ]);
+        // ascii düşür (kalan aksanlar)
+        if (class_exists(Str::class)) {
+            $s = Str::upper(Str::ascii($s));
+        }
+        $s = preg_replace('/[^A-Z0-9\s\/\-\.]/u', '', $s) ?? $s;
         $s = preg_replace('/\s+/u', ' ', $s) ?? $s;
 
-        return $s;
+        return trim($s);
     }
 }
