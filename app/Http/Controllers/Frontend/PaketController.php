@@ -125,7 +125,8 @@ class PaketController extends Controller
     }
 
     /**
-     * AJAX: Barkod + TC ile e-Devlet mezun belgesi doğrula (kayıt öncesi session).
+     * AJAX: Birden fazla mezuniyet belgesi — her biri ayrı e-Devlet + eşleşme.
+     * Session: mezuniyet_dogrulama_list + geriye uyum için mezuniyet_dogrulama (primary).
      */
     public function mezuniyetDogrula(
         Request $request,
@@ -135,26 +136,179 @@ class PaketController extends Controller
         $request->validate([
             'ad_soyad' => ['required', 'string', 'max:255'],
             'tc_kimlik_no' => ['required', 'string', 'size:11', new TcKimlikNo],
-            'edevlet_barkod' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-]+$/'],
+            'edevlet_barkod' => ['nullable', 'string', 'max:500'],
+            'edevlet_barkodlar' => ['nullable', 'string', 'max:1000'],
             'mezuniyet_belgesi' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'mezuniyet_belgeleri' => ['nullable', 'array', 'max:8'],
+            'mezuniyet_belgeleri.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
             'tc_kimlik_no.required' => 'Doğrulama için T.C. kimlik zorunludur.',
             'ad_soyad.required' => 'Ad soyad zorunludur.',
+            'mezuniyet_belgeleri.max' => 'En fazla 8 belge yükleyebilirsiniz.',
+            'mezuniyet_belgeleri.*.max' => 'Her belge en fazla 5 MB olabilir.',
         ]);
 
         $tc = preg_replace('/\D/', '', (string) $request->tc_kimlik_no) ?? '';
         $ad = trim((string) $request->ad_soyad);
-        $barkod = $request->filled('edevlet_barkod')
-            ? strtoupper(trim((string) $request->edevlet_barkod))
-            : null;
 
-        // PDF'den barkod dene
-        $uploadRel = null;
+        // Barkod listesi (satır / virgül / boşluk)
+        $barkodlar = [];
+        foreach (['edevlet_barkodlar', 'edevlet_barkod'] as $field) {
+            if ($request->filled($field)) {
+                foreach (preg_split('/[\s,;]+/', (string) $request->input($field)) as $b) {
+                    $b = strtoupper(trim($b));
+                    if ($b !== '' && preg_match('/^[A-Z0-9\-]{8,64}$/', $b)) {
+                        $barkodlar[] = $b;
+                    }
+                }
+            }
+        }
+        $barkodlar = array_values(array_unique($barkodlar));
+
+        // Dosyalar (çoklu + tekli geriye uyum)
+        $files = [];
+        if ($request->hasFile('mezuniyet_belgeleri')) {
+            foreach ($request->file('mezuniyet_belgeleri') as $f) {
+                if ($f) {
+                    $files[] = $f;
+                }
+            }
+        }
         if ($request->hasFile('mezuniyet_belgesi')) {
-            $uploadRel = $request->file('mezuniyet_belgesi')->store('private/mezuniyet-yukleme', 'local');
+            $files[] = $request->file('mezuniyet_belgesi');
+        }
+
+        if ($files === [] && $barkodlar === []) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'En az bir mezuniyet belgesi (PDF/görsel) yükleyin veya barkod girin. Her belge ayrı doğrulanır.',
+            ], 422);
+        }
+
+        $items = [];
+        $errors = [];
+
+        // 1) Her dosya ayrı işlem
+        foreach ($files as $idx => $file) {
+            $label = $file->getClientOriginalName() ?: ('Belge '.($idx + 1));
+            try {
+                $items[] = $this->processOneMezuniyetBelge(
+                    $edevlet,
+                    $eslesme,
+                    $ad,
+                    $tc,
+                    $request->ip(),
+                    $file,
+                    $barkodlar[$idx] ?? null,
+                    $label
+                );
+            } catch (\Throwable $e) {
+                $errors[] = $label.': '.$e->getMessage();
+            }
+        }
+
+        // 2) Dosyaya bağlı olmayan ekstra barkodlar (index > file count)
+        $fileCount = count($files);
+        foreach ($barkodlar as $i => $barkod) {
+            if ($i < $fileCount) {
+                continue; // zaten dosya ile eşlendi
+            }
+            // Aynı barkod zaten işlendiyse atla
+            $already = collect($items)->contains(fn ($it) => ($it['barkod'] ?? '') === $barkod);
+            if ($already) {
+                continue;
+            }
+            try {
+                $items[] = $this->processOneMezuniyetBelge(
+                    $edevlet,
+                    $eslesme,
+                    $ad,
+                    $tc,
+                    $request->ip(),
+                    null,
+                    $barkod,
+                    'Barkod: '.$barkod
+                );
+            } catch (\Throwable $e) {
+                $errors[] = $barkod.': '.$e->getMessage();
+            }
+        }
+
+        if ($items === []) {
+            return response()->json([
+                'ok' => false,
+                'error' => $errors !== []
+                    ? implode(' ', $errors)
+                    : 'Hiçbir belge doğrulanamadı. Barkod ve PDF’leri kontrol edip tekrar deneyin.',
+            ], 422);
+        }
+
+        // Primary: otomatik onaya uygun ilk belge, yoksa ilk
+        $primaryIndex = 0;
+        foreach ($items as $i => $it) {
+            if (! empty($it['auto_onay_uygun'])) {
+                $primaryIndex = $i;
+                break;
+            }
+        }
+        $primary = $items[$primaryIndex];
+        $anyAuto = collect($items)->contains(fn ($it) => ! empty($it['auto_onay_uygun']));
+        $allTcAdOk = collect($items)->every(fn ($it) => ! empty($it['tc_ok']) && ! empty($it['ad_ok']));
+
+        $list = [
+            'items' => $items,
+            'auto_onay_uygun' => $anyAuto,
+            'adet' => count($items),
+            'basarili_adet' => collect($items)->filter(fn ($it) => ! empty($it['auto_onay_uygun']))->count(),
+            'primary_index' => $primaryIndex,
+        ];
+
+        session([
+            'mezuniyet_dogrulama_list' => $list,
+            'mezuniyet_dogrulama' => $primary, // geriye uyum
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'auto_onay_uygun' => $anyAuto,
+            'adet' => count($items),
+            'basarili_adet' => $list['basarili_adet'],
+            'payload' => $this->publicMezuniyetPayload($primary),
+            'items' => array_map(fn ($it) => $this->publicMezuniyetPayload($it), $items),
+            'ozet' => $anyAuto
+                ? count($items).' belge işlendi; en az biri otomatik onay için uygun.'
+                : count($items).' belge işlendi; otomatik onay yok — kaydı tamamlayabilirsiniz, talebiniz incelenecek.',
+            'uyari' => $errors !== [] ? implode(' ', $errors) : null,
+            'all_tc_ad_ok' => $allTcAdOk,
+        ]);
+    }
+
+    /**
+     * Tek belge / barkod için e-Devlet + parse + eşleşme.
+     *
+     * @param  \Illuminate\Http\UploadedFile|null  $file
+     * @return array<string, mixed>
+     */
+    protected function processOneMezuniyetBelge(
+        BelgeDogrulamaService $edevlet,
+        MeslekEslesmeService $eslesme,
+        string $ad,
+        string $tc,
+        ?string $ip,
+        $file,
+        ?string $barkodHint,
+        string $label
+    ): array {
+        $uploadRel = null;
+        $barkod = $barkodHint ? strtoupper(trim($barkodHint)) : null;
+        $originalName = $label;
+
+        if ($file) {
+            $uploadRel = $file->store('private/mezuniyet-yukleme', 'local');
+            $originalName = $file->getClientOriginalName() ?: $label;
             $abs = Storage::disk('local')->path($uploadRel);
-            $mime = $request->file('mezuniyet_belgesi')->getMimeType() ?? '';
-            if (str_contains($mime, 'pdf') || str_ends_with(strtolower($abs), '.pdf')) {
+            $mime = $file->getMimeType() ?? '';
+            if (str_contains($mime, 'pdf') || str_ends_with(strtolower($originalName), '.pdf')) {
                 $local = $edevlet->parseYuklenenPdf($abs, $uploadRel);
                 if ($local['ok'] && ! empty($local['parsed']['barkod']) && ! $barkod) {
                     $barkod = $local['parsed']['barkod'];
@@ -163,15 +317,7 @@ class PaketController extends Controller
         }
 
         if (! $barkod) {
-            return response()->json([
-                'ok' => false,
-                'error' => 'Barkod bulunamadı. e-Devlet YÖK mezun belgesi barkodunu girin veya barkodlu PDF yükleyin.',
-            ], 422);
-        }
-
-        $result = $edevlet->dogrulaMezunBelgesi($barkod, $tc, $request->ip());
-        if (! $result['ok'] || empty($result['parsed'])) {
-            // Fallback: yüklenen PDF parse + barkod eşlemesi (e-Devlet down)
+            // Barkodsuz görsel/PDF: sadece local parse
             if ($uploadRel) {
                 $local = $edevlet->parseYuklenenPdf(Storage::disk('local')->path($uploadRel), $uploadRel);
                 if ($local['ok'] && ! empty($local['parsed'])) {
@@ -183,58 +329,58 @@ class PaketController extends Controller
                         $uploadRel,
                         null,
                         (bool) ($match['auto_onay_uygun'] ?? false),
-                        'e-Devlet anlık yanıt vermedi; yüklediğiniz PDF okundu. '
-                        .($match['auto_onay_uygun'] ? '' : 'Eşleşmeler tam değilse talebiniz incelenecektir. ')
-                        .($result['error'] ?? '')
+                        'Barkod bulunamadı; dosya metinden okundu. '
+                        .($match['auto_onay_uygun'] ? '' : 'Eşleşme eksikse talebiniz incelenecek.')
                     );
-                    $payload['kontroller'] = $match['kontroller'] ?? [];
-                    $payload['sonuc_baslik'] = $match['sonuc_baslik'] ?? null;
-                    $payload['sonuc_ozet'] = $match['sonuc_ozet'] ?? null;
-                    $payload['nedenler'] = $match['nedenler'] ?? [];
-                    session(['mezuniyet_dogrulama' => $payload]);
+                    $payload['dosya_adi'] = $originalName;
 
-                    return response()->json([
-                        'ok' => true,
-                        'auto_onay_uygun' => (bool) ($payload['auto_onay_uygun'] ?? false),
-                        'payload' => $this->publicMezuniyetPayload($payload),
-                        'uyari' => $payload['uyari'],
-                    ]);
+                    return $payload;
                 }
             }
+            throw new \RuntimeException('Barkod bulunamadı ('.$originalName.'). Barkodu yazın veya barkodlu PDF yükleyin.');
+        }
 
-            return response()->json([
-                'ok' => false,
-                'error' => $result['error'] ?? 'Doğrulama başarısız.',
-            ], 422);
+        $result = $edevlet->dogrulaMezunBelgesi($barkod, $tc, $ip);
+        if (! $result['ok'] || empty($result['parsed'])) {
+            if ($uploadRel) {
+                $local = $edevlet->parseYuklenenPdf(Storage::disk('local')->path($uploadRel), $uploadRel);
+                if ($local['ok'] && ! empty($local['parsed'])) {
+                    $parsed = $local['parsed'];
+                    if (empty($parsed['barkod'])) {
+                        $parsed['barkod'] = $barkod;
+                    }
+                    $match = $eslesme->eslestir($ad, $tc, $parsed);
+                    $payload = $this->buildMezuniyetSessionPayload(
+                        $parsed,
+                        $match,
+                        $uploadRel,
+                        null,
+                        (bool) ($match['auto_onay_uygun'] ?? false),
+                        'e-Devlet anlık yanıt vermedi; yüklenen dosya okundu. '
+                        .($result['error'] ?? '')
+                    );
+                    $payload['dosya_adi'] = $originalName;
+
+                    return $payload;
+                }
+            }
+            // Sadece barkod, PDF yok — e-Devlet fail
+            throw new \RuntimeException(($result['error'] ?? 'Doğrulama başarısız').' ('.$barkod.')');
         }
 
         $parsed = $result['parsed'];
         $match = $eslesme->eslestir($ad, $tc, $parsed);
-        $pdfPath = $result['pdf_path'] ?? $uploadRel;
-
         $payload = $this->buildMezuniyetSessionPayload(
             $parsed,
             $match,
-            $pdfPath,
+            $result['pdf_path'] ?? $uploadRel,
             $result['log_id'] ?? null,
-            (bool) $match['auto_onay_uygun'],
-            $match['auto_onay_uygun']
-                ? null
-                : ($match['sonuc_ozet'] ?? implode(' ', $match['nedenler'] ?? []))
+            (bool) ($match['auto_onay_uygun'] ?? false),
+            $match['auto_onay_uygun'] ? null : ($match['sonuc_ozet'] ?? null)
         );
-        // match detaylarını session'a da yaz
-        $payload['kontroller'] = $match['kontroller'] ?? [];
-        $payload['sonuc_baslik'] = $match['sonuc_baslik'] ?? null;
-        $payload['sonuc_ozet'] = $match['sonuc_ozet'] ?? null;
-        $payload['nedenler'] = $match['nedenler'] ?? [];
-        session(['mezuniyet_dogrulama' => $payload]);
+        $payload['dosya_adi'] = $originalName;
 
-        return response()->json([
-            'ok' => true,
-            'auto_onay_uygun' => (bool) $payload['auto_onay_uygun'],
-            'payload' => $this->publicMezuniyetPayload($payload),
-            'uyari' => $payload['uyari'],
-        ]);
+        return $payload;
     }
 
     /**
@@ -280,6 +426,11 @@ class PaketController extends Controller
             'sonuc_ozet' => $match['sonuc_ozet'] ?? null,
             'uyari' => $uyari,
             'ham_parse' => $parsed,
+            'dosya_adi' => null,
+            'kontroller' => $match['kontroller'] ?? [],
+            'sonuc_baslik' => $match['sonuc_baslik'] ?? null,
+            'sonuc_ozet' => $match['sonuc_ozet'] ?? null,
+            'nedenler' => $match['nedenler'] ?? [],
         ];
     }
 
@@ -312,7 +463,39 @@ class PaketController extends Controller
             'sonuc_baslik' => $payload['sonuc_baslik'] ?? null,
             'sonuc_ozet' => $payload['sonuc_ozet'] ?? null,
             'uyari' => $payload['uyari'] ?? null,
+            'dosya_adi' => $payload['dosya_adi'] ?? null,
         ];
+    }
+
+    /**
+     * Session'dan doğrulanmış belge listesi (çoklu veya tekil).
+     *
+     * @return array{items: array<int, array>, auto_onay_uygun: bool, primary: ?array}
+     */
+    protected function mezuniyetSessionBundle(): array
+    {
+        $list = session('mezuniyet_dogrulama_list');
+        if (is_array($list) && ! empty($list['items']) && is_array($list['items'])) {
+            $items = $list['items'];
+            $primary = $items[$list['primary_index'] ?? 0] ?? $items[0];
+
+            return [
+                'items' => $items,
+                'auto_onay_uygun' => (bool) ($list['auto_onay_uygun'] ?? false),
+                'primary' => $primary,
+            ];
+        }
+
+        $single = session('mezuniyet_dogrulama');
+        if (is_array($single) && (! empty($single['barkod']) || ! empty($single['pdf_path']))) {
+            return [
+                'items' => [$single],
+                'auto_onay_uygun' => (bool) ($single['auto_onay_uygun'] ?? false),
+                'primary' => $single,
+            ];
+        }
+
+        return ['items' => [], 'auto_onay_uygun' => false, 'primary' => null];
     }
 
     /**
@@ -320,8 +503,10 @@ class PaketController extends Controller
      */
     public function kayitOl(Request $request)
     {
-        $mezunSession = session('mezuniyet_dogrulama');
-        $hasVerified = is_array($mezunSession) && ! empty($mezunSession['barkod']);
+        $bundle = $this->mezuniyetSessionBundle();
+        $mezunItems = $bundle['items'];
+        $mezunSession = $bundle['primary'];
+        $hasVerified = $mezunItems !== [];
 
         $request->validate([
             'ad_soyad' => 'required|string|max:255',
@@ -336,8 +521,10 @@ class PaketController extends Controller
             'telefon' => ['required', 'string', 'regex:/^0\s\(5[0-9]{2}\)\s[0-9]{3}\s[0-9]{2}\s[0-9]{2}$/'],
             'tc_kimlik_no' => ['required', 'string', 'size:11', 'unique:doktorlar,tc_kimlik_no', new TcKimlikNo],
             'diploma_no' => [$hasVerified ? 'nullable' : 'required', 'string', 'min:3', 'max:64'],
-            'edevlet_barkod' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-]+$/'],
-            'meslek_belgesi' => [$hasVerified ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'edevlet_barkod' => ['nullable', 'string', 'max:500'],
+            'meslek_belgesi' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'mezuniyet_belgeleri' => ['nullable', 'array', 'max:8'],
+            'mezuniyet_belgeleri.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'unvan' => 'required|string|max:80',
             'il' => 'required|string|max:255',
             'ilce' => 'required|string|max:255',
@@ -366,8 +553,6 @@ class PaketController extends Controller
             'tc_kimlik_no.required' => 'T.C. kimlik numarası zorunludur.',
             'tc_kimlik_no.unique' => 'Bu T.C. kimlik numarası ile kayıtlı bir hekim zaten var.',
             'diploma_no.required' => 'Diploma / tescil numarası zorunludur (mezuniyet doğrulaması yapılmadıysa).',
-            'edevlet_barkod.regex' => 'e-Devlet barkod numarası yalnızca harf, rakam ve tire içerebilir.',
-            'meslek_belgesi.required' => 'Diploma veya mezuniyet belgesi yüklemeniz zorunludur.',
             'meslek_belgesi.mimes' => 'Belge PDF, JPG veya PNG olmalıdır.',
             'meslek_belgesi.max' => 'Belge en fazla 5 MB olabilir.',
             'unvan.required' => 'Mesleki unvan seçimi zorunludur.',
@@ -390,10 +575,12 @@ class PaketController extends Controller
         $mezuniyetDizisi = array_values(array_filter($request->input('mezuniyet', []), function ($val) {
             return ! is_null($val) && trim($val) !== '';
         }));
-        if ($hasVerified && ! empty($mezunSession['mezuniyet_satiri'])) {
-            array_unshift($mezuniyetDizisi, $mezunSession['mezuniyet_satiri']);
-            $mezuniyetDizisi = array_values(array_unique($mezuniyetDizisi));
+        foreach ($mezunItems as $it) {
+            if (! empty($it['mezuniyet_satiri'])) {
+                array_unshift($mezuniyetDizisi, $it['mezuniyet_satiri']);
+            }
         }
+        $mezuniyetDizisi = array_values(array_unique($mezuniyetDizisi));
 
         $tc = preg_replace('/\D/', '', (string) $request->tc_kimlik_no) ?? '';
 
@@ -402,25 +589,38 @@ class PaketController extends Controller
             : null;
         if ($request->hasFile('meslek_belgesi')) {
             $belgeRel = $request->file('meslek_belgesi')->store('private/meslek-belgeleri', 'local');
+        } elseif ($request->hasFile('mezuniyet_belgeleri')) {
+            $first = $request->file('mezuniyet_belgeleri')[0] ?? null;
+            if ($first) {
+                $belgeRel = $first->store('private/meslek-belgeleri', 'local');
+            }
         }
-        if (! $belgeRel) {
+        if (! $belgeRel && ! $hasVerified) {
             return back()->withInput()->withErrors([
-                'meslek_belgesi' => 'Mezuniyet belgesi doğrulanmalı veya yüklenmelidir.',
+                'mezuniyet_belgeleri' => 'En az bir mezuniyet belgesi doğrulanmalı veya yüklenmelidir.',
             ]);
+        }
+        if (! $belgeRel && $hasVerified) {
+            $belgeRel = collect($mezunItems)->pluck('pdf_path')->filter()->first();
         }
 
         $diplomaNo = $hasVerified && ! empty($mezunSession['diploma_no'])
             ? (string) $mezunSession['diploma_no']
             : trim((string) $request->diploma_no);
-        $barkod = $hasVerified && ! empty($mezunSession['barkod'])
-            ? (string) $mezunSession['barkod']
-            : ($request->filled('edevlet_barkod') ? strtoupper(trim((string) $request->edevlet_barkod)) : null);
+        if ($hasVerified && ! empty($mezunSession['barkod'])) {
+            $barkod = (string) $mezunSession['barkod'];
+        } elseif ($request->filled('edevlet_barkod')) {
+            $parts = preg_split('/[\s,;]+/', (string) $request->edevlet_barkod) ?: [];
+            $barkod = strtoupper(trim((string) ($parts[0] ?? ''))) ?: null;
+        } else {
+            $barkod = null;
+        }
 
-        $autoOnay = $hasVerified && ! empty($mezunSession['auto_onay_uygun']);
+        $autoOnay = $hasVerified && ! empty($bundle['auto_onay_uygun']);
         $meslekDurum = $autoOnay ? 'onaylandi' : 'beklemede';
         $meslekNot = $autoOnay
-            ? 'otomatik:edevlet'
-            : ($mezunSession['uyari'] ?? ($hasVerified ? implode(' ', $mezunSession['nedenler'] ?? []) : null));
+            ? 'otomatik:edevlet ('.count($mezunItems).' belge)'
+            : (($mezunSession['uyari'] ?? null) ?: ($hasVerified ? 'coklu belge; inceleme' : null));
 
         $doktor = DB::transaction(function () use (
             $request,
@@ -438,7 +638,7 @@ class PaketController extends Controller
             $meslekNot,
             $autoOnay,
             $hasVerified,
-            $mezunSession
+            $mezunItems
         ) {
             $doktor = Doktor::create([
                 'ad_soyad' => $request->ad_soyad,
@@ -474,33 +674,39 @@ class PaketController extends Controller
 
             $doktor->branslar()->attach($request->branslar);
 
-            if ($hasVerified && is_array($mezunSession)) {
-                DoktorMezuniyetBelgesi::create([
-                    'doktor_id' => $doktor->id,
-                    'barkod' => $mezunSession['barkod'] ?? null,
-                    'tc_kimlik_no' => $mezunSession['tc'] ?? $tc,
-                    'ad_soyad_belge' => $mezunSession['ad_soyad_belge'] ?? null,
-                    'program' => $mezunSession['program'] ?? null,
-                    'universite' => $mezunSession['universite'] ?? null,
-                    'fakulte' => $mezunSession['fakulte'] ?? null,
-                    'bolum' => $mezunSession['bolum'] ?? null,
-                    'diploma_no' => $mezunSession['diploma_no'] ?? null,
-                    'diploma_notu' => $mezunSession['diploma_notu'] ?? null,
-                    'mezuniyet_tarihi' => $mezunSession['mezuniyet_tarihi'] ?? null,
-                    'dogrulama_durumu' => $autoOnay ? 'basarili' : 'basarili',
-                    'eslesme_skoru' => $mezunSession['ad_skor'] ?? null,
-                    'eslesme_detay' => [
-                        'tc_ok' => $mezunSession['tc_ok'] ?? null,
-                        'ad_ok' => $mezunSession['ad_ok'] ?? null,
-                        'nedenler' => $mezunSession['nedenler'] ?? [],
-                    ],
-                    'dosya_yolu' => $mezunSession['pdf_path'] ?? $belgeRel,
-                    'ham_parse' => $mezunSession['ham_parse'] ?? null,
-                    'edevlet_log_id' => $mezunSession['log_id'] ?? null,
-                    'auto_onay_uygun' => $autoOnay,
-                    'onerilen_unvan' => $mezunSession['onerilen_unvan'] ?? null,
-                    'onerilen_brans' => $mezunSession['onerilen_brans'] ?? null,
-                ]);
+            if ($hasVerified) {
+                foreach ($mezunItems as $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+                    DoktorMezuniyetBelgesi::create([
+                        'doktor_id' => $doktor->id,
+                        'barkod' => $item['barkod'] ?? null,
+                        'tc_kimlik_no' => $item['tc'] ?? $tc,
+                        'ad_soyad_belge' => $item['ad_soyad_belge'] ?? null,
+                        'program' => $item['program'] ?? null,
+                        'universite' => $item['universite'] ?? null,
+                        'fakulte' => $item['fakulte'] ?? null,
+                        'bolum' => $item['bolum'] ?? null,
+                        'diploma_no' => $item['diploma_no'] ?? null,
+                        'diploma_notu' => $item['diploma_notu'] ?? null,
+                        'mezuniyet_tarihi' => $item['mezuniyet_tarihi'] ?? null,
+                        'dogrulama_durumu' => 'basarili',
+                        'eslesme_skoru' => $item['ad_skor'] ?? null,
+                        'eslesme_detay' => [
+                            'tc_ok' => $item['tc_ok'] ?? null,
+                            'ad_ok' => $item['ad_ok'] ?? null,
+                            'nedenler' => $item['nedenler'] ?? [],
+                            'dosya_adi' => $item['dosya_adi'] ?? null,
+                        ],
+                        'dosya_yolu' => $item['pdf_path'] ?? $belgeRel,
+                        'ham_parse' => $item['ham_parse'] ?? null,
+                        'edevlet_log_id' => $item['log_id'] ?? null,
+                        'auto_onay_uygun' => (bool) ($item['auto_onay_uygun'] ?? false),
+                        'onerilen_unvan' => $item['onerilen_unvan'] ?? null,
+                        'onerilen_brans' => $item['onerilen_brans'] ?? null,
+                    ]);
+                }
             }
 
             return $doktor;
@@ -508,7 +714,7 @@ class PaketController extends Controller
 
         Auth::guard('doktor')->login($doktor);
 
-        session()->forget(['kayit_paket_id', 'kayit_periyot', 'mezuniyet_dogrulama']);
+        session()->forget(['kayit_paket_id', 'kayit_periyot', 'mezuniyet_dogrulama', 'mezuniyet_dogrulama_list']);
 
         if ($autoOnay) {
             return redirect()

@@ -397,48 +397,51 @@
                 </h3>
 
                 <div class="rounded-2xl border border-[#E7B58A]/40 bg-[#FFF7ED] px-4 py-3.5 text-[11px] text-[#78350F] leading-relaxed space-y-2">
-                    <p class="font-bold text-[#9A3412]">Ne yapmalısınız?</p>
+                    <p class="font-bold text-[#9A3412]">Birden fazla belge yükleyin</p>
                     <ul class="list-disc pl-4 space-y-1.5">
-                        <li>e-Devlet’ten indirdiğiniz <strong>YÖK mezun belgesi</strong> (barkodlu / karekodlu PDF) ve varsa diğer mezuniyet / uzmanlık belgelerinizi yükleyin.</li>
-                        <li>Belgedeki <strong>barkod numarasını</strong> (ör. YOKME…) yazın; PDF içinde de aranır.</li>
-                        <li>Sistem belgeden okunan bilgileri, 1. adımda girdiğiniz <strong>T.C. kimlik</strong> ve <strong>ad soyad</strong> ile karşılaştırır.</li>
-                        <li>Mezuniyet programınızın platformdaki <strong>doktor / branş listemizde</strong> olup olmadığını kontrol eder; uyuyorsa unvan ve branş otomatik dolar.</li>
-                        <li><strong>Hepsi uyarsa:</strong> kayıt sonrası meslek onayı otomatik verilir, paket ödemesine geçersiniz.</li>
-                        <li><strong>Uymayan veya okunamayan bir şey varsa:</strong> yine de kayda devam edebilirsiniz. Durumunuz <em>«Talebiniz inceleniyor»</em> olur; ekibimiz belgeyi kontrol edip sonucu bildirir.</li>
+                        <li><strong>Tüm mezuniyet belgelerinizi</strong> yükleyin: lisans, yüksek lisans, uzmanlık, YÖK mezun belgesi vb. (en fazla 8 dosya).</li>
+                        <li><strong>Her belge ayrı ayrı</strong> aynı işlemlerden geçer: e-Devlet doğrulama → TC eşleşmesi → ad soyad eşleşmesi → branş/meslek listesi kontrolü.</li>
+                        <li>İsterseniz her belge için barkodları da yazın (satır satır veya virgülle). PDF içinde barkod varsa otomatik okunur.</li>
+                        <li><strong>En az bir belge</strong> TC + ad + program olarak tam uyarsa otomatik onay verilir; diğer belgeler de kayda eklenir.</li>
+                        <li>Hiçbiri tam uymasa bile devam edebilirsiniz → durum <em>«Talebiniz inceleniyor»</em>.</li>
                     </ul>
                     <p class="text-[10px] text-[#92400E] pt-1">
-                        Yardım:
                         <a href="https://www.turkiye.gov.tr/yuksekogretim-mezun-belgesi-sorgulama" target="_blank" rel="noopener" class="font-bold underline text-[#C96A2B]">YÖK mezun belgesi al</a>
                         ·
-                        <a href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener" class="font-bold underline text-[#C96A2B]">Barkodlu belge doğrulama</a>
+                        <a href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener" class="font-bold underline text-[#C96A2B]">Barkod doğrulama</a>
                     </p>
                 </div>
 
                 <div>
-                    <label for="edevlet_barkod" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">e-Devlet barkod no</label>
-                    <input type="text" name="edevlet_barkod" id="edevlet_barkod" value="{{ old('edevlet_barkod') }}" maxlength="64" placeholder="Örn. YOKME50DTYWEU0P9XV"
-                        class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all font-mono uppercase">
-                    <p class="mt-1 text-[10px] text-[#9CA3AF]">Belgenin üstündeki barkod / karekod metni. YOKME ile başlayan kodlar YÖK mezun belgesidir.</p>
+                    <label for="edevlet_barkod" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">e-Devlet barkod(lar)</label>
+                    <textarea name="edevlet_barkod" id="edevlet_barkod" rows="2" placeholder="Her satıra bir barkod&#10;YOKME…&#10;YOKME…"
+                        class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all font-mono uppercase">{{ old('edevlet_barkod') }}</textarea>
+                    <p class="mt-1 text-[10px] text-[#9CA3AF]">Birden fazla barkod: satır satır veya virgülle. Sıra, yüklediğiniz dosya sırasıyla eşleştirilir; fazlası ayrı doğrulanır.</p>
                     @error('edevlet_barkod')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
-                    <label for="meslek_belgesi" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Mezuniyet belgesi (PDF / görsel)</label>
-                    <input type="file" name="meslek_belgesi" id="meslek_belgesi" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*"
+                    <label for="mezuniyet_belgeleri" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Mezuniyet belgeleri (çoklu seçim)</label>
+                    <input type="file" name="mezuniyet_belgeleri[]" id="mezuniyet_belgeleri" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" multiple
                         class="w-full text-xs text-[#4B5563] file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#FFF7ED] file:text-[#C96A2B] file:font-bold file:text-[11px]">
-                    <p class="mt-1.5 text-[10px] text-[#9CA3AF]">Tüm mezuniyet belgelerinizden ana YÖK mezun PDF’ini yükleyin (en fazla 5 MB). Barkod PDF’den de okunmaya çalışılır. Ek belgeler için kayıttan sonra destek ile iletebilirsiniz.</p>
-                    @error('meslek_belgesi')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
+                    <p class="mt-1.5 text-[10px] text-[#9CA3AF]">Ctrl/Cmd ile birden fazla dosya seçin · PDF/JPG/PNG · dosya başı en fazla 5 MB · en fazla 8 belge. Her dosya tek tek doğrulanır.</p>
+                    <p id="mezuniyetDosyaListesi" class="mt-2 text-[11px] text-slate-600 space-y-0.5"></p>
+                    @error('mezuniyet_belgeleri')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
+                    @error('mezuniyet_belgeleri.*')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <input type="hidden" name="diploma_no" id="diploma_no" value="{{ old('diploma_no') }}">
+                {{-- geriye uyum gizli alan --}}
+                <input type="hidden" name="meslek_belgesi" id="meslek_belgesi_legacy" value="">
 
                 <button type="button" id="btnMezuniyetDogrula"
                         class="w-full py-3 rounded-xl border-2 border-[#C96A2B] text-[#C96A2B] hover:bg-[#FFF7ED] font-bold text-xs uppercase tracking-wider">
-                    Belgeyi doğrula (e-Devlet + eşleşme)
+                    Tüm belgeleri doğrula (her biri ayrı)
                 </button>
                 <p id="mezuniyetDogrulaStatus" class="text-[11px] text-slate-500"></p>
 
-                <div id="mezuniyetSonucKarti" class="hidden rounded-2xl border p-4 space-y-3 text-xs"></div>
+                <div id="mezuniyetSonucListesi" class="space-y-3"></div>
+                <div id="mezuniyetSonucOzet" class="hidden rounded-2xl border p-4 text-xs"></div>
 
                 <div class="flex items-center justify-between pt-4 border-t border-[#E5E7EB]">
                     <button type="button" onclick="prevStep(1)"
@@ -732,83 +735,118 @@
 
     let mezuniyetVerified = false;
 
+    document.getElementById('mezuniyet_belgeleri')?.addEventListener('change', function () {
+        const el = document.getElementById('mezuniyetDosyaListesi');
+        if (!el) return;
+        const files = this.files || [];
+        if (!files.length) {
+            el.innerHTML = '';
+            return;
+        }
+        el.innerHTML = Array.from(files).map((f, i) =>
+            `<span class="block">• ${i + 1}. ${f.name} <span class="text-slate-400">(${Math.round(f.size/1024)} KB)</span></span>`
+        ).join('');
+    });
+
     function goToMeslekStep() {
         if (!mezuniyetVerified) {
             const barkod = (document.getElementById('edevlet_barkod')?.value || '').trim();
-            const file = document.getElementById('meslek_belgesi')?.files?.[0];
-            if (!barkod && !file) {
-                alert('Devam etmeden önce mezuniyet belgesi barkodu girin veya PDF yükleyip “Belgeyi doğrula”ya basın.');
+            const files = document.getElementById('mezuniyet_belgeleri')?.files;
+            if (!barkod && !(files && files.length)) {
+                alert('Devam etmeden önce en az bir mezuniyet belgesi yükleyin veya barkod girip “Tüm belgeleri doğrula”ya basın.');
                 return;
             }
-            if (!confirm('Doğrulama yapılmadan devam ederseniz kaydınız «Talebiniz inceleniyor» durumunda kalır. Yine de devam etmek istiyor musunuz?')) {
+            if (!confirm('Doğrulama yapılmadan devam ederseniz kaydınız «Talebiniz inceleniyor» durumunda kalır. Yine de devam?')) {
                 return;
             }
         }
         nextStep(3);
     }
 
-    function renderMezuniyetSonuc(p, uyari) {
-        const kart = document.getElementById('mezuniyetSonucKarti');
-        if (!kart) return;
-        kart.classList.remove('hidden');
+    function renderOneBelgeCard(p, index) {
         const auto = !!p.auto_onay_uygun;
-        kart.className = 'rounded-2xl border p-4 space-y-3 text-xs ' + (auto
-            ? 'border-emerald-200 bg-emerald-50/80'
-            : 'border-amber-200 bg-amber-50/80');
-
-        const baslik = p.sonuc_baslik || (auto ? 'Doğrulama başarılı' : 'Talebiniz incelenecek');
-        const ozet = p.sonuc_ozet || '';
-        const ad = p.ad_soyad_belge || 'Belgeden ad okunamadı';
-        const program = p.program || '—';
-        const detay = [
-            p.diploma_no ? 'Diploma no: ' + p.diploma_no : null,
-            p.mezuniyet_tarihi ? 'Mezuniyet: ' + p.mezuniyet_tarihi : null,
-            p.diploma_notu ? 'Not: ' + p.diploma_notu : null,
-            p.barkod ? 'Barkod: ' + p.barkod : null
-        ].filter(Boolean).join(' · ');
-
-        let kontrollerHtml = '';
-        const kontroller = p.kontroller || [];
-        if (kontroller.length) {
-            kontrollerHtml = '<div class="space-y-1.5 pt-1">' + kontroller.map(k => {
-                const icon = k.ok
-                    ? '<span class="text-emerald-600 font-bold">✓</span>'
-                    : '<span class="text-amber-600 font-bold">!</span>';
-                return `<div class="flex gap-2 items-start"><span class="shrink-0">${icon}</span><div><span class="font-bold text-slate-800">${k.label || ''}</span><span class="text-slate-600"> — ${k.detay || ''}</span></div></div>`;
-            }).join('') + '</div>';
-        }
-
-        let nedenHtml = '';
-        const nedenler = p.nedenler || [];
-        if (nedenler.length || uyari) {
-            const items = [...nedenler];
-            if (uyari) items.push(uyari);
-            nedenHtml = '<ul class="space-y-1 text-slate-700 border-t border-black/5 pt-2">' +
-                items.map(n => `<li class="leading-relaxed">• ${n}</li>`).join('') + '</ul>';
-        }
-
         const badge = auto
             ? '<span class="inline-flex px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">Otomatik onay uygun</span>'
-            : '<span class="inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-extrabold uppercase">Talebiniz inceleniyor</span>';
-
-        kart.innerHTML = `
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <p class="text-[10px] font-extrabold uppercase tracking-wider ${auto ? 'text-emerald-800' : 'text-amber-900'}">Doğrulama sonucu</p>
-                ${badge}
-            </div>
-            <p class="font-bold text-sm text-[#111827]">${baslik}</p>
-            <p class="text-slate-600 leading-relaxed">${ozet}</p>
-            <div class="rounded-xl bg-white/70 border border-black/5 p-3 space-y-1">
+            : '<span class="inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-extrabold uppercase">İncelenecek</span>';
+        const ad = p.ad_soyad_belge || 'Ad okunamadı';
+        const program = p.program || '—';
+        const detay = [
+            p.diploma_no ? 'Dip: ' + p.diploma_no : null,
+            p.mezuniyet_tarihi || null,
+            p.barkod ? 'Barkod: ' + p.barkod : null
+        ].filter(Boolean).join(' · ');
+        const dosya = p.dosya_adi ? `<p class="text-[10px] text-slate-500 font-mono">${p.dosya_adi}</p>` : '';
+        let kontrollerHtml = '';
+        (p.kontroller || []).forEach(k => {
+            const icon = k.ok ? '✓' : '!';
+            const color = k.ok ? 'text-emerald-600' : 'text-amber-600';
+            kontrollerHtml += `<div class="flex gap-1.5 text-[11px]"><span class="${color} font-bold">${icon}</span><span><strong>${k.label || ''}</strong> — ${k.detay || ''}</span></div>`;
+        });
+        let nedenHtml = '';
+        if ((p.nedenler || []).length) {
+            nedenHtml = '<ul class="text-[11px] text-slate-600 space-y-0.5 pt-1 border-t border-black/5">' +
+                p.nedenler.map(n => `<li>• ${n}</li>`).join('') + '</ul>';
+        }
+        return `
+            <div class="rounded-2xl border p-4 space-y-2 text-xs ${auto ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'}">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-600">Belge ${index + 1}</p>
+                    ${badge}
+                </div>
+                ${dosya}
                 <p class="font-bold text-[#111827]">${ad}</p>
                 <p class="text-slate-700">${program}</p>
                 <p class="text-slate-500 text-[11px]">${detay}</p>
-            </div>
-            ${kontrollerHtml}
-            ${nedenHtml}
-            <p class="text-[10px] text-slate-500 pt-1">${auto
-                ? 'Kaydı tamamladığınızda doğrudan paket / ödeme adımına geçebilirsiniz.'
-                : '«Devam Et» ile kaydı tamamlayabilirsiniz. Onay maili / panelden bilgilendirilirsiniz.'}</p>
-        `;
+                <div class="space-y-1">${kontrollerHtml}</div>
+                ${nedenHtml}
+            </div>`;
+    }
+
+    function applyAutoFillFromItems(items) {
+        const best = items.find(i => i.auto_onay_uygun) || items[0];
+        if (!best) return;
+        if (best.diploma_no) {
+            const dip = document.getElementById('diploma_no');
+            if (dip) dip.value = best.diploma_no;
+        }
+        if (best.onerilen_unvan) {
+            const sel = document.getElementById('unvan');
+            if (sel) {
+                let found = false;
+                for (const opt of sel.options) {
+                    if (opt.value === best.onerilen_unvan || (opt.text && opt.text.indexOf(best.onerilen_unvan.replace('.', '')) !== -1)) {
+                        sel.value = opt.value;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    const o = document.createElement('option');
+                    o.value = best.onerilen_unvan;
+                    o.textContent = best.onerilen_unvan;
+                    o.selected = true;
+                    sel.appendChild(o);
+                }
+            }
+        }
+        items.forEach(p => {
+            if (p.onerilen_brans) {
+                document.querySelectorAll('.multiselect-option').forEach(el => {
+                    const name = (el.dataset.name || '').toLocaleLowerCase('tr-TR');
+                    const target = (p.onerilen_brans || '').toLocaleLowerCase('tr-TR');
+                    if (target && name.includes(target.slice(0, Math.min(10, target.length)))) {
+                        if (!el.classList.contains('selected')) el.click();
+                    }
+                });
+            }
+            if (p.mezuniyet_satiri) {
+                const input = document.getElementById('mezuniyet_input');
+                if (input) {
+                    input.value = p.mezuniyet_satiri;
+                    if (typeof addMezuniyetTag === 'function') addMezuniyetTag();
+                }
+            }
+        });
     }
 
     document.getElementById('btnMezuniyetDogrula')?.addEventListener('click', async function () {
@@ -817,26 +855,37 @@
         const ad = document.getElementById('ad_soyad')?.value || '';
         const tc = document.getElementById('tc_kimlik_no')?.value || '';
         const barkod = document.getElementById('edevlet_barkod')?.value || '';
-        const fileInput = document.getElementById('meslek_belgesi');
+        const fileInput = document.getElementById('mezuniyet_belgeleri');
 
         if (!ad || !tc || tc.length !== 11) {
-            alert('Önce 1. adımda ad soyad ve 11 haneli T.C. kimlik numaranızı girin. Belge eşleştirmesi buna göre yapılır.');
+            alert('Önce 1. adımda ad soyad ve 11 haneli T.C. kimlik numaranızı girin.');
             return;
         }
-        if (!barkod.trim() && !fileInput?.files?.length) {
-            alert('Barkod girin ve/veya mezuniyet belgesi PDF’i yükleyin.');
+        if (!barkod.trim() && !(fileInput?.files?.length)) {
+            alert('En az bir mezuniyet belgesi seçin veya barkod girin.');
             return;
         }
 
         const fd = new FormData();
         fd.append('ad_soyad', ad);
         fd.append('tc_kimlik_no', tc);
-        if (barkod.trim()) fd.append('edevlet_barkod', barkod.trim());
-        if (fileInput?.files?.[0]) fd.append('mezuniyet_belgesi', fileInput.files[0]);
+        if (barkod.trim()) {
+            fd.append('edevlet_barkod', barkod.trim());
+            fd.append('edevlet_barkodlar', barkod.trim());
+        }
+        if (fileInput?.files?.length) {
+            Array.from(fileInput.files).forEach(f => fd.append('mezuniyet_belgeleri[]', f));
+        }
         fd.append('_token', document.querySelector('input[name="_token"]')?.value || '');
 
         btn.disabled = true;
-        if (statusEl) statusEl.textContent = 'Belge doğrulanıyor… e-Devlet sorgusu 10–30 saniye sürebilir.';
+        const n = fileInput?.files?.length || 0;
+        if (statusEl) {
+            statusEl.textContent = n > 1
+                ? `${n} belge tek tek doğrulanıyor… Her belge için e-Devlet sorgusu yapılabilir (1–2 dk sürebilir).`
+                : 'Belge doğrulanıyor… 10–30 saniye sürebilir.';
+            statusEl.className = 'text-[11px] text-slate-500';
+        }
 
         try {
             const res = await fetch(@json(route('frontend.hekim.kayit.mezuniyet_dogrula')), {
@@ -850,59 +899,34 @@
                 throw new Error(data.error || data.message || 'Doğrulama başarısız');
             }
             mezuniyetVerified = true;
-            const p = data.payload || {};
-            renderMezuniyetSonuc(p, data.uyari);
-
-            if (p.diploma_no) {
-                const dip = document.getElementById('diploma_no');
-                if (dip) dip.value = p.diploma_no;
+            const items = data.items || (data.payload ? [data.payload] : []);
+            const listEl = document.getElementById('mezuniyetSonucListesi');
+            if (listEl) {
+                listEl.innerHTML = items.map((p, i) => renderOneBelgeCard(p, i)).join('');
             }
-            if (p.barkod) {
-                const b = document.getElementById('edevlet_barkod');
-                if (b) b.value = p.barkod;
+            const ozetEl = document.getElementById('mezuniyetSonucOzet');
+            if (ozetEl) {
+                ozetEl.classList.remove('hidden');
+                const auto = !!data.auto_onay_uygun;
+                ozetEl.className = 'rounded-2xl border p-4 text-xs space-y-1 ' + (auto
+                    ? 'border-emerald-300 bg-emerald-50'
+                    : 'border-amber-300 bg-amber-50');
+                ozetEl.innerHTML = `
+                    <p class="font-bold text-sm ${auto ? 'text-emerald-900' : 'text-amber-900'}">
+                        ${auto ? 'Özet: Otomatik onay uygun' : 'Özet: Talebiniz incelenecek'}
+                    </p>
+                    <p class="text-slate-700">${data.ozet || ''}</p>
+                    <p class="text-[11px] text-slate-600">${data.adet || items.length} belge işlendi · ${data.basarili_adet || 0} belge otomatik onaya uygun</p>
+                    ${data.uyari ? `<p class="text-amber-800 text-[11px]">${data.uyari}</p>` : ''}
+                    <p class="text-[10px] text-slate-500 pt-1">${auto
+                        ? 'Kaydı tamamlayınca ödemeye geçebilirsiniz. Tüm belgeler profilinize işlenir.'
+                        : '«Devam Et» ile kaydı tamamlayın. Her belge ayrı incelenir; ekibimiz bilgilendirir.'}</p>
+                `;
             }
-            if (p.onerilen_unvan) {
-                const sel = document.getElementById('unvan');
-                if (sel) {
-                    let found = false;
-                    for (const opt of sel.options) {
-                        if (opt.value === p.onerilen_unvan || (opt.text && opt.text.indexOf(p.onerilen_unvan.replace('.', '')) !== -1)) {
-                            sel.value = opt.value;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        const o = document.createElement('option');
-                        o.value = p.onerilen_unvan;
-                        o.textContent = p.onerilen_unvan;
-                        o.selected = true;
-                        sel.appendChild(o);
-                    }
-                }
-            }
-            if (p.onerilen_brans) {
-                document.querySelectorAll('.multiselect-option').forEach(el => {
-                    const name = (el.dataset.name || '').toLocaleLowerCase('tr-TR');
-                    const target = (p.onerilen_brans || '').toLocaleLowerCase('tr-TR');
-                    if (target && name.includes(target.slice(0, Math.min(8, target.length)))) {
-                        if (!el.classList.contains('selected')) el.click();
-                    }
-                });
-            }
-            if (p.mezuniyet_satiri) {
-                const input = document.getElementById('mezuniyet_input');
-                if (input) {
-                    input.value = p.mezuniyet_satiri;
-                    if (typeof addMezuniyetTag === 'function') addMezuniyetTag();
-                }
-            }
-
+            applyAutoFillFromItems(items);
             if (statusEl) {
-                statusEl.textContent = p.auto_onay_uygun
-                    ? 'Doğrulama tamam: otomatik onay uygun.'
-                    : 'Doğrulama tamam: kayıt sonrası talebiniz incelenecek (devam edebilirsiniz).';
-                statusEl.className = 'text-[11px] font-semibold ' + (p.auto_onay_uygun ? 'text-emerald-700' : 'text-amber-800');
+                statusEl.textContent = data.ozet || 'Doğrulama tamam.';
+                statusEl.className = 'text-[11px] font-semibold ' + (data.auto_onay_uygun ? 'text-emerald-700' : 'text-amber-800');
             }
         } catch (e) {
             mezuniyetVerified = false;
@@ -910,7 +934,7 @@
                 statusEl.textContent = e.message || 'Hata';
                 statusEl.className = 'text-[11px] text-red-600 font-semibold';
             }
-            alert((e.message || 'Doğrulama başarısız') + '\n\nYine de belge yükleyip kayda devam edebilirsiniz; talebiniz incelenir.');
+            alert((e.message || 'Doğrulama başarısız') + '\n\nBelgeleri yükleyip kayda devam edebilirsiniz; talebiniz incelenir.');
         } finally {
             btn.disabled = false;
         }
