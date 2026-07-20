@@ -54,6 +54,7 @@ Route::prefix('yonetim')->name('yonetim.')->group(function () {
         // Doktor Yönetimi
         Route::prefix('doktorlar')->name('doktorlar.')->group(function () {
             Route::get('/', [DoktorController::class, 'index'])->name('index');
+            Route::get('/meslek-kuyruk', [DoktorController::class, 'meslekKuyruk'])->name('meslek-kuyruk');
             Route::get('/duzenle/{id}', [DoktorController::class, 'edit'])->name('duzenle');
             Route::post('/duzenle/{id}', [DoktorController::class, 'update'])->name('update');
             Route::post('/{id}/meslek-dogrula', [DoktorController::class, 'meslekDogrula'])->name('meslek-dogrula');
@@ -61,6 +62,10 @@ Route::prefix('yonetim')->name('yonetim.')->group(function () {
             Route::post('/sil/{id}', [DoktorController::class, 'destroy'])->name('sil');
             Route::post('/durum/{id}', [DoktorController::class, 'toggleDurum'])->name('durum');
         });
+
+        Route::get('/edevlet-loglari', [DoktorController::class, 'edevletLoglari'])->name('edevlet-loglari');
+        Route::get('/faturalar', [DoktorController::class, 'faturalar'])->name('faturalar');
+        Route::post('/faturalar/{id}', [DoktorController::class, 'faturaDurumGuncelle'])->name('faturalar.guncelle');
 
         // Klinik Yönetimi
         Route::prefix('klinikler')->name('klinikler.')->group(function () {

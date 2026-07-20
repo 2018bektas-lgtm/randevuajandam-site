@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Yonetim\DoktorUpdateRequest;
+use App\Models\BelgeErisimLog;
 use App\Models\Doktor;
+use App\Models\DoktorMezuniyetBelgesi;
+use App\Models\EdevletDogrulamaLog;
 use App\Models\Il;
 use App\Models\Ilce;
 use App\Models\Paket;
+use App\Models\UyelikOdeme;
 use App\Models\Yonetici;
 use App\Notifications\MeslekBelgesiSonucBildirimi;
 use Illuminate\Http\Request;
@@ -33,11 +37,74 @@ class DoktorController extends Controller
                 $query->orderBy('created_at', 'asc');
             }
         }
-        $doktorlar = $query->get();
+        $doktorlar = $query->withCount('mezuniyetBelgeleri')->get();
         $bekleyenMeslek = Doktor::where('meslek_dogrulama_durumu', 'beklemede')->count();
         $meslekFilter = $meslekFilter ?: 'hepsi';
 
         return view('yonetim.doktorlar.index', compact('yonetici', 'doktorlar', 'bekleyenMeslek', 'meslekFilter'));
+    }
+
+    /**
+     * Meslek belgesi inceleme kuyruğu (beklemede + belgeler).
+     */
+    public function meslekKuyruk()
+    {
+        $yonetici = Auth::guard('yonetici')->user();
+        $doktorlar = Doktor::query()
+            ->where('meslek_dogrulama_durumu', 'beklemede')
+            ->with(['mezuniyetBelgeleri', 'paket', 'kayitPaketi'])
+            ->orderBy('created_at')
+            ->get();
+
+        return view('yonetim.doktorlar.meslek_kuyruk', compact('yonetici', 'doktorlar'));
+    }
+
+    /**
+     * e-Devlet doğrulama logları.
+     */
+    public function edevletLoglari(Request $request)
+    {
+        $yonetici = Auth::guard('yonetici')->user();
+        $logs = EdevletDogrulamaLog::query()
+            ->orderByDesc('id')
+            ->limit(200)
+            ->get();
+
+        $ozet = [
+            'basarili' => EdevletDogrulamaLog::where('durum', 'basarili')->where('created_at', '>=', now()->subDay())->count(),
+            'basarisiz' => EdevletDogrulamaLog::where('durum', 'basarisiz')->where('created_at', '>=', now()->subDay())->count(),
+        ];
+
+        return view('yonetim.edevlet_loglari', compact('yonetici', 'logs', 'ozet'));
+    }
+
+    /**
+     * Üyelik ödemeleri fatura durumu.
+     */
+    public function faturalar(Request $request)
+    {
+        $yonetici = Auth::guard('yonetici')->user();
+        $durum = $request->query('fatura', 'bekliyor');
+        $q = UyelikOdeme::query()->with(['doktor', 'paket'])->orderByDesc('id');
+        if (in_array($durum, ['bekliyor', 'kesildi'], true)) {
+            $q->where('fatura_durumu', $durum);
+        } elseif ($durum === 'onayli_odeme') {
+            $q->where('durum', 'onaylandi');
+        }
+        $odemeler = $q->limit(300)->get();
+
+        return view('yonetim.faturalar', compact('yonetici', 'odemeler', 'durum'));
+    }
+
+    public function faturaDurumGuncelle(Request $request, $id)
+    {
+        $request->validate([
+            'fatura_durumu' => ['required', 'in:bekliyor,kesildi'],
+        ]);
+        $odeme = UyelikOdeme::findOrFail($id);
+        $odeme->update(['fatura_durumu' => $request->input('fatura_durumu')]);
+
+        return back()->with('basarili', 'Fatura durumu güncellendi.');
     }
 
     /**
@@ -92,6 +159,13 @@ class DoktorController extends Controller
         if ($path === '') {
             abort(404);
         }
+
+        BelgeErisimLog::kaydet(
+            $doktor->id,
+            'yonetici',
+            'meslek_belgesi',
+            Auth::guard('yonetici')->id()
+        );
 
         // Private storage key: private/... or relative under storage/app
         if (str_starts_with($path, 'private/') || str_starts_with($path, 'meslek-belgeleri/')) {

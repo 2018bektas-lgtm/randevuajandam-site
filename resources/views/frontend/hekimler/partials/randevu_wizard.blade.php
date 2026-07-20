@@ -251,6 +251,7 @@
                         <span>Kişisel verilerimin randevu amacıyla işlenmesini kabul ediyorum.</span>
                     </label>
                     <p class="rw-login-hint">Hesabınız var mı? <a href="{{ route('frontend.hasta.giris') }}">Giriş yapın</a></p>
+                    <p class="rw-login-hint" style="margin-top:0.35rem">Randevularınızı takip etmek için <a href="{{ route('frontend.hasta.kayit') }}">ücretsiz üye olun</a> — randevu kodunuz e-posta ile de gelir.</p>
                 @endunless
             </div>
 

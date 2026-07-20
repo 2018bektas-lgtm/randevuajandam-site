@@ -44,136 +44,177 @@ class BelgeDogrulamaService
             return $this->fail('T.C. kimlik 11 hane olmalıdır.', $barkod, $tc, $ip, $start);
         }
 
-        try {
-            $cookieJar = new \GuzzleHttp\Cookie\CookieJar;
-            $client = Http::withOptions([
-                'cookies' => $cookieJar,
-                'timeout' => (int) config('services.edevlet.timeout', 25),
-                'connect_timeout' => 10,
-                'allow_redirects' => true,
-                'verify' => true,
-            ])->withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language' => 'tr-TR,tr;q=0.9',
-            ]);
+        $maxAttempts = max(1, (int) config('services.edevlet.retry', 2));
+        $lastError = 'Doğrulama başarısız.';
 
-            $base = 'https://www.turkiye.gov.tr';
-
-            // 1) Form sayfası + token
-            $r1 = $client->get($base.'/belge-dogrulama');
-            if (! $r1->successful()) {
-                return $this->fail('e-Devlet sayfasına erişilemedi.', $barkod, $tc, $ip, $start);
-            }
-            $token = $this->extractToken($r1->body());
-            if (! $token) {
-                return $this->fail('e-Devlet form token alınamadı.', $barkod, $tc, $ip, $start);
-            }
-
-            // 2) Barkod
-            $r2 = $client->asForm()->withHeaders([
-                'Referer' => $base.'/belge-dogrulama',
-            ])->post($base.'/belge-dogrulama?submit', [
-                'token' => $token,
-                'sorgulananBarkod' => $barkod,
-                'btn' => 'Devam Et',
-            ]);
-            $token = $this->extractToken($r2->body()) ?? $token;
-            if (! str_contains($r2->body(), 'ikinciAlan') && ! str_contains($r2->body(), 'T.C. Kimlik')) {
-                return $this->fail('Barkod kabul edilmedi veya belge bulunamadı.', $barkod, $tc, $ip, $start, [
-                    'step' => 2,
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $result = $this->dogrulaOnce($barkod, $tc, $ip, $start, $attempt);
+                if ($result['ok']) {
+                    return $result;
+                }
+                $lastError = $result['error'] ?? $lastError;
+                // Kalıcı hatalarda retry yok
+                if (str_contains((string) $lastError, 'Barkod kabul edilmedi')
+                    || str_contains((string) $lastError, 'Geçersiz')) {
+                    return $result;
+                }
+            } catch (\Throwable $e) {
+                $lastError = $e->getMessage();
+                Log::warning('e-Devlet doğrulama deneme hata', [
+                    'barkod' => $barkod,
+                    'attempt' => $attempt,
+                    'message' => $e->getMessage(),
                 ]);
             }
+            if ($attempt < $maxAttempts) {
+                usleep(400000 * $attempt); // 0.4s, 0.8s
+            }
+        }
 
-            // 3) TC
-            $r3 = $client->asForm()->withHeaders([
-                'Referer' => $base.'/belge-dogrulama?submit',
-            ])->post($base.'/belge-dogrulama?islem=dogrulama&submit', [
+        return $this->fail($lastError.' ('.$maxAttempts.' deneme)', $barkod, $tc, $ip, $start, [
+            'attempts' => $maxAttempts,
+        ]);
+    }
+
+    /**
+     * Tek deneme (retry sarmalayıcısı).
+     *
+     * @return array{ok:bool,parsed:?array,pdf_path:?string,log_id:?int,error:?string,sure_ms:int}
+     */
+    protected function dogrulaOnce(string $barkod, string $tc, ?string $ip, int $start, int $attempt): array
+    {
+        $cookieJar = new \GuzzleHttp\Cookie\CookieJar;
+        $timeout = (int) config('services.edevlet.timeout', 28);
+        $client = Http::withOptions([
+            'cookies' => $cookieJar,
+            'timeout' => $timeout,
+            'connect_timeout' => 12,
+            'allow_redirects' => true,
+            'verify' => true,
+        ])->withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language' => 'tr-TR,tr;q=0.9',
+        ]);
+
+        $base = 'https://www.turkiye.gov.tr';
+
+        $r1 = $client->get($base.'/belge-dogrulama');
+        if (! $r1->successful()) {
+            return $this->fail('e-Devlet sayfasına erişilemedi.', $barkod, $tc, $ip, $start, [
+                'step' => 1, 'attempt' => $attempt,
+            ]);
+        }
+        $token = $this->extractToken($r1->body());
+        if (! $token) {
+            return $this->fail('e-Devlet form token alınamadı.', $barkod, $tc, $ip, $start, [
+                'step' => 1, 'attempt' => $attempt,
+            ]);
+        }
+
+        $r2 = $client->asForm()->withHeaders([
+            'Referer' => $base.'/belge-dogrulama',
+        ])->post($base.'/belge-dogrulama?submit', [
+            'token' => $token,
+            'sorgulananBarkod' => $barkod,
+            'btn' => 'Devam Et',
+        ]);
+        $token = $this->extractToken($r2->body()) ?? $token;
+        if (! str_contains($r2->body(), 'ikinciAlan') && ! str_contains($r2->body(), 'T.C. Kimlik')) {
+            return $this->fail('Barkod kabul edilmedi veya belge bulunamadı.', $barkod, $tc, $ip, $start, [
+                'step' => 2, 'attempt' => $attempt,
+            ]);
+        }
+
+        $r3 = $client->asForm()->withHeaders([
+            'Referer' => $base.'/belge-dogrulama?submit',
+        ])->post($base.'/belge-dogrulama?islem=dogrulama&submit', [
+            'token' => $token,
+            'ikinciAlan' => $tc,
+            'btn' => 'Devam Et',
+        ]);
+        $token = $this->extractToken($r3->body()) ?? $token;
+        if (! str_contains($r3->body(), 'chkOnay') && ! str_contains($r3->body(), 'bilgilendirme')) {
+            if (! str_contains($r3->body(), 'belge=goster')) {
+                return $this->fail('TC ile doğrulama adımı başarısız.', $barkod, $tc, $ip, $start, [
+                    'step' => 3, 'attempt' => $attempt,
+                ]);
+            }
+        }
+
+        if (str_contains($r3->body(), 'chkOnay') || str_contains($r3->body(), 'islem=onay')) {
+            $r4 = $client->asForm()->withHeaders([
+                'Referer' => $base.'/belge-dogrulama?islem=dogrulama&submit',
+            ])->post($base.'/belge-dogrulama?islem=onay&submit', [
                 'token' => $token,
-                'ikinciAlan' => $tc,
+                'chkOnay' => '1',
                 'btn' => 'Devam Et',
             ]);
-            $token = $this->extractToken($r3->body()) ?? $token;
-            if (! str_contains($r3->body(), 'chkOnay') && ! str_contains($r3->body(), 'bilgilendirme')) {
-                // Bazen doğrudan sonuç
-                if (! str_contains($r3->body(), 'belge=goster')) {
-                    return $this->fail('TC ile doğrulama adımı başarısız.', $barkod, $tc, $ip, $start, [
-                        'step' => 3,
-                    ]);
-                }
-            }
-
-            // 4) Onay checkbox
-            if (str_contains($r3->body(), 'chkOnay') || str_contains($r3->body(), 'islem=onay')) {
-                $r4 = $client->asForm()->post($base.'/belge-dogrulama?islem=onay&submit', [
-                    'token' => $token,
-                    'chkOnay' => '1',
-                    'btn' => 'Devam Et',
+            if (! $r4->successful() && ! str_contains($r4->body(), 'belge=goster')) {
+                return $this->fail('Onay adımı başarısız.', $barkod, $tc, $ip, $start, [
+                    'step' => 4, 'attempt' => $attempt,
                 ]);
-                if (! $r4->successful() && ! str_contains($r4->body(), 'belge=goster')) {
-                    return $this->fail('Onay adımı başarısız.', $barkod, $tc, $ip, $start, ['step' => 4]);
-                }
             }
+        }
 
-            // 5) PDF
+        // PDF — iki URL dene
+        $body = '';
+        foreach ([
+            $base.'/belge-dogrulama?belge=goster&goster=1',
+            $base.'/belge-dogrulama?belge=goster&goster=1&display=display',
+        ] as $pdfUrl) {
             $pdfRes = $client->withHeaders([
                 'Accept' => 'application/pdf,*/*',
                 'Referer' => $base.'/belge-dogrulama',
-            ])->get($base.'/belge-dogrulama?belge=goster&goster=1');
-
+            ])->get($pdfUrl);
             $body = $pdfRes->body();
-            if (! str_starts_with($body, '%PDF')) {
-                return $this->fail('Mezun belgesi PDF alınamadı.', $barkod, $tc, $ip, $start, ['step' => 5]);
+            if (str_starts_with($body, '%PDF')) {
+                break;
             }
-
-            $rel = 'private/edevlet-mezun/'.date('Y/m').'/'.$barkod.'_'.Str::random(6).'.pdf';
-            Storage::disk('local')->put($rel, $body);
-            $abs = Storage::disk('local')->path($rel);
-
-            $parsed = $this->parser->parsePdfFile($abs);
-            if (empty($parsed['barkod'])) {
-                $parsed['barkod'] = $barkod;
-            }
-            if (empty($parsed['tc'])) {
-                $parsed['tc'] = $tc;
-            }
-
-            $ms = (int) ((hrtime(true) - $start) / 1e6);
-            $log = EdevletDogrulamaLog::create([
-                'barkod' => $barkod,
-                'tc_maskeli' => EdevletDogrulamaLog::maskTc($tc),
-                'durum' => 'basarili',
-                'sure_ms' => $ms,
-                'hata' => null,
-                'ip' => $ip,
-                'meta' => [
-                    'program' => $parsed['program'] ?? null,
-                    'ad' => $parsed['ad_soyad'] ?? null,
-                ],
-            ]);
-
-            return [
-                'ok' => true,
-                'parsed' => $parsed,
-                'pdf_path' => $rel,
-                'log_id' => $log->id,
-                'error' => null,
-                'sure_ms' => $ms,
-            ];
-        } catch (\Throwable $e) {
-            Log::warning('e-Devlet doğrulama hata', [
-                'barkod' => $barkod,
-                'message' => $e->getMessage(),
-            ]);
-
-            return $this->fail(
-                'Doğrulama sırasında hata: '.$e->getMessage(),
-                $barkod,
-                $tc,
-                $ip,
-                $start
-            );
         }
+
+        if (! str_starts_with($body, '%PDF')) {
+            return $this->fail('Mezun belgesi PDF alınamadı.', $barkod, $tc, $ip, $start, [
+                'step' => 5, 'attempt' => $attempt,
+            ]);
+        }
+
+        $rel = 'private/edevlet-mezun/'.date('Y/m').'/'.$barkod.'_'.Str::random(6).'.pdf';
+        Storage::disk('local')->put($rel, $body);
+        $abs = Storage::disk('local')->path($rel);
+
+        $parsed = $this->parser->parsePdfFile($abs);
+        if (empty($parsed['barkod'])) {
+            $parsed['barkod'] = $barkod;
+        }
+        if (empty($parsed['tc'])) {
+            $parsed['tc'] = $tc;
+        }
+
+        $ms = (int) ((hrtime(true) - $start) / 1e6);
+        $log = EdevletDogrulamaLog::create([
+            'barkod' => $barkod,
+            'tc_maskeli' => EdevletDogrulamaLog::maskTc($tc),
+            'durum' => 'basarili',
+            'sure_ms' => $ms,
+            'hata' => null,
+            'ip' => $ip,
+            'meta' => [
+                'program' => $parsed['program'] ?? null,
+                'ad' => $parsed['ad_soyad'] ?? null,
+                'attempt' => $attempt,
+            ],
+        ]);
+
+        return [
+            'ok' => true,
+            'parsed' => $parsed,
+            'pdf_path' => $rel,
+            'log_id' => $log->id,
+            'error' => null,
+            'sure_ms' => $ms,
+        ];
     }
 
     /**

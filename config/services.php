@@ -65,7 +65,8 @@ return [
     */
     'edevlet' => [
         'auto_verify' => filter_var(env('EDEVLET_AUTO_VERIFY', true), FILTER_VALIDATE_BOOLEAN),
-        'timeout' => (int) env('EDEVLET_TIMEOUT', 25),
+        'timeout' => (int) env('EDEVLET_TIMEOUT', 28),
+        'retry' => (int) env('EDEVLET_RETRY', 2),
         'ad_esik' => (float) env('EDEVLET_AD_ESIK', 0.85),
     ],
 

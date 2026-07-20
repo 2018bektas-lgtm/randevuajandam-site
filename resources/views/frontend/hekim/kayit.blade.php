@@ -189,7 +189,7 @@
                     <span class="w-1.5 h-7 rounded-full bg-[#C96A2B] block"></span>
                     Hekim Kaydı
                 </h2>
-                <p class="text-xs text-[#6B7280] mt-1.5 ml-4">Seçtiğiniz paket kaydedildi. Bilgilerinizi girin; belgeler onaylandıktan sonra ödemeye geçersiniz.</p>
+                <p class="text-xs text-[#6B7280] mt-1.5 ml-4">3 adım · yaklaşık 5–10 dk · paket seçili · mezuniyet doğrulanırsa otomatik onay mümkün.</p>
             </div>
             <div>
                 <a href="{{ route('frontend.hasta.giris') }}" 

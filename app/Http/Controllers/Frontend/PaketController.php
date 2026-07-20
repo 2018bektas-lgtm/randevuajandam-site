@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\KlinikKayitRequest;
+use App\Models\BelgeErisimLog;
 use App\Models\Brans;
 use App\Models\Doktor;
 use App\Models\DoktorMezuniyetBelgesi;
@@ -782,6 +783,8 @@ class PaketController extends Controller
         if ($path === '') {
             abort(404);
         }
+
+        BelgeErisimLog::kaydet($doktor->id, 'doktor', 'meslek_belgesi');
 
         if (str_starts_with($path, 'private/') || str_starts_with($path, 'meslek-belgeleri/')) {
             $diskPath = str_starts_with($path, 'private/') ? $path : 'private/'.$path;

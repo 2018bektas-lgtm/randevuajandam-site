@@ -80,9 +80,9 @@
         <li><strong>Kimlik:</strong> Ad, soyad, unvan</li>
         <li><strong>İletişim:</strong> Telefon, e-posta, adres (varsa), il/ilçe</li>
         <li><strong>Müşteri işlem:</strong> Randevu tarih/saat, hizmet, randevu durumu, iptal/erteleme kayıtları, eğitim başvuruları, bekleme listesi</li>
-        <li><strong>Mesleki:</strong> Branş, biyografi, diploma/mezuniyet bilgisi (hekim profili)</li>
-        <li><strong>Finans:</strong> Paket/üyelik, ödeme durumu, havale referansı; kart verisi Platform’da saklanmaz (ödeme kuruluşu / mağaza)</li>
-        <li><strong>İşlem güvenliği:</strong> IP, oturum, log, cihaz bilgisi, reCAPTCHA/güvenlik skorları, SMS doğrulama kayıtları</li>
+        <li><strong>Mesleki:</strong> Branş, biyografi, diploma/mezuniyet bilgisi, e-Devlet barkodlu YÖK mezun belgesi ve belge doğrulama sonuçları (hekim/sağlık profesyoneli kaydı)</li>
+        <li><strong>Finans:</strong> Paket/üyelik, ödeme durumu, havale referansı, fatura takip bayrağı; kart verisi Platform’da saklanmaz (PayTR / ödeme kuruluşu)</li>
+        <li><strong>İşlem güvenliği:</strong> IP, oturum, log, cihaz bilgisi, reCAPTCHA/güvenlik skorları, SMS doğrulama kayıtları, belge erişim logları</li>
         <li><strong>Pazarlama (rıza varsa):</strong> Kampanya bildirim tercihleri</li>
         <li><strong>Özel nitelikli (sınırlı):</strong> Randevu/eğitim formunda kullanıcı tarafından girilen sağlık notları</li>
     </ul>
@@ -91,6 +91,7 @@
     <ul>
         <li>Randevu oluşturma, onay, iptal, erteleme ve hatırlatma</li>
         <li>Hesap oluşturma, kimlik doğrulama (SMS OTP, e-posta, 2FA), güvenli oturum</li>
+        <li>Hekim/sağlık profesyoneli kaydında kimlik ve mezuniyet teyidi: e-Devlet barkodlu belge doğrulama, TC/ad soyad eşleştirmesi, meslek belgesi incelemesi</li>
         <li>Hekim/klinik paket ve abonelik yönetimi</li>
         <li>Eğitim/seminer başvurusu ve iletişim</li>
         <li>Destek taleplerinin yanıtlanması</li>

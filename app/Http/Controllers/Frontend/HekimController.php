@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brans;
+use Illuminate\Support\Facades\Route;
 use App\Models\Doktor;
 use App\Models\Il;
 use App\Models\Ilce;
@@ -134,6 +135,52 @@ class HekimController extends Controller
 
         $needsDomainOnboarding = $doktor->needsWebsiteDomainOnboarding();
 
+        $onboarding = [
+            [
+                'key' => 'meslek',
+                'label' => 'Meslek belgesi onayı',
+                'done' => $doktor->isMeslekOnayli(),
+                'href' => $doktor->isMeslekOnayli() ? null : route('frontend.hekim.meslek.bekleme'),
+                'cta' => 'Durumu gör',
+            ],
+            [
+                'key' => 'paket',
+                'label' => 'Paket / ödeme',
+                'done' => (bool) $doktor->paket_id && $doktor->uyelik_bitis && $doktor->uyelik_bitis->isFuture(),
+                'href' => route('frontend.hekim.paket_sec'),
+                'cta' => 'Paket seç',
+            ],
+            [
+                'key' => 'domain',
+                'label' => 'Web sitesi domaini',
+                'done' => ! $needsDomainOnboarding,
+                'href' => $needsDomainOnboarding
+                    ? route('frontend.hekim.onboarding.domain')
+                    : (Route::has('hekim.web-sitesi.kurulum') ? route('hekim.web-sitesi.kurulum') : null),
+                'cta' => 'Domain kur',
+                'skip' => ! $doktor->paket || (! $doktor->paket->hasFeature('web_sitesi') && ! $doktor->paket->hasFeature('klinik_web_sitesi') && ! ($doktor->paket->domain_dahil_mi ?? false)),
+            ],
+            [
+                'key' => 'hizmet',
+                'label' => 'İlk hizmet eklendi',
+                'done' => method_exists($doktor, 'hizmetler')
+                    ? $doktor->hizmetler()->exists()
+                    : \App\Models\Hizmet::where('doktor_id', $doktor->id)->exists(),
+                'href' => route('hekim.hizmetler.create'),
+                'cta' => 'Hizmet ekle',
+            ],
+            [
+                'key' => 'randevu',
+                'label' => 'İlk randevu / takvim',
+                'done' => $toplamRandevu > 0,
+                'href' => route('hekim.randevu.takvim'),
+                'cta' => 'Takvime git',
+            ],
+        ];
+        $onboarding = array_values(array_filter($onboarding, fn ($s) => empty($s['skip'])));
+        $onboardingDone = count(array_filter($onboarding, fn ($s) => $s['done']));
+        $onboardingTotal = count($onboarding);
+
         return view('hekim.panel', compact(
             'doktor',
             'toplamRandevu',
@@ -141,7 +188,10 @@ class HekimController extends Controller
             'bekleyenTalep',
             'klinikDurumu',
             'davetiyeler',
-            'needsDomainOnboarding'
+            'needsDomainOnboarding',
+            'onboarding',
+            'onboardingDone',
+            'onboardingTotal'
         ));
     }
 

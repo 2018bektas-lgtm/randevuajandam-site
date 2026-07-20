@@ -52,6 +52,38 @@
         </div>
     @endif
 
+    @if(!empty($onboarding) && ($onboardingDone ?? 0) < ($onboardingTotal ?? 0))
+        <div class="mb-6 p-5 md:p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div>
+                    <h4 class="font-bold text-[#111827] text-sm font-display">Kurulum listesi</h4>
+                    <p class="text-[11px] text-slate-500 mt-0.5">{{ $onboardingDone }}/{{ $onboardingTotal }} adım tamam</p>
+                </div>
+                <div class="h-2 w-32 rounded-full bg-slate-100 overflow-hidden">
+                    <div class="h-full bg-[#C96A2B] rounded-full" style="width: {{ $onboardingTotal ? round(100 * $onboardingDone / $onboardingTotal) : 0 }}%"></div>
+                </div>
+            </div>
+            <ul class="space-y-2.5">
+                @foreach($onboarding as $step)
+                    <li class="flex items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-2 min-w-0">
+                            @if($step['done'])
+                                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+                                <span class="text-slate-500 line-through">{{ $step['label'] }}</span>
+                            @else
+                                <span class="w-5 h-5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center text-[10px] font-bold shrink-0">!</span>
+                                <span class="font-semibold text-[#111827]">{{ $step['label'] }}</span>
+                            @endif
+                        </div>
+                        @if(! $step['done'] && ! empty($step['href']))
+                            <a href="{{ $step['href'] }}" class="shrink-0 text-[11px] font-bold text-[#C96A2B] underline">{{ $step['cta'] ?? 'Git' }}</a>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <!-- Clinic Invitations -->
     @if(isset($davetiyeler) && $davetiyeler->count() > 0)
         @foreach($davetiyeler as $davetiye)

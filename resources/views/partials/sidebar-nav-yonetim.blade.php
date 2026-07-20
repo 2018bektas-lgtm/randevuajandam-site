@@ -1,5 +1,9 @@
 @php
     $bekleyenYorum = \App\Models\Yorum::where('onay_durumu', 'beklemede')->count();
+    $bekleyenMeslek = \App\Models\Doktor::where('meslek_dogrulama_durumu', 'beklemede')->count();
+    $faturaBekleyen = \Illuminate\Support\Facades\Schema::hasColumn('uyelik_odemeleri', 'fatura_durumu')
+        ? \App\Models\UyelikOdeme::where('durum', 'onaylandi')->where('fatura_durumu', 'bekliyor')->count()
+        : 0;
 
     $ysbDash = [
         'href' => route('yonetim.panel'),
@@ -17,6 +21,19 @@
                 ['href' => route('yonetim.randevular'), 'match' => 'yonetim.randevular', 'label' => 'Randevular'],
                 ['href' => route('yonetim.hastalar'), 'match' => 'yonetim.hastalar', 'label' => 'Hastalar'],
                 ['href' => route('yonetim.uyelikler'), 'match' => 'yonetim.uyelikler', 'label' => 'Uyelikler'],
+                [
+                    'href' => route('yonetim.doktorlar.meslek-kuyruk'),
+                    'match' => 'yonetim.doktorlar.meslek-kuyruk',
+                    'label' => 'Meslek kuyrugu',
+                    'badge' => $bekleyenMeslek > 0 ? (string) $bekleyenMeslek : null,
+                ],
+                [
+                    'href' => route('yonetim.faturalar'),
+                    'match' => 'yonetim.faturalar*',
+                    'label' => 'Faturalar',
+                    'badge' => $faturaBekleyen > 0 ? (string) $faturaBekleyen : null,
+                ],
+                ['href' => route('yonetim.edevlet-loglari'), 'match' => 'yonetim.edevlet-loglari', 'label' => 'e-Devlet log'],
             ],
         ],
         [
