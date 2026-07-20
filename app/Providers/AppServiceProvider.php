@@ -15,8 +15,10 @@ use App\Policies\BlogPolicy;
 use App\Policies\HizmetPolicy;
 use App\Policies\KlinikPolicy;
 use App\Policies\RandevuPolicy;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -46,6 +48,58 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(RandevuDurumuDegisti::class, [RandevuLogKaydet::class, 'durumDegisti']);
         Event::listen(RandevuDurumuDegisti::class, [RandevuBildirimleriniGonder::class, 'durumDegisti']);
         Event::listen(RandevuDurumuDegisti::class, [RandevuFinansKaydet::class, 'durumDegisti']);
+
+        // Footer: popüler branşlar (gerçek slug + uzmanlık adı ile filtre)
+        View::composer('frontend.layouts.partials.footer', function ($view) {
+            $footerBranslar = Cache::remember('footer:populer_branslar', now()->addMinutes(30), function () {
+                $withDoctors = \App\Models\Brans::query()
+                    ->select(['id', 'ad', 'slug'])
+                    ->withCount(['doktorlar' => function ($q) {
+                        $q->where('aktif_mi', true);
+                    }])
+                    ->whereHas('doktorlar', function ($q) {
+                        $q->where('aktif_mi', true);
+                    })
+                    ->orderByDesc('doktorlar_count')
+                    ->limit(5)
+                    ->get();
+
+                if ($withDoctors->isNotEmpty()) {
+                    return $withDoctors;
+                }
+
+                // Henüz aktif hekim yoksa bilinen popüler branşları slug ile bul
+                $preferredSlugs = [
+                    'psikoloji',
+                    'beslenme-ve-diyetetik',
+                    'dis-hekimligi',
+                    'kadin-hastaliklari-ve-dogum',
+                    'dermatoloji-cildiye',
+                    'aile-hekimligi',
+                    'kardiyoloji',
+                ];
+
+                $found = \App\Models\Brans::query()
+                    ->select(['id', 'ad', 'slug'])
+                    ->whereIn('slug', $preferredSlugs)
+                    ->get()
+                    ->sortBy(fn ($b) => array_search($b->slug, $preferredSlugs, true))
+                    ->values()
+                    ->take(5);
+
+                if ($found->isNotEmpty()) {
+                    return $found;
+                }
+
+                return \App\Models\Brans::query()
+                    ->select(['id', 'ad', 'slug'])
+                    ->orderBy('ad')
+                    ->limit(5)
+                    ->get();
+            });
+
+            $view->with('footerBranslar', $footerBranslar);
+        });
 
         // Production safety rails (log critical misconfiguration)
         if ($this->app->environment('production')) {
