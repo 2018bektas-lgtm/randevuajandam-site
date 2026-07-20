@@ -136,12 +136,14 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
         position: absolute;
         width: 70px;
         height: 70px;
+        background: radial-gradient(circle, rgba(201, 106, 43, 0.4) 0%, transparent 70%);
         border-radius: 50%;
         z-index: 0;
         animation: pulse-glow 3s ease-in-out infinite;
         filter: blur(8px);
-        left: 0;
-        top: 0;
+        left: -10px;
+        top: 50%;
+        margin-top: -35px;
         pointer-events: none;
     }
 
@@ -188,6 +190,7 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+        color: transparent;
         animation: text-shimmer 5s linear infinite;
     }
     .brand-text-shimmer-light {
@@ -203,6 +206,7 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+        color: transparent;
         animation: text-shimmer 5s linear infinite;
     }
     </style>

@@ -52,7 +52,7 @@
 <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#E5E7EB] transition-all duration-300">
     <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <!-- Brand Logo -->
-        <a href="/" class="flex items-center gap-3 relative overflow-hidden group">
+        <a href="/" class="flex items-center gap-3 relative group">
             <div class="logo-ambient-glow"></div>
 
             <!-- Animated R Logo for Header -->
@@ -63,9 +63,9 @@
                 <div class="shimmer-overlay-small z-20"></div>
             </div>
 
-            <div class="z-10 flex flex-col justify-center select-none brand-text-shimmer">
-                <span class="block font-extrabold text-[#111827] text-base leading-none font-display">Randevu</span>
-                <span class="block font-bold text-[13px] mt-0.5 font-display">Ajandam</span>
+            <div class="z-10 flex flex-col justify-center select-none">
+                <span class="block font-extrabold text-base leading-none font-display brand-text-shimmer">Randevu</span>
+                <span class="block font-bold text-[13px] mt-0.5 font-display brand-text-shimmer">Ajandam</span>
             </div>
         </a>
 
