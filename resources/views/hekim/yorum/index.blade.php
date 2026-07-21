@@ -1,10 +1,19 @@
 @extends('hekim.layout')
 
 @section('baslik', 'Hasta Yorumları - Hekim Paneli')
-@section('sayfa_baslik', 'Hasta Yorumları')
+@section('sayfa_baslik', ($klinikGeneli ?? false) ? 'Klinik Hasta Yorumları' : 'Hasta Yorumları')
 
 @section('icerik')
 <div class="space-y-8">
+
+    <div class="bg-[#FFF7ED] border border-[#E7B58A]/40 rounded-2xl p-4 text-xs text-[#92400E] leading-relaxed">
+        @if($klinikGeneli ?? false)
+            Klinik sahibi olarak tüm hekimlere gelen yorumları görüntülüyor ve yanıtlayabilirsiniz.
+        @else
+            Hastalarınızın yorumlarını buradan görüntüleyip yanıtlayabilirsiniz.
+        @endif
+        Yayın onayı ve silme yalnızca platform yönetimi tarafından yapılır (adil puanlama).
+    </div>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -90,10 +99,21 @@
                     @endfor
                 </select>
             </div>
+            @if(($klinikGeneli ?? false) && isset($klinikDoktorlar) && $klinikDoktorlar->isNotEmpty())
+            <div class="space-y-1">
+                <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hekim</label>
+                <select name="doktor_id" class="px-3 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] text-xs focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B]">
+                    <option value="">Tüm hekimler</option>
+                    @foreach($klinikDoktorlar as $kd)
+                        <option value="{{ $kd->id }}" {{ (string) request('doktor_id') === (string) $kd->id ? 'selected' : '' }}>{{ $kd->ad_soyad }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
             <button type="submit" class="px-4 py-2 bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display">
                 Filtrele
             </button>
-            @if(request()->hasAny(['durum', 'puan']))
+            @if(request()->hasAny(['durum', 'puan', 'doktor_id']))
                 <a href="{{ route('hekim.yorumlar.index') }}" class="px-4 py-2 border border-[#E5E7EB] hover:bg-slate-50 text-[#6B7280] font-bold text-xs uppercase tracking-wider rounded-xl transition-all font-display">
                     Temizle
                 </a>
@@ -115,6 +135,9 @@
                             <p class="text-sm font-bold text-[#111827] font-display">{{ $yorum->hasta->ad_soyad }}</p>
                             <p class="text-[10px] text-[#6B7280]">
                                 {{ $yorum->created_at->translatedFormat('d M Y, H:i') }}
+                                @if(($klinikGeneli ?? false) && $yorum->doktor)
+                                    &middot; {{ $yorum->doktor->ad_soyad }}
+                                @endif
                                 @if($yorum->randevu && $yorum->randevu->hizmet)
                                     &middot; {{ $yorum->randevu->hizmet->ad }}
                                 @endif

@@ -969,7 +969,11 @@ class MobileDoctorController extends Controller
         if ($paket && method_exists($paket, 'sistemOzellikleri')) {
             $features = $paket->sistemOzellikleri()->pluck('kod')->filter()->values()->all();
         }
-        $demoMu = $paket === null || $features === [];
+        // Danışan yorumları çekirdek panel özelliği (tüm paketlerde list+yanıt)
+        if ($paket && ! in_array('yorum', $features, true)) {
+            $features[] = 'yorum';
+        }
+        $demoMu = $paket === null;
 
         return [
             'uyelik_baslangic' => $baslangicStr,
@@ -996,12 +1000,16 @@ class MobileDoctorController extends Controller
         $features = $membership['features'] ?? [];
 
         // features = allowlist. Boş liste = premium modül yok (demo/starter çekirdek panel).
-        // Eski "restrict:false when empty" sızıntısı kapatıldı.
+        // yorum her aktif pakette (çekirdek) — menü "paket yükselt" göstermesin.
+        if (($membership['paket'] ?? null) && ! in_array('yorum', $features, true)) {
+            $features[] = 'yorum';
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
                 'paket' => $membership['paket'],
-                'features' => $features,
+                'features' => array_values($features),
                 'restrict' => true,
                 'feature_mode' => 'allowlist',
                 'uyelik' => $membership,

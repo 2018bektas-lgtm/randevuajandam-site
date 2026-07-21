@@ -51,6 +51,8 @@
                     'label' => 'Egitim basvurulari',
                     'locked' => ! $hasEgitimler,
                 ],
+                // Yorum listesi/yanıt tüm aktif panellerde (paket gate yok; onay yalnızca yönetimde)
+                ['href' => route('hekim.yorumlar.index'), 'match' => 'hekim.yorumlar.*', 'label' => 'Hasta Yorumlari'],
                 ['href' => $hasFaq ? route('hekim.faqs.index') : $paketYukseltUrl, 'match' => 'hekim.faqs.*', 'label' => 'SSS', 'locked' => ! $hasFaq],
                 ['href' => $hasGaleri ? route('hekim.galeriler.index') : $paketYukseltUrl, 'match' => 'hekim.galeriler.*', 'label' => 'Fotograf Galerisi', 'locked' => ! $hasGaleri],
             ],
