@@ -17,11 +17,23 @@
             </svg>
         </div>
 
+        @if(session('basarili'))
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-900 font-semibold text-left">
+                {{ session('basarili') }}
+            </div>
+        @endif
+
+        <div class="text-left w-full">
+            @include('frontend.hekim.partials.havale_bildirim_durumu')
+        </div>
+
         <!-- Success Header -->
         <div class="space-y-3">
             <h1 class="text-3xl font-extrabold font-display text-[#111827] tracking-tight">
                 @if($doktor->isOnTrial())
                     Denemeniz başladı!
+                @elseif(!empty($sonOnayliHavale) && empty($bekleyenHavale))
+                    Havale onaylandı — üyelik aktif!
                 @else
                     Üyeliğiniz Başarıyla Oluşturuldu!
                 @endif
@@ -30,6 +42,11 @@
                 <p class="text-xs text-[#6B7280] leading-relaxed max-w-sm mx-auto">
                     Aramıza hoş geldiniz! <strong class="text-emerald-700">{{ $doktor->uyelik_bitis?->format('d.m.Y') }}</strong> tarihine kadar
                     ücretsiz deneme aktif. Süre bitince girişte paket seçip ödeme yapmanız istenir.
+                </p>
+            @elseif(!empty($sonOnayliHavale) && empty($bekleyenHavale))
+                <p class="text-xs text-[#6B7280] leading-relaxed max-w-sm mx-auto">
+                    Banka havaleniz yönetici tarafından onaylandı.
+                    <strong class="text-emerald-700">Paneliniz açıldı</strong> — randevu ve hasta yönetimine başlayabilirsiniz.
                 </p>
             @elseif($doktor->paket && (float) $doktor->paket->aylik_fiyat == 0)
                 <p class="text-xs text-[#6B7280] leading-relaxed max-w-sm mx-auto">

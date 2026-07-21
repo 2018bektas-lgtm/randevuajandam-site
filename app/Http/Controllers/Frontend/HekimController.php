@@ -84,6 +84,16 @@ class HekimController extends Controller
 
             // Deneme / üyelik dolmuşsa panele değil paket seçimine
             if (is_null($user->paket_id) && ! $user->klinikteMi()) {
+                $bekleyen = UyelikOdeme::bekleyenHavaleForDoktor((int) $user->id);
+                if ($bekleyen) {
+                    return redirect()
+                        ->route('frontend.hekim.paket_ode', [
+                            'paket' => $bekleyen->paket_id,
+                            'periyot' => $bekleyen->odeme_periyodu ?: 'aylik',
+                        ])
+                        ->with('basarili', 'Havale bildiriminiz hâlâ yönetici onayı bekliyor. Durumu bu sayfada görebilirsiniz.');
+                }
+
                 return redirect()->route('frontend.hekim.paket_sec')
                     ->with('basarili', 'Hoş geldiniz. Başlamak için paket seçin — Başlangıç paketinde 14 gün ücretsiz deneme.');
             }
@@ -93,6 +103,17 @@ class HekimController extends Controller
                     : 'Üyelik süreniz dolmuş. Devam etmek için paket seçip ödeme yapın.';
 
                 return redirect()->route('frontend.hekim.paket_sec')->with('hata', $msg);
+            }
+
+            // Yeni onaylı havale → başarı sayfası (çok net mesaj)
+            $yeniHavaleOnay = UyelikOdeme::sonOnayliHavaleForDoktor((int) $user->id, 7);
+            if ($yeniHavaleOnay && $user->hasActiveMembership()) {
+                return redirect()
+                    ->route('frontend.hekim.basarili')
+                    ->with(
+                        'basarili',
+                        'Havale ödemeniz onaylandı — üyeliğiniz aktif. Panele geçerek kullanmaya başlayabilirsiniz.'
+                    );
             }
 
             return redirect()->route('hekim.panel');
@@ -185,7 +206,7 @@ class HekimController extends Controller
 
         $bekleyenHavale = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
         $sonOnayliHavale = ! $bekleyenHavale
-            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id)
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 30)
             : null;
 
         return view('hekim.panel', compact(

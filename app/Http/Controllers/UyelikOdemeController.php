@@ -86,12 +86,18 @@ class UyelikOdemeController extends Controller
 
             $doktor->update([
                 'paket_id' => $paket->id,
+                // Kayıt niyeti temiz — hekim ödeme/seçim döngüsünde kalmasın
+                'kayit_paket_id' => null,
+                'kayit_periyot' => null,
                 'odeme_periyodu' => $odeme->odeme_periyodu,
                 'uyelik_baslangic' => $baslangic,
                 'uyelik_bitis' => $bitis,
-                'iyzico_subscription_reference_code' => null,
+                'iyzico_subscription_reference_code' => 'havale_'.$odeme->id,
                 'iyzico_subscription_status' => 'BANK_TRANSFER_CONFIRMED',
                 'platformda_gorunur' => true,
+                'abonelik_yenileme_kapali' => false,
+                'abonelik_iptal_at' => null,
+                'abonelik_iptal_nedeni' => null,
             ]);
 
             $odeme->update([
@@ -106,6 +112,9 @@ class UyelikOdemeController extends Controller
             app(ReferansService::class)->odullendir($odeme);
         }
 
-        return back()->with('basarili', 'Havale onaylandı ve üyelik aktifleştirildi.');
+        return back()->with(
+            'basarili',
+            'Havale onaylandı. Hekim üyeliği aktif; panele girince “Havale onaylandı / Üyelik aktif” kartını görecek.'
+        );
     }
 }

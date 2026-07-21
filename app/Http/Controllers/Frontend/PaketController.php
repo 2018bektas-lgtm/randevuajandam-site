@@ -939,8 +939,11 @@ class PaketController extends Controller
 
         // Deneme aktifken domain adımına zorlama (starter'da web yok)
         // Ödeme sonrası zorunlu domain adımı (atlandıysa veya tamamlandıysa değil)
+        // Havale yeni onaylandığında domain zorlamadan önce başarı ekranı gösterilsin
+        $yeniHavaleOnay = UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 7);
         if (
             ! $doktor->isOnTrial()
+            && ! $yeniHavaleOnay
             && $doktor->needsWebsiteDomainOnboarding()
             && ! session('onboarding_domain_skipped')
             && ! session('onboarding_domain_done')
@@ -949,13 +952,18 @@ class PaketController extends Controller
             return redirect()->route('frontend.hekim.onboarding.domain');
         }
 
+        $bekleyenHavale = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
+        $sonOnayliHavale = ! $bekleyenHavale
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 30)
+            : null;
+
         if ($doktor->klinikSahibiMi() && $doktor->klinik) {
             $klinik = $doktor->klinik;
 
-            return view('frontend.klinik.basarili', compact('klinik'));
+            return view('frontend.klinik.basarili', compact('klinik', 'bekleyenHavale', 'sonOnayliHavale', 'doktor'));
         }
 
-        return view('frontend.paketler.basarili', compact('doktor'));
+        return view('frontend.paketler.basarili', compact('doktor', 'bekleyenHavale', 'sonOnayliHavale'));
     }
 
     /**
@@ -1374,10 +1382,31 @@ class PaketController extends Controller
         }
 
         $doktor = Auth::guard('doktor')->user();
-        $doktor->loadMissing('kayitPaketi');
+        $doktor->loadMissing('kayitPaketi', 'paket');
+
+        $bekleyenHavaleEarly = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
+        $sonOnayliEarly = ! $bekleyenHavaleEarly
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 30)
+            : null;
+
+        // Havale onaylandı + aktif üyelik: ödeme/seçim labirentinde bırakma
+        if (
+            ! $request->boolean('degistir')
+            && ! $bekleyenHavaleEarly
+            && $doktor->hasActiveMembership()
+            && $sonOnayliEarly
+        ) {
+            return redirect()
+                ->route('frontend.hekim.basarili')
+                ->with(
+                    'basarili',
+                    'Havale ödemeniz onaylandı — üyeliğiniz aktif. Aşağıda paket özetinizi görebilirsiniz.'
+                );
+        }
 
         // Kayıt niyeti varsa ve değiştirmek istemiyorsa tekrar seçtirme
-        if ($doktor->hasKayitPaketNiyeti() && ! $request->boolean('degistir')) {
+        // (bekleyen havale varsa ödeme sayfasında durum kartı görsün)
+        if ($doktor->hasKayitPaketNiyeti() && ! $request->boolean('degistir') && ! $bekleyenHavaleEarly) {
             return redirect()->to($doktor->checkoutUrlAfterMeslek());
         }
 
@@ -1389,10 +1418,8 @@ class PaketController extends Controller
         $klinikPaketler = $paketler->where('tur', 'klinik')->values();
         $maxYillikTasarrufYuzde = $this->maxYillikTasarrufYuzde($paketler);
 
-        $bekleyenHavale = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
-        $sonOnayliHavale = ! $bekleyenHavale
-            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id)
-            : null;
+        $bekleyenHavale = $bekleyenHavaleEarly;
+        $sonOnayliHavale = $sonOnayliEarly;
 
         return view('frontend.hekim.paket_sec', compact(
             'doktor',
@@ -1566,8 +1593,26 @@ class PaketController extends Controller
             ? UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id)
             : null;
         $sonOnayliHavale = ($doktor && ! $bekleyenHavale)
-            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id)
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 30)
             : null;
+
+        // Aktif üyelik + onaylı havale: ödeme formunda “ne oldu?” belirsizliği olmasın
+        if (
+            $doktor
+            && ! $bekleyenHavale
+            && $doktor->hasActiveMembership()
+            && $sonOnayliHavale
+            && ! $request->boolean('degistir')
+        ) {
+            return redirect()
+                ->route('frontend.hekim.basarili')
+                ->with(
+                    'basarili',
+                    'Havale ödemeniz onaylandı. Üyeliğiniz aktif — ödeme tekrarı gerekmez.'
+                );
+        }
+
+        $showAktifUyelikKart = $doktor && $doktor->hasActiveMembership() && ! $bekleyenHavale && ! $sonOnayliHavale;
 
         MetaPixel::queue('InitiateCheckout', array_merge(
             MetaPixel::money((float) $tutar),
@@ -1594,6 +1639,7 @@ class PaketController extends Controller
             'pendingDomain',
             'bekleyenHavale',
             'sonOnayliHavale',
+            'showAktifUyelikKart',
         ));
     }
 

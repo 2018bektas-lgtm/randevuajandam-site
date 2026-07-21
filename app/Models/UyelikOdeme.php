@@ -80,16 +80,26 @@ class UyelikOdeme extends Model
 
     /**
      * Son onaylı havale (durum kartı).
+     * $onlyRecentDays: sadece son N günde onaylananlar (null = hepsi).
      */
-    public static function sonOnayliHavaleForDoktor(int $doktorId): ?self
+    public static function sonOnayliHavaleForDoktor(int $doktorId, ?int $onlyRecentDays = 30): ?self
     {
-        return static::query()
+        $q = static::query()
             ->havale()
             ->where('durum', 'onaylandi')
             ->with('paket')
-            ->where('doktor_id', $doktorId)
-            ->latest('onaylandi_at')
-            ->latest('id')
-            ->first();
+            ->where('doktor_id', $doktorId);
+
+        if ($onlyRecentDays !== null) {
+            $q->where(function ($w) use ($onlyRecentDays) {
+                $w->where('onaylandi_at', '>=', now()->subDays($onlyRecentDays))
+                    ->orWhere(function ($w2) use ($onlyRecentDays) {
+                        $w2->whereNull('onaylandi_at')
+                            ->where('updated_at', '>=', now()->subDays($onlyRecentDays));
+                    });
+            });
+        }
+
+        return $q->latest('onaylandi_at')->latest('id')->first();
     }
 }

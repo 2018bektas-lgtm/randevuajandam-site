@@ -24,7 +24,7 @@ class HekimUyelikController extends Controller
         $klinik = $doktor->klinikSahibiMi() ? $doktor->klinik : null;
         $bekleyenHavale = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
         $sonOnayliHavale = ! $bekleyenHavale
-            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id)
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 30)
             : null;
         $sonOdemeler = UyelikOdeme::query()
             ->with('paket')
