@@ -3,14 +3,39 @@
 namespace App\Support;
 
 /**
- * Meta (Facebook) Pixel standart olay kuyruğu.
- * tracking.blade.php içinde PageView sonrası çekilir ve fbq('track', ...) ile gönderilir.
+ * Meta Pixel olay kuyruğu.
+ *
+ * Sağlık/kişisel reklam kısıtlarında Schedule, Lead, Purchase vb. standart olaylar
+ * bastırılabilir. Bu yüzden kısıtlı olaylar RA_* custom event olarak gönderilir
+ * (Events Manager'da custom conversion olarak tanımlanabilir).
  */
 class MetaPixel
 {
     public const SESSION_KEY = 'meta_pixel_events';
 
     public const ONCE_KEY = 'meta_pixel_once';
+
+    /**
+     * Meta'nın sağlık kategorisinde sık bastırdığı standart olaylar → custom isim.
+     *
+     * @var array<string, string>
+     */
+    public const RESTRICTED_TO_CUSTOM = [
+        'Schedule' => 'RA_Booking',
+        'Lead' => 'RA_Lead',
+        'CompleteRegistration' => 'RA_Register',
+        'Purchase' => 'RA_Purchase',
+        'Subscribe' => 'RA_Subscribe',
+        'StartTrial' => 'RA_Trial',
+        'InitiateCheckout' => 'RA_Checkout',
+        'AddToCart' => 'RA_AddToCart',
+        'AddPaymentInfo' => 'RA_PaymentInfo',
+        'Contact' => 'RA_Contact',
+        'SubmitApplication' => 'RA_Application',
+        'FindLocation' => 'RA_FindLocation',
+        'Search' => 'RA_Search',
+        // ViewContent ve PageView genelde üst huni — standart kalsın
+    ];
 
     /**
      * Olayı oturuma ekle (aynı istek veya bir sonraki sayfa yüklemesinde fire edilir).
@@ -24,13 +49,15 @@ class MetaPixel
             return;
         }
 
+        $mapped = self::mapEvent($event);
         $events = session()->get(self::SESSION_KEY, []);
         if (! is_array($events)) {
             $events = [];
         }
 
         $events[] = [
-            'event' => $event,
+            'event' => $mapped['event'],
+            'custom' => $mapped['custom'],
             'params' => self::sanitizeParams($params),
         ];
 
@@ -38,7 +65,7 @@ class MetaPixel
     }
 
     /**
-     * Aynı anahtar için yalnızca bir kez kuyruğa al (Purchase yenilemede çift sayım olmasın).
+     * Aynı anahtar için yalnızca bir kez kuyruğa al.
      *
      * @param  array<string, mixed>  $params
      */
@@ -61,7 +88,6 @@ class MetaPixel
         }
 
         $done[$dedupeKey] = true;
-        // Oturum boyu tut; aşırı şişmesin diye son 80 anahtarı sakla
         if (count($done) > 80) {
             $done = array_slice($done, -80, null, true);
         }
@@ -71,9 +97,27 @@ class MetaPixel
     }
 
     /**
-     * Kuyruğu al ve temizle (tracking partial).
-     *
-     * @return list<array{event: string, params: array<string, mixed>}>
+     * @return array{event: string, custom: bool}
+     */
+    public static function mapEvent(string $event): array
+    {
+        if (isset(self::RESTRICTED_TO_CUSTOM[$event])) {
+            return [
+                'event' => self::RESTRICTED_TO_CUSTOM[$event],
+                'custom' => true,
+            ];
+        }
+
+        // Zaten RA_ ile başlıyorsa custom
+        if (str_starts_with($event, 'RA_')) {
+            return ['event' => $event, 'custom' => true];
+        }
+
+        return ['event' => $event, 'custom' => false];
+    }
+
+    /**
+     * @return list<array{event: string, custom: bool, params: array<string, mixed>}>
      */
     public static function pull(): array
     {
@@ -88,9 +132,21 @@ class MetaPixel
             if (! is_array($item) || empty($item['event'])) {
                 continue;
             }
+            $mapped = self::mapEvent((string) $item['event']);
+            // Eski kuyruk formatı: custom bayrağı yoksa yeniden map
+            $custom = array_key_exists('custom', $item)
+                ? (bool) $item['custom']
+                : $mapped['custom'];
+            $name = array_key_exists('custom', $item)
+                ? (string) $item['event']
+                : $mapped['event'];
+
             $out[] = [
-                'event' => (string) $item['event'],
-                'params' => is_array($item['params'] ?? null) ? $item['params'] : [],
+                'event' => $name,
+                'custom' => $custom,
+                'params' => is_array($item['params'] ?? null)
+                    ? self::sanitizeParams($item['params'])
+                    : [],
             ];
         }
 
@@ -98,15 +154,27 @@ class MetaPixel
     }
 
     /**
+     * Sağlık/PHI ima eden alanları temizle; sadece güvenli ölçüm parametreleri.
+     *
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
     public static function sanitizeParams(array $params): array
     {
+        // Hassas / gereksiz anahtarlar gönderme
+        $denyKeys = [
+            'status', 'email', 'phone', 'em', 'ph', 'fn', 'ln',
+            'external_id', 'content_category', 'predicted_ltv',
+        ];
+
         $clean = [];
         foreach ($params as $key => $value) {
-            if (! is_string($key) || $key === '') {
+            if (! is_string($key) || $key === '' || in_array($key, $denyKeys, true)) {
                 continue;
+            }
+            // content_name'den tıbbi branş ima eden uzun metinleri kısalt / genelle
+            if ($key === 'content_name' && is_string($value)) {
+                $value = self::genericContentName($value);
             }
             if (is_array($value)) {
                 $clean[$key] = array_values(array_map(
@@ -120,12 +188,50 @@ class MetaPixel
             }
         }
 
+        // content_type her zaman product (e-ticaret benzeri SaaS)
+        if (! isset($clean['content_type'])) {
+            $clean['content_type'] = 'product';
+        }
+
         return $clean;
     }
 
+    protected static function genericContentName(string $name): string
+    {
+        $name = trim($name);
+        // Branş/hekim adı yerine genel etiket
+        $generics = [
+            'randevu' => 'booking',
+            'misafir' => 'booking',
+            'bekleme' => 'waitlist',
+            'kayıt' => 'signup',
+            'kayit' => 'signup',
+            'hasta' => 'signup',
+            'hekim' => 'signup',
+            'klinik' => 'signup',
+            'paket' => 'subscription',
+            'deneme' => 'trial',
+            'eğitim' => 'lead',
+            'egitim' => 'lead',
+            'iletişim' => 'contact',
+            'iletisim' => 'contact',
+        ];
+        $lower = mb_strtolower($name);
+        foreach ($generics as $needle => $label) {
+            if (str_contains($lower, $needle)) {
+                return $label;
+            }
+        }
+
+        // Bilinmeyen adları ID'ye indirgeme: generic product
+        if (mb_strlen($name) > 40) {
+            return 'product';
+        }
+
+        return $name;
+    }
+
     /**
-     * Para birimli değer parametreleri (Purchase / Subscribe / StartTrial).
-     *
      * @return array{value: float, currency: string}
      */
     public static function money(float $value, string $currency = 'TRY'): array

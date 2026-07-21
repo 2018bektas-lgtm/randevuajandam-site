@@ -43,18 +43,47 @@ gtag('config', '{{ $ads }}');
 
 <script>
 (function(){
+  // Sağlık kategorisinde bastırılan standart olaylar → custom (RA_*)
+  var RA_RESTRICTED = {
+    Schedule: 'RA_Booking', Lead: 'RA_Lead', CompleteRegistration: 'RA_Register',
+    Purchase: 'RA_Purchase', Subscribe: 'RA_Subscribe', StartTrial: 'RA_Trial',
+    InitiateCheckout: 'RA_Checkout', AddToCart: 'RA_AddToCart', AddPaymentInfo: 'RA_PaymentInfo',
+    Contact: 'RA_Contact', SubmitApplication: 'RA_Application', FindLocation: 'RA_FindLocation',
+    Search: 'RA_Search'
+  };
+
+  function raFbqSend(eventName, params, forceCustom){
+    if (!eventName || typeof fbq !== 'function') return;
+    var name = eventName;
+    var custom = !!forceCustom;
+    if (RA_RESTRICTED[name]) {
+      name = RA_RESTRICTED[name];
+      custom = true;
+    }
+    if (name.indexOf('RA_') === 0) custom = true;
+    var p = params && typeof params === 'object' ? params : {};
+    // Kısıt riski: kategori/status gönderme
+    if (p.content_category) delete p.content_category;
+    if (p.status !== undefined) delete p.status;
+    try {
+      if (custom) {
+        if (Object.keys(p).length) fbq('trackCustom', name, p);
+        else fbq('trackCustom', name);
+      } else {
+        if (Object.keys(p).length) fbq('track', name, p);
+        else fbq('track', name);
+      }
+    } catch (e) {}
+  }
+
   window.raMetaPixelQueue = window.raMetaPixelQueue || [];
   window.raMetaTrack = function(eventName, params){
     if (!eventName) return;
     try {
       if (typeof fbq === 'function') {
-        if (params && typeof params === 'object' && Object.keys(params).length) {
-          fbq('track', eventName, params);
-        } else {
-          fbq('track', eventName);
-        }
+        raFbqSend(eventName, params || {}, false);
       } else {
-        window.raMetaPixelQueue.push({ event: eventName, params: params || {} });
+        window.raMetaPixelQueue.push({ event: eventName, params: params || {}, custom: false });
       }
     } catch (e) {}
   };
@@ -68,23 +97,20 @@ gtag('config', '{{ $ads }}');
     t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script',
     'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init','{{ $pixel }}');
+    // PageView üst huni — genelde kısıtlanmaz
     fbq('track','PageView');
 
     var serverEvents = @json($metaPixelEvents);
     if (Array.isArray(serverEvents)) {
       serverEvents.forEach(function(item){
         if (!item || !item.event) return;
-        var p = item.params || {};
-        if (p && Object.keys(p).length) fbq('track', item.event, p);
-        else fbq('track', item.event);
+        raFbqSend(item.event, item.params || {}, !!item.custom);
       });
     }
     if (window.raMetaPixelQueue && window.raMetaPixelQueue.length) {
       window.raMetaPixelQueue.forEach(function(item){
         if (!item || !item.event) return;
-        var p = item.params || {};
-        if (p && Object.keys(p).length) fbq('track', item.event, p);
-        else fbq('track', item.event);
+        raFbqSend(item.event, item.params || {}, !!item.custom);
       });
       window.raMetaPixelQueue = [];
     }
@@ -92,7 +118,6 @@ gtag('config', '{{ $ads }}');
   }
 
 @if($pixel !== '')
-  // Meta: kısa gecikme (LCP); GA artık anında
   if ('requestIdleCallback' in window) requestIdleCallback(loadMetaPixel, {timeout: 2000});
   else window.addEventListener('load', function(){ setTimeout(loadMetaPixel, 400); });
 @endif
@@ -102,6 +127,7 @@ gtag('config', '{{ $ads }}');
     if (!el) return;
     var name = el.getAttribute('data-meta-event');
     if (!name) return;
+    // data-meta-event="Contact" → RA_Contact
     var raw = el.getAttribute('data-meta-params');
     var params = {};
     if (raw) {
