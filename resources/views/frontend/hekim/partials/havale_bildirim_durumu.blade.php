@@ -134,20 +134,29 @@
                 </div>
             </dl>
 
-            <div class="flex flex-col sm:flex-row flex-wrap gap-2 pt-1">
-                @if(Route::has('hekim.panel'))
+            <div class="flex flex-col sm:flex-row flex-wrap gap-2 pt-1 items-stretch sm:items-center">
+                @if(Route::has('hekim.panel') && ! request()->routeIs('hekim.panel'))
                     <a href="{{ route('hekim.panel') }}"
                        class="inline-flex justify-center items-center px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-colors">
                         Panele git — kullanmaya başla
                     </a>
                 @endif
-                @if(Route::has('hekim.uyelik'))
+                @if(Route::has('hekim.uyelik') && ! request()->routeIs('hekim.uyelik'))
                     <a href="{{ route('hekim.uyelik') }}"
                        class="inline-flex justify-center items-center px-5 py-3 rounded-xl border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-900 text-sm font-bold transition-colors">
                         Üyelik detayı
                     </a>
                 @endif
+                @if(!empty($havaleKartKapatilabilir) && $havaleKartKapatilabilir && Route::has('hekim.panel'))
+                    <a href="{{ route('hekim.panel', ['havale_onay_kapat' => 1, 'odeme_id' => $o->id]) }}"
+                       class="inline-flex justify-center items-center px-4 py-3 rounded-xl text-sm font-semibold text-emerald-800/80 hover:text-emerald-950 underline underline-offset-2">
+                        Anladım, bu kartı kapat
+                    </a>
+                @endif
             </div>
+            <p class="text-[10px] text-emerald-800/70 pt-1">
+                Bu tebrik kartı kalıcı değildir — en fazla birkaç gün görünür; kapatabilir veya üyelik özetini “Üyelik detayı”ndan izleyebilirsiniz.
+            </p>
         </div>
     </div>
 @elseif($aktifUyelik && !empty($showAktifUyelikKart) && $showAktifUyelikKart)

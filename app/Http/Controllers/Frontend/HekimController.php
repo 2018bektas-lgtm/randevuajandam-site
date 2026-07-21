@@ -139,11 +139,21 @@ class HekimController extends Controller
     /**
      * Display the doctor dashboard.
      */
-    public function panel()
+    public function panel(\Illuminate\Http\Request $request)
     {
         /** @var Doktor $doktor */
         $doktor = Auth::guard('doktor')->user();
         $doktor->load('il', 'ilce', 'webSite', 'klinik.webSite', 'paket');
+
+        // Onay tebrik kartını kapat (kalıcı değil — oturum boyu / yeni onayda yeniden çıkar)
+        if ($request->boolean('havale_onay_kapat')) {
+            $id = (int) $request->query('odeme_id', 0);
+            if ($id > 0) {
+                session(['havale_onay_dismissed_id' => $id]);
+            }
+
+            return redirect()->route('hekim.panel');
+        }
 
         $toplamRandevu = $doktor->randevular()->count();
         $kayitliHasta = $doktor->randevular()->distinct('hasta_id')->count('hasta_id');
@@ -205,9 +215,14 @@ class HekimController extends Controller
         $onboardingTotal = count($onboarding);
 
         $bekleyenHavale = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
+        // Panel: tebrik kartı en fazla 7 gün; kapatıldıysa gösterme
         $sonOnayliHavale = ! $bekleyenHavale
-            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 30)
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 7)
             : null;
+        if ($sonOnayliHavale && (int) session('havale_onay_dismissed_id') === (int) $sonOnayliHavale->id) {
+            $sonOnayliHavale = null;
+        }
+        $havaleKartKapatilabilir = true;
 
         return view('hekim.panel', compact(
             'doktor',
@@ -222,6 +237,7 @@ class HekimController extends Controller
             'onboardingTotal',
             'bekleyenHavale',
             'sonOnayliHavale',
+            'havaleKartKapatilabilir',
         ));
     }
 

@@ -23,8 +23,9 @@ class HekimUyelikController extends Controller
 
         $klinik = $doktor->klinikSahibiMi() ? $doktor->klinik : null;
         $bekleyenHavale = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
+        // Üyelik sayfasında büyük tebrik yalnızca son 7 gün (kalıcı kayıt tabloda)
         $sonOnayliHavale = ! $bekleyenHavale
-            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 30)
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 7)
             : null;
         $sonOdemeler = UyelikOdeme::query()
             ->with('paket')
