@@ -133,7 +133,7 @@ class Klinik extends Model
     }
 
     /**
-     * Yalnızca en yüksek paket (Kurumsal) klinik_web_sitesi özelliğine sahiptir.
+     * Klinik web sitesi: paket üzerinde klinik_web_sitesi özelliği olan paketler.
      */
     public function hasWebSitesiFeature(): bool
     {

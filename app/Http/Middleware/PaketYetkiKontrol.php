@@ -21,6 +21,7 @@ class PaketYetkiKontrol
         'web_sitesi' => 'Kişisel web sitesi',
         'klinik_web_sitesi' => 'Klinik web sitesi',
         'egitimler' => 'Eğitimler ve başvuru formu',
+        'online_gorusme' => 'Online görüntülü görüşme',
     ];
 
     public function handle(Request $request, Closure $next, string $feature): Response

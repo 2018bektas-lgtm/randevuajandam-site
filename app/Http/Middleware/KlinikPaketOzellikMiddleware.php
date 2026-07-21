@@ -29,7 +29,7 @@ class KlinikPaketOzellikMiddleware
                 'merkezi_finans' => 'Merkezi finans bu klinik paketinde yer almıyor. Paketinizi yükseltin.',
                 'raporlama' => 'Gelişmiş raporlama bu klinik paketinde yer almıyor. Paketinizi yükseltin.',
                 'hasta_havuzu' => 'Ortak hasta havuzu bu klinik paketinde yer almıyor. Paketinizi yükseltin.',
-                'klinik_web_sitesi' => 'Klinik web sitesi yalnızca Klinik Kurumsal paketinde sunulur.',
+                'klinik_web_sitesi' => 'Klinik web sitesi bu pakette yok. Klinik Özel Web Sitesi paketine yükseltin.',
             ];
 
             $message = $messages[$flag] ?? 'Bu özellik mevcut klinik paketinizde yer almamaktadır.';
