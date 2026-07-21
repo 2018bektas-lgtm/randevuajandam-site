@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Blog;
 use App\Models\Brans;
 use App\Models\Doktor;
+use App\Models\Hizmet;
 use App\Models\Il;
 use App\Models\Ilce;
 use App\Models\Paket;
@@ -149,5 +151,39 @@ class PlatformGorunurlukTest extends TestCase
         ]);
 
         $this->assertFalse($this->doktor->fresh()->isListedOnPlatform());
+    }
+
+    public function test_hidden_doctor_blog_and_service_return_404(): void
+    {
+        $blog = Blog::create([
+            'doktor_id' => $this->doktor->id,
+            'baslik' => 'Gizli Hekim Blogu XYZ',
+            'slug' => 'gizli-hekim-blogu-xyz',
+            'icerik' => 'Test icerik',
+            'aktif_mi' => true,
+        ]);
+        $hizmet = Hizmet::create([
+            'doktor_id' => $this->doktor->id,
+            'ad' => 'Gizli Hizmet ABC',
+            'slug' => 'gizli-hizmet-abc',
+            'aktif_mi' => true,
+            'fiyat' => 100,
+            'sure' => 30,
+        ]);
+
+        $blogPath = $this->profilPath.'/blog/'.$blog->slug;
+        $hizmetPath = $this->profilPath.'/hizmet/'.$hizmet->slug;
+
+        $this->get($blogPath)->assertStatus(200);
+        $this->get($hizmetPath)->assertStatus(200);
+
+        $this->doktor->update(['platformda_gorunur' => false]);
+
+        $this->get($blogPath)->assertStatus(404);
+        $this->get($hizmetPath)->assertStatus(404);
+
+        $this->get(route('frontend.blog.index'))
+            ->assertStatus(200)
+            ->assertDontSee('Gizli Hekim Blogu XYZ');
     }
 }

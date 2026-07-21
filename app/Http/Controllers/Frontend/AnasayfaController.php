@@ -120,17 +120,19 @@ class AnasayfaController extends Controller
         // Platform istatistikleri
         $istatistikler = Cache::remember('anasayfa:istatistikler', now()->addMinutes(30), function () {
             return [
-                'doktor_sayisi' => Doktor::where('aktif_mi', true)->count(),
+                'doktor_sayisi' => Doktor::platformdaListelenen()->count(),
                 'randevu_sayisi' => Randevu::whereIn('durum', ['onaylandi', 'tamamlandi'])->count(),
                 'yorum_sayisi' => Yorum::onaylandi()->count(),
                 'brans_sayisi' => Brans::count(),
             ];
         });
 
-        // Blog yazıları (slider için daha fazla) — doktoru silinmiş kayıtlar hariç
-        $sonBloglar = Cache::remember('anasayfa:son_bloglar_v3', now()->addMinutes(15), function () {
+        // Blog yazıları — yalnızca platformda listelenen hekimler
+        $sonBloglar = Cache::remember('anasayfa:son_bloglar_v4', now()->addMinutes(15), function () {
             return Blog::where('aktif_mi', true)
-                ->whereHas('doktor')
+                ->whereHas('doktor', function ($q) {
+                    $q->platformdaListelenen();
+                })
                 ->with(['doktor' => function ($q) {
                     $q->select('id', 'ad_soyad', 'unvan', 'slug', 'profil_resmi', 'il_id', 'ilce_id');
                 }, 'doktor.branslar', 'doktor.il', 'doktor.ilce'])
@@ -141,8 +143,12 @@ class AnasayfaController extends Controller
 
         $populerAramalar = $branslar->take(5)->pluck('ad');
 
-        $sonYorumlar = Cache::remember('anasayfa:son_yorumlar', now()->addMinutes(15), function () {
+        // Yorumlar — gizli / üyeliksiz hekimler ana sayfada görünmesin
+        $sonYorumlar = Cache::remember('anasayfa:son_yorumlar_v2', now()->addMinutes(15), function () {
             return Yorum::onaylandi()
+                ->whereHas('doktor', function ($q) {
+                    $q->platformdaListelenen();
+                })
                 ->with(['hasta', 'doktor' => function ($q) {
                     $q->select('id', 'ad_soyad', 'unvan', 'slug', 'il_id', 'ilce_id');
                 }, 'doktor.branslar'])

@@ -138,9 +138,12 @@ class PublicEgitimController extends Controller
 
         $telefon = TurkishMobilePhone::normalize($validated['telefon']);
 
-        $egitim = Egitim::with('formAlanlari')->findOrFail($validated['egitim_id']);
+        $egitim = Egitim::with(['formAlanlari', 'doktor'])->findOrFail($validated['egitim_id']);
         if (! $egitim->basvuruAlinabilirMi()) {
             return back()->withInput()->with('hata', 'Bu eğitime başvuru kapalı.');
+        }
+        if (! $egitim->doktor || ! $egitim->doktor->isListedOnPlatform()) {
+            return back()->withInput()->with('hata', 'Bu eğitim şu an başvuru için açık değil.');
         }
 
         // dynamic field validation
