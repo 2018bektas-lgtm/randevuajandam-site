@@ -13,9 +13,9 @@ class SiteAyariSeeder extends Seeder
     public function run(): void
     {
         SiteAyari::create([
-            'meta_baslik' => 'Randevu Ajandam - Premium Randevu ve Danışan Yönetim Platformu',
-            'meta_aciklama' => 'Randevu Ajandam, uzmanlar ile danışanları en hızlı ve prestijli şekilde buluşturan, ajanda ve randevu süreçlerini mükemmelleştiren modern bir SaaS platformudur.',
-            'meta_anahtar_kelimeler' => 'randevu, online randevu, ajanda yönetimi, doktor randevu, diyetisyen randevu, psikolog randevu, klinik yönetim sistemi, randevu takvimi',
+            'meta_baslik' => 'Online Doktor Randevusu | Hekim ve Klinik Bul | Randevu Ajandam',
+            'meta_aciklama' => 'Türkiye genelinde uzman doktor ve kliniklerden online randevu alın. Hekim arayın, müsait saat seçin, hasta randevunuzu anında oluşturun. Diyetisyen, psikolog, diş hekimi ve tüm branşlar — Randevu Ajandam.',
+            'meta_anahtar_kelimeler' => 'online randevu, doktor randevu, hekim randevu, klinik randevu, hasta randevu, uzman doktor bul, diyetisyen randevu, psikolog randevu, diş hekimi randevu, randevu ajandam, randevu yazılımı',
             'meta_yazar' => 'Randevu Ajandam',
         ]);
     }

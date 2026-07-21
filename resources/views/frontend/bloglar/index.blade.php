@@ -1,6 +1,10 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', 'Hekim Blogları - Sağlık Rehberi - Randevu Ajandam')
+@section('baslik', \App\Support\SeoMeta::blogIndexTitle())
+@section('meta_aciklama', \App\Support\SeoMeta::blogIndexDescription())
+@section('meta_anahtar_kelimeler', \App\Support\SeoMeta::keywords([
+    'sağlık blogu', 'hekim yazıları', 'tıbbi bilgilendirme', 'online randevu', 'randevu ajandam',
+]))
 
 @section('icerik')
 <style>

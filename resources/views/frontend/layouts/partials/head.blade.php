@@ -1,12 +1,31 @@
 @php
     $siteAyari = \App\Models\SiteAyari::cached();
-    $defaultTitle = $siteAyari?->meta_baslik ?? 'Randevu Ajandam - Premium Randevu ve Danışan Yönetim Platformu';
-    $defaultDesc = $siteAyari?->meta_aciklama ?? 'Uzman hekim ve kliniklerden online randevu alın. Randevu Ajandam ile hasta ve randevu yönetimini kolaylaştırın.';
+    $defaultTitle = $siteAyari?->meta_baslik ?: \App\Support\SeoMeta::homeTitle();
+    $defaultDesc = $siteAyari?->meta_aciklama ?: \App\Support\SeoMeta::homeDescription();
+    $defaultKeywords = $siteAyari?->meta_anahtar_kelimeler ?: \App\Support\SeoMeta::keywords([
+        'online randevu', 'doktor randevu', 'hekim randevu', 'klinik randevu',
+        'hasta randevu sistemi', 'diyetisyen randevu', 'psikolog randevu', 'diş hekimi randevu',
+        'randevu ajandam', 'uzman doktor bul',
+    ]);
     $pageTitle = trim($__env->yieldContent('baslik', $defaultTitle));
     $pageDesc = trim($__env->yieldContent('meta_aciklama', $defaultDesc));
+    $pageKeywords = trim($__env->yieldContent('meta_anahtar_kelimeler', $defaultKeywords));
     $ogImage = trim($__env->yieldContent('og_image', asset('assets/images/logo.png')));
-    $canonical = url()->current();
-    // reCAPTCHA: yalnızca form içeren sayfalarda (her sayfada Google script yok)
+    $canonicalYield = trim($__env->yieldContent('canonical', ''));
+    $canonical = $canonicalYield !== '' ? $canonicalYield : url()->current();
+    // Query string'li arama sayfalarında canonical temiz URL'e sabitle (istenirse section override)
+    if ($canonicalYield === '' && request()->routeIs('frontend.hekimler') && request()->getQueryString()) {
+        $canonical = route('frontend.hekimler');
+        if (request()->filled('brans')) {
+            $canonical = route('frontend.hekimler', ['brans' => request('brans')]);
+        }
+    }
+    $robotsDefault = request()->routeIs([
+        'frontend.hasta.giris', 'frontend.hasta.kayit',
+        'frontend.hekim.giris', 'frontend.hekim.kayit',
+        'frontend.hekim.paket_*', 'frontend.hekim.basarili',
+        'frontend.odeme.*', 'hekim.*', 'yonetim.*', 'personel.*',
+    ]) ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
     $needsRecaptcha = request()->routeIs([
         'frontend.hasta.kayit',
         'frontend.hasta.kayit.post',
@@ -28,6 +47,9 @@
     ]);
     $needsSelect2 = request()->routeIs([
         'frontend.hekimler',
+        'frontend.il.liste',
+        'frontend.ilce.liste',
+        'frontend.brans.liste',
         'frontend.hasta.profil',
         'frontend.hasta.randevular',
         'frontend.hekim.kayit',
@@ -37,9 +59,14 @@
         'frontend.hekim.klinik.*',
         'frontend.klinik.*',
     ]);
+    $companyEmail = config('company.email', 'info@randevuajandam.com');
+    $companyPhone = config('company.telefon', '+90 531 991 24 27');
 @endphp
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="theme-color" content="#C96A2B">
+<meta name="format-detection" content="telephone=no">
 @include('frontend.layouts.partials.tracking')
 @if($needsRecaptcha)
     @include('frontend.layouts.partials.recaptcha')
@@ -51,11 +78,19 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
 @endif
 <title>{{ $pageTitle }}</title>
 <meta name="description" content="{{ $pageDesc }}">
-<meta name="keywords" content="@yield('meta_anahtar_kelimeler', $siteAyari?->meta_anahtar_kelimeler ?? 'randevu, hekim, klinik, online randevu')">
+<meta name="keywords" content="{{ $pageKeywords }}">
 <meta name="author" content="{{ $siteAyari?->meta_yazar ?? 'Randevu Ajandam' }}">
-<link rel="canonical" href="@yield('canonical', $canonical)">
+<meta name="robots" content="@yield('robots', $robotsDefault)">
+<meta name="googlebot" content="@yield('robots', $robotsDefault)">
+<meta name="language" content="Turkish">
+<meta name="geo.region" content="TR">
+<meta name="geo.placename" content="Türkiye">
+<link rel="canonical" href="{{ $canonical }}">
+<link rel="alternate" hreflang="tr" href="{{ $canonical }}">
+<link rel="alternate" hreflang="x-default" href="{{ $canonical }}">
+<link rel="sitemap" type="application/xml" title="Sitemap" href="{{ url('/sitemap.xml') }}">
 
-<!-- Open Graph / Facebook -->
+<!-- Open Graph -->
 <meta property="og:locale" content="tr_TR">
 <meta property="og:site_name" content="Randevu Ajandam">
 <meta property="og:type" content="@yield('og_type', 'website')">
@@ -63,6 +98,7 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
 <meta property="og:title" content="{{ $pageTitle }}">
 <meta property="og:description" content="{{ $pageDesc }}">
 <meta property="og:image" content="{{ $ogImage }}">
+<meta property="og:image:alt" content="{{ $pageTitle }}">
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
@@ -79,16 +115,41 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
     '@context' => 'https://schema.org',
     '@graph' => [
         [
-            '@type' => 'Organization',
+            '@type' => ['Organization', 'MedicalOrganization'],
+            '@id' => url('/').'#organization',
             'name' => 'Randevu Ajandam',
             'url' => url('/'),
-            'logo' => asset('assets/images/logo.png'),
+            'logo' => [
+                '@type' => 'ImageObject',
+                'url' => asset('assets/images/logo.png'),
+            ],
             'description' => $defaultDesc,
+            'email' => $companyEmail,
+            'telephone' => $companyPhone,
+            'areaServed' => [
+                '@type' => 'Country',
+                'name' => 'Türkiye',
+            ],
+            'sameAs' => array_values(array_filter([
+                // Sosyal hesaplar eklendikçe buraya
+            ])),
+            'contactPoint' => [
+                [
+                    '@type' => 'ContactPoint',
+                    'contactType' => 'customer support',
+                    'email' => $companyEmail,
+                    'telephone' => $companyPhone,
+                    'availableLanguage' => ['Turkish'],
+                ],
+            ],
         ],
         [
             '@type' => 'WebSite',
+            '@id' => url('/').'#website',
             'name' => 'Randevu Ajandam',
             'url' => url('/'),
+            'inLanguage' => 'tr-TR',
+            'publisher' => ['@id' => url('/').'#organization'],
             'potentialAction' => [
                 '@type' => 'SearchAction',
                 'target' => [
@@ -98,12 +159,26 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
                 'query-input' => 'required name=search_term_string',
             ],
         ],
+        [
+            '@type' => 'WebPage',
+            '@id' => $canonical.'#webpage',
+            'url' => $canonical,
+            'name' => $pageTitle,
+            'description' => $pageDesc,
+            'isPartOf' => ['@id' => url('/').'#website'],
+            'inLanguage' => 'tr-TR',
+        ],
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}
 </script>
 @endif
 
+@hasSection('breadcrumb_ld')
+    @yield('breadcrumb_ld')
+@endif
+
 <link rel="shortcut icon" href="{{ asset('assets/images/logo.png') }}" type="image/png">
+<link rel="apple-touch-icon" href="{{ asset('assets/images/logo.png') }}">
 {{-- Sistem fontları: Google Fonts yok = 100–300ms+ daha hızlı ilk boyama --}}
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 

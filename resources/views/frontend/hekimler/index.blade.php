@@ -1,8 +1,45 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', 'Uzman Hekimlerimiz - Randevu Ajandam')
+@section('baslik', $seoTitle ?? \App\Support\SeoMeta::doctorsIndexTitle())
+@section('meta_aciklama', $seoDesc ?? \App\Support\SeoMeta::doctorsIndexDescription())
+@section('meta_anahtar_kelimeler', $seoKeywords ?? 'online randevu, doktor randevu, hekim bul')
 
 @section('head')
+@php
+    $bc = [
+        ['name' => 'Ana Sayfa', 'item' => url('/')],
+        ['name' => 'Doktorlar', 'item' => route('frontend.hekimler')],
+    ];
+    if (!empty($seoIlAd)) {
+        $bc[] = ['name' => $seoIlAd, 'item' => url()->current()];
+    }
+    if (!empty($seoBransAd)) {
+        $bc[] = ['name' => $seoBransAd, 'item' => url()->current()];
+    }
+@endphp
+<script type="application/ld+json">
+{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'BreadcrumbList',
+    'itemListElement' => collect($bc)->values()->map(fn ($item, $i) => [
+        '@type' => 'ListItem',
+        'position' => $i + 1,
+        'name' => $item['name'],
+        'item' => $item['item'],
+    ])->all(),
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
+</script>
+<script type="application/ld+json">
+{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'CollectionPage',
+    'name' => $seoTitle ?? 'Doktorlar',
+    'description' => $seoDesc ?? '',
+    'url' => url()->current(),
+    'isPartOf' => ['@type' => 'WebSite', 'name' => 'Randevu Ajandam', 'url' => url('/')],
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
+</script>
+
 
     <style>
         /* Custom Premium Select2 Overrides */
@@ -238,12 +275,12 @@
 
         <!-- Header Text -->
         <div class="max-w-3xl mx-auto text-center space-y-3 mb-8 md:mb-10">
-            <span class="text-xs font-bold text-[#C96A2B] uppercase tracking-widest font-display block">Sistem Kayıtlı Uzman Hekimler</span>
+            <span class="text-xs font-bold text-[#C96A2B] uppercase tracking-widest font-display block">Online Doktor Randevusu</span>
             <h1 class="text-2xl sm:text-3xl md:text-4xl font-black font-display text-[#111827] tracking-tight leading-tight">
-                Uzman Hekimlerimiz
+                {{ $seoH1 ?? 'Uzman Doktor ve Klinik Bul' }}
             </h1>
             <p class="text-sm md:text-base text-[#6B7280] leading-relaxed">
-                Alanında uzman doktorlarımızın özgeçmişlerini inceleyin, online çalışma saatlerini görüntüleyin ve anında online randevu talebinizi iletin.
+                {{ $seoDesc ?? 'Alanında uzman doktorların profillerini inceleyin, müsait saatleri görün ve online randevu alın.' }}
             </p>
         </div>
 

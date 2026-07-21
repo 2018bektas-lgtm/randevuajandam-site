@@ -3,142 +3,179 @@
 namespace App\Http\Controllers;
 
 use App\Models\Blog;
+use App\Models\Brans;
 use App\Models\Doktor;
 use App\Models\Hizmet;
+use App\Models\Il;
 use App\Models\Klinik;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 
 class SitemapController extends Controller
 {
     /**
-     * Generate dynamic sitemap.xml.
+     * Dinamik sitemap.xml — listelenen hekim/klinik + SEO landing (il / branş) + statik sayfalar.
      */
     public function index(): Response
     {
-        $urls = [];
-
-        // 1. Static Public Pages
-        $urls[] = [
-            'loc' => url('/'),
-            'lastmod' => now()->startOfDay()->toAtomString(),
-            'changefreq' => 'daily',
-            'priority' => '1.0',
-        ];
-
-        $urls[] = [
-            'loc' => route('frontend.hekimler'),
-            'lastmod' => now()->startOfDay()->toAtomString(),
-            'changefreq' => 'daily',
-            'priority' => '0.9',
-        ];
-
-        $urls[] = [
-            'loc' => route('frontend.paketler'),
-            'lastmod' => now()->startOfMonth()->toAtomString(),
-            'changefreq' => 'monthly',
-            'priority' => '0.5',
-        ];
-
-        $urls[] = [
-            'loc' => route('frontend.blog.index'),
-            'lastmod' => now()->startOfDay()->toAtomString(),
-            'changefreq' => 'daily',
-            'priority' => '0.7',
-        ];
-
-        $urls[] = [
-            'loc' => route('frontend.egitimler.index'),
-            'lastmod' => now()->startOfDay()->toAtomString(),
-            'changefreq' => 'daily',
-            'priority' => '0.75',
-        ];
-
-        // 2. Doctor Profiles
-        $doktorlar = Doktor::platformdaListelenen()->with(['il', 'ilce', 'branslar'])->get();
-        foreach ($doktorlar as $doktor) {
-            $urls[] = [
-                'loc' => $doktor->profil_url,
-                'lastmod' => $doktor->updated_at->toAtomString(),
-                'changefreq' => 'weekly',
-                'priority' => '0.8',
-            ];
-        }
-
-        // Clinic Profiles and subpages
-        $klinikler = Klinik::where('aktif_mi', true)->with(['il', 'ilce'])->get();
-        foreach ($klinikler as $klinik) {
-            $ilSlug = $klinik->il?->slug ?? 'il';
-            $ilceSlug = $klinik->ilce?->slug ?? 'ilce';
-            
-            $urls[] = [
-                'loc' => route('frontend.klinik.profil', [$ilSlug, $ilceSlug, $klinik->slug]),
-                'lastmod' => $klinik->updated_at->toAtomString(),
-                'changefreq' => 'weekly',
-                'priority' => '0.8',
-            ];
-            $urls[] = [
-                'loc' => route('frontend.klinik.doktorlar', [$ilSlug, $ilceSlug, $klinik->slug]),
-                'lastmod' => $klinik->updated_at->toAtomString(),
-                'changefreq' => 'weekly',
-                'priority' => '0.7',
-            ];
-            $urls[] = [
-                'loc' => route('frontend.klinik.hizmetler', [$ilSlug, $ilceSlug, $klinik->slug]),
-                'lastmod' => $klinik->updated_at->toAtomString(),
-                'changefreq' => 'weekly',
-                'priority' => '0.7',
-            ];
-            $urls[] = [
-                'loc' => route('frontend.klinik.iletisim', [$ilSlug, $ilceSlug, $klinik->slug]),
-                'lastmod' => $klinik->updated_at->toAtomString(),
-                'changefreq' => 'monthly',
-                'priority' => '0.6',
-            ];
-        }
-
-        // 3. Blog Posts
-        $bloglar = Blog::where('aktif_mi', true)->with('doktor')->get();
-        foreach ($bloglar as $blog) {
-            if ($blog->doktor && $blog->doktor->isListedOnPlatform()) {
-                $urls[] = [
-                    'loc' => $blog->url,
-                    'lastmod' => $blog->updated_at->toAtomString(),
-                    'changefreq' => 'weekly',
-                    'priority' => '0.7',
-                ];
-            }
-        }
-
-        // 4. Services
-        $hizmetler = Hizmet::where('aktif_mi', true)->with('doktor')->get();
-        foreach ($hizmetler as $hizmet) {
-            if ($hizmet->doktor && $hizmet->doktor->isListedOnPlatform()) {
-                $urls[] = [
-                    'loc' => $hizmet->url,
-                    'lastmod' => $hizmet->updated_at->toAtomString(),
-                    'changefreq' => 'weekly',
-                    'priority' => '0.7',
-                ];
-            }
-        }
-
-        // Generate XML Content
-        $xml = '<'.'?xml version="1.0" encoding="UTF-8"?'.'>';
-        $xml .= "\n".'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-
-        foreach ($urls as $url) {
-            $xml .= "\n  <url>";
-            $xml .= "\n    <loc>".htmlspecialchars($url['loc']).'</loc>';
-            $xml .= "\n    <lastmod>".$url['lastmod'].'</lastmod>';
-            $xml .= "\n    <changefreq>".$url['changefreq'].'</changefreq>';
-            $xml .= "\n    <priority>".$url['priority'].'</priority>';
-            $xml .= "\n  </url>";
-        }
-
-        $xml .= "\n</urlset>";
+        $xml = Cache::remember('sitemap:xml:v3', now()->addMinutes(30), function () {
+            return $this->buildXml();
+        });
 
         return response($xml, 200, [
-            'Content-Type' => 'application/xml',
+            'Content-Type' => 'application/xml; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=1800',
         ]);
+    }
+
+    protected function buildXml(): string
+    {
+        $urls = [];
+
+        $add = function (string $loc, $lastmod = null, string $changefreq = 'weekly', string $priority = '0.7') use (&$urls) {
+            if ($loc === '') {
+                return;
+            }
+            $urls[] = [
+                'loc' => $loc,
+                'lastmod' => ($lastmod instanceof \DateTimeInterface
+                    ? $lastmod
+                    : now())->format('Y-m-d'),
+                'changefreq' => $changefreq,
+                'priority' => $priority,
+            ];
+        };
+
+        // —— Statik yüksek öncelik ——
+        $add(url('/'), now(), 'daily', '1.0');
+        $add(route('frontend.hekimler'), now(), 'daily', '0.95');
+        $add(route('frontend.blog.index'), now(), 'daily', '0.8');
+        $add(route('frontend.egitimler.index'), now(), 'daily', '0.75');
+        $add(route('frontend.paketler'), now(), 'weekly', '0.7');
+        $add(route('frontend.legal.hakkimizda'), now(), 'monthly', '0.5');
+        $add(route('frontend.legal.iletisim'), now(), 'monthly', '0.55');
+        $add(route('frontend.legal.gizlilik'), now(), 'yearly', '0.3');
+        $add(route('frontend.legal.kvkk'), now(), 'yearly', '0.3');
+        $add(route('frontend.legal.kullanim'), now(), 'yearly', '0.3');
+        $add(route('frontend.legal.mesafeli'), now(), 'yearly', '0.25');
+        $add(route('frontend.legal.iade'), now(), 'yearly', '0.25');
+
+        // —— İl landing (SEO: "İstanbul doktor randevu") ——
+        $iller = Il::query()->orderBy('ad')->get(['id', 'ad', 'slug', 'updated_at']);
+        foreach ($iller as $il) {
+            if (! $il->slug) {
+                continue;
+            }
+            $add(route('frontend.il.liste', ['il_slug' => $il->slug]), $il->updated_at ?? now(), 'weekly', '0.75');
+        }
+
+        // —— Branş landing (temiz URL: /doktorlar?brans=slug Google tarafından da taranır) ——
+        $branslar = Brans::query()->orderBy('ad')->get(['id', 'ad', 'slug']);
+        foreach ($branslar as $brans) {
+            if (! $brans->slug) {
+                continue;
+            }
+            $add(route('frontend.hekimler', ['brans' => $brans->slug]), now(), 'weekly', '0.72');
+        }
+
+        // —— Listelenen hekimlerin il/ilçe/branş path'leri (gerçek landing) ——
+        $pathSeen = [];
+        $listed = Doktor::platformdaListelenen()->with(['il', 'ilce', 'branslar'])->get();
+        foreach ($listed as $d) {
+            $ilSlug = $d->il?->slug;
+            $ilceSlug = $d->ilce?->slug;
+            if ($ilSlug && empty($pathSeen['il:'.$ilSlug])) {
+                $pathSeen['il:'.$ilSlug] = true;
+                $add(route('frontend.il.liste', ['il_slug' => $ilSlug]), $d->updated_at, 'weekly', '0.78');
+            }
+            if ($ilSlug && $ilceSlug && empty($pathSeen['ilce:'.$ilSlug.'/'.$ilceSlug])) {
+                $pathSeen['ilce:'.$ilSlug.'/'.$ilceSlug] = true;
+                $add(route('frontend.ilce.liste', ['il_slug' => $ilSlug, 'ilce_slug' => $ilceSlug]), $d->updated_at, 'weekly', '0.8');
+            }
+            foreach ($d->branslar as $b) {
+                if (! $ilSlug || ! $ilceSlug || ! $b->slug) {
+                    continue;
+                }
+                $k = 'b:'.$ilSlug.'/'.$ilceSlug.'/'.$b->slug;
+                if (! empty($pathSeen[$k])) {
+                    continue;
+                }
+                $pathSeen[$k] = true;
+                $add(
+                    route('frontend.brans.liste', [
+                        'il_slug' => $ilSlug,
+                        'ilce_slug' => $ilceSlug,
+                        'brans_slug' => $b->slug,
+                    ]),
+                    $d->updated_at,
+                    'weekly',
+                    '0.82'
+                );
+            }
+        }
+
+        // —— Hekim profilleri ——
+        $doktorlar = Doktor::platformdaListelenen()->with(['il', 'ilce', 'branslar'])->get();
+        foreach ($doktorlar as $doktor) {
+            if (! $doktor->profil_url) {
+                continue;
+            }
+            $add($doktor->profil_url, $doktor->updated_at, 'weekly', '0.85');
+        }
+
+        // —— Klinik ——
+        $klinikler = Klinik::where('aktif_mi', true)->with(['il', 'ilce'])->get();
+        foreach ($klinikler as $klinik) {
+            if (! $klinik->slug) {
+                continue;
+            }
+            $ilSlug = $klinik->il?->slug ?? 'il';
+            $ilceSlug = $klinik->ilce?->slug ?? 'ilce';
+            $add(route('frontend.klinik.profil', [$ilSlug, $ilceSlug, $klinik->slug]), $klinik->updated_at, 'weekly', '0.8');
+            $add(route('frontend.klinik.doktorlar', [$ilSlug, $ilceSlug, $klinik->slug]), $klinik->updated_at, 'weekly', '0.65');
+            $add(route('frontend.klinik.hizmetler', [$ilSlug, $ilceSlug, $klinik->slug]), $klinik->updated_at, 'weekly', '0.65');
+            $add(route('frontend.klinik.iletisim', [$ilSlug, $ilceSlug, $klinik->slug]), $klinik->updated_at, 'monthly', '0.5');
+        }
+
+        // —— Blog & hizmet (listelenen hekim) ——
+        $bloglar = Blog::where('aktif_mi', true)->with(['doktor.il', 'doktor.ilce', 'doktor.branslar'])->get();
+        foreach ($bloglar as $blog) {
+            if ($blog->doktor && $blog->doktor->isListedOnPlatform()) {
+                $add($blog->url, $blog->updated_at, 'weekly', '0.65');
+            }
+        }
+
+        $hizmetler = Hizmet::where('aktif_mi', true)->with(['doktor.il', 'doktor.ilce', 'doktor.branslar'])->get();
+        foreach ($hizmetler as $hizmet) {
+            if ($hizmet->doktor && $hizmet->doktor->isListedOnPlatform()) {
+                $add($hizmet->url, $hizmet->updated_at, 'weekly', '0.65');
+            }
+        }
+
+        // Tekilleştir
+        $seen = [];
+        $unique = [];
+        foreach ($urls as $u) {
+            $key = rtrim($u['loc'], '/');
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $unique[] = $u;
+        }
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+        foreach ($unique as $url) {
+            $xml .= "  <url>\n";
+            $xml .= '    <loc>'.htmlspecialchars($url['loc'], ENT_XML1)."</loc>\n";
+            $xml .= '    <lastmod>'.$url['lastmod']."</lastmod>\n";
+            $xml .= '    <changefreq>'.$url['changefreq']."</changefreq>\n";
+            $xml .= '    <priority>'.$url['priority']."</priority>\n";
+            $xml .= "  </url>\n";
+        }
+        $xml .= '</urlset>';
+
+        return $xml;
     }
 }

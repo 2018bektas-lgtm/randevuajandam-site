@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', 'İletişim — Randevu Ajandam')
-@section('meta_aciklama', 'Randevu Ajandam iletişim bilgileri: e-posta, WhatsApp ve destek.')
+@section('baslik', \App\Support\SeoMeta::contactTitle())
+@section('meta_aciklama', \App\Support\SeoMeta::description('Randevu Ajandam iletişim: hekim abonelik, hasta randevu ve teknik destek. E-posta ve WhatsApp ile bize ulaşın.'))
 
 @section('icerik')
 @php

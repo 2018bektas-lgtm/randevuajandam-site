@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', 'Hakkımızda — Randevu Ajandam')
-@section('meta_aciklama', 'Randevu Ajandam: hastaları uzman hekimlerle buluşturan dijital randevu ve ajanda platformu.')
+@section('baslik', \App\Support\SeoMeta::aboutTitle())
+@section('meta_aciklama', \App\Support\SeoMeta::description('Randevu Ajandam; doktor, klinik ve hastaları buluşturan online randevu platformudur. Hekim yazılımı ve hasta randevu deneyimi bir arada.'))
 
 @section('icerik')
 @php

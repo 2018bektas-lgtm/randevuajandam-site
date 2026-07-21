@@ -1,11 +1,28 @@
+# Randevu Ajandam — https://randevuajandam.com
 User-agent: *
 Allow: /
 
-# Panel / auth — arama motorlarına kapalı
+# Panel / auth / API — dizinlenmesin
 Disallow: /hekim/
 Disallow: /yonetim/
 Disallow: /personel/
 Disallow: /profil
+Disallow: /profil/
 Disallow: /randevu-yonet/
+Disallow: /odeme/
+Disallow: /api/
+Disallow: /up
+Disallow: /kayit-ol
+Disallow: /giris
+Disallow: /doktorlar/arama
 
-Sitemap: /sitemap.xml
+# Görseller
+Allow: /uploads/
+Allow: /assets/
+Allow: /build/
+
+Sitemap: https://randevuajandam.com/sitemap.xml
+Sitemap: https://www.randevuajandam.com/sitemap.xml
+
+User-agent: Googlebot
+Allow: /

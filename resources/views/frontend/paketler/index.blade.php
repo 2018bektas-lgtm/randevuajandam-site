@@ -1,6 +1,11 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', 'Fiyatlar - Paketler - Randevu Ajandam')
+@section('baslik', \App\Support\SeoMeta::packagesTitle())
+@section('meta_aciklama', \App\Support\SeoMeta::packagesDescription())
+@section('meta_anahtar_kelimeler', \App\Support\SeoMeta::keywords([
+    'hekim randevu yazılımı', 'klinik yönetim sistemi', 'online randevu paketi',
+    'doktor randevu sistemi fiyat', 'randevu ajandam paket',
+]))
 
 @section('icerik')
 @php

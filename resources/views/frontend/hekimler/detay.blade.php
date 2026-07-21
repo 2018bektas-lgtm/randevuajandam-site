@@ -1,10 +1,26 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', ($doktor->unvan ? $doktor->unvan . ' ' : '') . $doktor->ad_soyad . ' - Randevu Ajandam')
-
-@section('meta_aciklama', Str::limit(strip_tags($doktor->biyografi ?? 'Uzman hekimimiz hakkında detaylı bilgi, randevu saatleri ve hizmetleri.'), 150))
+@php
+    $seoUnvanAd = trim(($doktor->unvan ? $doktor->unvan.' ' : '').$doktor->ad_soyad);
+    $seoBrans = $doktor->branslar->first()?->ad ?? ($doktor->uzmanlik_alani ?? 'Hekim');
+    $seoProfilTitle = \App\Support\SeoMeta::doctorProfileTitle($seoUnvanAd, $seoBrans, $doktor->il?->ad, $doktor->ilce?->ad);
+    $seoProfilDesc = \App\Support\SeoMeta::doctorProfileDescription($seoUnvanAd, $seoBrans, $doktor->il?->ad, $doktor->biyografi);
+    $seoProfilKw = \App\Support\SeoMeta::keywords([
+        $seoUnvanAd,
+        $seoBrans,
+        $doktor->il?->ad,
+        $doktor->ilce?->ad,
+        'online randevu',
+        'doktor randevu',
+        $seoBrans.' randevu',
+    ]);
+@endphp
+@section('baslik', $seoProfilTitle)
+@section('meta_aciklama', $seoProfilDesc)
+@section('meta_anahtar_kelimeler', $seoProfilKw)
 @section('og_image', $doktor->profil_resmi ? asset($doktor->profil_resmi) : asset('assets/images/logo.png'))
 @section('og_type', 'profile')
+@section('canonical', $doktor->profil_url)
 
 @section('head')
 <script type="application/ld+json">

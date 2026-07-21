@@ -11,6 +11,7 @@ use App\Models\Ilce;
 use App\Models\Unvan;
 use App\Models\UyelikOdeme;
 use App\Support\MetaPixel;
+use App\Support\SeoMeta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -473,7 +474,62 @@ class HekimController extends Controller
             ]);
         }
 
-        return view('frontend.hekimler.index', compact('doktorlar', 'uzmanliklar', 'unvanlar', 'iller', 'klinikler', 'toplamDoktorSayisi', 'toplamKlinikSayisi'));
+        // —— SEO: il / ilçe / branş landing başlıkları ——
+        $seoIlAd = null;
+        $seoIlceAd = null;
+        $seoBransAd = $request->input('uzmanlik') ?: null;
+        if ($il_slug) {
+            $seoIlAd = Il::where('slug', $il_slug)->value('ad');
+        } elseif ($request->filled('il')) {
+            $seoIlAd = Il::where('id', $request->input('il'))->value('ad');
+        }
+        if ($ilce_slug && $request->filled('il')) {
+            $seoIlceAd = Ilce::where('il_id', $request->input('il'))->where('slug', $ilce_slug)->value('ad')
+                ?? Ilce::where('slug', $ilce_slug)->value('ad');
+        } elseif ($request->filled('ilce')) {
+            $seoIlceAd = Ilce::where('id', $request->input('ilce'))->value('ad');
+        }
+        if ($brans_slug) {
+            $seoBransAd = Brans::where('slug', $brans_slug)->value('ad') ?: $seoBransAd;
+        }
+        $seoTitle = SeoMeta::doctorsIndexTitle($seoIlAd, $seoIlceAd, $seoBransAd, $request->input('arama'));
+        $seoDesc = SeoMeta::doctorsIndexDescription($seoIlAd, $seoIlceAd, $seoBransAd);
+        $seoKeywords = SeoMeta::keywords(array_filter([
+            'online randevu',
+            'doktor randevu',
+            $seoBransAd,
+            $seoIlAd ? $seoIlAd.' doktor' : null,
+            $seoIlceAd ? $seoIlceAd.' hekim' : null,
+            'hasta randevu',
+            'klinik randevu',
+            'randevu ajandam',
+        ]));
+        $seoH1 = collect([$seoIlceAd, $seoIlAd, $seoBransAd])->filter()->implode(' ')
+            ?: 'Uzman Doktor ve Klinik Bul';
+        if ($seoBransAd && ! $seoIlAd) {
+            $seoH1 = $seoBransAd.' Doktorları';
+        } elseif ($seoIlAd && ! $seoBransAd) {
+            $seoH1 = $seoIlAd.($seoIlceAd ? ' / '.$seoIlceAd : '').' Doktorları';
+        } elseif ($seoIlAd && $seoBransAd) {
+            $seoH1 = trim(($seoIlceAd ? $seoIlceAd.' ' : '').$seoIlAd.' '.$seoBransAd.' Doktorları');
+        }
+
+        return view('frontend.hekimler.index', compact(
+            'doktorlar',
+            'uzmanliklar',
+            'unvanlar',
+            'iller',
+            'klinikler',
+            'toplamDoktorSayisi',
+            'toplamKlinikSayisi',
+            'seoTitle',
+            'seoDesc',
+            'seoKeywords',
+            'seoH1',
+            'seoIlAd',
+            'seoIlceAd',
+            'seoBransAd',
+        ));
     }
 
     /**

@@ -1,6 +1,13 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', 'Randevu Ajandam - Uzman Doktor ve Randevu Platformu')
+@section('baslik', \App\Support\SeoMeta::homeTitle())
+@section('meta_aciklama', \App\Support\SeoMeta::homeDescription())
+@section('meta_anahtar_kelimeler', \App\Support\SeoMeta::keywords([
+    'online randevu', 'doktor randevu', 'hekim randevu', 'klinik randevu',
+    'hasta randevu', 'uzman doktor bul', 'diyetisyen randevu', 'psikolog randevu',
+    'diş hekimi randevu', 'randevu ajandam',
+]))
+@section('canonical', url('/'))
 
 @section('icerik')
     @php
