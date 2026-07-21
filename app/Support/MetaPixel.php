@@ -3,11 +3,13 @@
 namespace App\Support;
 
 /**
- * Meta Pixel olay kuyruğu.
+ * Meta Pixel olay kuyruğu — sağlık kategorisi (Health & Wellness) uyumlu.
  *
- * Sağlık/kişisel reklam kısıtlarında Schedule, Lead, Purchase vb. standart olaylar
- * bastırılabilir. Bu yüzden kısıtlı olaylar RA_* custom event olarak gönderilir
- * (Events Manager'da custom conversion olarak tanımlanabilir).
+ * Domain "Sağlık ve zindelik" sınıflandırmasında olduğu için:
+ * - Tıbbi ima eden custom isimler YOK (DoctorAppointment, MedicalBooking vb.)
+ * - Standart: PageView, ViewContent, Lead (güvenli)
+ * - Diğerleri: genel custom (FormSubmit, DemoRequest, SelectPlan…)
+ * - Parametreler: plan, source, value, currency — hekim adı / branş YOK
  */
 class MetaPixel
 {
@@ -16,30 +18,38 @@ class MetaPixel
     public const ONCE_KEY = 'meta_pixel_once';
 
     /**
-     * Meta'nın sağlık kategorisinde sık bastırdığı standart olaylar → custom isim.
+     * Uygulama olay adı → Meta'ya giden isim + custom mi?
      *
-     * @var array<string, string>
+     * @var array<string, array{event: string, custom: bool}>
      */
-    public const RESTRICTED_TO_CUSTOM = [
-        'Schedule' => 'RA_Booking',
-        'Lead' => 'RA_Lead',
-        'CompleteRegistration' => 'RA_Register',
-        'Purchase' => 'RA_Purchase',
-        'Subscribe' => 'RA_Subscribe',
-        'StartTrial' => 'RA_Trial',
-        'InitiateCheckout' => 'RA_Checkout',
-        'AddToCart' => 'RA_AddToCart',
-        'AddPaymentInfo' => 'RA_PaymentInfo',
-        'Contact' => 'RA_Contact',
-        'SubmitApplication' => 'RA_Application',
-        'FindLocation' => 'RA_FindLocation',
-        'Search' => 'RA_Search',
-        // ViewContent ve PageView genelde üst huni — standart kalsın
+    public const EVENT_MAP = [
+        // Üst huni — standart
+        'PageView' => ['event' => 'PageView', 'custom' => false],
+        'ViewContent' => ['event' => 'ViewContent', 'custom' => false],
+
+        // Meta önerisi: Lead standart kullanılabilir
+        'Lead' => ['event' => 'Lead', 'custom' => false],
+        'CompleteRegistration' => ['event' => 'Lead', 'custom' => false],
+        'Contact' => ['event' => 'Lead', 'custom' => false],
+        'SubmitApplication' => ['event' => 'FormSubmit', 'custom' => true],
+
+        // Form / randevu talebi — tıbbi isim yok
+        'Schedule' => ['event' => 'FormSubmit', 'custom' => true],
+
+        // SaaS funnel — genel isimler
+        'AddToCart' => ['event' => 'SelectPlan', 'custom' => true],
+        'InitiateCheckout' => ['event' => 'CheckoutStart', 'custom' => true],
+        'AddPaymentInfo' => ['event' => 'PaymentInfo', 'custom' => true],
+        'Purchase' => ['event' => 'PlanPurchase', 'custom' => true],
+        'Subscribe' => ['event' => 'PlanSubscribe', 'custom' => true],
+        'StartTrial' => ['event' => 'DemoRequest', 'custom' => true],
+
+        // Arama / konum — genel
+        'Search' => ['event' => 'SiteSearch', 'custom' => true],
+        'FindLocation' => ['event' => 'SiteSearch', 'custom' => true],
     ];
 
     /**
-     * Olayı oturuma ekle (aynı istek veya bir sonraki sayfa yüklemesinde fire edilir).
-     *
      * @param  array<string, mixed>  $params
      */
     public static function queue(string $event, array $params = []): void
@@ -58,15 +68,13 @@ class MetaPixel
         $events[] = [
             'event' => $mapped['event'],
             'custom' => $mapped['custom'],
-            'params' => self::sanitizeParams($params),
+            'params' => self::sanitizeParams($params, $mapped['event']),
         ];
 
         session()->put(self::SESSION_KEY, $events);
     }
 
     /**
-     * Aynı anahtar için yalnızca bir kez kuyruğa al.
-     *
      * @param  array<string, mixed>  $params
      */
     public static function queueOnce(string $dedupeKey, string $event, array $params = []): void
@@ -101,19 +109,23 @@ class MetaPixel
      */
     public static function mapEvent(string $event): array
     {
-        if (isset(self::RESTRICTED_TO_CUSTOM[$event])) {
-            return [
-                'event' => self::RESTRICTED_TO_CUSTOM[$event],
-                'custom' => true,
-            ];
+        if (isset(self::EVENT_MAP[$event])) {
+            return self::EVENT_MAP[$event];
         }
 
-        // Zaten RA_ ile başlıyorsa custom
-        if (str_starts_with($event, 'RA_')) {
-            return ['event' => $event, 'custom' => true];
+        // Bilinmeyen / zaten güvenli custom isimler
+        if (in_array($event, ['FormSubmit', 'DemoRequest', 'SelectPlan', 'CheckoutStart', 'PaymentInfo', 'PlanPurchase', 'PlanSubscribe', 'SiteSearch', 'Lead', 'ViewContent', 'PageView'], true)) {
+            $custom = ! in_array($event, ['Lead', 'ViewContent', 'PageView'], true);
+
+            return ['event' => $event, 'custom' => $custom];
         }
 
-        return ['event' => $event, 'custom' => false];
+        // Eski RA_* veya tıbbi isimleri FormSubmit'e düşür
+        if (preg_match('/^(RA_|Doctor|Patient|Medical|Health|Appointment)/i', $event)) {
+            return ['event' => 'FormSubmit', 'custom' => true];
+        }
+
+        return ['event' => 'FormSubmit', 'custom' => true];
     }
 
     /**
@@ -122,7 +134,6 @@ class MetaPixel
     public static function pull(): array
     {
         $events = session()->pull(self::SESSION_KEY, []);
-
         if (! is_array($events)) {
             return [];
         }
@@ -132,21 +143,21 @@ class MetaPixel
             if (! is_array($item) || empty($item['event'])) {
                 continue;
             }
-            $mapped = self::mapEvent((string) $item['event']);
-            // Eski kuyruk formatı: custom bayrağı yoksa yeniden map
-            $custom = array_key_exists('custom', $item)
-                ? (bool) $item['custom']
-                : $mapped['custom'];
-            $name = array_key_exists('custom', $item)
-                ? (string) $item['event']
-                : $mapped['event'];
-
+            $name = (string) $item['event'];
+            $custom = (bool) ($item['custom'] ?? true);
+            // Eski kuyruk: map tekrar
+            if (! array_key_exists('custom', $item) || isset(self::EVENT_MAP[$name])) {
+                $mapped = self::mapEvent($name);
+                $name = $mapped['event'];
+                $custom = $mapped['custom'];
+            }
             $out[] = [
                 'event' => $name,
                 'custom' => $custom,
-                'params' => is_array($item['params'] ?? null)
-                    ? self::sanitizeParams($item['params'])
-                    : [],
+                'params' => self::sanitizeParams(
+                    is_array($item['params'] ?? null) ? $item['params'] : [],
+                    $name
+                ),
             ];
         }
 
@@ -154,81 +165,126 @@ class MetaPixel
     }
 
     /**
-     * Sağlık/PHI ima eden alanları temizle; sadece güvenli ölçüm parametreleri.
+     * Sadece genel SaaS parametreleri — hekim adı, branş, muayene tipi YOK.
      *
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    public static function sanitizeParams(array $params): array
+    public static function sanitizeParams(array $params, string $eventName = ''): array
     {
-        // Hassas / gereksiz anahtarlar gönderme
-        $denyKeys = [
-            'status', 'email', 'phone', 'em', 'ph', 'fn', 'ln',
-            'external_id', 'content_category', 'predicted_ltv',
+        $allowed = [
+            'value', 'currency', 'content_name', 'content_ids', 'content_type',
+            'num_items', 'plan', 'source', 'method',
         ];
 
         $clean = [];
         foreach ($params as $key => $value) {
-            if (! is_string($key) || $key === '' || in_array($key, $denyKeys, true)) {
+            if (! is_string($key) || ! in_array($key, $allowed, true)) {
                 continue;
             }
-            // content_name'den tıbbi branş ima eden uzun metinleri kısalt / genelle
             if ($key === 'content_name' && is_string($value)) {
-                $value = self::genericContentName($value);
+                $value = self::genericLabel($value);
+            }
+            if ($key === 'plan' && is_string($value)) {
+                $value = self::genericLabel($value);
             }
             if (is_array($value)) {
-                $clean[$key] = array_values(array_map(
-                    static fn ($v) => is_scalar($v) || $v === null ? $v : (string) $v,
+                $clean[$key] = array_values(array_filter(array_map(
+                    static fn ($v) => is_scalar($v) ? (string) $v : null,
                     $value
-                ));
-            } elseif (is_bool($value) || is_int($value) || is_float($value) || is_string($value) || $value === null) {
+                )));
+            } elseif (is_int($value) || is_float($value) || is_string($value)) {
                 $clean[$key] = $value;
-            } else {
-                $clean[$key] = (string) $value;
             }
         }
 
-        // content_type her zaman product (e-ticaret benzeri SaaS)
+        // Varsayılanlar
+        if (! isset($clean['source'])) {
+            $clean['source'] = 'website';
+        }
         if (! isset($clean['content_type'])) {
             $clean['content_type'] = 'product';
+        }
+
+        // content_name yoksa event'ten genel etiket
+        if (! isset($clean['content_name']) && ! isset($clean['plan'])) {
+            $clean['content_name'] = match ($eventName) {
+                'Lead', 'FormSubmit' => 'form',
+                'DemoRequest' => 'trial',
+                'SelectPlan', 'CheckoutStart', 'PlanPurchase', 'PlanSubscribe' => 'subscription',
+                'ViewContent' => 'page',
+                'SiteSearch' => 'search',
+                default => 'website',
+            };
         }
 
         return $clean;
     }
 
-    protected static function genericContentName(string $name): string
+    /**
+     * Tıbbi / kişi adı içeren metni genel etikete çevir.
+     */
+    protected static function genericLabel(string $name): string
     {
         $name = trim($name);
-        // Branş/hekim adı yerine genel etiket
-        $generics = [
-            'randevu' => 'booking',
-            'misafir' => 'booking',
-            'bekleme' => 'waitlist',
-            'kayıt' => 'signup',
-            'kayit' => 'signup',
-            'hasta' => 'signup',
-            'hekim' => 'signup',
-            'klinik' => 'signup',
-            'paket' => 'subscription',
-            'deneme' => 'trial',
-            'eğitim' => 'lead',
-            'egitim' => 'lead',
-            'iletişim' => 'contact',
-            'iletisim' => 'contact',
-        ];
         $lower = mb_strtolower($name);
-        foreach ($generics as $needle => $label) {
+
+        $map = [
+            'başlangıç' => 'starter',
+            'baslangic' => 'starter',
+            'starter' => 'starter',
+            'plus' => 'plus',
+            'pro' => 'pro',
+            'premium' => 'premium',
+            'klinik' => 'clinic',
+            'yıllık' => 'yearly',
+            'yillik' => 'yearly',
+            'aylık' => 'monthly',
+            'aylik' => 'monthly',
+            'deneme' => 'trial',
+            'trial' => 'trial',
+            'paket' => 'plan',
+            'abonelik' => 'subscription',
+            'randevu' => 'booking_form',
+            'bekleme' => 'waitlist_form',
+            'kayıt' => 'signup_form',
+            'kayit' => 'signup_form',
+            'eğitim' => 'form',
+            'egitim' => 'form',
+            'iletişim' => 'contact_form',
+            'iletisim' => 'contact_form',
+            'hasta' => 'signup_form',
+            'hekim' => 'signup_form',
+            'booking' => 'booking_form',
+            'waitlist' => 'waitlist_form',
+            'signup' => 'signup_form',
+            'subscription' => 'subscription',
+            'product' => 'product',
+            'form' => 'form',
+            'page' => 'page',
+            'search' => 'search',
+            'website' => 'website',
+            'trial' => 'trial',
+            'plan' => 'plan',
+        ];
+
+        foreach ($map as $needle => $label) {
             if (str_contains($lower, $needle)) {
                 return $label;
             }
         }
 
-        // Bilinmeyen adları ID'ye indirgeme: generic product
-        if (mb_strlen($name) > 40) {
+        // Tanınmayan uzun metin (hekim adı vb.) → generic
+        if (mb_strlen($name) > 24 || preg_match('/\s/', $name)) {
             return 'product';
         }
 
-        return $name;
+        // Sadece güvenli kısa slug benzeri etiketler
+        if (preg_match('/^[a-z0-9_\-]+$/i', $name)) {
+            return mb_strtolower($name);
+        }
+
+        return 'product';
     }
 
     /**
@@ -256,9 +312,16 @@ class MetaPixel
         $params = array_merge([
             'content_name' => $name,
             'content_type' => $type,
+            'source' => 'website',
         ], $extra);
 
+        // plan alanı paket funnel'ı için
+        if (! isset($params['plan']) && $name !== '') {
+            $params['plan'] = self::genericLabel($name);
+        }
+
         if ($id !== null && $id !== '') {
+            // Sadece sayısal / plan id — isim değil
             $params['content_ids'] = [(string) $id];
         }
 
