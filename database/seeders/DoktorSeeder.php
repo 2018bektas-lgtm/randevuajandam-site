@@ -7,6 +7,7 @@ use App\Models\Brans;
 use App\Models\Doktor;
 use App\Models\DoktorCalismaSaati;
 use App\Models\DoktorGaleri;
+use App\Models\HekimWebSitesi;
 use App\Models\Hizmet;
 use App\Models\Il;
 use App\Models\Ilce;
@@ -36,6 +37,9 @@ class DoktorSeeder extends Seeder
         DB::table('doktor_izinleri')->truncate();
         DB::table('randevular')->truncate();
         DB::table('doktor_galerileri')->truncate();
+        if (Schema::hasTable('hekim_web_siteleri')) {
+            DB::table('hekim_web_siteleri')->truncate();
+        }
         DB::table('klinikler')->truncate();
         DB::table('klinik_davetiyeleri')->truncate();
         Doktor::truncate();
@@ -45,6 +49,14 @@ class DoktorSeeder extends Seeder
         $bireyselBaslangic = Paket::where('tur', 'bireysel')->where('ad', 'like', '%Başlangıç%')->first();
         $bireyselPlus = Paket::where('tur', 'bireysel')->where('ad', 'like', '%Profesyonel%')->first();
         $bireyselElite = Paket::where('tur', 'bireysel')->where('ad', 'like', '%VIP%')->first();
+        // Bireysel özel web sitesi paketi (web_sitesi özelliği / Özel Web Sitesi Entegrasyon)
+        $bireyselWeb = Paket::where('tur', 'bireysel')
+            ->where(function ($q) {
+                $q->where('ad', 'like', '%Web Sitesi%')
+                    ->orWhere('ad', 'like', '%Entegrasyon%')
+                    ->orWhereHas('sistemOzellikleri', fn ($s) => $s->where('kod', 'web_sitesi'));
+            })
+            ->first();
 
         // İl ve İlçeleri bulalım
         $istanbul = Il::where('ad', 'İstanbul')->first();
@@ -164,7 +176,7 @@ class DoktorSeeder extends Seeder
             $doktor3->branslar()->attach($bransPedodonti->id);
         }
 
-        // 4. Doktor: Merve Aslan
+        // 4. Doktor: Merve Aslan — Özel Web Sitesi Entegrasyon Paketi (bireysel web)
         $doktor4 = Doktor::create([
             'ad_soyad' => 'Merve Aslan',
             'e_posta' => 'merve@test.com',
@@ -174,11 +186,12 @@ class DoktorSeeder extends Seeder
             'ilce_id' => $besiktas?->id,
             'tur' => 'bireysel',
             'klinik_adi' => null,
-            'paket_id' => $bireyselElite ? $bireyselElite->id : null,
-            'odeme_periyodu' => 'aylik',
+            'paket_id' => $bireyselWeb?->id ?? $bireyselElite?->id,
+            'odeme_periyodu' => 'yillik',
             'uyelik_baslangic' => now(),
-            'uyelik_bitis' => now()->addMonth(),
+            'uyelik_bitis' => now()->addYear(),
             'aktif_mi' => true,
+            'platformda_gorunur' => true,
             'unvan' => 'Klinik Psikolog',
             'uzmanlik_alani' => 'Psikoloji',
             'mezuniyet' => [
@@ -189,6 +202,7 @@ class DoktorSeeder extends Seeder
             'enlem' => 41.0428,
             'boylam' => 29.0075,
             'adres' => 'Barbaros Blv. No:44, Beşiktaş/İstanbul',
+            'web_sitesi' => 'https://merveaslan.local',
         ]);
 
         $bransPsikoloji = Brans::where('ad', 'Psikoloji')->first();
@@ -196,7 +210,17 @@ class DoktorSeeder extends Seeder
             $doktor4->branslar()->attach($bransPsikoloji->id);
         }
 
-        // 5. Doktor: Melis Şen
+        // Merve — aktif bireysel hekim web sitesi kaydı
+        if ($bireyselWeb) {
+            HekimWebSitesi::create([
+                'doktor_id' => $doktor4->id,
+                'domain' => 'merveaslan.local',
+                'tema' => 'custom',
+                'durum' => 'aktif',
+            ]);
+        }
+
+        // 5. Doktor: Melis Şen — VIP (Elite) demo
         $doktor5 = Doktor::create([
             'ad_soyad' => 'Melis Şen',
             'e_posta' => 'melis@test.com',
@@ -206,7 +230,7 @@ class DoktorSeeder extends Seeder
             'ilce_id' => $yenimahalle?->id,
             'tur' => 'bireysel',
             'klinik_adi' => null,
-            'paket_id' => $bireyselPlus ? $bireyselPlus->id : null,
+            'paket_id' => $bireyselElite?->id ?? $bireyselPlus?->id,
             'odeme_periyodu' => 'yillik',
             'uyelik_baslangic' => now(),
             'uyelik_bitis' => now()->addYear(),
@@ -225,6 +249,51 @@ class DoktorSeeder extends Seeder
         $bransDiyetisyen = Brans::where('ad', 'Diyetisyen (Beslenme ve Diyetetik)')->first();
         if ($bransDiyetisyen) {
             $doktor5->branslar()->attach($bransDiyetisyen->id);
+        }
+
+        // 5b. Doktor: Web Demo Hekim — yalnızca bireysel web sitesi paketi testi
+        $doktorWeb = Doktor::create([
+            'ad_soyad' => 'Web Demo Hekim',
+            'e_posta' => 'web@test.com',
+            'sifre' => Hash::make('sifre123'),
+            'telefon' => '0 (555) 900 00 01',
+            'il_id' => $istanbul?->id,
+            'ilce_id' => $sisli?->id,
+            'tur' => 'bireysel',
+            'klinik_adi' => 'Web Demo Muayenehanesi',
+            'paket_id' => $bireyselWeb?->id ?? $bireyselElite?->id,
+            'odeme_periyodu' => 'yillik',
+            'uyelik_baslangic' => now(),
+            'uyelik_bitis' => now()->addYear(),
+            'aktif_mi' => true,
+            'platformda_gorunur' => true,
+            'unvan' => 'Uzm. Dr.',
+            'uzmanlik_alani' => 'Aile Hekimliği',
+            'mezuniyet' => [
+                'İstanbul Üniversitesi Tıp Fakültesi (2011)',
+                'Aile Hekimliği Uzmanlığı (2016)',
+            ],
+            'biyografi' => 'Özel web sitesi entegrasyon paketi demo hesabı. Kişisel hekim sitesi, online randevu ve CMS özelliklerini test etmek için kullanılır.',
+            'enlem' => 41.0602,
+            'boylam' => 28.9878,
+            'adres' => 'Halaskargazi Cd. No:50, Şişli/İstanbul',
+            'web_sitesi' => 'https://webdemo.local',
+        ]);
+
+        $bransAile = Brans::where('ad', 'Aile Hekimliği')->first()
+            ?? Brans::where('ad', 'Genel Pratisyen')->first()
+            ?? $bransDahiliye;
+        if ($bransAile) {
+            $doktorWeb->branslar()->attach($bransAile->id);
+        }
+
+        if ($bireyselWeb) {
+            HekimWebSitesi::create([
+                'doktor_id' => $doktorWeb->id,
+                'domain' => 'webdemo.local',
+                'tema' => 'custom',
+                'durum' => 'aktif',
+            ]);
         }
 
         // Seeder images → storage/app/public (served via public/storage symlink)
@@ -661,7 +730,7 @@ class DoktorSeeder extends Seeder
         ]);
 
         // Seed default appointment settings, working hours and gallery for all doctors
-        $doktorlar = [$doktor1, $doktor2, $doktor3, $doktor4, $doktor5, $doktor6, $doktor7];
+        $doktorlar = [$doktor1, $doktor2, $doktor3, $doktor4, $doktor5, $doktorWeb, $doktor6, $doktor7];
         foreach ($doktorlar as $index => $doktor) {
             // Dyt. Melis Şen (index 4) has online appointment system closed indefinitely to test "İletişime Geç" card
             $aktifMi = ($index !== 4);

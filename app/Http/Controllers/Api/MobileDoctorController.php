@@ -1029,6 +1029,14 @@ class MobileDoctorController extends Controller
                 $features = method_exists($p, 'sistemOzellikleri')
                     ? $p->sistemOzellikleri()->pluck('kod')->filter()->values()->all()
                     : [];
+                $ozellikler = is_array($p->ozellikler) ? array_values(array_filter($p->ozellikler)) : [];
+                $isFree = (float) ($p->aylik_indirimli_fiyat ?? $p->aylik_fiyat ?? 0) <= 0
+                    && (float) ($p->yillik_indirimli_fiyat ?? $p->yillik_fiyat ?? 0) <= 0;
+                $isWeb = in_array('web_sitesi', $features, true)
+                    || in_array('klinik_web_sitesi', $features, true)
+                    || (bool) ($p->domain_dahil_mi ?? false)
+                    || str_contains(mb_strtolower((string) $p->ad), 'web sitesi')
+                    || str_contains(mb_strtolower((string) $p->ad), 'kurumsal');
 
                 return [
                     'id' => $p->id,
@@ -1040,11 +1048,48 @@ class MobileDoctorController extends Controller
                     'yillik_fiyat' => $p->yillik_fiyat,
                     'yillik_indirimli_fiyat' => $p->yillik_indirimli_fiyat,
                     'features' => $features,
+                    /** Pazarlama madde listesi (web paket_sec ile aynı) */
+                    'ozellikler' => $ozellikler,
+                    'domain_dahil_mi' => (bool) ($p->domain_dahil_mi ?? false),
+                    'deneme_gun' => (int) ($p->deneme_gun ?? 0),
+                    'web_sitesi_mi' => $isWeb,
                     'aktif_paket_mi' => $current && (int) $current->id === (int) $p->id,
-                    'ucretsiz_mi' => (float) ($p->aylik_indirimli_fiyat ?? $p->aylik_fiyat ?? 0) <= 0
-                        && (float) ($p->yillik_indirimli_fiyat ?? $p->yillik_fiyat ?? 0) <= 0,
+                    'ucretsiz_mi' => $isFree,
                 ];
-            });
+            })
+            ->values();
+
+        // Site paket_sec: ücretli + web olmayan 2. bireysel paket = Popüler; klinik 2. = Önerilen
+        $isKlinikList = $items->isNotEmpty() && ($items->first()['tur'] ?? '') === 'klinik';
+        $paidNonWebIndex = 0;
+        $clinicIndex = 0;
+        $items = $items->map(function (array $row) use (&$paidNonWebIndex, &$clinicIndex, $isKlinikList) {
+            $isFeatured = false;
+            if ($isKlinikList) {
+                $clinicIndex++;
+                $isFeatured = $clinicIndex === 2;
+            } elseif (! ($row['ucretsiz_mi'] ?? false) && ! ($row['web_sitesi_mi'] ?? false)) {
+                $paidNonWebIndex++;
+                $isFeatured = $paidNonWebIndex === 2;
+            }
+
+            $row['populer_mi'] = $isFeatured;
+            if ($row['aktif_paket_mi'] ?? false) {
+                $row['etiket'] = 'Aktif';
+            } elseif ($isFeatured) {
+                $row['etiket'] = $isKlinikList ? 'Önerilen' : 'Popüler';
+            } elseif ($row['web_sitesi_mi'] ?? false) {
+                $row['etiket'] = $isKlinikList ? 'Web sitesi dahil' : 'Web sitesi';
+            } elseif ($row['ucretsiz_mi'] ?? false) {
+                $row['etiket'] = 'Ücretsiz';
+            } elseif (($row['deneme_gun'] ?? 0) > 0) {
+                $row['etiket'] = ((int) $row['deneme_gun']).' gün deneme';
+            } else {
+                $row['etiket'] = null;
+            }
+
+            return $row;
+        })->values();
 
         return response()->json([
             'success' => true,

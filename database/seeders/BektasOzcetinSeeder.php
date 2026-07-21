@@ -9,6 +9,7 @@ use App\Models\DoktorCalismaSaati;
 use App\Models\DoktorGaleri;
 use App\Models\Egitim;
 use App\Models\Faq;
+use App\Models\HekimWebSitesi;
 use App\Models\Hizmet;
 use App\Models\Il;
 use App\Models\Ilce;
@@ -260,9 +261,20 @@ class BektasOzcetinSeeder extends Seeder
             ]
         );
 
+        // Bireysel özel web sitesi kaydı (paket web_sitesi özelliği)
+        HekimWebSitesi::query()->updateOrCreate(
+            ['doktor_id' => $doktor->id],
+            [
+                'domain' => 'ozcetinbektas.local',
+                'tema' => 'custom',
+                'durum' => 'aktif',
+            ]
+        );
+
         $this->command?->info('✓ Hekim seed + Unsplash görselleri tamam.');
         $this->command?->info('  E-posta: '.$email.' | Şifre: sifre123');
         $this->command?->info('  Paket: '.($paket?->ad ?? 'yok'));
+        $this->command?->info('  Web sitesi: ozcetinbektas.local (aktif)');
         $this->command?->info('  Doktor id='.$doktor->id);
         $this->command?->info('  Profil: '.($doktor->fresh()->profil_url ?? ''));
     }
