@@ -9,13 +9,20 @@ use App\Models\DoktorCalismaSaati;
 use App\Models\DoktorGaleri;
 use App\Models\Egitim;
 use App\Models\Faq;
+use App\Models\FinansKategori;
+use App\Models\Gider;
+use App\Models\Hasta;
 use App\Models\Hizmet;
 use App\Models\Il;
 use App\Models\Ilce;
 use App\Models\Klinik;
 use App\Models\KlinikWebSitesi;
+use App\Models\Odeme;
 use App\Models\Paket;
+use App\Models\Randevu;
 use App\Models\RandevuAyari;
+use App\Models\Yorum;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -274,10 +281,38 @@ class GizliKlinikWebDemoSeeder extends Seeder
         }
 
         $bloglar = [
-            ['baslik' => 'Yaz Aylarında Cilt Koruma', 'icerik' => '<p>Güneş koruyucu kullanımı ve nem dengesi cilt sağlığının temelidir.</p><p>SPF 30+ ürünleri günlük rutine ekleyin.</p>'],
-            ['baslik' => 'Check-up Ne Zaman Yapılmalı?', 'icerik' => '<p>Risk faktörlerine göre yıllık veya iki yılda bir check-up planlanabilir.</p>'],
-            ['baslik' => 'Online Görüşmenin Avantajları', 'icerik' => '<p>İlaç ayarı ve tahlil yorumu için online kontrol pratik bir seçenektir.</p>'],
-            ['baslik' => 'Kronik Hastalıkta Düzenli Takip', 'icerik' => '<p>Hipertansiyon ve diyabette düzenli izlem komplikasyon riskini azaltır.</p>'],
+            [
+                'baslik' => 'Yaz Aylarında Cilt Koruma',
+                'icerik' => '<p>Güneş koruyucu kullanımı ve nem dengesi cilt sağlığının temelidir. SPF 30+ ürünleri sabah rutininize ekleyin, öğleden sonra yenileyin.</p><p>Şapka ve gölgede kalma süresi de korumayı güçlendirir. Lekeli ciltlerde hekim önerisiyle peeling zamanlaması planlanabilir.</p>',
+            ],
+            [
+                'baslik' => 'Check-up Ne Zaman Yapılmalı?',
+                'icerik' => '<p>Risk faktörlerine göre yıllık veya iki yılda bir check-up planlanabilir. Aile öyküsü, kilo değişimi ve kronik hastalıklar sıklığı artırır.</p><p>Sonuçların hekimce yorumlanması, tek başına tahlil bakmaktan daha değerlidir.</p>',
+            ],
+            [
+                'baslik' => 'Online Görüşmenin Avantajları',
+                'icerik' => '<p>İlaç ayarı, tahlil yorumu ve kısa takip için online kontrol pratik bir seçenektir.</p><p>Acil şikayetlerde veya fizik muayene gerektiren durumlarda yüz yüze randevu tercih edilmelidir.</p>',
+            ],
+            [
+                'baslik' => 'Kronik Hastalıkta Düzenli Takip',
+                'icerik' => '<p>Hipertansiyon ve diyabette düzenli izlem komplikasyon riskini azaltır. Ev ölçümleri, ilaç uyumu ve yaşam tarzı birlikte değerlendirilir.</p>',
+            ],
+            [
+                'baslik' => 'Akne ve Yetişkin Cilt Bakımı',
+                'icerik' => '<p>Yetişkin aknesinde agresif ürünler cildi bozabilir. Nazik temizleyici, nemlendirici ve hekim önerili aktifler dengeli bir plan oluşturur.</p>',
+            ],
+            [
+                'baslik' => 'Laboratuvar Sonuçlarını Nasıl Okumalıyız?',
+                'icerik' => '<p>Referans aralıkları kişiye özel bağlamla yorumlanır. İlaçlar, açlık süresi ve kronik hastalıklar değerleri etkiler.</p><p>Sonuç PDF’inizi randevuya getirmeniz süreci hızlandırır.</p>',
+            ],
+            [
+                'baslik' => 'Mevsim Geçişlerinde Bağışıklık',
+                'icerik' => '<p>Uyku, protein alımı ve stresi dengelemek bağışıklık için temeldir. Gereksiz antibiyotik kullanımından kaçının.</p>',
+            ],
+            [
+                'baslik' => 'Klinik Randevu Öncesi Hazırlık',
+                'icerik' => '<p>İlaç listesi, önceki tahliller ve şikayet özetini yanınızda bulundurun. Randevu saatinde 10 dakika erken gelmek işlemleri kolaylaştırır.</p>',
+            ],
         ];
         foreach ($bloglar as $i => $blog) {
             Blog::query()->updateOrCreate(
@@ -287,7 +322,7 @@ class GizliKlinikWebDemoSeeder extends Seeder
                     'resim' => $this->downloadImage('uploads/blog/demo_klinik_blog_'.($i + 1).'.jpg', $img['blog'][$i % count($img['blog'])]),
                     'aktif_mi' => true,
                     'meta_baslik' => $blog['baslik'],
-                    'meta_aciklama' => strip_tags($blog['icerik']),
+                    'meta_aciklama' => Str::limit(strip_tags($blog['icerik']), 160),
                 ]
             );
         }
@@ -344,12 +379,308 @@ class GizliKlinikWebDemoSeeder extends Seeder
             ]
         );
 
+        // —— Panel demo verisi: hastalar, randevular, gelir-gider, yorumlar ——
+        $stats = $this->seedPanelDemoData($doktor);
+
         $this->command?->info('✓ Gizli klinik web demo seed tamam.');
         $this->command?->info('  Paket: '.$paket->ad.' (id='.$paket->id.')');
         $this->command?->info('  Klinik: '.$klinik->ad.' id='.$klinik->id.' platformda_gorunur=0');
         $this->command?->info('  Hekim: '.$email.' / '.$sifre.' platformda_gorunur=0');
         $this->command?->info('  İçerik: hizmet, blog, galeri, SSS, eğitim, çalışma saatleri');
-        $this->command?->warn('  Ana sitede listelenmez (gizli). Panel + klinik web paketi aktif.');
+        $this->command?->info('  Panel: hasta='.$stats['hasta'].' randevu='.$stats['randevu']
+            .' gelir='.$stats['odeme'].' gider='.$stats['gider'].' yorum='.$stats['yorum']);
+        $this->command?->warn('  Ana sitede listelenmez (gizli). Demo için paneli gösterin.');
+    }
+
+    /**
+     * Hekim paneli dolu görünsün: hastalar, takvim, finans (gelir/gider), yorumlar.
+     * Vitrin gizli kalır; sadece panel demosu.
+     *
+     * @return array{hasta:int,randevu:int,odeme:int,gider:int,yorum:int}
+     */
+    protected function seedPanelDemoData(Doktor $doktor): array
+    {
+        $hizmetler = Hizmet::query()->where('doktor_id', $doktor->id)->where('aktif_mi', true)->orderBy('id')->get();
+        if ($hizmetler->isEmpty()) {
+            $this->command?->warn('  Panel seed atlandı: hizmet yok.');
+
+            return ['hasta' => 0, 'randevu' => 0, 'odeme' => 0, 'gider' => 0, 'yorum' => 0];
+        }
+
+        // Eski demo kayıtlarını temizle (yeniden seed güvenli)
+        Odeme::query()->where('doktor_id', $doktor->id)->forceDelete();
+        Gider::query()->where('doktor_id', $doktor->id)->forceDelete();
+        Yorum::query()->where('doktor_id', $doktor->id)->forceDelete();
+        Randevu::query()->where('doktor_id', $doktor->id)->forceDelete();
+
+        $hastaDefs = [
+            ['ad' => 'Elif', 'soyad' => 'Demir', 'e_posta' => 'demo.hasta1@randevuajandam.com', 'telefon' => '05321110001'],
+            ['ad' => 'Can', 'soyad' => 'Yıldız', 'e_posta' => 'demo.hasta2@randevuajandam.com', 'telefon' => '05321110002'],
+            ['ad' => 'Zeynep', 'soyad' => 'Kaya', 'e_posta' => 'demo.hasta3@randevuajandam.com', 'telefon' => '05321110003'],
+            ['ad' => 'Mert', 'soyad' => 'Arslan', 'e_posta' => 'demo.hasta4@randevuajandam.com', 'telefon' => '05321110004'],
+            ['ad' => 'Selin', 'soyad' => 'Çetin', 'e_posta' => 'demo.hasta5@randevuajandam.com', 'telefon' => '05321110005'],
+            ['ad' => 'Burak', 'soyad' => 'Öztürk', 'e_posta' => 'demo.hasta6@randevuajandam.com', 'telefon' => '05321110006'],
+            ['ad' => 'Deniz', 'soyad' => 'Aydın', 'e_posta' => 'demo.hasta7@randevuajandam.com', 'telefon' => '05321110007'],
+            ['ad' => 'Gizem', 'soyad' => 'Şahin', 'e_posta' => 'demo.hasta8@randevuajandam.com', 'telefon' => '05321110008'],
+            ['ad' => 'Emre', 'soyad' => 'Koç', 'e_posta' => 'demo.hasta9@randevuajandam.com', 'telefon' => '05321110009'],
+            ['ad' => 'İrem', 'soyad' => 'Yılmaz', 'e_posta' => 'demo.hasta10@randevuajandam.com', 'telefon' => '05321110010'],
+            ['ad' => 'Onur', 'soyad' => 'Acar', 'e_posta' => 'demo.hasta11@randevuajandam.com', 'telefon' => '05321110011'],
+            ['ad' => 'Melis', 'soyad' => 'Kurt', 'e_posta' => 'demo.hasta12@randevuajandam.com', 'telefon' => '05321110012'],
+        ];
+
+        $hastalar = collect();
+        foreach ($hastaDefs as $h) {
+            $hasta = Hasta::withTrashed()->where('e_posta', $h['e_posta'])->first();
+            $payload = [
+                'ad' => $h['ad'],
+                'soyad' => $h['soyad'],
+                'telefon' => $h['telefon'],
+                'sifre' => 'DemoHasta2026!',
+                'aktif_mi' => true,
+            ];
+            if ($hasta) {
+                if ($hasta->trashed()) {
+                    $hasta->restore();
+                }
+                $hasta->fill($payload)->save();
+            } else {
+                $hasta = Hasta::query()->create(array_merge(['e_posta' => $h['e_posta']], $payload));
+            }
+            $hastalar->push($hasta);
+        }
+
+        $gelirKatMuayene = FinansKategori::query()->firstOrCreate(
+            ['doktor_id' => $doktor->id, 'ad' => 'Muayene Geliri', 'tur' => 'gelir'],
+            ['renk' => '#10b981', 'aktif' => true]
+        );
+        $gelirKatOnline = FinansKategori::query()->firstOrCreate(
+            ['doktor_id' => $doktor->id, 'ad' => 'Online Görüşme', 'tur' => 'gelir'],
+            ['renk' => '#3b82f6', 'aktif' => true]
+        );
+        $gelirKatDiger = FinansKategori::query()->firstOrCreate(
+            ['doktor_id' => $doktor->id, 'ad' => 'Diğer Gelir', 'tur' => 'gelir'],
+            ['renk' => '#8b5cf6', 'aktif' => true]
+        );
+
+        $giderKatKira = FinansKategori::query()->firstOrCreate(
+            ['doktor_id' => $doktor->id, 'ad' => 'Kira', 'tur' => 'gider'],
+            ['renk' => '#ef4444', 'aktif' => true]
+        );
+        $giderKatPersonel = FinansKategori::query()->firstOrCreate(
+            ['doktor_id' => $doktor->id, 'ad' => 'Personel', 'tur' => 'gider'],
+            ['renk' => '#f59e0b', 'aktif' => true]
+        );
+        $giderKatMalzeme = FinansKategori::query()->firstOrCreate(
+            ['doktor_id' => $doktor->id, 'ad' => 'Malzeme', 'tur' => 'gider'],
+            ['renk' => '#6366f1', 'aktif' => true]
+        );
+        $giderKatDiger = FinansKategori::query()->firstOrCreate(
+            ['doktor_id' => $doktor->id, 'ad' => 'Diğer Gider', 'tur' => 'gider'],
+            ['renk' => '#64748b', 'aktif' => true]
+        );
+
+        $yontemler = ['nakit', 'kredi_karti', 'havale', 'online'];
+        $saatler = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'];
+        $randevuSay = 0;
+        $odemeSay = 0;
+
+        // Geçmiş tamamlanmış randevular + gelir (son 90 gün)
+        for ($i = 0; $i < 28; $i++) {
+            $gun = Carbon::today()->subDays(2 + ($i * 2));
+            if ($gun->isSunday()) {
+                $gun->subDay();
+            }
+            $hasta = $hastalar[$i % $hastalar->count()];
+            $hizmet = $hizmetler[$i % $hizmetler->count()];
+            $saat = $saatler[$i % count($saatler)];
+            $online = ($i % 5 === 0);
+            $fiyat = (float) ($hizmet->fiyat ?: 1000);
+            $yontem = $yontemler[$i % count($yontemler)];
+            $kismi = ($i % 9 === 0);
+            $odenen = $kismi ? round($fiyat * 0.5, 2) : $fiyat;
+            $durumOdeme = $kismi ? 'kismi_odeme' : 'odendi';
+            $kat = $online ? $gelirKatOnline : $gelirKatMuayene;
+
+            $randevu = null;
+            Randevu::withoutEvents(function () use (
+                $doktor, $hizmet, $hasta, $gun, $saat, $online, $i, &$randevu
+            ) {
+                $randevu = Randevu::query()->create([
+                    'doktor_id' => $doktor->id,
+                    'hizmet_id' => $hizmet->id,
+                    'hasta_id' => $hasta->id,
+                    'ad' => $hasta->ad,
+                    'soyad' => $hasta->soyad,
+                    'telefon' => $hasta->telefon,
+                    'e_posta' => $hasta->e_posta,
+                    'tarih' => $gun->toDateString(),
+                    'saat' => $saat,
+                    'not' => 'Demo hasta randevusu #'.($i + 1),
+                    'durum' => 'tamamlandi',
+                    'gorusme_tipi' => $online ? 'online' : 'yuz_yuze',
+                    'hekim_notu' => 'Muayene tamamlandı. Takip planlandı.',
+                ]);
+            });
+            $randevuSay++;
+
+            Odeme::query()->create([
+                'doktor_id' => $doktor->id,
+                'randevu_id' => $randevu->id,
+                'hasta_id' => $hasta->id,
+                'hizmet_id' => $hizmet->id,
+                'finans_kategori_id' => $kat->id,
+                'tutar' => $fiyat,
+                'odenen_tutar' => $odenen,
+                'odeme_yontemi' => $yontem,
+                'durum' => $durumOdeme,
+                'aciklama' => $hizmet->ad.' — '.$hasta->ad.' '.$hasta->soyad,
+                'odeme_tarihi' => $gun->toDateString(),
+            ]);
+            $odemeSay++;
+        }
+
+        // Bu ay serbest gelir (eğitim / danışmanlık)
+        Odeme::query()->create([
+            'doktor_id' => $doktor->id,
+            'randevu_id' => null,
+            'hasta_id' => null,
+            'hizmet_id' => null,
+            'finans_kategori_id' => $gelirKatDiger->id,
+            'tutar' => 2500,
+            'odenen_tutar' => 2500,
+            'odeme_yontemi' => 'havale',
+            'durum' => 'odendi',
+            'aciklama' => 'Hasta semineri katılım ücreti (demo)',
+            'odeme_tarihi' => Carbon::today()->subDays(5)->toDateString(),
+        ]);
+        $odemeSay++;
+
+        // Bugün ve yakında: onaylı / beklemede / iptal
+        $gelecek = [
+            ['offset' => 0, 'saat' => '10:00', 'durum' => 'onaylandi', 'not' => 'Bugünkü randevu'],
+            ['offset' => 0, 'saat' => '14:00', 'durum' => 'onaylandi', 'not' => 'Öğleden sonra kontrol'],
+            ['offset' => 0, 'saat' => '16:30', 'durum' => 'beklemede', 'not' => 'Onay bekleyen talep'],
+            ['offset' => 1, 'saat' => '09:30', 'durum' => 'onaylandi', 'not' => 'Yarın sabah'],
+            ['offset' => 1, 'saat' => '11:00', 'durum' => 'onaylandi', 'not' => 'Yarın dermatoloji'],
+            ['offset' => 2, 'saat' => '15:00', 'durum' => 'beklemede', 'not' => 'İlk muayene talebi'],
+            ['offset' => 3, 'saat' => '10:30', 'durum' => 'onaylandi', 'not' => 'Check-up planlama'],
+            ['offset' => 4, 'saat' => '13:30', 'durum' => 'onaylandi', 'not' => 'Online kontrol'],
+            ['offset' => 5, 'saat' => '11:30', 'durum' => 'beklemede', 'not' => 'Hafta sonu öncesi'],
+            ['offset' => 7, 'saat' => '09:00', 'durum' => 'onaylandi', 'not' => 'Gelecek hafta'],
+            ['offset' => 7, 'saat' => '16:00', 'durum' => 'onaylandi', 'not' => 'Gelecek hafta akşam'],
+            ['offset' => -1, 'saat' => '11:00', 'durum' => 'iptal', 'not' => 'Hasta iptal etti'],
+            ['offset' => -3, 'saat' => '15:30', 'durum' => 'iptal', 'not' => 'Saat çakışması iptali'],
+        ];
+
+        foreach ($gelecek as $gi => $g) {
+            $gun = Carbon::today()->addDays($g['offset']);
+            if ($gun->isSunday()) {
+                $gun->addDay();
+            }
+            $hasta = $hastalar[($gi + 3) % $hastalar->count()];
+            $hizmet = $hizmetler[$gi % $hizmetler->count()];
+            $online = str_contains(mb_strtolower($g['not']), 'online') || ($gi % 4 === 0 && $g['durum'] !== 'iptal');
+
+            Randevu::withoutEvents(function () use (
+                $doktor, $hizmet, $hasta, $gun, $g, $online, &$randevuSay
+            ) {
+                Randevu::query()->create([
+                    'doktor_id' => $doktor->id,
+                    'hizmet_id' => $hizmet->id,
+                    'hasta_id' => $hasta->id,
+                    'ad' => $hasta->ad,
+                    'soyad' => $hasta->soyad,
+                    'telefon' => $hasta->telefon,
+                    'e_posta' => $hasta->e_posta,
+                    'tarih' => $gun->toDateString(),
+                    'saat' => $g['saat'],
+                    'not' => $g['not'],
+                    'durum' => $g['durum'],
+                    'gorusme_tipi' => $online ? 'online' : 'yuz_yuze',
+                    'hekim_notu' => $g['durum'] === 'iptal' ? 'Demo iptal kaydı' : null,
+                ]);
+                $randevuSay++;
+            });
+        }
+
+        // Giderler — son 4 ay (kira + personel + malzeme + diğer)
+        $giderler = [
+            ['baslik' => 'Klinik kira', 'kategori' => 'kira', 'tutar' => 45000, 'kat' => $giderKatKira, 'ay' => 0],
+            ['baslik' => 'Klinik kira', 'kategori' => 'kira', 'tutar' => 45000, 'kat' => $giderKatKira, 'ay' => 1],
+            ['baslik' => 'Klinik kira', 'kategori' => 'kira', 'tutar' => 42000, 'kat' => $giderKatKira, 'ay' => 2],
+            ['baslik' => 'Klinik kira', 'kategori' => 'kira', 'tutar' => 42000, 'kat' => $giderKatKira, 'ay' => 3],
+            ['baslik' => 'Resepsiyon maaş', 'kategori' => 'personel', 'tutar' => 28000, 'kat' => $giderKatPersonel, 'ay' => 0],
+            ['baslik' => 'Resepsiyon maaş', 'kategori' => 'personel', 'tutar' => 28000, 'kat' => $giderKatPersonel, 'ay' => 1],
+            ['baslik' => 'Resepsiyon maaş', 'kategori' => 'personel', 'tutar' => 26000, 'kat' => $giderKatPersonel, 'ay' => 2],
+            ['baslik' => 'Resepsiyon maaş', 'kategori' => 'personel', 'tutar' => 26000, 'kat' => $giderKatPersonel, 'ay' => 3],
+            ['baslik' => 'Medikal sarf malzeme', 'kategori' => 'malzeme', 'tutar' => 6200, 'kat' => $giderKatMalzeme, 'ay' => 0],
+            ['baslik' => 'Medikal sarf malzeme', 'kategori' => 'malzeme', 'tutar' => 4800, 'kat' => $giderKatMalzeme, 'ay' => 1],
+            ['baslik' => 'Sterilizasyon kitleri', 'kategori' => 'malzeme', 'tutar' => 3500, 'kat' => $giderKatMalzeme, 'ay' => 2],
+            ['baslik' => 'Dermo kozmetik stok', 'kategori' => 'malzeme', 'tutar' => 9100, 'kat' => $giderKatMalzeme, 'ay' => 0],
+            ['baslik' => 'Elektrik + internet', 'kategori' => 'diger', 'tutar' => 4200, 'kat' => $giderKatDiger, 'ay' => 0],
+            ['baslik' => 'Elektrik + internet', 'kategori' => 'diger', 'tutar' => 3900, 'kat' => $giderKatDiger, 'ay' => 1],
+            ['baslik' => 'Muhasebe danışmanlık', 'kategori' => 'diger', 'tutar' => 5500, 'kat' => $giderKatDiger, 'ay' => 0],
+            ['baslik' => 'Yazılım abonelikleri', 'kategori' => 'diger', 'tutar' => 1800, 'kat' => $giderKatDiger, 'ay' => 1],
+            ['baslik' => 'Temizlik hizmeti', 'kategori' => 'diger', 'tutar' => 3200, 'kat' => $giderKatDiger, 'ay' => 2],
+            ['baslik' => 'Ekipman bakım', 'kategori' => 'ekipman', 'tutar' => 7500, 'kat' => $giderKatDiger, 'ay' => 1],
+        ];
+
+        $giderSay = 0;
+        foreach ($giderler as $g) {
+            $tarih = Carbon::now()->subMonths($g['ay'])->startOfMonth()->addDays(2 + ($giderSay % 10));
+            Gider::query()->create([
+                'doktor_id' => $doktor->id,
+                'finans_kategori_id' => $g['kat']->id,
+                'kategori' => $g['kategori'],
+                'baslik' => $g['baslik'],
+                'tutar' => $g['tutar'],
+                'tarih' => $tarih->toDateString(),
+                'aciklama' => 'Demo finans kaydı — '.$g['baslik'],
+            ]);
+            $giderSay++;
+        }
+
+        // Onaylı yorumlar (panel + istatistik; vitrin gizli olduğu için sitede çıkmaz)
+        $yorumlar = [
+            ['puan' => 5, 'yorum' => 'Randevu sistemi çok düzenli, muayene detaylıydı.', 'yanit' => 'Teşekkür ederiz, sağlıklı günler dileriz.'],
+            ['puan' => 5, 'yorum' => 'Online kontrol çok pratikti, sonuçlarım net açıklandı.', 'yanit' => 'Memnuniyetinize sevindik.'],
+            ['puan' => 4, 'yorum' => 'Bekleme süresi kısa, personel ilgili.', 'yanit' => null],
+            ['puan' => 5, 'yorum' => 'Cilt bakım planım netleşti, teşekkürler.', 'yanit' => 'Başarılar dileriz.'],
+            ['puan' => 4, 'yorum' => 'Check-up süreci planlı ve anlaşılırdı.', 'yanit' => null],
+            ['puan' => 5, 'yorum' => 'Klinik temiz ve modern, hekim dinliyor.', 'yanit' => 'Teşekkürler.'],
+        ];
+        $yorumSay = 0;
+        $tamamlanmis = Randevu::query()
+            ->where('doktor_id', $doktor->id)
+            ->where('durum', 'tamamlandi')
+            ->orderBy('id')
+            ->take(count($yorumlar))
+            ->get();
+
+        foreach ($yorumlar as $yi => $y) {
+            $r = $tamamlanmis[$yi] ?? null;
+            $hasta = $hastalar[$yi % $hastalar->count()];
+            Yorum::query()->create([
+                'hasta_id' => $r?->hasta_id ?? $hasta->id,
+                'doktor_id' => $doktor->id,
+                'randevu_id' => $r?->id,
+                'puan' => $y['puan'],
+                'yorum' => $y['yorum'],
+                'doktor_yaniti' => $y['yanit'],
+                'onay_durumu' => 'onaylandi',
+            ]);
+            $yorumSay++;
+        }
+
+        $this->command?->info('  ✓ Panel demo: randevu/gelir/gider/yorum yüklendi');
+
+        return [
+            'hasta' => $hastalar->count(),
+            'randevu' => $randevuSay,
+            'odeme' => $odemeSay,
+            'gider' => $giderSay,
+            'yorum' => $yorumSay,
+        ];
     }
 
     protected function downloadImage(string $relativePath, string $url): string
