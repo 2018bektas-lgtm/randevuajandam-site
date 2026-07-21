@@ -8,6 +8,7 @@
     <div class="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
         <h2 class="text-lg font-bold font-display text-[#111827]">Arkadaşını getir, süre kazan</h2>
         <p class="mt-2 text-sm text-slate-600 leading-relaxed">
+            Davet linki önce <strong>paket seçimine</strong> gider (kayıt için paket zorunlu); referans kodu otomatik taşınır.
             Davet ettiğin hekim <strong>ilk ücretli paket ödemesinde %{{ $ozet['indirim'] }} indirim</strong> alır.
             Ödeme onaylanınca sen, onun abonelik süresinin <strong>%{{ $ozet['komisyon'] }}’i kadar ücretsiz gün</strong> kazanırsın
             (aylık ≈ {{ max(1, (int) round(30 * $ozet['komisyon'] / 100)) }} gün, yıllık ≈ {{ max(1, (int) round(365 * $ozet['komisyon'] / 100)) }} gün).

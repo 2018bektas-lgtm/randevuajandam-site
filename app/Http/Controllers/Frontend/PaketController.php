@@ -108,16 +108,35 @@ class PaketController extends Controller
             ? Paket::where('aktif_mi', true)->find($paketId)
             : null;
 
+        // Referans kodunu session'da tut (paket seçimine gidişte kaybolmasın)
+        $refKod = $request->query('ref')
+            ?: $request->input('referans_kodu')
+            ?: session('ra_ref')
+            ?: $request->cookie(config('referans.cookie_name', 'ra_ref'));
+        if (is_string($refKod) && preg_match('/^[A-Za-z0-9]{4,16}$/', $refKod)) {
+            $refKod = strtoupper($refKod);
+            session(['ra_ref' => $refKod]);
+        } else {
+            $refKod = session('ra_ref');
+        }
+
         if (! $secilenPaket) {
+            $params = array_filter(['ref' => $refKod]);
+
             return redirect()
-                ->route('frontend.paketler')
-                ->with('hata', 'Kayıt için önce bir paket seçin. Onay sonrası aynı paketle ödemeye geçersiniz.');
+                ->route('frontend.paketler', $params)
+                ->with('basarili', $refKod
+                    ? 'Referans kodunuz kaydedildi. Devam için bir paket seçin — kayıtta otomatik uygulanır.'
+                    : 'Kayıt için önce bir paket seçin. Onay sonrası aynı paketle ödemeye geçersiniz.');
         }
 
         session([
             'kayit_paket_id' => $secilenPaket->id,
             'kayit_periyot' => $periyot,
         ]);
+        if ($refKod) {
+            session(['ra_ref' => $refKod]);
+        }
 
         $branslar = Brans::orderBy('ad')->get();
         $unvanlar = Unvan::orderBy('ad')->get();

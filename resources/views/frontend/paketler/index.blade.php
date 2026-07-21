@@ -458,7 +458,12 @@
                         </div>
 
                         <div class="mt-auto">
-                            <a href="{{ route('frontend.hekim.kayit') }}?paket={{ $p->id }}&periyot=aylik"
+                            @php
+                                $refQs = request('ref', session('ra_ref', request()->cookie(config('referans.cookie_name', 'ra_ref'))));
+                                $refQs = is_string($refQs) && preg_match('/^[A-Za-z0-9]{4,16}$/', $refQs) ? strtoupper($refQs) : null;
+                                $kayitQs = 'paket='.$p->id.'&periyot=aylik'.($refQs ? '&ref='.$refQs : '');
+                            @endphp
+                            <a href="{{ route('frontend.hekim.kayit') }}?{{ $kayitQs }}"
                                data-package-id="{{ $p->id }}"
                                class="btn-checkout-link btn-plan {{ $isFeatured || $isWebsite ? 'btn-plan-primary' : 'btn-plan-ghost' }}">
                                 {{ $isFree ? 'Ücretsiz dene' : 'Paketi seç' }}
@@ -618,7 +623,12 @@
                         </div>
 
                         <div class="mt-auto">
-                            <a href="{{ route('frontend.hekim.kayit') }}?paket={{ $p->id }}&periyot=aylik"
+                            @php
+                                $refQs = request('ref', session('ra_ref', request()->cookie(config('referans.cookie_name', 'ra_ref'))));
+                                $refQs = is_string($refQs) && preg_match('/^[A-Za-z0-9]{4,16}$/', $refQs) ? strtoupper($refQs) : null;
+                                $kayitQs = 'paket='.$p->id.'&periyot=aylik'.($refQs ? '&ref='.$refQs : '');
+                            @endphp
+                            <a href="{{ route('frontend.hekim.kayit') }}?{{ $kayitQs }}"
                                data-package-id="{{ $p->id }}"
                                class="btn-checkout-link btn-plan {{ $isFeatured || $isWebsite ? 'btn-plan-primary' : 'btn-plan-ghost' }}">
                                 Paketi seç
@@ -698,9 +708,13 @@
         inactiveBtn.classList.remove('active');
         adjustSliderPosition('billingToggle', activeBtn.id, 'billingSlider');
 
+        const refParam = @json(request('ref', session('ra_ref', request()->cookie(config('referans.cookie_name', 'ra_ref')))));
+        const refQs = (typeof refParam === 'string' && /^[A-Za-z0-9]{4,16}$/.test(refParam))
+            ? '&ref=' + encodeURIComponent(refParam.toUpperCase())
+            : '';
         document.querySelectorAll('.btn-checkout-link').forEach(link => {
             const pkgId = link.getAttribute('data-package-id');
-            link.href = `{{ route('frontend.hekim.kayit') }}?paket=${pkgId}&periyot=${cycle}`;
+            link.href = `{{ route('frontend.hekim.kayit') }}?paket=${pkgId}&periyot=${cycle}${refQs}`;
         });
 
         const monthlyPrices = document.querySelectorAll('.billing-price-monthly');

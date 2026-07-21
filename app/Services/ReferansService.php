@@ -292,7 +292,8 @@ class ReferansService
     {
         $kod = $this->ensureKod($doktor);
 
-        return url('/hekim/kayit-ol?ref='.$kod);
+        // Paket seçimi zorunlu; ref cookie/session ile taşınır
+        return url('/paketler?ref='.$kod);
     }
 
     /**
