@@ -60,7 +60,7 @@ class FixProductionPackageGapsSeeder extends Seeder
                 'max_personel_sayisi' => $kBas->max_personel_sayisi ?: 1,
                 'domain_dahil_mi' => false,
             ])->save();
-            $kBas->sistemOzellikleri()->sync([]);
+            // Hekim paneli özellikleri KlinikSeeder ile gelir; burada silinmez.
         }
 
         $kPlus = Paket::query()->where('tur', 'klinik')->where('ad', 'like', '%Plus%')->first();
@@ -91,7 +91,6 @@ class FixProductionPackageGapsSeeder extends Seeder
                 'max_personel_sayisi' => $kPro->max_personel_sayisi ?: 5,
                 'domain_dahil_mi' => false,
             ])->save();
-            $kPro->sistemOzellikleri()->sync([]);
         }
 
         $kWeb = Paket::query()
@@ -117,8 +116,13 @@ class FixProductionPackageGapsSeeder extends Seeder
                 'max_doktor_sayisi' => $kWeb->max_doktor_sayisi ?: 999,
                 'max_personel_sayisi' => $kWeb->max_personel_sayisi ?: 999,
             ])->save();
+            // klinik_web_sitesi + hekim paneli özellikleri KlinikSeeder ile senkronlanır.
             if ($klinikWebKod) {
-                $kWeb->sistemOzellikleri()->sync([$klinikWebKod->id]);
+                $ids = $kWeb->sistemOzellikleri()->pluck('paket_ozellikleri.id')->all();
+                if (! in_array($klinikWebKod->id, $ids, true)) {
+                    $ids[] = $klinikWebKod->id;
+                }
+                $kWeb->sistemOzellikleri()->sync($ids);
             }
         }
 

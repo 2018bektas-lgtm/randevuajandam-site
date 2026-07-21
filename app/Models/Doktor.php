@@ -343,7 +343,8 @@ class Doktor extends Authenticatable
     }
 
     /**
-     * Get the active subscription package (either individual or clinic's package).
+     * Aktif üyelik paketi.
+     * Kliniğe bağlı hekimlerde klinik paketi (hekim paneli yetkileri de bu paketten okunur).
      */
     public function aktifPaket()
     {
@@ -355,13 +356,26 @@ class Doktor extends Authenticatable
     }
 
     /**
-     * Web sitesi paketi ile ana vitrinden gizlenebilir.
+     * Paket özellik kodu (hakkimda, finans, …). Klinik hekiminde klinik paketine bakılır.
+     */
+    public function hasPaketFeature(string $featureCode): bool
+    {
+        $paket = $this->aktifPaket();
+
+        return $paket ? $paket->hasFeature($featureCode) : false;
+    }
+
+    /**
+     * Web sitesi paketi ile ana vitrinden gizlenebilir (kişisel veya klinik web).
      */
     public function canHideFromPlatform(): bool
     {
         $paket = $this->aktifPaket();
+        if (! $paket) {
+            return false;
+        }
 
-        return $paket && $paket->hasFeature('web_sitesi');
+        return $paket->hasFeature('web_sitesi') || $paket->hasFeature('klinik_web_sitesi');
     }
 
     /** Bu pakette ücretsiz deneme hakkı var mı? (bir kez) */
