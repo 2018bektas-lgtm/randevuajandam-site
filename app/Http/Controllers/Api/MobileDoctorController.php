@@ -994,13 +994,15 @@ class MobileDoctorController extends Controller
         $membership = $this->membershipPayload($doktor);
         $features = $membership['features'] ?? [];
 
+        // features = allowlist. Boş liste = premium modül yok (demo/starter çekirdek panel).
+        // Eski "restrict:false when empty" sızıntısı kapatıldı.
         return response()->json([
             'success' => true,
             'data' => [
                 'paket' => $membership['paket'],
                 'features' => $features,
-                // Empty features => treat as unrestricted (demo / no package row).
-                'restrict' => $features !== [],
+                'restrict' => true,
+                'feature_mode' => 'allowlist',
                 'uyelik' => $membership,
             ],
         ]);

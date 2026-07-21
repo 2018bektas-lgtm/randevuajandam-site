@@ -1,9 +1,10 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', 'Fiyatlar & Paketler - Randevu Ajandam')
+@section('baslik', 'Fiyatlar - Paketler - Randevu Ajandam')
 
 @section('icerik')
 <style>
+
     .pricing-page {
         --brand: #C96A2B;
         --brand-dark: #B55A20;

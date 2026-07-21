@@ -26,23 +26,24 @@ class IyzicoSubscriptionService
         $this->baseUrl = rtrim((string) ($settings?->iyzico_base_url ?: config('services.iyzico.base_url', $defaultBase)), '/');
     }
 
+    /**
+     * iyzico kapalı (PAYMENT_DRIVER=paytr). Eski referans iptali için enabled+keys gerekir.
+     */
     public function isConfigured(): bool
     {
+        if (! (bool) config('services.iyzico.enabled', false)) {
+            return false;
+        }
+
         return $this->apiKey !== '' && $this->secretKey !== '';
     }
 
     /**
-     * Mock mode only when explicitly allowed AND environment is local/testing.
-     * Never available in production.
+     * Mock asla açık değil — yalnızca PayTR kullanılır.
      */
     protected function allowsMock(): bool
     {
-        if (app()->environment('production')) {
-            return false;
-        }
-
-        return (bool) config('services.iyzico.allow_mock', false)
-            && app()->environment('local', 'testing', 'development');
+        return false;
     }
 
     /**

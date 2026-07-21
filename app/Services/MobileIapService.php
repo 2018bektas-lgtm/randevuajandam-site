@@ -159,24 +159,21 @@ class MobileIapService
             }
         }
 
-        if (config('services.mobile_iap.trust_client') && $transactionId !== '') {
-            return ['ok' => true];
-        }
-
-        if ($transactionId !== '' && ! $secret) {
-            // No RC secret yet — accept client transaction for activation but log
-            // (common during soft launch; tighten with REVENUECAT_SECRET_KEY)
-            Log::warning('mobile_iap_client_tx_without_rc', [
+        // Yalnızca açıkça trust_client + non-production (staging)
+        if (config('services.mobile_iap.trust_client')
+            && ! app()->environment('production')
+            && $transactionId !== '') {
+            Log::warning('mobile_iap_trust_client', [
                 'product_id' => $productId,
                 'transaction_id' => $transactionId,
             ]);
 
-            return ['ok' => true, 'message' => 'client_tx'];
+            return ['ok' => true, 'message' => 'trust_client'];
         }
 
         return [
             'ok' => false,
-            'message' => 'IAP doğrulama yapılandırılmamış. REVENUECAT_SECRET_KEY ekleyin veya havale kullanın.',
+            'message' => 'IAP doğrulama yapılandırılmamış. REVENUECAT_SECRET_KEY ekleyin veya web’den PayTR ile ödeyin.',
         ];
     }
 }

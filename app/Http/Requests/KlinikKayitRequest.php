@@ -43,15 +43,9 @@ class KlinikKayitRequest extends FormRequest
             'branslar' => 'required|array|min:1',
             'branslar.*' => 'exists:branslar,id',
 
-            // Paket
+            // Paket (kartlı ödeme PayTR iframe — bu formda kart yok)
             'paket_id' => 'required|exists:paketler,id',
             'odeme_periyodu' => 'required|in:aylik,yillik',
-
-            // Simulated Payment
-            'kart_sahibi' => 'required|string|max:255',
-            'kart_no' => 'required|string|min:16|max:19',
-            'kart_skt' => 'required|string|max:5',
-            'kart_cvv' => 'required|string|min:3|max:4',
         ];
     }
 
@@ -80,10 +74,6 @@ class KlinikKayitRequest extends FormRequest
             'branslar.required' => 'En az bir uzmanlık alanı / branş seçmelisiniz.',
             'paket_id.exists' => 'Lütfen geçerli bir üyelik paketi seçin.',
             'odeme_periyodu.in' => 'Ödeme periyodu aylık veya yıllık olmalıdır.',
-            'kart_sahibi.required' => 'Kart sahibi adı zorunludur.',
-            'kart_no.required' => 'Kredi kartı numarası zorunludur.',
-            'kart_skt.required' => 'Son kullanma tarihi zorunludur.',
-            'kart_cvv.required' => 'CVV kodu zorunludur.',
         ];
     }
 }

@@ -929,7 +929,13 @@ class KlinikController extends Controller
             'sifre_degistirildi_mi' => false,
         ]);
 
-        return redirect()->route('hekim.klinik.personeller')->with('basari', "Personel şifresi sıfırlandı. Yeni geçici şifre: <strong>{$geciciSifre}</strong>. Personel ilk girişinde şifresini değiştirmeye zorlanacaktır.");
+        // Şifreyi flash’ta bir kez göster; log/mail’e yazma.
+        session()->flash('gecici_sifre_goster', $geciciSifre);
+
+        return redirect()->route('hekim.klinik.personeller')->with(
+            'basari',
+            'Personel şifresi sıfırlandı. Geçici şifre bir kez aşağıda gösterilir; personel ilk girişte değiştirir.'
+        );
     }
 
     /**

@@ -1365,7 +1365,9 @@ class MobileDoctorClinicController extends Controller
             'message' => 'Personel şifresi sıfırlandı.',
             'data' => [
                 'id' => $personel->id,
+                // Düz metin şifre yalnızca bu yanıtta bir kez; loglama yok
                 'gecici_sifre' => $geciciSifre,
+                'gecici_sifre_uyari' => 'Bu şifreyi güvenli iletin; bir daha gösterilmez.',
             ],
         ]);
     }

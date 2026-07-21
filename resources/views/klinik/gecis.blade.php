@@ -87,52 +87,22 @@
                 </div>
             </div>
 
-            <!-- Step 2: Kredi Kartı & Ödeme -->
+            <!-- Step 2: PayTR bilgilendirme -->
             <div class="space-y-5">
                 <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100">
                     <span class="w-7 h-7 rounded-full bg-[#FFF7ED] text-[#C96A2B] font-bold text-xs flex items-center justify-center font-display border border-[#E7B58A]/30">2</span>
-                    <h3 class="text-sm font-bold font-display text-[#111827] uppercase tracking-wider">Güvenli Ödeme</h3>
+                    <h3 class="text-sm font-bold font-display text-[#111827] uppercase tracking-wider">Güvenli ödeme (PayTR)</h3>
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                    <div class="sm:col-span-3">
-                        <label for="kart_sahibi" class="block text-[11px] font-bold text-[#1F2937] uppercase tracking-wider mb-2">Kart Üzerindeki İsim *</label>
-                        <input type="text" name="kart_sahibi" id="kart_sahibi" value="{{ old('kart_sahibi') }}" 
-                               class="w-full text-xs bg-slate-50 border border-gray-200 focus:border-[#C96A2B] focus:bg-white rounded-xl p-3 outline-none transition-all font-medium"
-                               placeholder="Ahmet Yılmaz">
-                        @error('kart_sahibi') <span class="text-[10px] text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="sm:col-span-3">
-                        <label for="kart_no" class="block text-[11px] font-bold text-[#1F2937] uppercase tracking-wider mb-2">Kredi Kartı Numarası *</label>
-                        <input type="text" name="kart_no" id="kart_no" value="{{ old('kart_no') }}" 
-                               class="w-full text-xs bg-slate-50 border border-gray-200 focus:border-[#C96A2B] focus:bg-white rounded-xl p-3 outline-none transition-all font-medium"
-                               placeholder="0000 0000 0000 0000" maxlength="19">
-                        @error('kart_no') <span class="text-[10px] text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="sm:col-span-2">
-                        <label for="kart_skt" class="block text-[11px] font-bold text-[#1F2937] uppercase tracking-wider mb-2">Son Kullanma Tarihi *</label>
-                        <input type="text" name="kart_skt" id="kart_skt" value="{{ old('kart_skt') }}" 
-                               class="w-full text-xs bg-slate-50 border border-gray-200 focus:border-[#C96A2B] focus:bg-white rounded-xl p-3 outline-none transition-all font-medium"
-                               placeholder="AA/YY" maxlength="5">
-                        @error('kart_skt') <span class="text-[10px] text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label for="kart_cvv" class="block text-[11px] font-bold text-[#1F2937] uppercase tracking-wider mb-2">CVV *</label>
-                        <input type="password" name="kart_cvv" id="kart_cvv" 
-                               class="w-full text-xs bg-slate-50 border border-gray-200 focus:border-[#C96A2B] focus:bg-white rounded-xl p-3 outline-none transition-all font-medium"
-                               placeholder="***" maxlength="3">
-                        @error('kart_cvv') <span class="text-[10px] text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                <div class="rounded-2xl border border-[#E7B58A]/40 bg-[#FFF7ED]/50 p-5 text-xs text-slate-600 space-y-2">
+                    <p class="font-semibold text-[#C96A2B] text-sm">Kart bilgisi sitede toplanmaz.</p>
+                    <p>Onayladığınızda PayTR güvenli ödeme sayfasına (3D Secure) yönlendirilirsiniz. Ödeme sonrası klinik hesabınız otomatik açılır.</p>
+                    @error('paket_id') <span class="text-red-500 font-semibold block">{{ $message }}</span> @enderror
                 </div>
             </div>
 
-            <!-- Submit Button -->
             <div class="pt-6 border-t border-slate-100 flex justify-end">
                 <button type="submit" class="px-8 py-3.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-xs font-bold text-white shadow-sm hover:shadow transition-all uppercase tracking-wider font-display">
-                    Ödeme Yap & Kliniğe Geç
+                    PayTR ile öde &amp; kliniğe geç
                 </button>
             </div>
         </div>
@@ -264,27 +234,6 @@
                 $('#ilce_id').val("{{ old('ilce_id', $doktor->ilce?->ad) }}").trigger('change');
             }, 500);
         }
-
-        // Formats card inputs
-        $('#kart_no').on('input', function() {
-            let val = $(this).val().replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-            let matches = val.match(/\d{4,16}/g);
-            let match = (matches && matches[0]) || '';
-            let parts = [];
-            for (let i = 0, len = match.length; i < len; i += 4) {
-                parts.push(match.substring(i, i + 4));
-            }
-            $(this).val(parts.join(' '));
-        });
-
-        $('#kart_skt').on('input', function() {
-            let val = $(this).val().replace(/\D/g, '');
-            if (val.length > 2) {
-                $(this).val(val.substring(0, 2) + '/' + val.substring(2, 4));
-            } else {
-                $(this).val(val);
-            }
-        });
 
         // Phone mask
         $('#telefon').on('input', function() {

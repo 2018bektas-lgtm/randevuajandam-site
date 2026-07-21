@@ -14,7 +14,7 @@ class HealthCheckCommand extends Command
 {
     protected $signature = 'ra:health {--strict : production kurallarını localde de uygula}';
 
-    protected $description = 'Randevu Ajandam ortam sağlık kontrolü (DB, queue, iyzico, debug)';
+    protected $description = 'Randevu Ajandam ortam sağlık kontrolü (DB, queue, PayTR, debug)';
 
     public function handle(): int
     {
@@ -61,20 +61,33 @@ class HealthCheckCommand extends Command
             $this->line('[OK] APP_DEBUG='.(config('app.debug') ? 'true' : 'false'));
         }
 
-        // iyzico mock
-        $mock = (bool) config('services.iyzico.allow_mock', false);
-        if ($strict && $mock) {
-            $this->error('[FAIL] IYZICO_ALLOW_MOCK=true production’da olmamalı');
-            $ok = false;
+        // Ödeme: yalnızca PayTR
+        $driver = (string) config('services.payment.driver', 'paytr');
+        $this->line('[OK] PAYMENT_DRIVER='.$driver);
+        if ((bool) config('services.iyzico.enabled', false)) {
+            $this->warn('[WARN] IYZICO_ENABLED=true — ürün kararı PayTR-only; kapatın.');
         } else {
-            $this->line('[OK] IYZICO_ALLOW_MOCK='.($mock ? 'true' : 'false'));
+            $this->line('[OK] iyzico kapalı (PayTR-only)');
         }
 
-        $iyzicoKey = (string) config('services.iyzico.api_key', '');
-        if ($strict && $iyzicoKey === '') {
-            $this->warn('[WARN] IYZICO_API_KEY boş');
+        $paytrId = (string) config('services.paytr.merchant_id', '');
+        $paytrTest = (bool) config('services.paytr.test_mode', true);
+        if ($strict && $paytrId === '') {
+            $this->error('[FAIL] PAYTR_MERCHANT_ID boş — kartlı ödeme çalışmaz');
+            $ok = false;
         } else {
-            $this->line('[OK] IYZICO_API_KEY '.($iyzicoKey !== '' ? 'tanımlı' : '(boş — local OK)'));
+            $this->line('[OK] PayTR merchant '.($paytrId !== '' ? 'tanımlı' : '(boş — local OK)'));
+        }
+        if ($strict && $paytrTest) {
+            $this->error('[FAIL] PAYTR_TEST_MODE=true production’da olmamalı');
+            $ok = false;
+        } else {
+            $this->line('[OK] PAYTR_TEST_MODE='.($paytrTest ? 'true' : 'false'));
+        }
+
+        $sms = (string) config('services.sms.driver', env('SMS_DRIVER', 'log'));
+        if ($strict && in_array($sms, ['log', 'array', ''], true)) {
+            $this->warn('[WARN] SMS_DRIVER=log — OTP gerçek SMS gitmez');
         }
 
         // APP_URL https in production
@@ -88,7 +101,7 @@ class HealthCheckCommand extends Command
         $this->newLine();
         if ($ok) {
             $this->info('Sonuç: temel kontroller geçti.');
-            $this->line('Hatırlatma: prod’da `queue:work` + cron `schedule:run` çalışmalı → CANLI_CIKIS_CHECKLIST.md');
+            $this->line('Hatırlatma: prod’da `queue:work` + cron `schedule:run` — docs/PROJE.md operasyon checklist');
 
             return self::SUCCESS;
         }

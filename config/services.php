@@ -35,20 +35,21 @@ return [
         ],
     ],
 
+    /*
+    | iyzico — KAPALI. Kartlı ödeme yalnızca PayTR.
+    | Eski abonelik referansları DB’de kalabilir; yeni ödeme/yenileme yok.
+    */
     'iyzico' => [
+        'enabled' => filter_var(env('IYZICO_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
         'api_key' => env('IYZICO_API_KEY'),
         'secret_key' => env('IYZICO_SECRET_KEY'),
-        // Production default is live API; override with sandbox only in local.
-        'base_url' => env('IYZICO_BASE_URL', env('APP_ENV') === 'production'
-            ? 'https://api.iyzipay.com'
-            : 'https://sandbox-api.iyzipay.com'),
+        'base_url' => env('IYZICO_BASE_URL', 'https://api.iyzipay.com'),
         'webhook_secret' => env('IYZICO_WEBHOOK_SECRET'),
-        // Explicit opt-in for mock subscriptions (never auto-mock in production).
-        'allow_mock' => env('IYZICO_ALLOW_MOCK', false),
+        'allow_mock' => false,
     ],
 
     /*
-    | PayTR iFrame API — aktif kartlı ödeme sağlayıcısı
+    | PayTR iFrame API — tek kartlı ödeme sağlayıcısı (web abonelik)
     | merchant_id / key / salt: PayTR mağaza paneli → Bilgi
     */
     'paytr' => [
@@ -58,6 +59,13 @@ return [
         'test_mode' => filter_var(env('PAYTR_TEST_MODE', true), FILTER_VALIDATE_BOOLEAN),
         'debug_on' => filter_var(env('PAYTR_DEBUG_ON', true), FILTER_VALIDATE_BOOLEAN),
         'fallback_ip' => env('PAYTR_FALLBACK_IP', '85.34.78.112'),
+    ],
+
+    /*
+    | Ödeme sürücüsü: paytr | (iyzico kapalı)
+    */
+    'payment' => [
+        'driver' => env('PAYMENT_DRIVER', 'paytr'),
     ],
 
     /*

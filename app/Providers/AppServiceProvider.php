@@ -112,8 +112,11 @@ class AppServiceProvider extends ServiceProvider
             if (config('sms.driver') === 'log') {
                 \Illuminate\Support\Facades\Log::critical('SMS_DRIVER=log production ortamında — gerçek SMS sürücüsü ayarlayın.');
             }
-            if (str_contains((string) config('services.iyzico.base_url'), 'sandbox')) {
-                \Illuminate\Support\Facades\Log::critical('Iyzico base_url sandbox — production için https://api.iyzipay.com kullanın.');
+            if ((bool) config('services.iyzico.enabled', false)) {
+                \Illuminate\Support\Facades\Log::warning('IYZICO_ENABLED=true — platform PayTR-only; iyzico kapatılmalı.');
+            }
+            if ((bool) config('services.paytr.test_mode', true)) {
+                \Illuminate\Support\Facades\Log::critical('PAYTR_TEST_MODE=true production’da kapalı olmalı.');
             }
         }
     }

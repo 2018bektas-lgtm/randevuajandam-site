@@ -182,20 +182,13 @@
                     </div>
                 </div>
 
-                <!-- iyzico + deneme + domain -->
+                <!-- deneme + domain (kart: PayTR) -->
                 <div class="space-y-4 p-5 border border-[#E5E7EB] rounded-2xl bg-slate-50/50">
-                    <h3 class="text-xs font-bold text-[#C96A2B] uppercase tracking-wider font-display">Ödeme planı & domain</h3>
+                    <h3 class="text-xs font-bold text-[#C96A2B] uppercase tracking-wider font-display">Deneme &amp; domain</h3>
+                    <p class="text-[11px] text-slate-500">Kartlı ödeme yalnızca <strong>PayTR</strong>. Eski iyzico plan kodları kullanılmaz.</p>
+                    <input type="hidden" name="iyzico_plan_aylik" value="{{ old('iyzico_plan_aylik', $paket->iyzico_plan_aylik) }}">
+                    <input type="hidden" name="iyzico_plan_yillik" value="{{ old('iyzico_plan_yillik', $paket->iyzico_plan_yillik) }}">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">iyzico plan (aylık)</label>
-                            <input type="text" name="iyzico_plan_aylik" value="{{ old('iyzico_plan_aylik', $paket->iyzico_plan_aylik) }}"
-                                   class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs" placeholder="pricingPlanReferenceCode">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">iyzico plan (yıllık)</label>
-                            <input type="text" name="iyzico_plan_yillik" value="{{ old('iyzico_plan_yillik', $paket->iyzico_plan_yillik) }}"
-                                   class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs" placeholder="pricingPlanReferenceCode">
-                        </div>
                         <div>
                             <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">Deneme günü</label>
                             <input type="number" name="deneme_gun" min="0" max="90" value="{{ old('deneme_gun', $paket->deneme_gun) }}"

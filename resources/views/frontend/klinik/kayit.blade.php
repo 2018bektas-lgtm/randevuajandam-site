@@ -505,45 +505,20 @@
                     </div>
                 </div>
 
-                <!-- STEP 3: Güvenli Ödeme -->
+                <!-- STEP 3: Ödeme bilgilendirme (PayTR) -->
                 <div class="wizard-step hidden flex-grow" id="step3">
                     <div class="mb-6">
-                        <h3 class="text-lg font-bold font-display text-[#111827]">Güvenli Ödeme Bilgileri</h3>
-                        <p class="text-xs text-[#6B7280] mt-1.5">iyzico altyapısıyla güvenli kredi kartı ödemenizi tamamlayın.</p>
+                        <h3 class="text-lg font-bold font-display text-[#111827]">Güvenli ödeme</h3>
+                        <p class="text-xs text-[#6B7280] mt-1.5">Kart bilgisi sitede tutulmaz. “Kaydı tamamla” sonrası <strong>PayTR</strong> güvenli ödeme ekranına yönlendirilirsiniz (3D Secure).</p>
                     </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                        <div class="sm:col-span-3">
-                            <label for="kart_sahibi" class="block text-[11px] font-bold text-[#1F2937] uppercase tracking-wider mb-2">Kart Üzerindeki İsim *</label>
-                            <input type="text" name="kart_sahibi" id="kart_sahibi" value="{{ old('kart_sahibi') }}" 
-                                   class="w-full text-xs bg-slate-50 border border-gray-200 focus:border-[#C96A2B] focus:bg-white rounded-xl p-3 outline-none transition-all font-medium"
-                                   placeholder="Örn: Ahmet Yılmaz">
-                            @error('kart_sahibi') <span class="text-[10px] text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div class="sm:col-span-3 relative">
-                            <label for="kart_no" class="block text-[11px] font-bold text-[#1F2937] uppercase tracking-wider mb-2">Kredi Kartı Numarası *</label>
-                            <input type="text" name="kart_no" id="kart_no" value="{{ old('kart_no') }}" 
-                                   class="w-full text-xs bg-slate-50 border border-gray-200 focus:border-[#C96A2B] focus:bg-white rounded-xl p-3 outline-none transition-all font-medium"
-                                   placeholder="0000 0000 0000 0000" maxlength="19">
-                            @error('kart_no') <span class="text-[10px] text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div class="sm:col-span-2">
-                            <label for="kart_skt" class="block text-[11px] font-bold text-[#1F2937] uppercase tracking-wider mb-2">Son Kullanma Tarihi *</label>
-                            <input type="text" name="kart_skt" id="kart_skt" value="{{ old('kart_skt') }}" 
-                                   class="w-full text-xs bg-slate-50 border border-gray-200 focus:border-[#C96A2B] focus:bg-white rounded-xl p-3 outline-none transition-all font-medium"
-                                   placeholder="AA/YY" maxlength="5">
-                            @error('kart_skt') <span class="text-[10px] text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div>
-                            <label for="kart_cvv" class="block text-[11px] font-bold text-[#1F2937] uppercase tracking-wider mb-2">CVV / Güvenlik Kodu *</label>
-                            <input type="password" name="kart_cvv" id="kart_cvv" 
-                                   class="w-full text-xs bg-slate-50 border border-gray-200 focus:border-[#C96A2B] focus:bg-white rounded-xl p-3 outline-none transition-all font-medium"
-                                   placeholder="***" maxlength="3">
-                            @error('kart_cvv') <span class="text-[10px] text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                    <div class="rounded-2xl border border-[#E7B58A]/40 bg-[#FFF7ED]/50 p-5 space-y-3 text-sm text-slate-700">
+                        <p class="font-semibold text-[#C96A2B]">Ödeme sağlayıcısı: PayTR</p>
+                        <ul class="list-disc pl-5 text-xs space-y-1.5 text-slate-600">
+                            <li>Kredi / banka kartı ile abonelik bedeli</li>
+                            <li>Başarılı ödeme sonrası klinik otomatik oluşturulur</li>
+                            <li>Muayene ücreti bu ödemeye dahil değildir</li>
+                        </ul>
+                        @error('paket_id') <span class="text-[10px] text-red-500 font-semibold block">{{ $message }}</span> @enderror
                     </div>
                 </div>
 
@@ -613,33 +588,6 @@
         document.querySelectorAll('.brans-checkbox').forEach(checkbox => {
             if (checkbox.checked) {
                 handleBransCheckboxChange(checkbox, checkbox.closest('.multiselect-option').getAttribute('data-brans-name'));
-            }
-        });
-
-        // Format Credit Card input fields
-        $('#kart_no').on('input', function() {
-            let val = $(this).val().replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-            let matches = val.match(/\d{4,16}/g);
-            let match = (matches && matches[0]) || '';
-            let parts = [];
-
-            for (let i = 0, len = match.length; i < len; i += 4) {
-                parts.push(match.substring(i, i + 4));
-            }
-
-            if (parts.length > 0) {
-                $(this).val(parts.join(' '));
-            } else {
-                $(this).val(val);
-            }
-        });
-
-        $('#kart_skt').on('input', function() {
-            let val = $(this).val().replace(/\D/g, '');
-            if (val.length > 2) {
-                $(this).val(val.substring(0, 2) + '/' + val.substring(2, 4));
-            } else {
-                $(this).val(val);
             }
         });
 

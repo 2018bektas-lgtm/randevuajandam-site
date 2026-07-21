@@ -67,23 +67,15 @@ class HekimUyelikController extends Controller
 
         $ref = (string) ($doktor->iyzico_subscription_reference_code ?? '');
         $isPaytr = $paytr->isPaytrReference($ref);
+        // Eski iyzico ref (nadir): yalnızca IYZICO_ENABLED=true iken API iptal
         $isRealIyzico = $iyzico->isRealSubscriptionReference($ref);
-
-        // Eski iyzico aboneliği varsa API iptal dene
         if ($isRealIyzico && ! $isPaytr && $iyzico->isConfigured()) {
             $cancelResult = $iyzico->cancelSubscription($ref);
             if (($cancelResult['status'] ?? '') !== 'success') {
-                Log::error('BLOCKED local cancel — iyzico cancel failed', [
+                Log::warning('Legacy iyzico cancel skipped/failed — local cancel continues (PayTR-only era)', [
                     'doktor_id' => $doktor->id,
                     'ref' => $ref,
-                    'result' => $cancelResult,
                 ]);
-
-                return back()->with(
-                    'hata',
-                    ($cancelResult['errorMessage'] ?? 'Eski iyzico abonelik iptali başarısız.')
-                    .' Lütfen destek alın veya iyzico panelinden iptal edin.'
-                );
             }
         }
 
@@ -95,9 +87,7 @@ class HekimUyelikController extends Controller
         ])->save();
 
         $bitis = $doktor->uyelik_bitis?->format('d.m.Y H:i') ?? 'dönem sonu';
-        $note = $isPaytr
-            ? ' PayTR tek seferlik ödeme olduğu için otomatik yenileme zaten yoktur.'
-            : ' Dönem sonunda erişim sona erer.';
+        $note = ' PayTR tek seferlik ödeme; otomatik yenileme yoktur. Dönem sonu: erişim biter.';
 
         return redirect()
             ->route('hekim.uyelik')

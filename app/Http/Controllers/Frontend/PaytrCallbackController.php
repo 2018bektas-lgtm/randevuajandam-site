@@ -220,6 +220,7 @@ class PaytrCallbackController extends Controller
                     'odeme_periyodu' => $odeme->odeme_periyodu,
                     'uyelik_baslangic' => $baslangic,
                     'uyelik_bitis' => $bitis,
+                    'max_doktor_sayisi' => $paket->max_doktor_sayisi ?? 3,
                     'iyzico_subscription_reference_code' => $ref,
                     'iyzico_subscription_status' => 'ACTIVE',
                     'abonelik_yenileme_kapali' => false,
@@ -231,6 +232,7 @@ class PaytrCallbackController extends Controller
                     'klinik_id' => $klinik->id,
                     'klinik_rolu' => 'sahip',
                     'klinik_katilma_tarihi' => now(),
+                    'klinik_aktif_mi' => true,
                     'klinik_adi' => $kurulum['klinik_adi'],
                     'paket_id' => $paket->id,
                     'odeme_periyodu' => $odeme->odeme_periyodu,
@@ -242,6 +244,21 @@ class PaytrCallbackController extends Controller
                     'abonelik_iptal_at' => null,
                     'abonelik_iptal_nedeni' => null,
                 ])->save();
+
+                // Bireysel → klinik geçişinde hasta havuzuna taşı
+                $patientIds = \App\Models\Hasta::whereHas('randevular', function ($q) use ($doktor) {
+                    $q->where('doktor_id', $doktor->id);
+                })->pluck('id')->all();
+                if ($patientIds !== []) {
+                    $sync = [];
+                    foreach ($patientIds as $pid) {
+                        $sync[$pid] = [
+                            'kayit_tarihi' => now(),
+                            'notlar' => 'Klinik paket ödemesi sonrası aktarıldı.',
+                        ];
+                    }
+                    $klinik->hastalar()->syncWithoutDetaching($sync);
+                }
             } else {
                 $doktor->forceFill([
                     'paket_id' => $paket->id,

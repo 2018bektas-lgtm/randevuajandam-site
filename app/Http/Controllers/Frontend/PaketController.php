@@ -18,7 +18,6 @@ use App\Models\UyelikOdeme;
 use App\Models\Unvan;
 use App\Rules\TcKimlikNo;
 use App\Services\Edevlet\BelgeDogrulamaService;
-use App\Services\IyzicoSubscriptionService;
 use App\Services\Meslek\MeslekEslesmeService;
 use App\Services\PaytrService;
 use Illuminate\Http\Request;
@@ -980,40 +979,27 @@ class PaketController extends Controller
     public function klinikKayitOl(KlinikKayitRequest $request)
     {
         $paket = Paket::findOrFail($request->paket_id);
+        if (! $paket->klinikPaketiMi()) {
+            return back()->withInput()->withErrors(['paket_id' => 'Geçerli bir klinik paketi seçin.']);
+        }
 
         $ilModel = Il::find($request->il_id);
         $ilceModel = Ilce::where('il_id', $ilModel?->id)->where('ad', $request->ilce_id)->first();
-
-        // Initialize iyzico subscription payment
-        $subscriptionService = app(IyzicoSubscriptionService::class);
-        $doktorMock = new Doktor([
-            'ad_soyad' => $request->ad_soyad,
-            'e_posta' => $request->doktor_eposta,
-            'telefon' => $request->doktor_telefon,
-            'il_id' => $ilModel?->id,
-            'ilce_id' => $ilceModel?->id,
-        ]);
-        $doktorMock->setRelations([
-            'il' => $ilModel,
-            'ilce' => $ilceModel,
-        ]);
-
-        $cardDetails = $request->only(['kart_sahibi', 'kart_no', 'kart_skt', 'kart_cvv']);
-        $paymentResult = $subscriptionService->subscribeDoctor($doktorMock, $paket, $request->odeme_periyodu, $cardDetails);
-
-        if ($paymentResult['status'] !== 'success') {
-            return back()->withInput()->withErrors([
-                'kart_no' => $paymentResult['errorMessage'] ?? 'Ödeme işlemi gerçekleştirilemedi.',
-            ]);
-        }
-
-        $baslangic = now();
-        $bitis = $request->odeme_periyodu === 'aylik' ? now()->addMonth() : now()->addYear();
-
         $bransIsimleri = Brans::whereIn('id', $request->branslar)->pluck('ad')->toArray();
         $uzmanlikAlaniString = implode(', ', $bransIsimleri);
 
-        $klinik = DB::transaction(function () use ($request, $paket, $baslangic, $bitis, $uzmanlikAlaniString, $ilModel, $ilceModel, $paymentResult) {
+        $periodPrice = $request->odeme_periyodu === 'yillik'
+            ? (float) $paket->yillik_fiyat
+            : (float) $paket->aylik_fiyat;
+        $discounted = $request->odeme_periyodu === 'yillik'
+            ? $paket->yillik_indirimli_fiyat
+            : $paket->aylik_indirimli_fiyat;
+        $tutar = $discounted !== null && (float) $discounted > 0
+            ? (float) $discounted
+            : $periodPrice;
+        $isFree = $tutar <= 0;
+
+        $doktor = DB::transaction(function () use ($request, $uzmanlikAlaniString, $ilModel, $ilceModel) {
             $doktor = Doktor::create([
                 'ad_soyad' => $request->ad_soyad,
                 'e_posta' => $request->doktor_eposta,
@@ -1025,49 +1011,46 @@ class PaketController extends Controller
                 'uzmanlik_alani' => $uzmanlikAlaniString,
                 'tur' => 'klinik',
                 'klinik_adi' => $request->klinik_adi,
-                'paket_id' => $paket->id,
-                'odeme_periyodu' => $request->odeme_periyodu,
-                'uyelik_baslangic' => $baslangic,
-                'uyelik_bitis' => $bitis,
-                'iyzico_subscription_reference_code' => $paymentResult['referenceCode'],
-                'iyzico_subscription_status' => $paymentResult['subscriptionStatus'],
+                'paket_id' => null,
                 'aktif_mi' => true,
-                'klinik_rolu' => 'sahip',
-                'klinik_katilma_tarihi' => now(),
-                'klinik_aktif_mi' => true,
+                'kayit_paket_id' => $request->paket_id,
+                'kayit_periyot' => $request->odeme_periyodu,
             ]);
-
-            $klinik = Klinik::create([
-                'ad' => $request->klinik_adi,
-                'sahip_doktor_id' => $doktor->id,
-                'paket_id' => $paket->id,
-                'telefon' => $request->telefon,
-                'e_posta' => $request->e_posta,
-                'adres' => $request->adres,
-                'il_id' => $ilModel?->id,
-                'ilce_id' => $ilceModel?->id,
-                'odeme_periyodu' => $request->odeme_periyodu,
-                'uyelik_baslangic' => $baslangic,
-                'uyelik_bitis' => $bitis,
-                'max_doktor_sayisi' => $paket->max_doktor_sayisi ?? 3,
-                'aktif_mi' => true,
-            ]);
-
-            $doktor->update(['klinik_id' => $klinik->id]);
             $doktor->branslar()->attach($request->branslar);
-
             $doktor->randevuAyari()->create([
                 'aktif_mi' => true,
                 'sure' => 30,
                 'fiyat' => 0,
             ]);
 
-            return $klinik;
+            return $doktor;
         });
 
-        Auth::guard('doktor')->login($klinik->sahipDoktor);
+        Auth::guard('doktor')->login($doktor);
 
-        return $this->redirectAfterMembership($klinik->sahipDoktor);
+        $kurulum = [
+            'klinik_adi' => $request->klinik_adi,
+            'telefon' => $request->telefon,
+            'e_posta' => $request->e_posta,
+            'adres' => $request->adres,
+            'il_id' => $request->il_id,
+            'ilce_id' => $request->ilce_id,
+        ];
+
+        if ($isFree) {
+            $this->activateClinicMembershipLocal($doktor, $paket, $request->odeme_periyodu, $kurulum, 'free_klinik_'.Str::random(10));
+
+            return $this->redirectAfterMembership($doktor->fresh());
+        }
+
+        return $this->startPaytrCheckout(
+            $doktor,
+            $paket,
+            $request->odeme_periyodu,
+            $tutar,
+            $kurulum,
+            $request
+        );
     }
 
     /**
@@ -1107,97 +1090,148 @@ class PaketController extends Controller
             'ilce_id' => 'required|string|max:255|exists:ilceler,ad',
             'paket_id' => 'required|exists:paketler,id',
             'odeme_periyodu' => 'required|in:aylik,yillik',
-            'kart_sahibi' => 'required|string|max:255',
-            'kart_no' => 'required|string|min:16|max:19',
-            'kart_skt' => 'required|string|max:5',
-            'kart_cvv' => 'required|string|min:3|max:4',
         ]);
 
         $paket = Paket::findOrFail($request->paket_id);
-
         if (! $paket->klinikPaketiMi()) {
             return back()->withErrors(['paket_id' => 'Lütfen geçerli bir klinik paketi seçin.']);
         }
 
-        $ilModel = Il::find($request->il_id);
-        $ilceModel = Ilce::where('il_id', $ilModel?->id)->where('ad', $request->ilce_id)->first();
+        $periodPrice = $request->odeme_periyodu === 'yillik'
+            ? (float) $paket->yillik_fiyat
+            : (float) $paket->aylik_fiyat;
+        $discounted = $request->odeme_periyodu === 'yillik'
+            ? $paket->yillik_indirimli_fiyat
+            : $paket->aylik_indirimli_fiyat;
+        $tutar = $discounted !== null && (float) $discounted > 0
+            ? (float) $discounted
+            : $periodPrice;
 
-        // Initialize iyzico subscription payment
-        $subscriptionService = app(IyzicoSubscriptionService::class);
+        $kurulum = $request->only(['klinik_adi', 'telefon', 'e_posta', 'adres', 'il_id', 'ilce_id']);
 
-        $cardDetails = $request->only(['kart_sahibi', 'kart_no', 'kart_skt', 'kart_cvv']);
-        $paymentResult = $subscriptionService->subscribeDoctor($doktor, $paket, $request->odeme_periyodu, $cardDetails);
+        if ($tutar <= 0) {
+            $this->activateClinicMembershipLocal($doktor, $paket, $request->odeme_periyodu, $kurulum, 'free_gecis_'.Str::random(10));
 
-        if ($paymentResult['status'] !== 'success') {
+            return $this->redirectAfterMembership($doktor->fresh());
+        }
+
+        return $this->startPaytrCheckout(
+            $doktor,
+            $paket,
+            $request->odeme_periyodu,
+            $tutar,
+            $kurulum,
+            $request
+        );
+    }
+
+    /**
+     * PayTR iframe oturumu başlat (klinik kayıt / geçiş / paket).
+     *
+     * @param  array<string, mixed>  $kurulum
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    protected function startPaytrCheckout(Doktor $doktor, Paket $paket, string $periyot, float $tutar, array $kurulum, Request $request)
+    {
+        $paytr = app(PaytrService::class);
+        if (! $paytr->isConfigured()) {
             return back()->withInput()->withErrors([
-                'kart_no' => $paymentResult['errorMessage'] ?? 'Ödeme işlemi gerçekleştirilemedi.',
+                'paket_id' => 'Kartlı ödeme (PayTR) yapılandırılmamış. Yöneticiye bildirin veya havale ile paket-ode ekranını kullanın.',
             ]);
         }
 
-        // Eski bireysel aboneliği iyzico'da kapat (çift çekim olmasın)
-        $oldRef = $doktor->iyzico_subscription_reference_code;
-        if ($subscriptionService->isRealSubscriptionReference($oldRef)) {
-            $oldCancel = $subscriptionService->cancelSubscription($oldRef);
-            if (($oldCancel['status'] ?? '') !== 'success') {
-                Log::error('Failed to cancel old sub before clinic upgrade', [
-                    'doktor_id' => $doktor->id,
-                    'ref' => $oldRef,
-                    'result' => $oldCancel,
-                ]);
-                // Yine de yeni abonelik açıldı; log + devam (upgrade akışı)
-            }
+        $merchantOid = $paytr->makeMerchantOid();
+        UyelikOdeme::create([
+            'doktor_id' => $doktor->id,
+            'paket_id' => $paket->id,
+            'odeme_yontemi' => 'paytr',
+            'provider' => 'paytr',
+            'odeme_periyodu' => $periyot,
+            'tutar' => $tutar,
+            'durum' => 'beklemede',
+            'merchant_oid' => $merchantOid,
+            'kurulum_verisi' => $kurulum,
+        ]);
+
+        $tokenResult = $paytr->createIframeToken([
+            'merchant_oid' => $merchantOid,
+            'email' => (string) $doktor->e_posta,
+            'payment_amount' => $tutar,
+            'user_name' => (string) $doktor->ad_soyad,
+            'user_address' => (string) ($doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye')),
+            'user_phone' => (string) $doktor->telefon,
+            'user_ip' => $request->ip(),
+            'basket_name' => 'Randevu Ajandam - '.$paket->ad.' ('.$periyot.')',
+        ]);
+
+        if (($tokenResult['status'] ?? '') !== 'success') {
+            UyelikOdeme::where('merchant_oid', $merchantOid)->update(['durum' => 'reddedildi']);
+
+            return back()->withInput()->withErrors([
+                'paket_id' => $tokenResult['errorMessage'] ?? 'PayTR ödeme oturumu açılamadı.',
+            ]);
         }
 
-        $baslangic = now();
-        $bitis = $request->odeme_periyodu === 'aylik' ? now()->addMonth() : now()->addYear();
+        session(['paytr_iframe_token_'.$merchantOid => $tokenResult['token']]);
 
-        $klinik = DB::transaction(function () use ($request, $doktor, $paket, $baslangic, $bitis, $ilModel, $ilceModel, $paymentResult) {
-            // Create clinic
-            $klinikAttrs = [
-                'ad' => $request->klinik_adi,
+        return redirect()->route('frontend.odeme.paytr.iframe', ['merchantOid' => $merchantOid]);
+    }
+
+    /**
+     * Ücretsiz / yerel klinik üyelik aktivasyonu (PayTR callback ile aynı kurulum alanları).
+     *
+     * @param  array<string, mixed>  $kurulum
+     */
+    protected function activateClinicMembershipLocal(Doktor $doktor, Paket $paket, string $periyot, array $kurulum, string $ref): void
+    {
+        $baslangic = now();
+        $bitis = $periyot === 'aylik' ? now()->addMonth() : now()->addYear();
+        $ilModel = Il::find($kurulum['il_id'] ?? null);
+        $ilceModel = Ilce::where('il_id', $ilModel?->id)
+            ->where('ad', $kurulum['ilce_id'] ?? '')
+            ->first();
+
+        DB::transaction(function () use ($doktor, $paket, $periyot, $kurulum, $ref, $baslangic, $bitis, $ilModel, $ilceModel) {
+            $klinik = Klinik::create([
+                'ad' => $kurulum['klinik_adi'],
                 'sahip_doktor_id' => $doktor->id,
                 'paket_id' => $paket->id,
-                'telefon' => $request->telefon,
-                'e_posta' => $request->e_posta,
-                'adres' => $request->adres,
+                'telefon' => $kurulum['telefon'] ?? $doktor->telefon,
+                'e_posta' => $kurulum['e_posta'] ?? $doktor->e_posta,
+                'adres' => $kurulum['adres'] ?? '',
                 'il_id' => $ilModel?->id,
                 'ilce_id' => $ilceModel?->id,
-                'odeme_periyodu' => $request->odeme_periyodu,
+                'odeme_periyodu' => $periyot,
                 'uyelik_baslangic' => $baslangic,
                 'uyelik_bitis' => $bitis,
                 'max_doktor_sayisi' => $paket->max_doktor_sayisi ?? 3,
+                'iyzico_subscription_reference_code' => $ref,
+                'iyzico_subscription_status' => 'ACTIVE',
+                'abonelik_yenileme_kapali' => false,
                 'aktif_mi' => true,
-            ];
-            if (\Illuminate\Support\Facades\Schema::hasColumn('klinikler', 'iyzico_subscription_reference_code')) {
-                $klinikAttrs['iyzico_subscription_reference_code'] = $paymentResult['referenceCode'] ?? null;
-                $klinikAttrs['iyzico_subscription_status'] = $paymentResult['subscriptionStatus'] ?? 'ACTIVE';
-                $klinikAttrs['abonelik_yenileme_kapali'] = false;
-                $klinikAttrs['abonelik_iptal_at'] = null;
-            }
-            $klinik = Klinik::create($klinikAttrs);
+            ]);
 
-            // Update doctor
-            $doktor->update([
+            $doktor->forceFill([
+                'tur' => 'klinik',
                 'klinik_id' => $klinik->id,
                 'klinik_rolu' => 'sahip',
                 'klinik_katilma_tarihi' => now(),
                 'klinik_aktif_mi' => true,
+                'klinik_adi' => $kurulum['klinik_adi'],
                 'paket_id' => $paket->id,
-                'odeme_periyodu' => $request->odeme_periyodu,
+                'odeme_periyodu' => $periyot,
                 'uyelik_baslangic' => $baslangic,
                 'uyelik_bitis' => $bitis,
-                'iyzico_subscription_reference_code' => $paymentResult['referenceCode'],
-                'iyzico_subscription_status' => $paymentResult['subscriptionStatus'],
+                'iyzico_subscription_reference_code' => $ref,
+                'iyzico_subscription_status' => 'ACTIVE',
                 'abonelik_yenileme_kapali' => false,
-                'abonelik_iptal_at' => null,
-                'abonelik_iptal_nedeni' => null,
-            ]);
+                'kayit_paket_id' => null,
+                'kayit_periyot' => null,
+            ])->save();
 
-            // Copy doctor's patients to clinic patient pool
             $existingPatients = Hasta::whereHas('randevular', function ($query) use ($doktor) {
                 $query->where('doktor_id', $doktor->id);
             })->pluck('id')->toArray();
-
             if (! empty($existingPatients)) {
                 $syncData = [];
                 foreach ($existingPatients as $pId) {
@@ -1208,11 +1242,7 @@ class PaketController extends Controller
                 }
                 $klinik->hastalar()->syncWithoutDetaching($syncData);
             }
-
-            return $klinik;
         });
-
-        return $this->redirectAfterMembership($doktor->fresh());
     }
 
     /**
@@ -1448,7 +1478,7 @@ class PaketController extends Controller
         }
 
         if (! $isFree) {
-            $rules['odeme_yontemi'] = 'required|in:paytr,iyzico,havale';
+            $rules['odeme_yontemi'] = 'required|in:paytr,havale';
         }
 
         $request->validate($rules, [
@@ -1463,7 +1493,7 @@ class PaketController extends Controller
             'kvkk_odeme_onay.accepted' => 'KVKK aydınlatma metnini kabul etmelisiniz.',
         ]);
 
-        // Eski formlar iyzico gönderebilir → paytr kabul et
+        // Kartlı ödeme yalnızca PayTR (eski iyzico değeri paytr'ye map)
         $odemeYontemi = $request->input('odeme_yontemi', 'paytr');
         if ($odemeYontemi === 'iyzico') {
             $odemeYontemi = 'paytr';

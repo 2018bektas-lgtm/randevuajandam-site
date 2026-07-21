@@ -111,12 +111,16 @@ class MobileAppPublicController extends Controller
     public function revenueCatWebhook(Request $request): JsonResponse
     {
         $secret = (string) config('services.revenuecat.webhook_secret', '');
-        if ($secret !== '') {
-            $auth = (string) $request->header('Authorization', '');
-            $token = str_starts_with($auth, 'Bearer ') ? substr($auth, 7) : $auth;
-            if (! hash_equals($secret, $token)) {
-                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-            }
+        if ($secret === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'RevenueCat webhook secret yapılandırılmamış.',
+            ], 503);
+        }
+        $auth = (string) $request->header('Authorization', '');
+        $token = str_starts_with($auth, 'Bearer ') ? substr($auth, 7) : $auth;
+        if (! hash_equals($secret, $token)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
         $event = $request->input('event', $request->all());

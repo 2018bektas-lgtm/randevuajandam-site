@@ -4,6 +4,13 @@
 @section('sayfa_baslik', 'Personel Yönetimi')
 
 @section('icerik')
+    @if(session('gecici_sifre_goster'))
+        <div class="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-900">
+            <p class="font-bold text-xs uppercase tracking-wider mb-1">Geçici şifre (yalnızca bir kez)</p>
+            <code class="text-base font-mono font-bold select-all">{{ session('gecici_sifre_goster') }}</code>
+            <p class="text-[11px] mt-2 text-amber-800">Bu şifreyi personele güvenli iletin; sayfayı yenileyince tekrar gösterilmez.</p>
+        </div>
+    @endif
     @if(session('basari'))
         <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold">
             {{ session('basari') }}
