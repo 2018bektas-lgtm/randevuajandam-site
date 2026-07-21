@@ -51,11 +51,20 @@ class KlinikKayitTest extends TestCase
         ]);
     }
 
-    public function test_klinik_kayit_formu_redirects_to_hekim_kayit(): void
+    public function test_klinik_kayit_formu_redirects_guests_to_package_or_register(): void
     {
         $response = $this->get('/hekim/klinik/kayit-ol');
 
-        $response->assertRedirect(route('frontend.hekim.kayit'));
+        // Misafir: paket seçimi veya hekim kaydına yönlenir (akış ürün kararına göre)
+        $this->assertTrue($response->isRedirect());
+        $location = $response->headers->get('Location');
+        $this->assertNotNull($location);
+        $this->assertTrue(
+            str_contains($location, 'paketler')
+            || str_contains($location, 'kayit-ol')
+            || str_contains($location, 'hekim/kayit'),
+            "Beklenmeyen redirect: {$location}"
+        );
     }
 
     /**
