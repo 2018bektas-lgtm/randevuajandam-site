@@ -344,7 +344,7 @@ class HekimController extends Controller
         }
 
         // Klinikler: doktor ilişkisi yükleme (N+1/ağır) yok — withCount yeterli
-        $klinikQuery = \App\Models\Klinik::where('aktif_mi', true)
+        $klinikQuery = \App\Models\Klinik::platformdaListelenen()
             ->with(['il:id,ad,slug', 'ilce:id,ad,slug'])
             ->withCount('doktorlar');
 
@@ -746,7 +746,7 @@ class HekimController extends Controller
         }
 
         $klinikler = \App\Models\Klinik::query()
-            ->where('aktif_mi', true)
+            ->platformdaListelenen()
             ->with(['il', 'ilce'])
             ->where(function ($query) use ($q) {
                 $query->where('ad', 'like', "%{$q}%")

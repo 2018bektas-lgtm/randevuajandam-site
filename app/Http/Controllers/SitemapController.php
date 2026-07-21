@@ -132,7 +132,7 @@ class SitemapController extends Controller
         }
 
         // —— Klinik ——
-        $klinikler = Klinik::where('aktif_mi', true)->with(['il', 'ilce'])->get();
+        $klinikler = Klinik::platformdaListelenen()->with(['il', 'ilce'])->get();
         foreach ($klinikler as $klinik) {
             if (! $klinik->slug) {
                 continue;

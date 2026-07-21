@@ -92,7 +92,7 @@ class AnasayfaController extends Controller
         // Öne çıkan klinikler
         $oneCikanKlinikler = Cache::remember('anasayfa:one_cikan_klinikler', now()->addMinutes(30), function () {
             return Klinik::query()
-                ->where('aktif_mi', true)
+                ->platformdaListelenen()
                 ->withCount(['doktorlar' => function ($q) {
                     $q->where('aktif_mi', true);
                 }])

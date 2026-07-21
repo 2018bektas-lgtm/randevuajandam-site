@@ -45,6 +45,7 @@ class Klinik extends Model
         'abonelik_iptal_nedeni',
         'max_doktor_sayisi',
         'aktif_mi',
+        'platformda_gorunur',
         'meta_baslik',
         'meta_aciklama',
     ];
@@ -59,9 +60,30 @@ class Klinik extends Model
             'abonelik_yenileme_kapali' => 'boolean',
             'abonelik_iptal_at' => 'datetime',
             'aktif_mi' => 'boolean',
+            'platformda_gorunur' => 'boolean',
             'enlem' => 'float',
             'boylam' => 'float',
         ];
+    }
+
+    /** Ana site vitrininde listelenir mi? */
+    public function isListedOnPlatform(): bool
+    {
+        if (! $this->aktif_mi) {
+            return false;
+        }
+
+        return $this->platformda_gorunur !== false;
+    }
+
+    public function scopePlatformdaListelenen($query)
+    {
+        return $query
+            ->where('aktif_mi', true)
+            ->where(function ($q) {
+                $q->where('platformda_gorunur', true)
+                    ->orWhereNull('platformda_gorunur');
+            });
     }
 
     protected static function boot(): void
