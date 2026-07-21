@@ -10,6 +10,7 @@ use App\Models\Klinik;
 use App\Models\PaytrCallbackLog;
 use App\Models\UyelikOdeme;
 use App\Services\PaytrService;
+use App\Support\MetaPixel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,6 +36,16 @@ class PaytrCallbackController extends Controller
                 ->route('frontend.hekim.paket_sec')
                 ->with('hata', 'Ödeme oturumu süresi doldu. Lütfen tekrar deneyin.');
         }
+
+        $paket = $odeme->paket;
+        MetaPixel::queue('AddPaymentInfo', array_merge(
+            MetaPixel::money((float) $odeme->tutar),
+            [
+                'content_name' => $paket?->ad ?? 'Üyelik',
+                'content_ids' => $paket ? [(string) $paket->id] : [],
+                'content_type' => 'product',
+            ]
+        ));
 
         return view('frontend.odeme.paytr_iframe', [
             'token' => $token,
@@ -122,6 +133,48 @@ class PaytrCallbackController extends Controller
         if ($doktor) {
             $doktor->refresh();
             $paket = $doktor->paket;
+
+            // Son ödeme kaydı (onaylı veya bekleyen) — Purchase/Subscribe değerleri
+            $sonOdeme = UyelikOdeme::query()
+                ->with('paket')
+                ->where('doktor_id', $doktor->id)
+                ->whereIn('durum', ['onaylandi', 'beklemede'])
+                ->where('odeme_yontemi', 'paytr')
+                ->latest('id')
+                ->first();
+
+            if ($sonOdeme) {
+                $value = (float) $sonOdeme->tutar;
+                $contentName = $sonOdeme->paket?->ad ?? $paket?->ad ?? 'Üyelik';
+                $contentId = (string) ($sonOdeme->paket_id ?? $paket?->id ?? 'membership');
+                $purchaseParams = array_merge(
+                    MetaPixel::money($value),
+                    [
+                        'content_name' => $contentName,
+                        'content_ids' => [$contentId],
+                        'content_type' => 'product',
+                        'num_items' => 1,
+                    ]
+                );
+
+                MetaPixel::queueOnce(
+                    'purchase_'.$sonOdeme->merchant_oid.'_'.$sonOdeme->id,
+                    'Purchase',
+                    $purchaseParams
+                );
+                MetaPixel::queueOnce(
+                    'subscribe_'.$sonOdeme->merchant_oid.'_'.$sonOdeme->id,
+                    'Subscribe',
+                    array_merge(
+                        MetaPixel::money($value),
+                        [
+                            'content_name' => $contentName,
+                            'content_ids' => [$contentId],
+                            'predicted_ltv' => $value,
+                        ]
+                    )
+                );
+            }
 
             return view('frontend.odeme.sonuc', [
                 'basarili' => true,

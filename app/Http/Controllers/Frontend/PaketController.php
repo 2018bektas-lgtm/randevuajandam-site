@@ -21,6 +21,7 @@ use App\Services\Edevlet\BelgeDogrulamaService;
 use App\Services\Meslek\MeslekEslesmeService;
 use App\Services\PaytrService;
 use App\Services\ReferansService;
+use App\Support\MetaPixel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +62,15 @@ class PaketController extends Controller
         $maxYillikTasarrufYuzde = $this->maxYillikTasarrufYuzde(
             $bireyselPaketler->concat($klinikPaketler)
         );
+
+        MetaPixel::queue('ViewContent', MetaPixel::content(
+            'Paketler',
+            'product_group',
+            'paketler',
+            null,
+            'TRY',
+            ['content_category' => 'subscription']
+        ));
 
         return view('frontend.paketler.index', compact(
             'bireyselPaketler',
@@ -140,6 +150,25 @@ class PaketController extends Controller
 
         $branslar = Brans::orderBy('ad')->get();
         $unvanlar = Unvan::orderBy('ad')->get();
+
+        $paketFiyat = $periyot === 'yillik'
+            ? (float) ($secilenPaket->yillik_indirimli_fiyat ?? $secilenPaket->yillik_fiyat ?? 0)
+            : (float) ($secilenPaket->aylik_indirimli_fiyat ?? $secilenPaket->aylik_fiyat ?? 0);
+        if ($paketFiyat <= 0) {
+            $paketFiyat = $periyot === 'yillik'
+                ? (float) $secilenPaket->yillik_fiyat
+                : (float) $secilenPaket->aylik_fiyat;
+        }
+
+        MetaPixel::queue('AddToCart', array_merge(
+            MetaPixel::money($paketFiyat),
+            [
+                'content_name' => $secilenPaket->ad,
+                'content_ids' => [(string) $secilenPaket->id],
+                'content_type' => 'product',
+                'num_items' => 1,
+            ]
+        ));
 
         return view('frontend.hekim.kayit', compact('branslar', 'unvanlar', 'secilenPaket', 'periyot'));
     }
@@ -742,6 +771,22 @@ class PaketController extends Controller
 
         session()->forget(['kayit_paket_id', 'kayit_periyot', 'mezuniyet_dogrulama', 'mezuniyet_dogrulama_list']);
 
+        MetaPixel::queueOnce(
+            'complete_reg_hekim_'.$doktor->id,
+            'CompleteRegistration',
+            MetaPixel::content(
+                'Hekim kaydı',
+                'product',
+                'hekim-'.$doktor->id,
+                null,
+                'TRY',
+                [
+                    'status' => $autoOnay ? 'verified' : 'pending_review',
+                    'content_category' => $kayitPaket->klinikPaketiMi() ? 'klinik' : 'hekim',
+                ]
+            )
+        );
+
         if ($autoOnay) {
             return redirect()
                 ->to($doktor->checkoutUrlAfterMeslek())
@@ -1055,6 +1100,19 @@ class PaketController extends Controller
 
         Auth::guard('doktor')->login($doktor);
 
+        MetaPixel::queueOnce(
+            'complete_reg_klinik_'.$doktor->id,
+            'CompleteRegistration',
+            MetaPixel::content(
+                'Klinik kaydı',
+                'product',
+                'klinik-reg-'.$doktor->id,
+                $tutar,
+                'TRY',
+                ['status' => true, 'content_category' => 'klinik']
+            )
+        );
+
         $kurulum = [
             'klinik_adi' => $request->klinik_adi,
             'telefon' => $request->telefon,
@@ -1066,6 +1124,18 @@ class PaketController extends Controller
 
         if ($isFree) {
             $this->activateClinicMembershipLocal($doktor, $paket, $request->odeme_periyodu, $kurulum, 'free_klinik_'.Str::random(10));
+            MetaPixel::queueOnce(
+                'subscribe_free_klinik_'.$doktor->id.'_'.$paket->id,
+                'Subscribe',
+                array_merge(
+                    MetaPixel::money(0),
+                    [
+                        'content_name' => $paket->ad,
+                        'content_ids' => [(string) $paket->id],
+                        'predicted_ltv' => 0,
+                    ]
+                )
+            );
 
             return $this->redirectAfterMembership($doktor->fresh());
         }
@@ -1207,6 +1277,16 @@ class PaketController extends Controller
         }
 
         session(['paytr_iframe_token_'.$merchantOid => $tokenResult['token']]);
+
+        MetaPixel::queue('InitiateCheckout', array_merge(
+            MetaPixel::money((float) $tutar),
+            [
+                'content_name' => $paket->ad,
+                'content_ids' => [(string) $paket->id],
+                'content_type' => 'product',
+                'num_items' => 1,
+            ]
+        ));
 
         return redirect()->route('frontend.odeme.paytr.iframe', ['merchantOid' => $merchantOid]);
     }
@@ -1370,6 +1450,19 @@ class PaketController extends Controller
             'platformda_gorunur' => true,
         ]);
 
+        MetaPixel::queueOnce(
+            'start_trial_'.$doktor->id.'_'.$paket->id,
+            'StartTrial',
+            array_merge(
+                MetaPixel::money(0),
+                [
+                    'content_name' => $paket->ad,
+                    'content_ids' => [(string) $paket->id],
+                    'predicted_ltv' => 0,
+                ]
+            )
+        );
+
         return redirect()
             ->route('frontend.hekim.basarili')
             ->with(
@@ -1461,6 +1554,16 @@ class PaketController extends Controller
         $referansIndirim = $refFiyat;
 
         $pendingDomain = session(HekimOnboardingController::SESSION_PENDING);
+
+        MetaPixel::queue('InitiateCheckout', array_merge(
+            MetaPixel::money((float) $tutar),
+            [
+                'content_name' => $secilenPaket->ad,
+                'content_ids' => [(string) $secilenPaket->id],
+                'content_type' => 'product',
+                'num_items' => 1,
+            ]
+        ));
 
         return view('frontend.hekim.paket_ode', compact(
             'secilenPaket',
@@ -1635,6 +1738,16 @@ class PaketController extends Controller
 
             session(['paytr_iframe_token_'.$merchantOid => $tokenResult['token']]);
 
+            MetaPixel::queue('InitiateCheckout', array_merge(
+                MetaPixel::money((float) $tutar),
+                [
+                    'content_name' => $paket->ad,
+                    'content_ids' => [(string) $paket->id],
+                    'content_type' => 'product',
+                    'num_items' => 1,
+                ]
+            ));
+
             return redirect()->route('frontend.odeme.paytr.iframe', ['merchantOid' => $merchantOid]);
         }
 
@@ -1701,6 +1814,33 @@ class PaketController extends Controller
                 ]);
             }
         });
+
+        // Ücretsiz paket aktivasyonu
+        MetaPixel::queueOnce(
+            'purchase_free_'.$doktor->id.'_'.$paket->id.'_'.$request->odeme_periyodu,
+            'Purchase',
+            array_merge(
+                MetaPixel::money(0),
+                [
+                    'content_name' => $paket->ad,
+                    'content_ids' => [(string) $paket->id],
+                    'content_type' => 'product',
+                    'num_items' => 1,
+                ]
+            )
+        );
+        MetaPixel::queueOnce(
+            'subscribe_free_'.$doktor->id.'_'.$paket->id.'_'.$request->odeme_periyodu,
+            'Subscribe',
+            array_merge(
+                MetaPixel::money(0),
+                [
+                    'content_name' => $paket->ad,
+                    'content_ids' => [(string) $paket->id],
+                    'predicted_ltv' => 0,
+                ]
+            )
+        );
 
         return $this->redirectAfterMembership($doktor->fresh());
     }

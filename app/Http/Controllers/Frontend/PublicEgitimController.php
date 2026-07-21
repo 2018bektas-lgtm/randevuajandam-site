@@ -10,6 +10,7 @@ use App\Models\Il;
 use App\Models\Ilce;
 use App\Rules\TurkishMobilePhone;
 use App\Services\EgitimBasvuruService;
+use App\Support\MetaPixel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -98,6 +99,15 @@ class PublicEgitimController extends Controller
             ->with(['formAlanlari' => fn ($q) => $q->where('aktif_mi', true)])
             ->firstOrFail();
 
+        MetaPixel::queue('ViewContent', MetaPixel::content(
+            (string) $egitim->baslik,
+            'product',
+            'egitim-'.$egitim->id,
+            isset($egitim->fiyat) ? (float) $egitim->fiyat : null,
+            'TRY',
+            ['content_category' => 'egitim']
+        ));
+
         return view('frontend.hekimler.egitim_detay', compact('doktor', 'egitim'));
     }
 
@@ -167,6 +177,23 @@ class PublicEgitimController extends Controller
         }
 
         RateLimiter::hit($throttleKey, 300);
+
+        MetaPixel::queue('SubmitApplication', MetaPixel::content(
+            (string) $egitim->baslik,
+            'product',
+            'egitim-'.$egitim->id,
+            null,
+            'TRY',
+            ['content_category' => 'egitim']
+        ));
+        MetaPixel::queue('Lead', MetaPixel::content(
+            'Eğitim başvurusu',
+            'product',
+            'egitim-'.$egitim->id,
+            null,
+            'TRY',
+            ['content_category' => 'egitim']
+        ));
 
         return back()->with('basarili', 'Başvurunuz alındı. Hekim sizinle iletişime geçecektir. (Ödeme siteden alınmaz.)');
     }

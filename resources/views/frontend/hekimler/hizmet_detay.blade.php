@@ -420,10 +420,10 @@
                         <p>Hekimimiz online randevu alımına geçici olarak kapalıdır. Randevu bilgisi için lütfen iletişime geçiniz.</p>
                         <div class="svc-closed-actions">
                             @if($doktor->telefon)
-                                <a href="tel:{{ $doktor->telefon }}" class="primary">{{ $doktor->telefon }}</a>
+                                <a href="tel:{{ $doktor->telefon }}" data-meta-event="Contact" data-meta-params='{"content_name":"Hekim telefon"}' class="primary">{{ $doktor->telefon }}</a>
                             @endif
                             @if($doktor->e_posta)
-                                <a href="mailto:{{ $doktor->e_posta }}" class="ghost">E-Posta ile İletişim</a>
+                                <a href="mailto:{{ $doktor->e_posta }}" data-meta-event="Contact" data-meta-params='{"content_name":"Hekim e-posta"}' class="ghost">E-Posta ile İletişim</a>
                             @endif
                         </div>
                     </div>

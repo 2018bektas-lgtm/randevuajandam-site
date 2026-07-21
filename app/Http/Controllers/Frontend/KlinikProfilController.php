@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Hizmet;
 use App\Models\Klinik;
 use App\Models\Yorum;
+use App\Support\MetaPixel;
 use Illuminate\Http\RedirectResponse;
 
 class KlinikProfilController extends Controller
@@ -63,6 +64,15 @@ class KlinikProfilController extends Controller
         if ($yorumlar->isNotEmpty()) {
             $ortalamaPuan = round($yorumlar->avg('puan'), 1);
         }
+
+        MetaPixel::queue('ViewContent', MetaPixel::content(
+            (string) $klinik->ad,
+            'product',
+            'klinik-'.$klinik->id,
+            null,
+            'TRY',
+            ['content_category' => 'klinik']
+        ));
 
         return view('frontend.klinik.profil', compact('klinik', 'doktorlar', 'hizmetler', 'yorumlar', 'ortalamaPuan'));
     }

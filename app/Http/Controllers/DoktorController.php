@@ -206,8 +206,18 @@ class DoktorController extends Controller
     {
         /** @var Yonetici $yonetici */
         $yonetici = Auth::guard('yonetici')->user();
-        $doktor = Doktor::with('il', 'ilce')->findOrFail($id);
-        $paketler = Paket::where('aktif_mi', true)->get();
+        $doktor = Doktor::with('il', 'ilce', 'paket')->findOrFail($id);
+        // Aktif paketler + hekimin mevcut (pasif olsa bile) paketi kaybolmasın
+        $paketler = Paket::query()
+            ->where(function ($q) use ($doktor) {
+                $q->where('aktif_mi', true);
+                if ($doktor->paket_id) {
+                    $q->orWhere('id', $doktor->paket_id);
+                }
+            })
+            ->orderBy('sira')
+            ->orderBy('ad')
+            ->get();
 
         return view('yonetim.doktorlar.duzenle', compact('yonetici', 'doktor', 'paketler'));
     }
@@ -219,25 +229,40 @@ class DoktorController extends Controller
     {
         $doktor = Doktor::findOrFail($id);
 
-        $ilModel = Il::where('ad', $request->il)->first();
-        $ilceModel = Ilce::where('il_id', $ilModel?->id)->where('ad', $request->ilce)->first();
+        $ilModel = $request->filled('il')
+            ? Il::where('ad', $request->il)->first()
+            : null;
+        $ilceModel = ($ilModel && $request->filled('ilce'))
+            ? Ilce::where('il_id', $ilModel->id)->where('ad', $request->ilce)->first()
+            : null;
+
+        // Klinik hekimin türünü zorla bireysel yapma
+        $tur = $request->input('tur', $doktor->tur);
+        if (! in_array($tur, ['bireysel', 'klinik'], true)) {
+            $tur = $doktor->tur ?: 'bireysel';
+        }
 
         $data = [
             'unvan' => $request->unvan,
             'ad_soyad' => $request->ad_soyad,
             'e_posta' => $request->e_posta,
             'telefon' => $request->telefon,
-            'il_id' => $ilModel?->id,
-            'ilce_id' => $ilceModel?->id,
-            'tur' => $request->tur,
+            'il_id' => $ilModel?->id ?? $doktor->il_id,
+            'ilce_id' => $ilceModel?->id ?? ($ilModel ? null : $doktor->ilce_id),
+            'tur' => $tur,
             'klinik_adi' => $request->klinik_adi,
             'paket_id' => $request->paket_id,
             'odeme_periyodu' => $request->odeme_periyodu,
             'uyelik_baslangic' => $request->uyelik_baslangic,
             'uyelik_bitis' => $request->uyelik_bitis,
-            'aktif_mi' => $request->has('aktif_mi'),
-            'platformda_gorunur' => $request->has('platformda_gorunur'),
+            'aktif_mi' => $request->boolean('aktif_mi'),
+            'platformda_gorunur' => $request->boolean('platformda_gorunur'),
         ];
+
+        // İl seçilmediyse mevcut konum korunsun
+        if (! $request->filled('il')) {
+            unset($data['il_id'], $data['ilce_id']);
+        }
 
         if ($request->filled('sifre')) {
             $data['sifre'] = Hash::make($request->sifre);
@@ -245,7 +270,9 @@ class DoktorController extends Controller
 
         $doktor->update($data);
 
-        return redirect()->route('yonetim.doktorlar.index')->with('basarili', 'Doktor bilgileri başarıyla güncellendi.');
+        return redirect()
+            ->route('yonetim.doktorlar.duzenle', $doktor->id)
+            ->with('basarili', 'Doktor bilgileri başarıyla güncellendi.');
     }
 
     /**

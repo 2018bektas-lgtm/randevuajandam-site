@@ -128,102 +128,114 @@
             </div>
         </div>
 
+        {{-- Meslek belgesi: AYRI form (iç içe form HTML'de geçersizdir; kaydet butonunu bozar) --}}
+        <div class="bg-white border border-[#E5E7EB] rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
+            <div class="flex items-center gap-4 pb-6 border-b border-[#E5E7EB] mb-6">
+                @if($doktor->profil_resmi)
+                    <img src="{{ asset($doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}" class="w-16 h-16 rounded-2xl object-cover border border-[#E5E7EB] shadow-sm">
+                @else
+                    <div class="w-16 h-16 rounded-2xl bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 flex items-center justify-center font-bold text-xl font-display shadow-sm">
+                        {{ mb_strtoupper(mb_substr(preg_replace('/^(Prof\.|Doç\.|Dr\.|Uzm\.)\s+/i', '', $doktor->ad_soyad), 0, 2)) }}
+                    </div>
+                @endif
+                <div>
+                    <h3 class="text-base font-bold text-[#111827] font-display">
+                        @if($doktor->unvan)
+                            <span class="text-sm font-semibold text-[#C96A2B] mr-0.5">{{ $doktor->unvan }}</span>
+                        @endif
+                        {{ $doktor->ad_soyad }}
+                    </h3>
+                    <p class="text-xs text-[#6B7280] mt-1">{{ $doktor->e_posta }}</p>
+                    @if($doktor->uzmanlik_alani)
+                        <span class="inline-flex items-center mt-1.5 px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-[10px] font-semibold text-[#4B5563]">
+                            {{ $doktor->uzmanlik_alani }}
+                        </span>
+                    @endif
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 font-display">Meslek belgesi — manuel onay</h3>
+                        <p class="text-[11px] text-slate-500 mt-1">
+                            1) Belgeyi açın · 2) TC + ad-soyad + diploma no eşleştirin ·
+                            3) Barkod varsa e-Devlet’te doğrulayın · 4) Onayla / Reddet
+                        </p>
+                    </div>
+                    @php $md = $doktor->meslek_dogrulama_durumu ?? 'beklemede'; @endphp
+                    @if($md === 'onaylandi')
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Onaylı — ödeme açık</span>
+                    @elseif($md === 'reddedildi')
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800">Reddedildi</span>
+                    @else
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900">Onay bekliyor — ödeme kilitli</span>
+                    @endif
+                </div>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <dt class="text-[10px] font-bold uppercase text-slate-500">T.C. Kimlik (kopyala)</dt>
+                        <dd class="mt-0.5 font-mono font-semibold select-all">{{ $doktor->tc_kimlik_no ?: '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-[10px] font-bold uppercase text-slate-500">Diploma / tescil no</dt>
+                        <dd class="mt-0.5 font-semibold">{{ $doktor->diploma_no ?: '—' }}</dd>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <dt class="text-[10px] font-bold uppercase text-slate-500">e-Devlet barkod (kopyala)</dt>
+                        <dd class="mt-0.5 font-mono font-semibold select-all break-all">{{ $doktor->edevlet_barkod ?: 'Girilmemiş' }}</dd>
+                    </div>
+                    <div class="sm:col-span-2 flex flex-wrap gap-2">
+                        @if($doktor->meslek_belge_yolu)
+                            <a href="{{ route('yonetim.doktorlar.meslek-belge', $doktor->id) }}" target="_blank" rel="noopener"
+                               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-[#C96A2B] hover:bg-[#FFF7ED]">
+                                Yüklenen belgeyi aç
+                            </a>
+                        @endif
+                        <a href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener"
+                           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1C3761] text-white text-xs font-bold hover:bg-[#152a4a]">
+                            e-Devlet belge doğrulama (yeni sekme)
+                        </a>
+                    </div>
+                    @if($doktor->meslek_dogrulama_notu)
+                        <div class="sm:col-span-2 text-slate-600">Son not: {{ $doktor->meslek_dogrulama_notu }}</div>
+                    @endif
+                </dl>
+                <p class="text-[10px] text-slate-500 leading-relaxed border-t border-slate-200 pt-3">
+                    e-Devlet: önce barkodu, sonra TC’yi girin. Sonuç uyumluysa <strong>Onayla</strong>.
+                    Otomatik bot yok — doğrulama sizin manuel onayınızla kesinleşir.
+                </p>
+                <form action="{{ route('yonetim.doktorlar.meslek-dogrula', $doktor->id) }}" method="POST" class="flex flex-col sm:flex-row gap-2 sm:items-end border-t border-slate-200 pt-4" id="meslekDogrulaForm">
+                    @csrf
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Not (red için zorunlu)</label>
+                        <input type="text" name="not" id="meslekNot" placeholder="Örn. Belge okunmuyor / TC uyuşmuyor" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs" value="{{ old('not') }}">
+                        @error('not')<p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <button type="submit" name="karar" value="onaylandi" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Onayla → ödeme açılsın</button>
+                    <button type="submit" name="karar" value="reddedildi" class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold" onclick="if(!document.getElementById('meslekNot').value.trim()){event.preventDefault();alert('Reddetmeden önce gerekçe notu girin.');}">Reddet</button>
+                </form>
+            </div>
+        </div>
+
         <!-- Form Card -->
         <div class="bg-white border border-[#E5E7EB] rounded-2xl shadow-sm p-6 sm:p-8">
-            <form action="{{ route('yonetim.doktorlar.update', $doktor->id) }}" method="POST" class="space-y-6">
+            @if ($errors->any())
+                <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-800">
+                    <p class="font-bold mb-1">Kayıt yapılamadı — lütfen düzeltin:</p>
+                    <ul class="list-disc pl-4 space-y-0.5">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form action="{{ route('yonetim.doktorlar.update', $doktor->id) }}" method="POST" class="space-y-6" id="doktorDuzenleForm">
                 @csrf
 
-                <!-- Doctor Profile Header -->
-                <div class="flex items-center gap-4 pb-6 border-b border-[#E5E7EB] mb-6">
-                    @if($doktor->profil_resmi)
-                        <img src="{{ asset($doktor->profil_resmi) }}" alt="{{ $doktor->ad_soyad }}" class="w-16 h-16 rounded-2xl object-cover border border-[#E5E7EB] shadow-sm">
-                    @else
-                        <div class="w-16 h-16 rounded-2xl bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 flex items-center justify-center font-bold text-xl font-display shadow-sm">
-                            {{ mb_strtoupper(mb_substr(preg_replace('/^(Prof\.|Doç\.|Dr\.|Uzm\.)\s+/i', '', $doktor->ad_soyad), 0, 2)) }}
-                        </div>
-                    @endif
-                    <div>
-                        <h3 class="text-base font-bold text-[#111827] font-display">
-                            @if($doktor->unvan)
-                                <span class="text-sm font-semibold text-[#C96A2B] mr-0.5">{{ $doktor->unvan }}</span>
-                            @endif
-                            {{ $doktor->ad_soyad }}
-                        </h3>
-                        <p class="text-xs text-[#6B7280] mt-1">{{ $doktor->e_posta }}</p>
-                        @if($doktor->uzmanlik_alani)
-                            <span class="inline-flex items-center mt-1.5 px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-[10px] font-semibold text-[#4B5563]">
-                                {{ $doktor->uzmanlik_alani }}
-                            </span>
-                        @endif
-                    </div>
-                </div>
-
-                <input type="hidden" name="tur" value="bireysel">
-                <input type="hidden" name="klinik_adi" value="">
-
-                {{-- Meslek belgesi doğrulama (manuel admin onayı) --}}
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-4 mb-2">
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <h3 class="text-sm font-bold text-slate-900 font-display">Meslek belgesi — manuel onay</h3>
-                            <p class="text-[11px] text-slate-500 mt-1">
-                                1) Belgeyi açın · 2) TC + ad-soyad + diploma no eşleştirin ·
-                                3) Barkod varsa e-Devlet’te doğrulayın · 4) Onayla / Reddet
-                            </p>
-                        </div>
-                        @php $md = $doktor->meslek_dogrulama_durumu ?? 'beklemede'; @endphp
-                        @if($md === 'onaylandi')
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Onaylı — ödeme açık</span>
-                        @elseif($md === 'reddedildi')
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800">Reddedildi</span>
-                        @else
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900">Onay bekliyor — ödeme kilitli</span>
-                        @endif
-                    </div>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div>
-                            <dt class="text-[10px] font-bold uppercase text-slate-500">T.C. Kimlik (kopyala)</dt>
-                            <dd class="mt-0.5 font-mono font-semibold select-all">{{ $doktor->tc_kimlik_no ?: '—' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-[10px] font-bold uppercase text-slate-500">Diploma / tescil no</dt>
-                            <dd class="mt-0.5 font-semibold">{{ $doktor->diploma_no ?: '—' }}</dd>
-                        </div>
-                        <div class="sm:col-span-2">
-                            <dt class="text-[10px] font-bold uppercase text-slate-500">e-Devlet barkod (kopyala)</dt>
-                            <dd class="mt-0.5 font-mono font-semibold select-all break-all">{{ $doktor->edevlet_barkod ?: 'Girilmemiş' }}</dd>
-                        </div>
-                        <div class="sm:col-span-2 flex flex-wrap gap-2">
-                            @if($doktor->meslek_belge_yolu)
-                                <a href="{{ route('yonetim.doktorlar.meslek-belge', $doktor->id) }}" target="_blank" rel="noopener"
-                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-[#C96A2B] hover:bg-[#FFF7ED]">
-                                    Yüklenen belgeyi aç
-                                </a>
-                            @endif
-                            <a href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener"
-                               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1C3761] text-white text-xs font-bold hover:bg-[#152a4a]">
-                                e-Devlet belge doğrulama (yeni sekme)
-                            </a>
-                        </div>
-                        @if($doktor->meslek_dogrulama_notu)
-                            <div class="sm:col-span-2 text-slate-600">Son not: {{ $doktor->meslek_dogrulama_notu }}</div>
-                        @endif
-                    </dl>
-                    <p class="text-[10px] text-slate-500 leading-relaxed border-t border-slate-200 pt-3">
-                        e-Devlet: önce barkodu, sonra TC’yi girin. Sonuç uyumluysa <strong>Onayla</strong>.
-                        Otomatik bot yok — doğrulama sizin manuel onayınızla kesinleşir.
-                    </p>
-                    <form action="{{ route('yonetim.doktorlar.meslek-dogrula', $doktor->id) }}" method="POST" class="flex flex-col sm:flex-row gap-2 sm:items-end border-t border-slate-200 pt-4" id="meslekDogrulaForm">
-                        @csrf
-                        <div class="flex-1">
-                            <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Not (red için zorunlu)</label>
-                            <input type="text" name="not" id="meslekNot" placeholder="Örn. Belge okunmuyor / TC uyuşmuyor" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs" value="{{ old('not') }}">
-                            @error('not')<p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>@enderror
-                        </div>
-                        <button type="submit" name="karar" value="onaylandi" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Onayla → ödeme açılsın</button>
-                        <button type="submit" name="karar" value="reddedildi" class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold" onclick="if(!document.getElementById('meslekNot').value.trim()){event.preventDefault();alert('Reddetmeden önce gerekçe notu girin.');}">Reddet</button>
-                    </form>
-                </div>
+                <input type="hidden" name="tur" value="{{ old('tur', $doktor->tur === 'klinik' ? 'klinik' : 'bireysel') }}">
+                <input type="hidden" name="klinik_adi" value="{{ old('klinik_adi', $doktor->klinik_adi) }}">
 
                 <!-- Unvan & Ad Soyad -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -268,14 +280,14 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
                         <label for="il" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Hizmet Verilen İl</label>
-                        <select name="il" id="il" required class="w-full">
-                            <option value="" disabled>İl Seçin...</option>
+                        <select name="il" id="il" class="w-full">
+                            <option value="">İl Seçin...</option>
                         </select>
                     </div>
                     <div>
                         <label for="ilce" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2.5 font-display">Hizmet Verilen İlçe</label>
-                        <select name="ilce" id="ilce" required class="w-full">
-                            <option value="" disabled>Önce İl Seçin...</option>
+                        <select name="ilce" id="ilce" class="w-full">
+                            <option value="">Önce İl Seçin...</option>
                         </select>
                     </div>
                 </div>
@@ -301,6 +313,7 @@
                             <option value="">Seçilmemiş</option>
                             <option value="aylik" {{ old('odeme_periyodu', $doktor->odeme_periyodu) === 'aylik' ? 'selected' : '' }}>Aylık</option>
                             <option value="yillik" {{ old('odeme_periyodu', $doktor->odeme_periyodu) === 'yillik' ? 'selected' : '' }}>Yıllık</option>
+                            <option value="deneme" {{ old('odeme_periyodu', $doktor->odeme_periyodu) === 'deneme' ? 'selected' : '' }}>Ücretsiz deneme</option>
                         </select>
                     </div>
                 </div>
@@ -488,7 +501,7 @@
                     });
                     turkeyCitiesData.sort((a, b) => a.displayName.localeCompare(b.displayName, 'tr'));
                     
-                    ilSelect.empty().append('<option value="" disabled>İl Seçin...</option>');
+                    ilSelect.empty().append('<option value="">İl Seçin...</option>');
                     
                     turkeyCitiesData.forEach(city => {
                         const isSelected = (currentIl === city.displayName);
@@ -505,7 +518,7 @@
                 .catch(err => console.error('Şehir verisi yüklenemedi:', err));
 
             function populateDistricts(ilName, selectedDistrict = null) {
-                ilceSelect.empty().append('<option value="" disabled>İlçe Seçin...</option>');
+                ilceSelect.empty().append('<option value="">İlçe Seçin...</option>');
                 
                 const cityObj = turkeyCitiesData.find(c => c.displayName === ilName);
                 if (cityObj && cityObj.counties) {

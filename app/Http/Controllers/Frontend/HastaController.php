@@ -13,6 +13,7 @@ use App\Models\Hasta;
 use App\Rules\TurkishMobilePhone;
 use App\Services\AppointmentBookingService;
 use App\Services\PhoneOtpService;
+use App\Support\MetaPixel;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -55,6 +56,19 @@ class HastaController extends Controller
         $otp->clearVerified($telefon, 'kayit');
 
         Auth::guard('hasta')->login($hasta);
+
+        MetaPixel::queueOnce(
+            'complete_reg_hasta_'.$hasta->id,
+            'CompleteRegistration',
+            MetaPixel::content(
+                'Hasta kaydı',
+                'product',
+                'hasta-'.$hasta->id,
+                null,
+                'TRY',
+                ['status' => true, 'content_category' => 'hasta']
+            )
+        );
 
         return redirect()->route('frontend.hasta.profil')->with('basarili', 'Üyeliğiniz başarıyla oluşturuldu ve giriş yapıldı.');
     }
@@ -244,6 +258,22 @@ class HastaController extends Controller
             return redirect()->back()->withInput()->with('hata', $e->getMessage());
         }
 
+        MetaPixel::queueOnce(
+            'schedule_randevu_'.$randevu->id,
+            'Schedule',
+            MetaPixel::content(
+                'Randevu',
+                'product',
+                'randevu-'.$randevu->id,
+                null,
+                'TRY',
+                [
+                    'content_category' => 'appointment',
+                    'status' => $randevu->durum,
+                ]
+            )
+        );
+
         return redirect()->route('frontend.hasta.randevular')->with(
             'basarili',
             $randevu->durum === 'onaylandi'
@@ -327,6 +357,22 @@ class HastaController extends Controller
         $mesaj = $randevu->durum === 'onaylandi'
             ? 'Randevunuz oluşturuldu ve onaylandı.'
             : 'Randevu talebiniz alındı. Hekim onayından sonra bilgilendirileceksiniz.';
+
+        MetaPixel::queueOnce(
+            'schedule_randevu_'.$randevu->id,
+            'Schedule',
+            MetaPixel::content(
+                'Misafir randevu',
+                'product',
+                'randevu-'.$randevu->id,
+                null,
+                'TRY',
+                [
+                    'content_category' => 'appointment',
+                    'status' => $randevu->durum,
+                ]
+            )
+        );
 
         return redirect()
             ->route('frontend.randevu.yonet', $randevu->yonetim_token)

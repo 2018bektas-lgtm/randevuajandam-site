@@ -53,6 +53,8 @@
                     </li>
                     <li>
                         <a href="mailto:{{ config('company.email', 'info@randevuajandam.com') }}"
+                           data-meta-event="Contact"
+                           data-meta-params='{"content_name":"Footer e-posta"}'
                            class="hover:text-[#C96A2B] transition-colors break-all">
                             {{ config('company.email', 'info@randevuajandam.com') }}
                         </a>
@@ -60,6 +62,8 @@
                     <li>
                         <a href="https://wa.me/{{ config('company.whatsapp', '905319912427') }}"
                            target="_blank" rel="noopener noreferrer"
+                           data-meta-event="Contact"
+                           data-meta-params='{"content_name":"Footer WhatsApp"}'
                            class="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-800">
                             <svg class="w-3 h-3 fill-current shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.257 5.26 0 11.722 0c3.13 0 6.073 1.22 8.286 3.433 2.213 2.213 3.431 5.158 3.43 8.288-.003 6.465-5.26 11.721-11.721 11.721-2.001-.001-3.97-.51-5.733-1.485L0 24zm6.49-4.22c1.657.982 3.267 1.48 4.966 1.481 5.36 0 9.72-4.36 9.723-9.723.001-2.597-1.01-5.038-2.85-6.877-1.839-1.839-4.281-2.85-6.877-2.852-5.364 0-9.723 4.359-9.726 9.723 0 1.762.474 3.415 1.373 4.908L1.96 22.04l4.587-1.26z"/></svg>
                             {{ config('company.telefon', '+90 531 991 24 27') }}

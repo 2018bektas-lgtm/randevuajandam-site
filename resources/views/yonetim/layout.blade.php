@@ -690,10 +690,7 @@
             @endif
  
             @if($errors->any())
-                const errors = [];
-                @foreach($errors->all() as $error)
-                    errors.push("{{ $error }}");
-                @endforeach
+                const errors = @json($errors->all());
                 mesajModalAc(errors, 'hata');
             @endif
         });

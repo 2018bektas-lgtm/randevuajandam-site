@@ -9,6 +9,7 @@ use App\Models\Doktor;
 use App\Models\Il;
 use App\Models\Ilce;
 use App\Models\Unvan;
+use App\Support\MetaPixel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -408,6 +409,25 @@ class HekimController extends Controller
             ]);
         }
 
+        if ($request->filled('arama') || $request->filled('uzmanlik') || $request->filled('il') || $request->filled('unvan')) {
+            $searchParts = array_filter([
+                $request->input('arama'),
+                $request->input('uzmanlik'),
+                $request->input('unvan'),
+            ]);
+            MetaPixel::queue('Search', [
+                'search_string' => implode(' ', $searchParts) ?: 'filtre',
+                'content_category' => 'hekim',
+            ]);
+        }
+
+        if ($request->filled('il') || $request->filled('ilce') || $request->filled('yakindaki')) {
+            MetaPixel::queue('FindLocation', [
+                'content_category' => 'hekim',
+                'content_name' => 'Hekim konum arama',
+            ]);
+        }
+
         return view('frontend.hekimler.index', compact('doktorlar', 'uzmanliklar', 'unvanlar', 'iller', 'klinikler', 'toplamDoktorSayisi', 'toplamKlinikSayisi'));
     }
 
@@ -695,6 +715,15 @@ class HekimController extends Controller
             abort(404, 'Bu hekim profili platform vitrininde yayınlanmıyor.');
         }
 
+        MetaPixel::queue('ViewContent', MetaPixel::content(
+            ($doktor->unvan ? $doktor->unvan.' ' : '').$doktor->ad_soyad,
+            'product',
+            'doktor-'.$doktor->id,
+            null,
+            'TRY',
+            ['content_category' => $doktor->uzmanlik_alani ?? 'hekim']
+        ));
+
         return view('frontend.hekimler.detay', compact('doktor'));
     }
 
@@ -768,6 +797,15 @@ class HekimController extends Controller
         if (! $hizmet) {
             abort(404);
         }
+
+        MetaPixel::queue('ViewContent', MetaPixel::content(
+            (string) $hizmet->ad,
+            'product',
+            'hizmet-'.$hizmet->id,
+            isset($hizmet->fiyat) ? (float) $hizmet->fiyat : null,
+            'TRY',
+            ['content_category' => 'hizmet']
+        ));
 
         return view('frontend.hekimler.hizmet_detay', compact('doktor', 'hizmet'));
     }

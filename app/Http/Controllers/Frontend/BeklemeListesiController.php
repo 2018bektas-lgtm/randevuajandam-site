@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BeklemeListesi;
 use App\Models\Doktor;
 use App\Services\BeklemeListesiService;
+use App\Support\MetaPixel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -85,6 +86,15 @@ class BeklemeListesiController extends Controller
         }
 
         RateLimiter::hit($throttleKey, 300);
+
+        MetaPixel::queue('Lead', MetaPixel::content(
+            'Bekleme listesi',
+            'product',
+            'doktor-'.$doktor->id,
+            null,
+            'TRY',
+            ['content_category' => 'waitlist']
+        ));
 
         return redirect()->back()->with(
             'basarili',
