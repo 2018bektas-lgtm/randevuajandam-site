@@ -141,6 +141,11 @@
         color: #047857;
         border: 1px solid #A7F3D0;
     }
+    .pricing-page .ribbon-custom {
+        background: #F1F5F9;
+        color: #334155;
+        border: 1px solid #E2E8F0;
+    }
 
     .pricing-page .plan-icon {
         width: 48px;
@@ -289,17 +294,15 @@
                     $ctaBase = $needsDomainStep
                         ? route('frontend.hekim.onboarding.domain')
                         : route('frontend.hekim.paket_ode');
-                    $isFeatured = false;
-                    $paidIndex = 0;
-                    foreach ($bireyselPaketler as $bp) {
-                        $bpWeb = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($bp->ad), 'web sitesi');
-                        if ((float) $bp->aylik_fiyat > 0 && ! $bpWeb) {
-                            $paidIndex++;
-                            if ($bp->id === $p->id && $paidIndex === 2) {
-                                $isFeatured = true;
-                            }
-                        }
-                    }
+                    $vitrin = $p->vitrinEtiketi();
+                    $isFeatured = (bool) ($p->one_cikan_mi ?? false)
+                        || in_array($vitrin['stil'] ?? '', ['popular'], true);
+                    $ribbonClass = match ($vitrin['stil'] ?? '') {
+                        'popular' => 'ribbon-popular',
+                        'web' => 'ribbon-web',
+                        'free', 'trial' => 'ribbon-free',
+                        default => 'ribbon-custom',
+                    };
                     $cardClass = 'price-card';
                     if ($isFeatured) $cardClass .= ' featured';
                     if ($isWebsite) $cardClass .= ' website';
@@ -307,12 +310,8 @@
                 <article class="{{ $cardClass }}">
                     @if($canTrial)
                         <span class="ribbon ribbon-free">{{ $trialDays }} gün deneme</span>
-                    @elseif($isFeatured)
-                        <span class="ribbon ribbon-popular">Popüler</span>
-                    @elseif($isWebsite)
-                        <span class="ribbon ribbon-web">Web sitesi</span>
-                    @elseif($isFree)
-                        <span class="ribbon ribbon-free">Ücretsiz</span>
+                    @elseif($vitrin)
+                        <span class="ribbon {{ $ribbonClass }}">{{ $vitrin['label'] }}</span>
                     @endif
 
                     <div class="relative z-[1] flex flex-col h-full">
@@ -426,7 +425,6 @@
         <div id="klinikPlans" class="plan-container is-hidden grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch max-w-6xl mx-auto">
             @forelse($klinikPaketler as $p)
                 @php
-                    $isFeatured = $loop->iteration === 2;
                     $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'kurumsal')
                         || $p->hasFeature('klinik_web_sitesi')
                         || (bool) ($p->domain_dahil_mi ?? false);
@@ -434,15 +432,22 @@
                     $ctaBase = $needsDomainStep
                         ? route('frontend.hekim.onboarding.domain')
                         : route('frontend.hekim.paket_ode');
+                    $vitrin = $p->vitrinEtiketi();
+                    $isFeatured = (bool) ($p->one_cikan_mi ?? false)
+                        || in_array($vitrin['stil'] ?? '', ['popular'], true);
+                    $ribbonClass = match ($vitrin['stil'] ?? '') {
+                        'popular' => 'ribbon-popular',
+                        'web' => 'ribbon-web',
+                        'free', 'trial' => 'ribbon-free',
+                        default => 'ribbon-custom',
+                    };
                     $cardClass = 'price-card';
                     if ($isFeatured) $cardClass .= ' featured';
                     if ($isWebsite && ! $isFeatured) $cardClass .= ' website';
                 @endphp
                 <article class="{{ $cardClass }}">
-                    @if($isFeatured)
-                        <span class="ribbon ribbon-popular">Önerilen</span>
-                    @elseif($isWebsite)
-                        <span class="ribbon ribbon-web">Web sitesi dahil</span>
+                    @if($vitrin)
+                        <span class="ribbon {{ $ribbonClass }}">{{ $vitrin['label'] }}</span>
                     @endif
 
                     <div class="relative z-[1] flex flex-col h-full">

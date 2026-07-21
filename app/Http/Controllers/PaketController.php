@@ -57,6 +57,9 @@ class PaketController extends Controller
             'raporlama_mi' => $request->tur === 'klinik' && $request->has('raporlama_mi'),
             'hasta_havuzu_mi' => $request->tur === 'klinik' && $request->has('hasta_havuzu_mi'),
             'sira' => $request->sira ?? 0,
+            'one_cikan_mi' => $request->boolean('one_cikan_mi'),
+            'etiket' => $request->filled('etiket') ? trim((string) $request->etiket) : null,
+            'etiket_stil' => $request->input('etiket_stil') ?: null,
         ]);
 
         return redirect()->route('yonetim.paketler.index')->with('basarili', 'Paket başarıyla oluşturuldu.');
@@ -108,6 +111,9 @@ class PaketController extends Controller
             'domain_dahil_tlds' => $request->filled('domain_dahil_tlds')
                 ? array_values(array_filter(array_map('trim', explode(',', (string) $request->domain_dahil_tlds))))
                 : null,
+            'one_cikan_mi' => $request->boolean('one_cikan_mi'),
+            'etiket' => $request->filled('etiket') ? trim((string) $request->etiket) : null,
+            'etiket_stil' => $request->input('etiket_stil') ?: null,
         ]);
 
         return redirect()->route('yonetim.paketler.index')->with('basarili', 'Paket başarıyla güncellendi.');

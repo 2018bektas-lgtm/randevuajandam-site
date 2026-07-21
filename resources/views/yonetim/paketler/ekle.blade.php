@@ -56,6 +56,45 @@
                         class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200">
                 </div>
 
+                <!-- Vitrin etiket -->
+                <div class="space-y-4 p-5 border border-[#E5E7EB] rounded-2xl bg-[#FFF7ED]/40">
+                    <h3 class="text-xs font-bold text-[#C96A2B] uppercase tracking-wider font-display">Vitrin &amp; etiketler</h3>
+                    <div class="flex items-center justify-between py-2 border-b border-orange-100">
+                        <div>
+                            <span class="block text-xs font-bold text-[#374151]">Öne çıkan kart</span>
+                            <span class="block text-[10px] text-[#6B7280]">Paket seçiminde vurgulu stil.</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="one_cikan_mi" value="1" {{ old('one_cikan_mi') ? 'checked' : '' }} class="sr-only peer">
+                            <div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:bg-[#C96A2B] transition-colors after:content-[''] after:absolute after:top-[2.5px] after:left-[2.5px] after:bg-white after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:after:translate-x-4"></div>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">Etiket metni</label>
+                            <input type="text" name="etiket" maxlength="40" value="{{ old('etiket') }}" list="etiket_onerileri"
+                                   class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs" placeholder="Popüler, Önerilen…">
+                            <datalist id="etiket_onerileri">
+                                <option value="Popüler"></option>
+                                <option value="Önerilen"></option>
+                                <option value="Web sitesi"></option>
+                                <option value="Ücretsiz"></option>
+                            </datalist>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">Etiket stili</label>
+                            <select name="etiket_stil" class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs">
+                                <option value="">Otomatik</option>
+                                <option value="popular" @selected(old('etiket_stil')==='popular')>Popüler</option>
+                                <option value="web" @selected(old('etiket_stil')==='web')>Web</option>
+                                <option value="free" @selected(old('etiket_stil')==='free')>Ücretsiz</option>
+                                <option value="trial" @selected(old('etiket_stil')==='trial')>Deneme</option>
+                                <option value="custom" @selected(old('etiket_stil')==='custom')>Özel</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Klinik Paketine Özel Alanlar -->
                 <div id="clinicFields" class="hidden space-y-6 p-6 border border-[#E5E7EB] rounded-2xl bg-[#FFF7ED]/30">
                     <h3 class="text-sm font-bold text-[#C96A2B] uppercase tracking-wider font-display pb-3 border-b border-orange-100">Klinik Yönetim Özellikleri</h3>

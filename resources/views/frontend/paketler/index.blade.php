@@ -156,6 +156,11 @@
         color: #047857;
         border: 1px solid #A7F3D0;
     }
+    .pricing-page .ribbon-custom {
+        background: #F1F5F9;
+        color: #334155;
+        border: 1px solid #E2E8F0;
+    }
 
     .pricing-page .plan-icon {
         width: 48px;
@@ -332,19 +337,18 @@
             @forelse($bireyselPaketler as $p)
                 @php
                     $isFree = (float) $p->aylik_fiyat == 0;
-                    $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'web sitesi');
-                    // 2. ücretli (web dışı) paket = Popüler (Profesyonel/Plus)
-                    $isFeatured = false;
-                    $paidIndex = 0;
-                    foreach ($bireyselPaketler as $bp) {
-                        $bpWeb = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($bp->ad), 'web sitesi');
-                        if ((float) $bp->aylik_fiyat > 0 && ! $bpWeb) {
-                            $paidIndex++;
-                            if ($bp->id === $p->id && $paidIndex === 2) {
-                                $isFeatured = true;
-                            }
-                        }
-                    }
+                    $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'web sitesi')
+                        || (method_exists($p, 'hasFeature') && $p->hasFeature('web_sitesi'))
+                        || (bool) ($p->domain_dahil_mi ?? false);
+                    $vitrin = method_exists($p, 'vitrinEtiketi') ? $p->vitrinEtiketi() : null;
+                    $isFeatured = (bool) ($p->one_cikan_mi ?? false)
+                        || in_array($vitrin['stil'] ?? '', ['popular'], true);
+                    $ribbonClass = match ($vitrin['stil'] ?? '') {
+                        'popular' => 'ribbon-popular',
+                        'web' => 'ribbon-web',
+                        'free', 'trial' => 'ribbon-free',
+                        default => 'ribbon-custom',
+                    };
                     $cardClass = 'price-card';
                     if ($isFeatured) {
                         $cardClass .= ' featured';
@@ -354,15 +358,13 @@
                     }
                 @endphp
                 <article class="{{ $cardClass }}">
-                    @if($isFeatured)
-                        <span class="ribbon ribbon-popular">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            Popüler
+                    @if($vitrin)
+                        <span class="ribbon {{ $ribbonClass }}">
+                            @if(($vitrin['stil'] ?? '') === 'popular')
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                            @endif
+                            {{ $vitrin['label'] }}
                         </span>
-                    @elseif($isWebsite)
-                        <span class="ribbon ribbon-web">Web sitesi</span>
-                    @elseif($isFree)
-                        <span class="ribbon ribbon-free">Ücretsiz</span>
                     @endif
 
                     <div class="relative z-[1] flex flex-col h-full">
@@ -475,21 +477,30 @@
         <div id="klinikPlans" class="plan-container is-hidden grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch max-w-6xl mx-auto">
             @forelse($klinikPaketler as $p)
                 @php
-                    $isFeatured = $loop->iteration === 2;
                     $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'kurumsal')
-                        || (method_exists($p, 'hasFeature') && $p->hasFeature('klinik_web_sitesi'));
+                        || (method_exists($p, 'hasFeature') && $p->hasFeature('klinik_web_sitesi'))
+                        || (bool) ($p->domain_dahil_mi ?? false);
+                    $vitrin = method_exists($p, 'vitrinEtiketi') ? $p->vitrinEtiketi() : null;
+                    $isFeatured = (bool) ($p->one_cikan_mi ?? false)
+                        || in_array($vitrin['stil'] ?? '', ['popular'], true);
+                    $ribbonClass = match ($vitrin['stil'] ?? '') {
+                        'popular' => 'ribbon-popular',
+                        'web' => 'ribbon-web',
+                        'free', 'trial' => 'ribbon-free',
+                        default => 'ribbon-custom',
+                    };
                     $cardClass = 'price-card';
                     if ($isFeatured) $cardClass .= ' featured';
                     if ($isWebsite && ! $isFeatured) $cardClass .= ' website';
                 @endphp
                 <article class="{{ $cardClass }}">
-                    @if($isFeatured)
-                        <span class="ribbon ribbon-popular">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            Önerilen
+                    @if($vitrin)
+                        <span class="ribbon {{ $ribbonClass }}">
+                            @if(($vitrin['stil'] ?? '') === 'popular')
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                            @endif
+                            {{ $vitrin['label'] }}
                         </span>
-                    @elseif($isWebsite)
-                        <span class="ribbon ribbon-web">Web sitesi dahil</span>
                     @endif
 
                     <div class="relative z-[1] flex flex-col h-full">

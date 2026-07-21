@@ -33,6 +33,9 @@ class Paket extends Model
         'domain_dahil_yil',
         'domain_dahil_tlds',
         'deneme_gun',
+        'one_cikan_mi',
+        'etiket',
+        'etiket_stil',
     ];
 
     protected function casts(): array
@@ -48,7 +51,41 @@ class Paket extends Model
             'domain_dahil_yil' => 'integer',
             'domain_dahil_tlds' => 'array',
             'deneme_gun' => 'integer',
+            'one_cikan_mi' => 'boolean',
         ];
+    }
+
+    /**
+     * Vitrin şeridi: yönetim panelinden ayarlanır (Popüler, Web sitesi, …).
+     *
+     * @return array{label: string, stil: string}|null
+     */
+    public function vitrinEtiketi(): ?array
+    {
+        $label = trim((string) ($this->etiket ?? ''));
+        $stil = trim((string) ($this->etiket_stil ?? ''));
+
+        if ($label === '' && ! (bool) ($this->one_cikan_mi ?? false)) {
+            return null;
+        }
+
+        if ($label === '' && (bool) ($this->one_cikan_mi ?? false)) {
+            $label = $this->tur === 'klinik' ? 'Önerilen' : 'Popüler';
+            $stil = $stil !== '' ? $stil : 'popular';
+        }
+
+        if ($stil === '') {
+            $lower = mb_strtolower($label);
+            $stil = match (true) {
+                str_contains($lower, 'popüler') || str_contains($lower, 'önerilen') => 'popular',
+                str_contains($lower, 'web') => 'web',
+                str_contains($lower, 'ücretsiz') || str_contains($lower, 'ucretsiz') => 'free',
+                str_contains($lower, 'deneme') => 'trial',
+                default => 'custom',
+            };
+        }
+
+        return ['label' => $label, 'stil' => $stil];
     }
 
     /** Domain pakete dahil mi (ayrı ücret yok). */

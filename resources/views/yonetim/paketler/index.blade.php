@@ -70,6 +70,7 @@
                     <tr class="bg-slate-50/50 border-b border-[#E5E7EB]">
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Paket Adı</th>
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Tür</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Etiket</th>
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Aylık Plan</th>
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Yıllık Plan</th>
                         <th class="px-6 py-4 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest font-display">Özellikler</th>
@@ -101,6 +102,30 @@
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider font-display border bg-gray-50 text-gray-600 border-gray-200">
                                         Bireysel
                                     </span>
+                                @endif
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap text-xs">
+                                @php $vitrin = $p->vitrinEtiketi(); @endphp
+                                @if($vitrin)
+                                    @php
+                                        $badgeCls = match($vitrin['stil'] ?? '') {
+                                            'popular' => 'bg-gradient-to-r from-[#C96A2B] to-[#E08A4A] text-white border-transparent',
+                                            'web' => 'bg-[#FFF7ED] text-[#C96A2B] border-[#E7B58A]/50',
+                                            'free', 'trial' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                                            default => 'bg-slate-100 text-slate-600 border-slate-200',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider font-display border {{ $badgeCls }}">
+                                        {{ $vitrin['label'] }}
+                                        @if($p->one_cikan_mi)
+                                            <span class="opacity-80">★</span>
+                                        @endif
+                                    </span>
+                                @elseif($p->one_cikan_mi)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider font-display border bg-gradient-to-r from-[#C96A2B] to-[#E08A4A] text-white">Öne çıkan</span>
+                                @else
+                                    <span class="text-[10px] text-slate-400">—</span>
                                 @endif
                             </td>
 

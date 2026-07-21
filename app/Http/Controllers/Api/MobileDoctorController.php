@@ -1038,6 +1038,11 @@ class MobileDoctorController extends Controller
                     || str_contains(mb_strtolower((string) $p->ad), 'web sitesi')
                     || str_contains(mb_strtolower((string) $p->ad), 'kurumsal');
 
+                $vitrin = method_exists($p, 'vitrinEtiketi') ? $p->vitrinEtiketi() : null;
+                $isFeatured = (bool) ($p->one_cikan_mi ?? false)
+                    || in_array($vitrin['stil'] ?? '', ['popular'], true);
+                $isActive = $current && (int) $current->id === (int) $p->id;
+
                 return [
                     'id' => $p->id,
                     'ad' => $p->ad,
@@ -1053,43 +1058,15 @@ class MobileDoctorController extends Controller
                     'domain_dahil_mi' => (bool) ($p->domain_dahil_mi ?? false),
                     'deneme_gun' => (int) ($p->deneme_gun ?? 0),
                     'web_sitesi_mi' => $isWeb,
-                    'aktif_paket_mi' => $current && (int) $current->id === (int) $p->id,
+                    'aktif_paket_mi' => $isActive,
                     'ucretsiz_mi' => $isFree,
+                    'one_cikan_mi' => (bool) ($p->one_cikan_mi ?? false),
+                    'populer_mi' => $isFeatured,
+                    'etiket' => $isActive ? 'Aktif' : ($vitrin['label'] ?? null),
+                    'etiket_stil' => $isActive ? 'active' : ($vitrin['stil'] ?? null),
                 ];
             })
             ->values();
-
-        // Site paket_sec: ücretli + web olmayan 2. bireysel paket = Popüler; klinik 2. = Önerilen
-        $isKlinikList = $items->isNotEmpty() && ($items->first()['tur'] ?? '') === 'klinik';
-        $paidNonWebIndex = 0;
-        $clinicIndex = 0;
-        $items = $items->map(function (array $row) use (&$paidNonWebIndex, &$clinicIndex, $isKlinikList) {
-            $isFeatured = false;
-            if ($isKlinikList) {
-                $clinicIndex++;
-                $isFeatured = $clinicIndex === 2;
-            } elseif (! ($row['ucretsiz_mi'] ?? false) && ! ($row['web_sitesi_mi'] ?? false)) {
-                $paidNonWebIndex++;
-                $isFeatured = $paidNonWebIndex === 2;
-            }
-
-            $row['populer_mi'] = $isFeatured;
-            if ($row['aktif_paket_mi'] ?? false) {
-                $row['etiket'] = 'Aktif';
-            } elseif ($isFeatured) {
-                $row['etiket'] = $isKlinikList ? 'Önerilen' : 'Popüler';
-            } elseif ($row['web_sitesi_mi'] ?? false) {
-                $row['etiket'] = $isKlinikList ? 'Web sitesi dahil' : 'Web sitesi';
-            } elseif ($row['ucretsiz_mi'] ?? false) {
-                $row['etiket'] = 'Ücretsiz';
-            } elseif (($row['deneme_gun'] ?? 0) > 0) {
-                $row['etiket'] = ((int) $row['deneme_gun']).' gün deneme';
-            } else {
-                $row['etiket'] = null;
-            }
-
-            return $row;
-        })->values();
 
         return response()->json([
             'success' => true,

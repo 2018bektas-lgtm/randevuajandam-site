@@ -34,6 +34,15 @@ class PaketStoreRequest extends FormRequest
             'raporlama_mi' => ['nullable', 'boolean'],
             'hasta_havuzu_mi' => ['nullable', 'boolean'],
             'sira' => ['nullable', 'integer'],
+            'one_cikan_mi' => ['nullable', 'boolean'],
+            'etiket' => ['nullable', 'string', 'max:40'],
+            'etiket_stil' => ['nullable', 'in:popular,web,free,trial,custom'],
+            'deneme_gun' => ['nullable', 'integer', 'min:0', 'max:90'],
+            'domain_dahil_mi' => ['nullable', 'boolean'],
+            'domain_dahil_yil' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'domain_dahil_tlds' => ['nullable', 'string', 'max:120'],
+            'iyzico_plan_aylik' => ['nullable', 'string', 'max:120'],
+            'iyzico_plan_yillik' => ['nullable', 'string', 'max:120'],
         ];
     }
 

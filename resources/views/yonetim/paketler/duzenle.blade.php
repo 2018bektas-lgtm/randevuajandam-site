@@ -133,6 +133,55 @@
                         class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200">{{ old('aciklama', $paket->aciklama) }}</textarea>
                 </div>
 
+                <!-- Vitrin etiket / öne çıkan -->
+                <div class="space-y-4 p-5 border border-[#E5E7EB] rounded-2xl bg-[#FFF7ED]/40">
+                    <h3 class="text-xs font-bold text-[#C96A2B] uppercase tracking-wider font-display">Vitrin &amp; etiketler</h3>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                        Paket seçim sayfasında (ve mobilde) görünen şerit. Örn. <strong>Popüler</strong>, <strong>Önerilen</strong>, <strong>Web sitesi</strong>.
+                        Boş bırakırsanız şerit gösterilmez (öne çıkan açıksa varsayılan “Popüler / Önerilen” kullanılır).
+                    </p>
+                    <div class="flex items-center justify-between py-2 border-b border-orange-100">
+                        <div>
+                            <span class="block text-xs font-bold text-[#374151]">Öne çıkan kart</span>
+                            <span class="block text-[10px] text-[#6B7280]">Turuncu çerçeve / vurgulu stil (featured).</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="one_cikan_mi" value="1" {{ old('one_cikan_mi', $paket->one_cikan_mi) ? 'checked' : '' }} class="sr-only peer">
+                            <div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:bg-[#C96A2B] transition-colors duration-300 after:content-[''] after:absolute after:top-[2.5px] after:left-[2.5px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all after:duration-300 peer-checked:after:translate-x-4 shadow-inner"></div>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">Etiket metni</label>
+                            <input type="text" name="etiket" maxlength="40" value="{{ old('etiket', $paket->etiket) }}"
+                                   list="etiket_onerileri"
+                                   class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs"
+                                   placeholder="Popüler, Önerilen, Web sitesi…">
+                            <datalist id="etiket_onerileri">
+                                <option value="Popüler"></option>
+                                <option value="Önerilen"></option>
+                                <option value="Web sitesi"></option>
+                                <option value="Web sitesi dahil"></option>
+                                <option value="Ücretsiz"></option>
+                                <option value="14 gün deneme"></option>
+                                <option value="En çok tercih"></option>
+                            </datalist>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-[#4B5563] uppercase mb-1">Etiket stili</label>
+                            <select name="etiket_stil" class="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs">
+                                @php $stil = old('etiket_stil', $paket->etiket_stil); @endphp
+                                <option value="" {{ $stil === null || $stil === '' ? 'selected' : '' }}>Otomatik</option>
+                                <option value="popular" {{ $stil === 'popular' ? 'selected' : '' }}>Popüler (turuncu dolu)</option>
+                                <option value="web" {{ $stil === 'web' ? 'selected' : '' }}>Web (açık turuncu)</option>
+                                <option value="free" {{ $stil === 'free' ? 'selected' : '' }}>Ücretsiz (yeşil)</option>
+                                <option value="trial" {{ $stil === 'trial' ? 'selected' : '' }}>Deneme (yeşil)</option>
+                                <option value="custom" {{ $stil === 'custom' ? 'selected' : '' }}>Özel</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- iyzico + deneme + domain -->
                 <div class="space-y-4 p-5 border border-[#E5E7EB] rounded-2xl bg-slate-50/50">
                     <h3 class="text-xs font-bold text-[#C96A2B] uppercase tracking-wider font-display">Ödeme planı & domain</h3>

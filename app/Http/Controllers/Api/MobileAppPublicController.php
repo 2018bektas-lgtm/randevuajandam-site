@@ -71,6 +71,9 @@ class MobileAppPublicController extends Controller
                 $aylik = (float) ($p->aylik_indirimli_fiyat ?? $p->aylik_fiyat ?? 0);
                 $yillik = (float) ($p->yillik_indirimli_fiyat ?? $p->yillik_fiyat ?? 0);
                 $ozellikler = is_array($p->ozellikler) ? $p->ozellikler : [];
+                $vitrin = method_exists($p, 'vitrinEtiketi') ? $p->vitrinEtiketi() : null;
+                $isFeatured = (bool) ($p->one_cikan_mi ?? false)
+                    || in_array($vitrin['stil'] ?? '', ['popular'], true);
 
                 return [
                     'id' => $p->id,
@@ -87,6 +90,10 @@ class MobileAppPublicController extends Controller
                     'max_hasta_sayisi' => $p->max_hasta_sayisi,
                     'max_randevu_sayisi' => $p->max_randevu_sayisi,
                     'ucretsiz_mi' => $aylik <= 0 && $yillik <= 0,
+                    'one_cikan_mi' => (bool) ($p->one_cikan_mi ?? false),
+                    'populer_mi' => $isFeatured,
+                    'etiket' => $vitrin['label'] ?? null,
+                    'etiket_stil' => $vitrin['stil'] ?? null,
                     // Store product IDs (configure in App Store / Play Console)
                     'iap_product_aylik' => 'com.randevuajandam.doktor.pkg.'.$p->id.'.monthly',
                     'iap_product_yillik' => 'com.randevuajandam.doktor.pkg.'.$p->id.'.yearly',
