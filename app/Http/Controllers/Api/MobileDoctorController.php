@@ -178,6 +178,7 @@ class MobileDoctorController extends Controller
                 'tur' => 'bireysel',
                 'paket_id' => null,
                 'aktif_mi' => true,
+                'platformda_gorunur' => false,
             ]);
             $doktor->branslar()->attach($data['branslar']);
 

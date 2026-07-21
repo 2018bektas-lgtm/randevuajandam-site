@@ -1013,6 +1013,7 @@ class PaketController extends Controller
                 'klinik_adi' => $request->klinik_adi,
                 'paket_id' => null,
                 'aktif_mi' => true,
+                'platformda_gorunur' => false,
                 'kayit_paket_id' => $request->paket_id,
                 'kayit_periyot' => $request->odeme_periyodu,
             ]);
@@ -1227,6 +1228,7 @@ class PaketController extends Controller
                 'abonelik_yenileme_kapali' => false,
                 'kayit_paket_id' => null,
                 'kayit_periyot' => null,
+                'platformda_gorunur' => true,
             ])->save();
 
             $existingPatients = Hasta::whereHas('randevular', function ($query) use ($doktor) {
@@ -1332,6 +1334,7 @@ class PaketController extends Controller
             'abonelik_yenileme_kapali' => false,
             'abonelik_iptal_at' => null,
             'abonelik_iptal_nedeni' => null,
+            'platformda_gorunur' => true,
         ]);
 
         return redirect()
@@ -1635,6 +1638,7 @@ class PaketController extends Controller
                     'klinik_katilma_tarihi' => now(),
                     'klinik_aktif_mi' => true,
                     'tur' => 'klinik',
+                    'platformda_gorunur' => true,
                 ]);
             } else {
                 // Individual package (ücretli — deneme bittikten sonra da buraya düşer)
@@ -1652,6 +1656,7 @@ class PaketController extends Controller
                     'abonelik_yenileme_kapali' => false,
                     'abonelik_iptal_at' => null,
                     'abonelik_iptal_nedeni' => null,
+                    'platformda_gorunur' => true,
                 ]);
             }
         });

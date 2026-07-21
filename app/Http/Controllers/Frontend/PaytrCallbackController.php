@@ -243,6 +243,7 @@ class PaytrCallbackController extends Controller
                     'abonelik_yenileme_kapali' => false,
                     'abonelik_iptal_at' => null,
                     'abonelik_iptal_nedeni' => null,
+                    'platformda_gorunur' => true,
                 ])->save();
 
                 // Bireysel → klinik geçişinde hasta havuzuna taşı
@@ -270,6 +271,7 @@ class PaytrCallbackController extends Controller
                     'abonelik_yenileme_kapali' => false,
                     'abonelik_iptal_at' => null,
                     'abonelik_iptal_nedeni' => null,
+                    'platformda_gorunur' => true,
                 ])->save();
             }
 

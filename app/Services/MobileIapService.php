@@ -50,6 +50,7 @@ class MobileIapService
             'uyelik_baslangic' => $baslangic,
             'uyelik_bitis' => $bitis,
             'iyzico_subscription_status' => 'ACTIVE',
+            'platformda_gorunur' => true,
         ]);
 
         if (! empty($meta['transaction_id'])) {

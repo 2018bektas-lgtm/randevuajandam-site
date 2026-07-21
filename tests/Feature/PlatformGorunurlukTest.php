@@ -56,6 +56,9 @@ class PlatformGorunurlukTest extends TestCase
             'il_id' => $il->id,
             'ilce_id' => $ilce->id,
             'paket_id' => $paket->id,
+            'uyelik_baslangic' => now(),
+            'uyelik_bitis' => now()->addMonth(),
+            'meslek_dogrulama_durumu' => 'onaylandi',
             'aktif_mi' => true,
             'platformda_gorunur' => true,
         ]);
@@ -114,14 +117,37 @@ class PlatformGorunurlukTest extends TestCase
         $this->assertTrue((bool) $this->doktor->fresh()->platformda_gorunur);
     }
 
-    public function test_is_listed_respects_web_package(): void
+    public function test_is_listed_respects_platformda_gorunur_flag(): void
     {
         $this->doktor->update(['platformda_gorunur' => false]);
         $this->assertFalse($this->doktor->fresh()->isListedOnPlatform());
 
-        // Remove web feature → always listed
-        $this->doktor->paket->sistemOzellikleri()->sync([]);
-        $this->doktor->unsetRelation('paket');
+        $this->doktor->update(['platformda_gorunur' => true]);
         $this->assertTrue($this->doktor->fresh()->isListedOnPlatform());
+    }
+
+    public function test_unpaid_doctor_without_package_not_listed(): void
+    {
+        $this->doktor->update([
+            'paket_id' => null,
+            'uyelik_bitis' => null,
+            'platformda_gorunur' => true,
+        ]);
+
+        $this->assertFalse($this->doktor->fresh()->isListedOnPlatform());
+
+        $response = $this->get(route('frontend.hekimler'));
+        $response->assertStatus(200);
+        $response->assertDontSee('Gizli Hekim');
+    }
+
+    public function test_expired_membership_not_listed(): void
+    {
+        $this->doktor->update([
+            'uyelik_bitis' => now()->subDay(),
+            'platformda_gorunur' => true,
+        ]);
+
+        $this->assertFalse($this->doktor->fresh()->isListedOnPlatform());
     }
 }

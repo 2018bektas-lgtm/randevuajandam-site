@@ -434,12 +434,53 @@ class Doktor extends Authenticatable
     public function hasActiveMembership(): bool
     {
         if ($this->klinikteMi()) {
+            $klinik = $this->klinik;
+            if (! $klinik || ! $klinik->aktif_mi || ! $klinik->paket_id) {
+                return false;
+            }
+            if ($klinik->uyelik_bitis && $klinik->uyelik_bitis->isPast()) {
+                return false;
+            }
+
             return true;
         }
 
-        return $this->paket_id
-            && $this->uyelik_bitis
-            && $this->uyelik_bitis->isFuture();
+        if (! $this->paket_id) {
+            return false;
+        }
+
+        // Süresi dolmuş
+        if ($this->uyelik_bitis && $this->uyelik_bitis->isPast()) {
+            return false;
+        }
+
+        // uyelik_bitis null: eski kayıt / henüz set edilmemiş — paket varsa “aktif” say
+        return true;
+    }
+
+    /**
+     * Ana sitede (arama, profil, sitemap) listelenmeye uygun mu?
+     * Paket seçilmeden / ödeme (veya deneme) başlamadan görünmez.
+     */
+    public function isEligibleForPublicListing(): bool
+    {
+        if (! $this->aktif_mi) {
+            return false;
+        }
+
+        if (! $this->hasActiveMembership()) {
+            return false;
+        }
+
+        // Bireysel: meslek onayı yoksa (beklemede/red) vitrinde yok
+        if (! $this->klinikteMi()) {
+            $durum = $this->meslek_dogrulama_durumu;
+            if ($durum !== null && $durum !== '' && $durum !== 'onaylandi') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -525,35 +566,66 @@ class Doktor extends Authenticatable
 
     /**
      * Ana site arama / profil / sitemap görünürlüğü.
-     * Web paketi yoksa bayrak yok sayılır (her zaman listelenir).
+     * Önce aktif üyelik; web paketi varsa platformda_gorunur bayrağına uy.
      */
     public function isListedOnPlatform(): bool
     {
-        if (! $this->aktif_mi) {
+        if (! $this->isEligibleForPublicListing()) {
             return false;
         }
 
-        if (! $this->canHideFromPlatform()) {
-            return true;
+        // Explicit gizle
+        if ($this->platformda_gorunur === false) {
+            // Sadece web/klinik-web paketi olanlar “gizle” kullanabilir;
+            // yine de false ise listelenmesin (kayıt sonrası default false).
+            return false;
         }
 
-        return (bool) $this->platformda_gorunur;
+        return true;
     }
 
     /**
-     * Ana site vitrini: aktif ve (platformda_gorunur VEYA web_sitesi paketi yok).
-     * Web paketi yokken gizli bayrak yok sayılır.
+     * Ana site vitrini: aktif üyelikli + vitrinde gizli değil.
      */
     public function scopePlatformdaListelenen($query)
     {
-        return $query->where('aktif_mi', true)->where(function ($q) {
-            $q->where(function ($inner) {
-                $inner->where('platformda_gorunur', true)
+        $now = now();
+
+        return $query
+            ->where('aktif_mi', true)
+            // Vitrinden gizlenmemiş
+            ->where(function ($q) {
+                $q->where('platformda_gorunur', true)
                     ->orWhereNull('platformda_gorunur');
-            })->orWhereDoesntHave('paket.sistemOzellikleri', function ($sq) {
-                $sq->where('kod', 'web_sitesi');
+            })
+            ->where(function ($q) use ($now) {
+                // Bireysel: paket var + üyelik bitmemiş + meslek onaylı (veya eski null)
+                $q->where(function ($b) use ($now) {
+                    $b->whereNull('klinik_id')
+                        ->whereNotNull('paket_id')
+                        ->where(function ($u) use ($now) {
+                            $u->whereNull('uyelik_bitis')
+                                ->orWhere('uyelik_bitis', '>', $now);
+                        })
+                        ->where(function ($m) {
+                            $m->whereNull('meslek_dogrulama_durumu')
+                                ->orWhere('meslek_dogrulama_durumu', '')
+                                ->orWhere('meslek_dogrulama_durumu', 'onaylandi');
+                        });
+                })
+                // Klinik üyesi: kliniğin paketi + aktif üyelik
+                ->orWhere(function ($c) use ($now) {
+                    $c->whereNotNull('klinik_id')
+                        ->whereHas('klinik', function ($kq) use ($now) {
+                            $kq->where('aktif_mi', true)
+                                ->whereNotNull('paket_id')
+                                ->where(function ($u) use ($now) {
+                                    $u->whereNull('uyelik_bitis')
+                                        ->orWhere('uyelik_bitis', '>', $now);
+                                });
+                        });
+                });
             });
-        });
     }
 
     /**
