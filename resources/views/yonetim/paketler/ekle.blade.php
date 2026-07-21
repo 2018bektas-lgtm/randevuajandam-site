@@ -118,8 +118,8 @@
                         <!-- Finans Toggle -->
                         <div class="flex items-center justify-between py-2 border-b border-[#E5E7EB]">
                             <div>
-                                <span class="block text-xs font-bold text-[#374151]">Merkezi Finans Analizi</span>
-                                <span class="block text-[10px] text-[#6B7280]">Kliniğin tüm hekim gelir/gider analizleri tek ekranda.</span>
+                                <span class="block text-xs font-bold text-[#374151]">Merkezi Finans + Muhasebeci Girişi</span>
+                                <span class="block text-[10px] text-[#6B7280]">Klinik finans modülü ve muhasebeci personel rolü (giriş + finans yetkisi).</span>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer select-none">
                                 <input type="checkbox" name="merkezi_finans_mi" value="1" {{ old('merkezi_finans_mi') ? 'checked' : '' }} class="sr-only peer">

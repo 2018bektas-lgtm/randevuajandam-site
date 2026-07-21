@@ -474,7 +474,7 @@
         </div>
 
         <!-- Klinik -->
-        <div id="klinikPlans" class="plan-container is-hidden grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch max-w-6xl mx-auto">
+        <div id="klinikPlans" class="plan-container is-hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 items-stretch max-w-7xl mx-auto">
             @forelse($klinikPaketler as $p)
                 @php
                     $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'kurumsal')
@@ -586,8 +586,25 @@
                                         </span>
                                     </li>
                                 @endif
+                                @if($p->merkezi_finans_mi)
+                                    <li class="feature-row">
+                                        <span class="feature-check brand">
+                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        </span>
+                                        <span class="font-semibold text-slate-700">Muhasebeci girişi + merkezi finans</span>
+                                    </li>
+                                @endif
                                 @if(is_array($p->ozellikler))
                                     @foreach($p->ozellikler as $ozellik)
+                                        @php
+                                            $fLower = mb_strtolower((string) $ozellik);
+                                            $skipDup = str_contains($fLower, 'muhasebeci')
+                                                || str_contains($fLower, 'merkezi finans')
+                                                || str_contains($fLower, 'maksimum')
+                                                || str_contains($fLower, 'sınırsız hekim')
+                                                || str_contains($fLower, 'sınırsız sekreter');
+                                        @endphp
+                                        @if($skipDup) @continue @endif
                                         <li class="feature-row">
                                             <span class="feature-check {{ $isFeatured || $isWebsite ? 'brand' : '' }}">
                                                 <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>

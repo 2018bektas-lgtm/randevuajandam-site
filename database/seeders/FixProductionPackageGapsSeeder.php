@@ -8,13 +8,12 @@ use Illuminate\Database\Seeder;
 
 /**
  * Canlı paket flag / domain_dahil / deneme_gun tutarlılığı.
- * İsim farklarını (Özel Web Sitesi vs Klinik Kurumsal) tolere eder.
+ * Fiyat ve limitler için PaketSeeder + KlinikSeeder çalıştırın.
  */
 class FixProductionPackageGapsSeeder extends Seeder
 {
     public function run(): void
     {
-        // Başlangıç deneme
         Paket::query()
             ->where('tur', 'bireysel')
             ->where(function ($q) {
@@ -26,7 +25,6 @@ class FixProductionPackageGapsSeeder extends Seeder
         $webKod = PaketOzelligi::query()->where('kod', 'web_sitesi')->first();
         $klinikWebKod = PaketOzelligi::query()->where('kod', 'klinik_web_sitesi')->first();
 
-        // Bireysel web paketi
         $hekimWeb = Paket::query()
             ->where('tur', 'bireysel')
             ->where(function ($q) {
@@ -51,7 +49,6 @@ class FixProductionPackageGapsSeeder extends Seeder
             }
         }
 
-        // Klinik paket flag'leri
         $kBas = Paket::query()->where('tur', 'klinik')->where('ad', 'like', '%Başlangıç%')->first();
         if ($kBas) {
             $kBas->forceFill([
@@ -66,7 +63,24 @@ class FixProductionPackageGapsSeeder extends Seeder
             $kBas->sistemOzellikleri()->sync([]);
         }
 
-        $kPro = Paket::query()->where('tur', 'klinik')->where('ad', 'like', '%Profesyonel%')->first();
+        $kPlus = Paket::query()->where('tur', 'klinik')->where('ad', 'like', '%Plus%')->first();
+        if ($kPlus) {
+            $kPlus->forceFill([
+                'merkezi_finans_mi' => true,
+                'toplu_randevu_mi' => true,
+                'raporlama_mi' => (bool) ($kPlus->raporlama_mi ?? false),
+                'hasta_havuzu_mi' => true,
+                'max_doktor_sayisi' => $kPlus->max_doktor_sayisi ?: 6,
+                'max_personel_sayisi' => $kPlus->max_personel_sayisi ?: 2,
+                'domain_dahil_mi' => false,
+            ])->save();
+        }
+
+        $kPro = Paket::query()
+            ->where('tur', 'klinik')
+            ->where('ad', 'like', '%Profesyonel%')
+            ->where('ad', 'not like', '%Plus%')
+            ->first();
         if ($kPro) {
             $kPro->forceFill([
                 'merkezi_finans_mi' => true,
@@ -85,6 +99,7 @@ class FixProductionPackageGapsSeeder extends Seeder
             ->where(function ($q) {
                 $q->where('ad', 'like', '%Kurumsal%')
                     ->orWhere('ad', 'like', '%Web Sitesi%')
+                    ->orWhere('ad', 'like', '%Özel Web%')
                     ->orWhereHas('sistemOzellikleri', fn ($s) => $s->where('kod', 'klinik_web_sitesi'));
             })
             ->orderByDesc('aylik_fiyat')
@@ -107,7 +122,6 @@ class FixProductionPackageGapsSeeder extends Seeder
             }
         }
 
-        // iyzico plan env fallback (opsiyonel)
         $aylik = env('IYZICO_DEFAULT_PLAN_AYLIK');
         $yillik = env('IYZICO_DEFAULT_PLAN_YILLIK');
         if ($aylik || $yillik) {

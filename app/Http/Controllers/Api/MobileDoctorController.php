@@ -1060,6 +1060,11 @@ class MobileDoctorController extends Controller
                     'web_sitesi_mi' => $isWeb,
                     'aktif_paket_mi' => $isActive,
                     'ucretsiz_mi' => $isFree,
+                    'max_doktor_sayisi' => $p->max_doktor_sayisi,
+                    'max_personel_sayisi' => $p->max_personel_sayisi,
+                    'merkezi_finans_mi' => (bool) ($p->merkezi_finans_mi ?? false),
+                    'muhasebeci_giris_mi' => (bool) ($p->merkezi_finans_mi ?? false)
+                        || in_array('finans', $features, true),
                     'one_cikan_mi' => (bool) ($p->one_cikan_mi ?? false),
                     'populer_mi' => $isFeatured,
                     'etiket' => $isActive ? 'Aktif' : ($vitrin['label'] ?? null),
