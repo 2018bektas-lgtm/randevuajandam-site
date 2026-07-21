@@ -1430,4 +1430,189 @@ class MobileDoctorClinicController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Klinik hasta detayı + randevu geçmişi (havuz).
+     */
+    public function showPatient(Request $request, int $id): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $klinik = $this->klinikOrFail($doktor);
+
+        $hasta = $klinik->hastalar()->where('hastalar.id', $id)->first();
+        abort_unless($hasta, 404);
+
+        $doktorIds = $klinik->doktorlar()->pluck('id');
+        $randevular = Randevu::query()
+            ->with(['doktor:id,ad_soyad,unvan', 'hizmet:id,ad'])
+            ->where('hasta_id', $id)
+            ->whereIn('doktor_id', $doktorIds)
+            ->orderByDesc('tarih')
+            ->orderByDesc('saat')
+            ->limit(40)
+            ->get()
+            ->map(fn (Randevu $r) => [
+                'id' => $r->id,
+                'tarih' => $r->tarih instanceof \DateTimeInterface
+                    ? $r->tarih->format('Y-m-d')
+                    : substr((string) $r->tarih, 0, 10),
+                'saat' => substr((string) $r->saat, 0, 5),
+                'durum' => $r->durum,
+                'doktor' => trim(($r->doktor?->unvan ? $r->doktor->unvan.' ' : '').($r->doktor?->ad_soyad ?? '')),
+                'hizmet' => $r->hizmet?->ad,
+                'not' => $r->not,
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'hasta' => [
+                    'id' => $hasta->id,
+                    'ad' => $hasta->ad,
+                    'soyad' => $hasta->soyad,
+                    'ad_soyad' => trim($hasta->ad.' '.$hasta->soyad),
+                    'e_posta' => $hasta->e_posta,
+                    'telefon' => $hasta->telefon,
+                    'notlar' => $hasta->pivot->notlar ?? null,
+                    'kayit_tarihi' => $hasta->pivot->kayit_tarihi ?? null,
+                ],
+                'randevular' => $randevular,
+            ],
+        ]);
+    }
+
+    /**
+     * Klinik merkezi finans özeti (bu ay + 6 aylık trend).
+     */
+    public function financeOverview(Request $request): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $this->requireOwner($doktor);
+        $klinik = $this->klinikOrFail($doktor);
+        $doktorIds = $klinik->doktorlar()->pluck('id')->all();
+
+        $baslangic = Carbon::now()->startOfMonth();
+        $bitis = Carbon::now()->endOfMonth();
+
+        $buAyGelir = (float) DB::table('odemeler')
+            ->whereIn('doktor_id', $doktorIds)
+            ->whereNull('deleted_at')
+            ->whereBetween('odeme_tarihi', [$baslangic->toDateString(), $bitis->toDateString()])
+            ->where('durum', '!=', 'iptal')
+            ->sum('odenen_tutar');
+
+        $buAyGider = (float) $klinik->giderler()
+            ->whereBetween('tarih', [$baslangic->toDateString(), $bitis->toDateString()])
+            ->sum('tutar');
+
+        $acikBorc = (float) (DB::table('odemeler')
+            ->whereIn('doktor_id', $doktorIds)
+            ->whereNull('deleted_at')
+            ->whereIn('durum', ['beklemede', 'kismi_odeme'])
+            ->selectRaw('COALESCE(SUM(tutar - odenen_tutar), 0) as bakiye')
+            ->value('bakiye') ?? 0);
+
+        $trend = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i);
+            $gelir = (float) DB::table('odemeler')
+                ->whereIn('doktor_id', $doktorIds)
+                ->whereNull('deleted_at')
+                ->whereMonth('odeme_tarihi', $date->month)
+                ->whereYear('odeme_tarihi', $date->year)
+                ->where('durum', '!=', 'iptal')
+                ->sum('odenen_tutar');
+            $gider = (float) $klinik->giderler()
+                ->whereMonth('tarih', $date->month)
+                ->whereYear('tarih', $date->year)
+                ->sum('tutar');
+            $trend[] = [
+                'ay' => $date->translatedFormat('M Y'),
+                'gelir' => $gelir,
+                'gider' => $gider,
+                'net' => $gelir - $gider,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'bu_ay_gelir' => $buAyGelir,
+                'bu_ay_gider' => $buAyGider,
+                'bu_ay_net' => $buAyGelir - $buAyGider,
+                'acik_borc' => $acikBorc,
+                'hekim_sayisi' => count($doktorIds),
+                'trend' => $trend,
+            ],
+        ]);
+    }
+
+    /**
+     * Klinik logo yükle (sahip).
+     */
+    public function uploadLogo(Request $request): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $this->requireOwner($doktor);
+        $klinik = $this->klinikOrFail($doktor);
+
+        $request->validate([
+            'logo' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
+        ]);
+
+        $file = $request->file('logo');
+        $name = 'klinik_'.$klinik->id.'_'.time().'.'.$file->getClientOriginalExtension();
+        $publicRelative = 'uploads/klinik/'.$name;
+        $dest = public_path($publicRelative);
+        $dir = dirname($dest);
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        $file->move($dir, $name);
+
+        $klinik->update(['logo' => $publicRelative]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logo güncellendi.',
+            'data' => [
+                'logo' => $publicRelative,
+                'logo_url' => asset($publicRelative),
+            ],
+        ]);
+    }
+
+    /**
+     * Klinik hekimlerinin çalışma saatleri özeti.
+     */
+    public function doctorsWorkingHours(Request $request): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $klinik = $this->klinikOrFail($doktor);
+
+        $gunAd = [1 => 'Pzt', 2 => 'Sal', 3 => 'Çar', 4 => 'Per', 5 => 'Cum', 6 => 'Cmt', 7 => 'Paz'];
+        $items = $klinik->doktorlar()
+            ->with(['calismaSaatleri' => fn ($q) => $q->orderBy('gun')])
+            ->orderBy('ad_soyad')
+            ->get()
+            ->map(function (Doktor $d) use ($gunAd) {
+                $saatler = $d->calismaSaatleri->map(fn ($s) => [
+                    'gun' => (int) $s->gun,
+                    'gun_ad' => $gunAd[(int) $s->gun] ?? (string) $s->gun,
+                    'aktif_mi' => (bool) $s->aktif_mi,
+                    'baslangic' => $s->mesai_baslangic ? substr((string) $s->mesai_baslangic, 0, 5) : null,
+                    'bitis' => $s->mesai_bitis ? substr((string) $s->mesai_bitis, 0, 5) : null,
+                ])->values();
+
+                return [
+                    'id' => $d->id,
+                    'ad_soyad' => trim(($d->unvan ? $d->unvan.' ' : '').$d->ad_soyad),
+                    'klinik_aktif_mi' => (bool) ($d->klinik_aktif_mi ?? true),
+                    'calisma_saatleri' => $saatler,
+                ];
+            })
+            ->values();
+
+        return response()->json(['success' => true, 'data' => $items]);
+    }
 }

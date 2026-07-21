@@ -2148,4 +2148,62 @@ class MobileDoctorPortalController extends Controller
             'kapak' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
         ]);
     }
+
+    /**
+     * Hekim referans programı (kod, link, davet listesi).
+     */
+    public function referral(Request $request, \App\Services\ReferansService $referans): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+
+        if (! $referans->aktifMi()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'aktif' => false,
+                    'ozet' => null,
+                    'davetler' => [],
+                    'message' => 'Referans programı şu an kapalı.',
+                ],
+            ]);
+        }
+
+        $ozet = $referans->panelOzet($doktor);
+        $davetler = \App\Models\ReferansDavet::query()
+            ->with('davetEdilen:id,ad_soyad,e_posta,created_at')
+            ->where('davet_eden_id', $doktor->id)
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get()
+            ->map(function (\App\Models\ReferansDavet $d) {
+                $durumLabel = match ($d->durum) {
+                    'bekliyor' => 'Ödeme bekliyor',
+                    'odullendirildi' => 'Ödüllendirildi',
+                    'iptal' => 'İptal',
+                    'reddedildi' => 'Red',
+                    default => (string) $d->durum,
+                };
+
+                return [
+                    'id' => $d->id,
+                    'hekim' => $d->davetEdilen?->ad_soyad ?? '—',
+                    'e_posta' => $d->davetEdilen?->e_posta,
+                    'durum' => $d->durum,
+                    'durum_label' => $durumLabel,
+                    'odul_gun' => $d->odul_gun_davet_eden,
+                    'red_nedeni' => $d->red_nedeni,
+                    'tarih' => ($d->odullendirildi_at ?? $d->created_at)?->toDateString(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'aktif' => true,
+                'ozet' => $ozet,
+                'davetler' => $davetler,
+            ],
+        ]);
+    }
 }

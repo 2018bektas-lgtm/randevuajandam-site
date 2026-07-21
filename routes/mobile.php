@@ -42,6 +42,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/calendar/ical', [MobileDoctorController::class, 'ical']);
             Route::get('/package-features', [MobileDoctorController::class, 'packageFeatures']);
             Route::get('/packages', [MobileDoctorController::class, 'packages']);
+            Route::get('/referral', [MobileDoctorPortalController::class, 'referral']);
             Route::put('/password', [MobileDoctorPortalController::class, 'updatePassword']);
             Route::get('/about', [MobileDoctorPortalController::class, 'about']);
             Route::put('/about', [MobileDoctorPortalController::class, 'updateAbout']);
@@ -109,6 +110,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/clinic/staff/{id}/reset-password', [MobileDoctorClinicController::class, 'resetStaffPassword'])->whereNumber('id');
             Route::put('/clinic/doctors/{id}', [MobileDoctorClinicController::class, 'updateDoctor'])->whereNumber('id');
             Route::put('/clinic/patients/{id}/note', [MobileDoctorClinicController::class, 'updateClinicPatientNote'])->whereNumber('id');
+            Route::get('/clinic/patients/{id}', [MobileDoctorClinicController::class, 'showPatient'])->whereNumber('id');
+            Route::get('/clinic/finance/overview', [MobileDoctorClinicController::class, 'financeOverview']);
+            Route::post('/clinic/settings/logo', [MobileDoctorClinicController::class, 'uploadLogo']);
+            Route::get('/clinic/doctors/working-hours', [MobileDoctorClinicController::class, 'doctorsWorkingHours']);
 
             // Appointments & calendar
             Route::get('/appointments', [MobileDoctorController::class, 'appointments']);

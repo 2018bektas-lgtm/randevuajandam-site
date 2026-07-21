@@ -1238,11 +1238,23 @@ class MobileDoctorController extends Controller
         ]);
 
         $paket = \App\Models\Paket::where('aktif_mi', true)->findOrFail($data['paket_id']);
-        if (method_exists($paket, 'klinikPaketiMi') && $paket->klinikPaketiMi()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Klinik paketleri mobil uygulamadan başlatılamaz. Bireysel paket seçin veya klinik kaydını web panelinden tamamlayın.',
-            ], 422);
+        $isKlinikPaket = method_exists($paket, 'klinikPaketiMi')
+            ? $paket->klinikPaketiMi()
+            : (($paket->tur ?? '') === 'klinik');
+
+        // Klinik paket: yalnızca mevcut klinik sahibi (yeni klinik kaydı web'den)
+        if ($isKlinikPaket) {
+            $doktor->loadMissing('klinik');
+            $isOwner = $doktor->klinik_id
+                && method_exists($doktor, 'klinikSahibiMi')
+                && $doktor->klinikSahibiMi();
+            if (! $isOwner) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Klinik paketi için önce klinik sahibi olmalısınız. Yeni klinik kaydı web panelinden yapılır; mevcut klinik paket yükseltmesi mobilden havale ile talep edilebilir.',
+                    'code' => 'klinik_owner_required',
+                ], 422);
+            }
         }
 
         $periodPrice = $data['odeme_periyodu'] === 'yillik'
@@ -1259,17 +1271,39 @@ class MobileDoctorController extends Controller
             $bitis = $data['odeme_periyodu'] === 'yillik'
                 ? $baslangic->copy()->addYear()
                 : $baslangic->copy()->addMonth();
-            $doktor->update([
-                'paket_id' => $paket->id,
-                'odeme_periyodu' => $data['odeme_periyodu'],
-                'uyelik_baslangic' => $baslangic,
-                'uyelik_bitis' => $bitis,
-                'iyzico_subscription_status' => 'ACTIVE',
-            ]);
+
+            if ($isKlinikPaket && $doktor->klinik) {
+                $doktor->klinik->update([
+                    'paket_id' => $paket->id,
+                    'odeme_periyodu' => $data['odeme_periyodu'],
+                    'uyelik_baslangic' => $baslangic,
+                    'uyelik_bitis' => $bitis,
+                    'iyzico_subscription_status' => 'ACTIVE',
+                    'max_doktor_sayisi' => $paket->max_doktor_sayisi ?: $doktor->klinik->max_doktor_sayisi,
+                ]);
+                $doktor->update([
+                    'paket_id' => $paket->id,
+                    'odeme_periyodu' => $data['odeme_periyodu'],
+                    'uyelik_baslangic' => $baslangic,
+                    'uyelik_bitis' => $bitis,
+                    'iyzico_subscription_status' => 'ACTIVE',
+                    'tur' => 'klinik',
+                ]);
+            } else {
+                $doktor->update([
+                    'paket_id' => $paket->id,
+                    'odeme_periyodu' => $data['odeme_periyodu'],
+                    'uyelik_baslangic' => $baslangic,
+                    'uyelik_bitis' => $bitis,
+                    'iyzico_subscription_status' => 'ACTIVE',
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Ücretsiz paket aktifleştirildi.',
+                'message' => $isKlinikPaket
+                    ? 'Ücretsiz klinik paketi aktifleştirildi.'
+                    : 'Ücretsiz paket aktifleştirildi.',
                 'data' => $this->membershipPayload($doktor->fresh()),
             ]);
         }
@@ -1297,16 +1331,26 @@ class MobileDoctorController extends Controller
                 'tutar' => $tutar,
                 'durum' => 'beklemede',
                 'havale_referans' => $data['havale_referans'],
+                'kurulum_verisi' => $isKlinikPaket
+                    ? [
+                        'tur' => 'klinik',
+                        'klinik_id' => $doktor->klinik_id,
+                        'kaynak' => 'mobile',
+                    ]
+                    : ['tur' => 'bireysel', 'kaynak' => 'mobile'],
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Havale talebiniz alındı. Onay sonrası paketiniz aktifleşir.',
+            'message' => $isKlinikPaket
+                ? 'Klinik paket havale talebiniz alındı. Onay sonrası klinik paketiniz güncellenir.'
+                : 'Havale talebiniz alındı. Onay sonrası paketiniz aktifleşir.',
             'data' => [
                 'tutar' => $tutar,
                 'odeme_periyodu' => $data['odeme_periyodu'],
                 'durum' => 'beklemede',
+                'tur' => $isKlinikPaket ? 'klinik' : 'bireysel',
             ],
         ]);
     }
