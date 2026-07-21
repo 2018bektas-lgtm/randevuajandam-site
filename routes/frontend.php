@@ -235,6 +235,7 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     // Üyelik / abonelik iptal (dönem sonuna kadar erişim)
     Route::get('/hekim/uyelik', [\App\Http\Controllers\Frontend\HekimUyelikController::class, 'index'])->name('hekim.uyelik');
     Route::post('/hekim/uyelik/iptal', [\App\Http\Controllers\Frontend\HekimUyelikController::class, 'iptal'])->name('hekim.uyelik.iptal');
+    Route::get('/hekim/referans', [\App\Http\Controllers\Frontend\HekimReferansController::class, 'index'])->name('hekim.referans');
 
     // Change Password
     Route::get('/hekim/sifre-degistir', [HekimController::class, 'sifreFormu'])->name('hekim.sifre');

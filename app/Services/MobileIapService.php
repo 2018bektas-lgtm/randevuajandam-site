@@ -72,6 +72,34 @@ class MobileIapService
             'source' => $meta['source'] ?? 'unknown',
             'transaction_id' => $meta['transaction_id'] ?? null,
         ]);
+
+        // IAP için sentetik UyelikOdeme yoksa referans yine de davet_eden üzerinden işlenebilir:
+        // ödül sadece UyelikOdeme ile — mobil ilk ödeme web PayTR ile tamamlanırsa ödül orada.
+        // İsteğe bağlı: IAP tutarı bilinmiyorsa komisyon günü varsayılan aylık/yıllık.
+        if ($doktor->davet_eden_id) {
+            try {
+                $odeme = \App\Models\UyelikOdeme::query()->create([
+                    'doktor_id' => $doktor->id,
+                    'paket_id' => $paket->id,
+                    'odeme_yontemi' => 'iap',
+                    'provider' => 'revenuecat',
+                    'odeme_periyodu' => $period,
+                    'tutar' => max(1, (float) ($period === 'yillik'
+                        ? ($paket->yillik_indirimli_fiyat ?? $paket->yillik_fiyat)
+                        : ($paket->aylik_indirimli_fiyat ?? $paket->aylik_fiyat))),
+                    'durum' => 'onaylandi',
+                    'onaylandi_at' => now(),
+                    'kurulum_verisi' => [
+                        'tutar_brut' => (float) ($period === 'yillik' ? $paket->yillik_fiyat : $paket->aylik_fiyat),
+                        'iap' => true,
+                        'transaction_id' => $meta['transaction_id'] ?? null,
+                    ],
+                ]);
+                app(ReferansService::class)->odullendir($odeme);
+            } catch (\Throwable $e) {
+                Log::warning('iap_referans_odul: '.$e->getMessage());
+            }
+        }
     }
 
     public function transactionAlreadyUsed(string $transactionId): bool

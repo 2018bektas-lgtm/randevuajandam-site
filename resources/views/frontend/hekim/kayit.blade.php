@@ -251,6 +251,7 @@
             @csrf
             <input type="hidden" name="paket_id" value="{{ old('paket_id', $secilenPaket->id ?? '') }}">
             <input type="hidden" name="odeme_periyodu" value="{{ old('odeme_periyodu', $periyot ?? 'aylik') }}">
+            <input type="hidden" name="referans_kodu" value="{{ old('referans_kodu', request('ref', session('ra_ref', request()->cookie(config('referans.cookie_name', 'ra_ref'))))) }}">
             @include('frontend.layouts.partials.recaptcha-form', ['formId' => 'wizardForm', 'recaptchaAction' => 'hekim_kayit'])
             
             <!-- ADIM 1: HESAP BİLGİLERİ -->

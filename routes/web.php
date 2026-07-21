@@ -151,5 +151,7 @@ Route::prefix('yonetim')->name('yonetim.')->group(function () {
         Route::post('/odeme-ayarlari', [YonetimController::class, 'odemeAyarlariGuncelle'])->name('odeme-ayarlari.post');
         Route::get('/uyelik-odemeleri', [\App\Http\Controllers\UyelikOdemeController::class, 'index'])->name('uyelik-odemeleri.index');
         Route::post('/uyelik-odemeleri/{id}/onayla', [\App\Http\Controllers\UyelikOdemeController::class, 'onayla'])->name('uyelik-odemeleri.onayla');
+        Route::get('/referanslar', [\App\Http\Controllers\YonetimReferansController::class, 'index'])->name('referanslar.index');
+        Route::post('/referanslar/{id}/iptal', [\App\Http\Controllers\YonetimReferansController::class, 'iptal'])->name('referanslar.iptal');
     });
 });

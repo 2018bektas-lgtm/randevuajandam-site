@@ -77,6 +77,7 @@
                     ? ['href' => route('frontend.hekim.klinik.gecis'), 'match' => 'frontend.hekim.klinik.gecis', 'label' => 'Klinik Yonetimine Gec']
                     : null,
                 ['href' => route('hekim.uyelik'), 'match' => 'hekim.uyelik*', 'label' => 'Uyelik / Abonelik'],
+                ['href' => route('hekim.referans'), 'match' => 'hekim.referans*', 'label' => 'Referans programi'],
                 ['href' => route('hekim.profil'), 'match' => 'hekim.profil', 'label' => 'Profil'],
                 ['href' => route('hekim.sifre'), 'match' => 'hekim.sifre', 'label' => 'Sifre Degistir'],
                 ['href' => route('hekim.two-factor'), 'match' => 'hekim.two-factor', 'label' => '2FA Guvenlik'],

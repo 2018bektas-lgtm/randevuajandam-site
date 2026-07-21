@@ -47,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\ForceHttps::class);
         // Misafir public GET sayfaları (kısa HTML cache)
         $middleware->appendToGroup('web', \App\Http\Middleware\CachePublicGet::class);
+        $middleware->appendToGroup('web', \App\Http\Middleware\CaptureReferansKod::class);
 
         // Public doctor-site + panel APIs live in the separate `api/` project.
         // Ödeme bildirimleri (iyzico legacy + PayTR) CSRF dışı.

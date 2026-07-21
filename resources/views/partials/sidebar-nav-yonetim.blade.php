@@ -81,6 +81,7 @@
                 ['href' => route('yonetim.seo'), 'match' => 'yonetim.seo', 'label' => 'SEO Ayarlari'],
                 ['href' => route('yonetim.odeme-ayarlari'), 'match' => 'yonetim.odeme-ayarlari*', 'label' => 'Odeme Ayarlari'],
                 ['href' => route('yonetim.uyelik-odemeleri.index'), 'match' => 'yonetim.uyelik-odemeleri.*', 'label' => 'Uyelik Odemeleri'],
+                ['href' => route('yonetim.referanslar.index'), 'match' => 'yonetim.referanslar.*', 'label' => 'Referanslar'],
                 ['href' => route('yonetim.two-factor'), 'match' => 'yonetim.two-factor', 'label' => '2FA Guvenlik'],
             ],
         ],

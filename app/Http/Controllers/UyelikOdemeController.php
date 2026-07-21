@@ -7,6 +7,7 @@ use App\Models\Ilce;
 use App\Models\Klinik;
 use App\Models\UyelikOdeme;
 use App\Models\Yonetici;
+use App\Services\ReferansService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -90,6 +91,7 @@ class UyelikOdemeController extends Controller
                 'uyelik_bitis' => $bitis,
                 'iyzico_subscription_reference_code' => null,
                 'iyzico_subscription_status' => 'BANK_TRANSFER_CONFIRMED',
+                'platformda_gorunur' => true,
             ]);
 
             $odeme->update([
@@ -98,6 +100,11 @@ class UyelikOdemeController extends Controller
                 'onaylayan_yonetici_id' => $yonetici->id,
             ]);
         });
+
+        $odeme = UyelikOdeme::query()->find($id);
+        if ($odeme) {
+            app(ReferansService::class)->odullendir($odeme);
+        }
 
         return back()->with('basarili', 'Havale onaylandı ve üyelik aktifleştirildi.');
     }

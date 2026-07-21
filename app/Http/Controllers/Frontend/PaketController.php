@@ -20,6 +20,7 @@ use App\Rules\TcKimlikNo;
 use App\Services\Edevlet\BelgeDogrulamaService;
 use App\Services\Meslek\MeslekEslesmeService;
 use App\Services\PaytrService;
+use App\Services\ReferansService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -674,6 +675,12 @@ class PaketController extends Controller
 
             $doktor->branslar()->attach($request->branslar);
 
+            $refKod = $request->input('referans_kodu')
+                ?: $request->cookie(config('referans.cookie_name', 'ra_ref'))
+                ?: session('ra_ref');
+            app(ReferansService::class)->attachOnRegister($doktor, is_string($refKod) ? $refKod : null);
+            app(ReferansService::class)->ensureKod($doktor);
+
             if ($hasVerified) {
                 foreach ($mezunItems as $item) {
                     if (! is_array($item)) {
@@ -1141,6 +1148,13 @@ class PaketController extends Controller
             ]);
         }
 
+        $refFiyat = app(ReferansService::class)->indirimliTutar($doktor, $tutar);
+        $tutar = $refFiyat['tutar'];
+        $kurulum = array_merge($kurulum, [
+            'tutar_brut' => $refFiyat['brut'],
+            'referans_indirim_yuzde' => $refFiyat['indirim_yuzde'],
+        ]);
+
         $merchantOid = $paytr->makeMerchantOid();
         UyelikOdeme::create([
             'doktor_id' => $doktor->id,
@@ -1422,6 +1436,11 @@ class PaketController extends Controller
             ? (float) $discountedPrice
             : $listedPrice;
 
+        $refFiyat = app(ReferansService::class)->indirimliTutar($doktor, $tutar);
+        $tutarBrut = $refFiyat['brut'];
+        $tutar = $refFiyat['tutar'];
+        $referansIndirim = $refFiyat;
+
         $pendingDomain = session(HekimOnboardingController::SESSION_PENDING);
 
         return view('frontend.hekim.paket_ode', compact(
@@ -1434,6 +1453,8 @@ class PaketController extends Controller
             'paymentSettings',
             'bankAvailable',
             'tutar',
+            'tutarBrut',
+            'referansIndirim',
             'pendingDomain',
         ));
     }
@@ -1460,8 +1481,11 @@ class PaketController extends Controller
         $tutar = $discountedPrice !== null && (float) $discountedPrice > 0
             ? (float) $discountedPrice
             : $periodPrice;
-        $isFree = $tutar <= 0;
         $doktor = Auth::guard('doktor')->user();
+        $refFiyat = app(ReferansService::class)->indirimliTutar($doktor, $tutar);
+        $tutarBrut = $refFiyat['brut'];
+        $tutar = $refFiyat['tutar'];
+        $isFree = $tutar <= 0;
 
         $rules = [
             'paket_id' => 'required|exists:paketler,id',
@@ -1523,6 +1547,12 @@ class PaketController extends Controller
                 'havale_referans.required' => 'Havale referansını veya açıklamasını girin.',
             ]);
 
+            $kurulumHavale = $paket->klinikPaketiMi() ? $request->only([
+                'klinik_adi', 'telefon', 'e_posta', 'adres', 'il_id', 'ilce_id',
+            ]) : [];
+            $kurulumHavale['tutar_brut'] = $tutarBrut;
+            $kurulumHavale['referans_indirim_yuzde'] = $refFiyat['indirim_yuzde'];
+
             UyelikOdeme::create([
                 'doktor_id' => $doktor->id,
                 'paket_id' => $paket->id,
@@ -1532,14 +1562,7 @@ class PaketController extends Controller
                 'tutar' => $tutar,
                 'durum' => 'beklemede',
                 'havale_referans' => trim((string) $request->havale_referans),
-                'kurulum_verisi' => $paket->klinikPaketiMi() ? $request->only([
-                    'klinik_adi',
-                    'telefon',
-                    'e_posta',
-                    'adres',
-                    'il_id',
-                    'ilce_id',
-                ]) : null,
+                'kurulum_verisi' => $kurulumHavale ?: null,
             ]);
 
             return redirect()->route('frontend.hekim.paket_sec')->with(
@@ -1554,6 +1577,12 @@ class PaketController extends Controller
             }
 
             $merchantOid = $paytr->makeMerchantOid();
+            $kurulumPaytr = $paket->klinikPaketiMi() ? $request->only([
+                'klinik_adi', 'telefon', 'e_posta', 'adres', 'il_id', 'ilce_id',
+            ]) : [];
+            $kurulumPaytr['tutar_brut'] = $tutarBrut;
+            $kurulumPaytr['referans_indirim_yuzde'] = $refFiyat['indirim_yuzde'];
+
             UyelikOdeme::create([
                 'doktor_id' => $doktor->id,
                 'paket_id' => $paket->id,
@@ -1563,14 +1592,7 @@ class PaketController extends Controller
                 'tutar' => $tutar,
                 'durum' => 'beklemede',
                 'merchant_oid' => $merchantOid,
-                'kurulum_verisi' => $paket->klinikPaketiMi() ? $request->only([
-                    'klinik_adi',
-                    'telefon',
-                    'e_posta',
-                    'adres',
-                    'il_id',
-                    'ilce_id',
-                ]) : null,
+                'kurulum_verisi' => $kurulumPaytr ?: null,
             ]);
 
             $tokenResult = $paytr->createIframeToken([

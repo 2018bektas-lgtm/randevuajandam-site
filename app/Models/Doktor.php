@@ -44,6 +44,9 @@ class Doktor extends Authenticatable
         'deneme_kullanildi',
         'aktif_mi',
         'platformda_gorunur',
+        'referans_kodu',
+        'davet_eden_id',
+        'referans_kodu_kullanilan',
         'unvan',
         'uzmanlik_alani',
         'mezuniyet',
@@ -316,6 +319,21 @@ class Doktor extends Authenticatable
     public function klinik(): BelongsTo
     {
         return $this->belongsTo(Klinik::class, 'klinik_id');
+    }
+
+    public function davetEden(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'davet_eden_id');
+    }
+
+    public function referansDavetleri(): HasMany
+    {
+        return $this->hasMany(ReferansDavet::class, 'davet_eden_id');
+    }
+
+    public function davetIleGeldigiKayit()
+    {
+        return $this->hasOne(ReferansDavet::class, 'davet_edilen_id');
     }
 
     /**

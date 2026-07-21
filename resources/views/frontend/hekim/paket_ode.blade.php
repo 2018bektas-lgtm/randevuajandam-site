@@ -230,14 +230,24 @@
                             $hasDiscount = ($periyot === 'aylik' && $secilenPaket->aylik_indirimli_fiyat) || ($periyot === 'yillik' && $secilenPaket->yillik_indirimli_fiyat);
                             $fiyat = $periyot === 'aylik' ? $secilenPaket->aylik_fiyat : $secilenPaket->yillik_fiyat;
                             $indirimli = $periyot === 'aylik' ? $secilenPaket->aylik_indirimli_fiyat : $secilenPaket->yillik_indirimli_fiyat;
-                            $toplam = $hasDiscount ? $indirimli : $fiyat;
+                            $kampanyaToplam = $hasDiscount ? $indirimli : $fiyat;
+                            $toplam = $tutar ?? $kampanyaToplam;
+                            $refInd = $referansIndirim ?? null;
                         @endphp
 
                         @if($hasDiscount)
                             <div class="flex items-center justify-between text-xs text-emerald-600">
-                                <span>İndirim Avantajı</span>
+                                <span>Kampanya indirimi</span>
                                 <span class="font-bold font-display">
                                     -₺{{ number_format($fiyat - $indirimli, 2, ',', '.') }}
+                                </span>
+                            </div>
+                        @endif
+                        @if(!empty($refInd['indirim_uygulandi']))
+                            <div class="flex items-center justify-between text-xs text-[#C96A2B]">
+                                <span>Referans indirimi (%{{ $refInd['indirim_yuzde'] }})</span>
+                                <span class="font-bold font-display">
+                                    -₺{{ number_format(($tutarBrut ?? $kampanyaToplam) - $toplam, 2, ',', '.') }}
                                 </span>
                             </div>
                         @endif

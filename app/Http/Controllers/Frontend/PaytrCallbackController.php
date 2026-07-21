@@ -288,5 +288,13 @@ class PaytrCallbackController extends Controller
                 'kayit_periyot' => null,
             ])->save();
         });
+
+        // Referans ödülü (transaction dışında idempotent)
+        try {
+            $odeme->refresh();
+            app(\App\Services\ReferansService::class)->odullendir($odeme);
+        } catch (\Throwable $e) {
+            Log::warning('PayTR referans ödül hatası: '.$e->getMessage());
+        }
     }
 }
