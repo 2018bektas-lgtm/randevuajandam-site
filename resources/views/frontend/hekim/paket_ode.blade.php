@@ -178,6 +178,8 @@
             </div>
         @endif
 
+        @include('frontend.hekim.partials.havale_bildirim_durumu')
+
         @if($errors->any())
             <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-600 space-y-1 font-semibold">
                 @foreach($errors->all() as $error)
@@ -459,6 +461,12 @@
                         </div>
                         <div id="bank-transfer-fields" class="{{ $paytrOk ? 'hidden' : '' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-[#1F2937]">Banka havalesi ile ödeme</h3>
+                            @if(!empty($bekleyenHavale))
+                                <p class="mt-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 leading-relaxed">
+                                    Zaten <strong>onay bekleyen bir havale bildiriminiz</strong> var.
+                                    Yeni referans girerseniz mevcut bildirim güncellenir; yöneticiye tekrar “göndermedim” sanmayın — kayıt sistemde duruyor.
+                                </p>
+                            @endif
                             @if($bankAvailable)
                                 <dl class="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
                                     <div><dt class="text-slate-500">Banka</dt><dd class="mt-1 font-bold text-slate-800">{{ $paymentSettings->banka_adi }}</dd></div>

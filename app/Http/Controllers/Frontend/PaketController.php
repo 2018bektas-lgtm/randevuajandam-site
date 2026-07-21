@@ -1389,11 +1389,18 @@ class PaketController extends Controller
         $klinikPaketler = $paketler->where('tur', 'klinik')->values();
         $maxYillikTasarrufYuzde = $this->maxYillikTasarrufYuzde($paketler);
 
+        $bekleyenHavale = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
+        $sonOnayliHavale = ! $bekleyenHavale
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id)
+            : null;
+
         return view('frontend.hekim.paket_sec', compact(
             'doktor',
             'bireyselPaketler',
             'klinikPaketler',
-            'maxYillikTasarrufYuzde'
+            'maxYillikTasarrufYuzde',
+            'bekleyenHavale',
+            'sonOnayliHavale',
         ));
     }
 
@@ -1555,6 +1562,13 @@ class PaketController extends Controller
 
         $pendingDomain = session(HekimOnboardingController::SESSION_PENDING);
 
+        $bekleyenHavale = $doktor
+            ? UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id)
+            : null;
+        $sonOnayliHavale = ($doktor && ! $bekleyenHavale)
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id)
+            : null;
+
         MetaPixel::queue('InitiateCheckout', array_merge(
             MetaPixel::money((float) $tutar),
             [
@@ -1578,6 +1592,8 @@ class PaketController extends Controller
             'tutarBrut',
             'referansIndirim',
             'pendingDomain',
+            'bekleyenHavale',
+            'sonOnayliHavale',
         ));
     }
 
@@ -1675,22 +1691,46 @@ class PaketController extends Controller
             $kurulumHavale['tutar_brut'] = $tutarBrut;
             $kurulumHavale['referans_indirim_yuzde'] = $refFiyat['indirim_yuzde'];
 
-            UyelikOdeme::create([
-                'doktor_id' => $doktor->id,
-                'paket_id' => $paket->id,
-                'odeme_yontemi' => 'havale',
-                'provider' => 'banka',
-                'odeme_periyodu' => $request->odeme_periyodu,
-                'tutar' => $tutar,
-                'durum' => 'beklemede',
-                'havale_referans' => trim((string) $request->havale_referans),
-                'kurulum_verisi' => $kurulumHavale ?: null,
-            ]);
+            // Aynı paket için zaten bekleyen havale varsa yeni satır açma — hekime durumu göster
+            $mevcutBekleyen = UyelikOdeme::query()
+                ->havale()
+                ->beklemede()
+                ->where('doktor_id', $doktor->id)
+                ->where('paket_id', $paket->id)
+                ->latest('id')
+                ->first();
 
-            return redirect()->route('frontend.hekim.paket_sec')->with(
-                'basarili',
-                'Havale bildiriminiz alındı. Banka hareketi doğrulandığında üyeliğiniz yönetici tarafından aktifleştirilecektir.'
-            );
+            if ($mevcutBekleyen) {
+                $mevcutBekleyen->update([
+                    'havale_referans' => trim((string) $request->havale_referans) ?: $mevcutBekleyen->havale_referans,
+                    'tutar' => $tutar,
+                    'odeme_periyodu' => $request->odeme_periyodu,
+                    'kurulum_verisi' => $kurulumHavale ?: $mevcutBekleyen->kurulum_verisi,
+                ]);
+            } else {
+                UyelikOdeme::create([
+                    'doktor_id' => $doktor->id,
+                    'paket_id' => $paket->id,
+                    'odeme_yontemi' => 'havale',
+                    'provider' => 'banka',
+                    'odeme_periyodu' => $request->odeme_periyodu,
+                    'tutar' => $tutar,
+                    'durum' => 'beklemede',
+                    'havale_referans' => trim((string) $request->havale_referans),
+                    'kurulum_verisi' => $kurulumHavale ?: null,
+                ]);
+            }
+
+            // paket_sec kayit niyetiyle tekrar odeme sayfasina atmasin; flash kaybolmasin
+            return redirect()
+                ->route('frontend.hekim.paket_ode', [
+                    'paket' => $paket->id,
+                    'periyot' => $request->odeme_periyodu,
+                ])
+                ->with(
+                    'basarili',
+                    'Havale bildiriminiz alındı ve kaydedildi. Yönetici banka hareketini onaylayınca üyeliğiniz otomatik açılır. Aşağıda bildiriminizin durumunu görebilirsiniz.'
+                );
         } else {
             // PayTR iFrame — kart formu sitede yok; güvenli iframe
             $paytr = app(PaytrService::class);

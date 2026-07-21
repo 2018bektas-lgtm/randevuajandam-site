@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\UyelikOdeme;
 use App\Services\IyzicoSubscriptionService;
 use App\Services\PaytrService;
 use Illuminate\Http\Request;
@@ -21,11 +22,24 @@ class HekimUyelikController extends Controller
         $doktor->load(['paket', 'klinik.paket']);
 
         $klinik = $doktor->klinikSahibiMi() ? $doktor->klinik : null;
+        $bekleyenHavale = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
+        $sonOnayliHavale = ! $bekleyenHavale
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id)
+            : null;
+        $sonOdemeler = UyelikOdeme::query()
+            ->with('paket')
+            ->where('doktor_id', $doktor->id)
+            ->latest('id')
+            ->limit(8)
+            ->get();
 
         return view('hekim.uyelik', [
             'doktor' => $doktor,
             'paket' => $doktor->aktifPaket(),
             'klinik' => $klinik,
+            'bekleyenHavale' => $bekleyenHavale,
+            'sonOnayliHavale' => $sonOnayliHavale,
+            'sonOdemeler' => $sonOdemeler,
         ]);
     }
 

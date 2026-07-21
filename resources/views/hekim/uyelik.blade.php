@@ -26,6 +26,8 @@
         </div>
     @endif
 
+    @include('frontend.hekim.partials.havale_bildirim_durumu')
+
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
         <h2 class="text-lg font-bold font-display text-slate-900">Paket özeti</h2>
 
@@ -85,6 +87,59 @@
             </a>
         </div>
     </div>
+
+    @if(isset($sonOdemeler) && $sonOdemeler->isNotEmpty())
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <h2 class="text-lg font-bold font-display text-slate-900">Ödeme bildirimleri</h2>
+            <p class="text-xs text-slate-500">Havale veya kartlı ödeme kayıtlarınız. Havale bildirimleri yönetici onayına kadar “Beklemede” kalır.</p>
+            <div class="overflow-x-auto rounded-xl border border-slate-100">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px]">
+                        <tr>
+                            <th class="px-3 py-2.5">Tarih</th>
+                            <th class="px-3 py-2.5">Yöntem</th>
+                            <th class="px-3 py-2.5">Paket</th>
+                            <th class="px-3 py-2.5">Tutar</th>
+                            <th class="px-3 py-2.5">Durum</th>
+                            <th class="px-3 py-2.5">Referans</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($sonOdemeler as $od)
+                            <tr>
+                                <td class="px-3 py-2.5 text-slate-600 whitespace-nowrap">{{ $od->created_at?->format('d.m.Y H:i') }}</td>
+                                <td class="px-3 py-2.5 font-semibold">
+                                    @if($od->odeme_yontemi === 'havale' || $od->provider === 'banka')
+                                        Havale
+                                    @elseif($od->odeme_yontemi === 'paytr' || $od->provider === 'paytr')
+                                        PayTR
+                                    @else
+                                        {{ $od->odeme_yontemi ?? '—' }}
+                                    @endif
+                                </td>
+                                <td class="px-3 py-2.5">{{ $od->paket?->ad ?? '—' }}</td>
+                                <td class="px-3 py-2.5 font-bold">₺{{ number_format((float) $od->tutar, 2, ',', '.') }}</td>
+                                <td class="px-3 py-2.5">
+                                    @if($od->durum === 'beklemede')
+                                        <span class="inline-flex px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-100 font-bold">Beklemede — onay bekleniyor</span>
+                                    @elseif($od->durum === 'onaylandi')
+                                        <span class="inline-flex px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100 font-bold">Onaylandı</span>
+                                    @elseif($od->durum === 'reddedildi')
+                                        <span class="inline-flex px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100 font-bold">Reddedildi</span>
+                                    @else
+                                        <span class="font-semibold text-slate-600">{{ $od->durum }}</span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-2.5 font-mono text-slate-600 max-w-[10rem] truncate" title="{{ $od->havale_referans ?? $od->merchant_oid }}">
+                                    {{ $od->havale_referans ?: ($od->merchant_oid ?: '—') }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 
     @if($iptalBekliyor)
         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950 space-y-2">

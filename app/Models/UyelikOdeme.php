@@ -50,4 +50,46 @@ class UyelikOdeme extends Model
     {
         return $this->belongsTo(Yonetici::class, 'onaylayan_yonetici_id');
     }
+
+    public function scopeHavale($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('odeme_yontemi', 'havale')
+                ->orWhere('provider', 'banka');
+        });
+    }
+
+    public function scopeBeklemede($query)
+    {
+        return $query->where('durum', 'beklemede');
+    }
+
+    /**
+     * Hekim paneli / ödeme ekranı için bekleyen havale bildirimi.
+     */
+    public static function bekleyenHavaleForDoktor(int $doktorId): ?self
+    {
+        return static::query()
+            ->havale()
+            ->beklemede()
+            ->with('paket')
+            ->where('doktor_id', $doktorId)
+            ->latest('id')
+            ->first();
+    }
+
+    /**
+     * Son onaylı havale (durum kartı).
+     */
+    public static function sonOnayliHavaleForDoktor(int $doktorId): ?self
+    {
+        return static::query()
+            ->havale()
+            ->where('durum', 'onaylandi')
+            ->with('paket')
+            ->where('doktor_id', $doktorId)
+            ->latest('onaylandi_at')
+            ->latest('id')
+            ->first();
+    }
 }

@@ -9,6 +9,7 @@ use App\Models\Doktor;
 use App\Models\Il;
 use App\Models\Ilce;
 use App\Models\Unvan;
+use App\Models\UyelikOdeme;
 use App\Support\MetaPixel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -182,6 +183,11 @@ class HekimController extends Controller
         $onboardingDone = count(array_filter($onboarding, fn ($s) => $s['done']));
         $onboardingTotal = count($onboarding);
 
+        $bekleyenHavale = UyelikOdeme::bekleyenHavaleForDoktor((int) $doktor->id);
+        $sonOnayliHavale = ! $bekleyenHavale
+            ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id)
+            : null;
+
         return view('hekim.panel', compact(
             'doktor',
             'toplamRandevu',
@@ -192,7 +198,9 @@ class HekimController extends Controller
             'needsDomainOnboarding',
             'onboarding',
             'onboardingDone',
-            'onboardingTotal'
+            'onboardingTotal',
+            'bekleyenHavale',
+            'sonOnayliHavale',
         ));
     }
 

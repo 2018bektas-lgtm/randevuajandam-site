@@ -259,6 +259,14 @@
                     {{ session('hata') }}
                 </div>
             @endif
+            @if(session('basarili'))
+                <div class="mt-6 max-w-lg mx-auto p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 font-semibold">
+                    {{ session('basarili') }}
+                </div>
+            @endif
+            <div class="mt-6 max-w-2xl mx-auto text-left">
+                @include('frontend.hekim.partials.havale_bildirim_durumu')
+            </div>
 
             <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <div class="toggle-container" id="billingToggle">

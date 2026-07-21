@@ -4,6 +4,8 @@
 @section('sayfa_baslik', 'Panel Özeti')
 
 @section('icerik')
+    @include('frontend.hekim.partials.havale_bildirim_durumu')
+
     @if($doktor->isSubscriptionCancelPending() && $doktor->uyelik_bitis)
         <div class="mb-6 p-5 md:p-6 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
