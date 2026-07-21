@@ -1,7 +1,17 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', ($blog->meta_baslik ?? $blog->baslik) . ' - ' . ($doktor->unvan ? $doktor->unvan . ' ' : '') . $doktor->ad_soyad . ' - Randevu Ajandam')
-@section('meta_aciklama', $blog->meta_aciklama ?? Str::limit(strip_tags($blog->icerik), 150))
+@php
+    $blogAuthor = trim(($doktor->unvan ? $doktor->unvan.' ' : '').$doktor->ad_soyad);
+    $blogTitleSeo = \App\Support\SeoMeta::title($blog->meta_baslik ?? $blog->baslik, $blogAuthor);
+    $blogDescSeo = \App\Support\SeoMeta::description($blog->meta_aciklama ?? strip_tags($blog->icerik ?? ''));
+@endphp
+@section('baslik', $blogTitleSeo)
+@section('meta_aciklama', $blogDescSeo)
+@section('meta_anahtar_kelimeler', \App\Support\SeoMeta::keywords([
+    $blog->baslik, 'sağlık blogu', $blogAuthor, 'hekim yazısı', 'online randevu',
+]))
+@section('og_type', 'article')
+@section('canonical', $blog->url ?? url()->current())
 @section('meta_anahtar_kelimeler', $blog->meta_anahtar_kelimeler ?? '')
 @section('og_image', $blog->resim ? asset($blog->resim) : asset('assets/images/logo.png'))
 @section('og_type', 'article')

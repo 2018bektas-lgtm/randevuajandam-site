@@ -1,0 +1,17 @@
+# Randevu Ajandam
+> Türkiye geneli online doktor randevusu, hekim ve klinik bulma platformu.
+
+## Site
+- Ana sayfa: https://randevuajandam.com/
+- Doktorlar: https://randevuajandam.com/doktorlar
+- Online randevu rehberi: https://randevuajandam.com/randevu
+- Blog: https://randevuajandam.com/blog
+- Hekim paketleri: https://randevuajandam.com/paketler
+- İletişim: https://randevuajandam.com/iletisim
+- Sitemap: https://randevuajandam.com/sitemap.xml
+
+## Anahtar kelimeler
+online randevu, doktor randevu, hekim randevu, klinik randevu, hasta randevu, uzman doktor bul
+
+## Not
+Panel (/hekim, /yonetim) özel alandır; arama dizinine kapalıdır.

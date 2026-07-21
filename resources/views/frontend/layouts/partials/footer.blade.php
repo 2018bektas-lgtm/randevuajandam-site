@@ -77,6 +77,7 @@
                 <h3 class="text-[11px] font-bold uppercase tracking-wider text-[#111827] font-display mb-3">Hastalar</h3>
                 <ul class="space-y-2 text-[12px] text-[#6B7280]">
                     <li><a href="{{ route('frontend.hekimler') }}" class="hover:text-[#C96A2B] transition-colors">Uzman bul</a></li>
+                    <li><a href="{{ route('frontend.seo.hub') }}" class="hover:text-[#C96A2B] transition-colors">Online randevu rehberi</a></li>
                     <li><a href="{{ route('frontend.hasta.kayit') }}" class="hover:text-[#C96A2B] transition-colors">Hasta kaydı</a></li>
                     <li><a href="{{ route('frontend.hasta.giris') }}" class="hover:text-[#C96A2B] transition-colors">Hasta girişi</a></li>
                     <li><a href="{{ route('frontend.hasta.randevular') }}" class="hover:text-[#C96A2B] transition-colors">Randevularım</a></li>
@@ -102,20 +103,20 @@
             <nav class="min-w-0" aria-label="Popüler branşlar">
                 <h3 class="text-[11px] font-bold uppercase tracking-wider text-[#111827] font-display mb-3">Popüler branşlar</h3>
                 <ul class="space-y-2 text-[12px] text-[#6B7280]">
-                    @forelse(($footerBranslar ?? collect())->take(4) as $brans)
+                    @forelse(($footerBranslar ?? collect())->take(6) as $brans)
                         <li>
-                            <a href="{{ route('frontend.hekimler', ['uzmanlik' => $brans->ad, 'brans' => $brans->slug]) }}"
+                            <a href="{{ $brans->slug ? route('frontend.seo.brans', $brans->slug) : route('frontend.hekimler', ['brans' => $brans->slug, 'uzmanlik' => $brans->ad]) }}"
                                class="hover:text-[#C96A2B] transition-colors break-words"
-                               title="{{ $brans->ad }}">
-                                {{ $brans->ad }}
+                               title="{{ $brans->ad }} online randevu">
+                                {{ $brans->ad }} randevu
                             </a>
                         </li>
                     @empty
                     @endforelse
                     <li>
-                        <a href="{{ route('frontend.hekimler') }}"
+                        <a href="{{ route('frontend.seo.hub') }}"
                            class="font-semibold text-[#C96A2B] hover:text-[#B55A20] transition-colors">
-                            Tüm uzmanlar →
+                            Tüm branş rehberi →
                         </a>
                     </li>
                 </ul>

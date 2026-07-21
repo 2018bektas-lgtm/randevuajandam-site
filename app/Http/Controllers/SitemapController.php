@@ -18,7 +18,7 @@ class SitemapController extends Controller
      */
     public function index(): Response
     {
-        $xml = Cache::remember('sitemap:xml:v3', now()->addMinutes(30), function () {
+        $xml = Cache::remember('sitemap:xml:v4', now()->addMinutes(30), function () {
             return $this->buildXml();
         });
 
@@ -49,9 +49,17 @@ class SitemapController extends Controller
         // —— Statik yüksek öncelik ——
         $add(url('/'), now(), 'daily', '1.0');
         $add(route('frontend.hekimler'), now(), 'daily', '0.95');
+        $add(route('frontend.seo.hub'), now(), 'daily', '0.92');
         $add(route('frontend.blog.index'), now(), 'daily', '0.8');
         $add(route('frontend.egitimler.index'), now(), 'daily', '0.75');
         $add(route('frontend.paketler'), now(), 'weekly', '0.7');
+
+        // Branş SEO hub sayfaları
+        foreach (Brans::query()->orderBy('ad')->get(['slug', 'updated_at']) as $b) {
+            if ($b->slug) {
+                $add(route('frontend.seo.brans', $b->slug), $b->updated_at ?? now(), 'weekly', '0.8');
+            }
+        }
         $add(route('frontend.legal.hakkimizda'), now(), 'monthly', '0.5');
         $add(route('frontend.legal.iletisim'), now(), 'monthly', '0.55');
         $add(route('frontend.legal.gizlilik'), now(), 'yearly', '0.3');

@@ -373,6 +373,67 @@
     </section>
 
     @include('frontend.partials.home-vitrin')
+
+    {{-- Ana sayfa SEO: FAQ + şehir/branş iç link ağı --}}
+    <section class="fe-page fe-page--tight bg-white border-t border-slate-100">
+        <div class="fe-container max-w-5xl">
+            <div class="text-center mb-8">
+                <p class="text-[11px] font-bold uppercase tracking-widest text-[#C96A2B]">Online Randevu</p>
+                <h2 class="text-2xl md:text-3xl font-extrabold font-display text-[#111827] mt-1">Doktor randevusu nasıl alınır?</h2>
+                <p class="mt-2 text-sm text-slate-600 max-w-2xl mx-auto">Hasta olarak branş veya şehir seçin; hekim müsaitliğini görün ve randevunuzu oluşturun.</p>
+            </div>
+
+            @if(!empty($seoPopulerIller) && $seoPopulerIller->isNotEmpty())
+                <div class="mb-8">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3">Popüler şehirlerde doktor randevu</h3>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($seoPopulerIller as $il)
+                            @if($il->slug)
+                                <a href="{{ route('frontend.il.liste', $il->slug) }}"
+                                   class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:border-[#C96A2B] hover:text-[#C96A2B]">
+                                    {{ $il->ad }} randevu
+                                </a>
+                            @endif
+                        @endforeach
+                        <a href="{{ route('frontend.seo.hub') }}" class="rounded-full border border-[#C96A2B]/30 bg-[#FFF7ED] px-3 py-1.5 text-[11px] font-bold text-[#C96A2B]">
+                            Tüm rehber →
+                        </a>
+                    </div>
+                </div>
+            @endif
+
+            @if(!empty($branslar) && $branslar->isNotEmpty())
+                <div class="mb-10">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3">Branşa göre online randevu</h3>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($branslar->take(12) as $b)
+                            @if($b->slug)
+                                <a href="{{ route('frontend.seo.brans', $b->slug) }}"
+                                   class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:border-[#C96A2B] hover:text-[#C96A2B]">
+                                    {{ $b->ad }}
+                                </a>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            @if(!empty($seoFaqs))
+                <div class="rounded-2xl border border-slate-200 bg-[#FAFAFA] p-6 md:p-8">
+                    <h3 class="text-lg font-extrabold font-display text-[#111827] mb-4">Sık sorulan sorular</h3>
+                    <div class="space-y-4">
+                        @foreach($seoFaqs as $f)
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-900">{{ $f['q'] }}</h4>
+                                <p class="mt-1 text-xs text-slate-600 leading-relaxed">{{ $f['a'] }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                @include('frontend.partials.seo-faq-schema', ['faqs' => $seoFaqs])
+            @endif
+        </div>
+    </section>
 @endsection
 
 @section('script')

@@ -55,6 +55,13 @@ Route::post('/2fa', [\App\Http\Controllers\TwoFactorController::class, 'challeng
 Route::post('/2fa/iptal', [\App\Http\Controllers\TwoFactorController::class, 'challengeCancel'])->name('two-factor.challenge.cancel');
 
 Route::get('/paketler', [PaketController::class, 'index'])->name('frontend.paketler');
+
+// Gelişmiş SEO hub (catch-all slug rotalarından ÖNCE)
+Route::get('/randevu', [\App\Http\Controllers\Frontend\PublicSeoController::class, 'hub'])->name('frontend.seo.hub');
+Route::get('/randevu/{brans_slug}', [\App\Http\Controllers\Frontend\PublicSeoController::class, 'brans'])
+    ->where('brans_slug', '[A-Za-z0-9\-]+')
+    ->name('frontend.seo.brans');
+
 Route::get('/doktorlar', [HekimController::class, 'doktorlarListesi'])->name('frontend.hekimler');
 Route::get('/doktorlar/arama', [HekimController::class, 'spotlightArama'])->name('frontend.doktorlar.arama');
 Route::get('/doktorlar/en-yakin-slotlar', [HekimController::class, 'nextSlotsBatch'])

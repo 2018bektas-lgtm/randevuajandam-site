@@ -1176,4 +1176,6 @@
         }
     });
 </script>
+
+@include('frontend.partials.seo-listing-content')
 @endsection

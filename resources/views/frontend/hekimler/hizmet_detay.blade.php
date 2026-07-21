@@ -1,7 +1,22 @@
 @extends('frontend.layouts.app')
 
-@section('baslik', ($hizmet->meta_baslik ?? $hizmet->ad) . ' - ' . ($doktor->unvan ? $doktor->unvan . ' ' : '') . $doktor->ad_soyad . ' - Randevu Ajandam')
-@section('meta_aciklama', $hizmet->meta_aciklama ?? Str::limit(strip_tags($hizmet->aciklama), 150))
+@php
+    $hizmetAuthor = trim(($doktor->unvan ? $doktor->unvan.' ' : '').$doktor->ad_soyad);
+    $hizmetTitleSeo = \App\Support\SeoMeta::title(
+        ($hizmet->meta_baslik ?? $hizmet->ad).' Randevu',
+        $hizmetAuthor.($doktor->il?->ad ? ' '.$doktor->il->ad : '')
+    );
+    $hizmetDescSeo = \App\Support\SeoMeta::description(
+        $hizmet->meta_aciklama
+            ?? (($hizmet->ad).' — '.$hizmetAuthor.' ile online randevu. '.strip_tags($hizmet->aciklama ?? ''))
+    );
+@endphp
+@section('baslik', $hizmetTitleSeo)
+@section('meta_aciklama', $hizmetDescSeo)
+@section('meta_anahtar_kelimeler', \App\Support\SeoMeta::keywords([
+    $hizmet->ad, $hizmet->ad.' randevu', $hizmetAuthor, $doktor->il?->ad, 'online randevu',
+]))
+@section('canonical', $hizmet->url ?? url()->current())
 @section('meta_anahtar_kelimeler', $hizmet->meta_anahtar_kelimeler ?? '')
 @section('og_image', $hizmet->resim_url ?: asset('assets/images/logo.png'))
 @section('og_type', 'website')

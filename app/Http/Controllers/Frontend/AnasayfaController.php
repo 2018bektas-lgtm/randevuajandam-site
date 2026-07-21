@@ -10,6 +10,7 @@ use App\Models\Hizmet;
 use App\Models\Klinik;
 use App\Models\Randevu;
 use App\Models\Yorum;
+use App\Http\Controllers\Frontend\PublicSeoController;
 use Illuminate\Support\Facades\Cache;
 
 class AnasayfaController extends Controller
@@ -158,6 +159,18 @@ class AnasayfaController extends Controller
                 ->get();
         });
 
+        $seoFaqs = (new PublicSeoController)->platformFaqs();
+
+        $seoPopulerIller = Cache::remember('seo:anasayfa:iller', now()->addHours(12), function () {
+            return \App\Models\Il::query()
+                ->whereIn('slug', [
+                    'istanbul', 'ankara', 'izmir', 'bursa', 'antalya', 'adana',
+                    'konya', 'gaziantep', 'kocaeli', 'mersin', 'samsun', 'kayseri',
+                ])
+                ->orderBy('ad')
+                ->get(['ad', 'slug']);
+        });
+
         return view('frontend.index', compact(
             'branslar',
             'oneCikanDoktorlar',
@@ -166,7 +179,9 @@ class AnasayfaController extends Controller
             'istatistikler',
             'sonBloglar',
             'populerAramalar',
-            'sonYorumlar'
+            'sonYorumlar',
+            'seoFaqs',
+            'seoPopulerIller',
         ));
     }
 }
