@@ -336,23 +336,21 @@ class KlinikController extends Controller
 
         $hesaplanacakDoktor = $klinik->doktorlar()->findOrFail($request->doktor_id);
 
-        // Fetch total revenues for the doctor in period
-        $toplamGelir = DB::table('odemeler')
-            ->where('doktor_id', $hesaplanacakDoktor->id)
-            ->whereBetween('created_at', [$request->donem_baslangic.' 00:00:00', $request->donem_bitis.' 23:59:59'])
-            ->sum('tutar');
-
-        $komisyonTutari = round(($toplamGelir * $request->komisyon_orani) / 100, 2);
-        $netHakedis = $toplamGelir - $komisyonTutari;
+        $amounts = app(\App\Services\Finance\FinanceService::class)->settlementAmounts(
+            (int) $hesaplanacakDoktor->id,
+            (string) $request->donem_baslangic,
+            (string) $request->donem_bitis,
+            (float) $request->komisyon_orani,
+        );
 
         $klinik->hakedisler()->create([
             'doktor_id' => $hesaplanacakDoktor->id,
             'donem_baslangic' => $request->donem_baslangic,
             'donem_bitis' => $request->donem_bitis,
-            'toplam_gelir' => $toplamGelir,
+            'toplam_gelir' => $amounts['toplam_gelir'],
             'komisyon_orani' => $request->komisyon_orani,
-            'komisyon_tutari' => $komisyonTutari,
-            'net_hakedis' => $netHakedis,
+            'komisyon_tutari' => $amounts['komisyon_tutari'],
+            'net_hakedis' => $amounts['net_hakedis'],
             'durum' => 'hesaplandi',
         ]);
 

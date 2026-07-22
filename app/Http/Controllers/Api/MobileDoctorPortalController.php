@@ -1079,6 +1079,38 @@ class MobileDoctorPortalController extends Controller
     public function storeIncome(Request $request): JsonResponse
     {
         $doktor = $this->doktor($request);
+
+        // Mobil form alias'ları: odenen_tutar / odeme_yontemi
+        $input = $request->all();
+        if (! array_key_exists('ilk_odeme_tutar', $input) && array_key_exists('odenen_tutar', $input)) {
+            $input['ilk_odeme_tutar'] = $input['odenen_tutar'];
+        }
+        if (empty($input['ilk_odeme_yontemi']) && ! empty($input['odeme_yontemi'])) {
+            $input['ilk_odeme_yontemi'] = $input['odeme_yontemi'];
+        }
+        if (empty($input['ilk_odeme_yontemi'])) {
+            $input['ilk_odeme_yontemi'] = 'nakit';
+        }
+        // TR sayı: "1.250,50" → 1250.50
+        foreach (['tutar', 'ilk_odeme_tutar'] as $moneyKey) {
+            if (isset($input[$moneyKey]) && is_string($input[$moneyKey])) {
+                $raw = trim(str_replace(['₺', 'TL', ' '], '', $input[$moneyKey]));
+                if (str_contains($raw, ',') && str_contains($raw, '.')) {
+                    $raw = str_replace('.', '', $raw);
+                    $raw = str_replace(',', '.', $raw);
+                } elseif (str_contains($raw, ',')) {
+                    $raw = str_replace(',', '.', $raw);
+                }
+                $input[$moneyKey] = $raw;
+            }
+        }
+        // TR tarih: 22.07.2026 → 2026-07-22
+        if (! empty($input['odeme_tarihi']) && is_string($input['odeme_tarihi'])
+            && preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $input['odeme_tarihi'], $m)) {
+            $input['odeme_tarihi'] = sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
+        }
+        $request->merge($input);
+
         $validated = $request->validate([
             'hasta_id' => ['nullable', 'integer', 'exists:hastalar,id'],
             'hizmet_id' => ['nullable', 'integer', 'exists:hizmetler,id'],
@@ -1091,9 +1123,14 @@ class MobileDoctorPortalController extends Controller
         ]);
 
         $ilk = (float) ($validated['ilk_odeme_tutar'] ?? 0);
+        // Tam tahsilat: ilk tutar verilmemişse tutarın tamamı ödenmiş sayılır
+        if ($ilk <= 0 && $request->boolean('tam_tahsilat', true)) {
+            $ilk = (float) $validated['tutar'];
+        }
         $durum = 'beklemede';
-        if ($ilk >= (float) $validated['tutar']) {
+        if ($ilk >= (float) $validated['tutar'] - 0.001) {
             $durum = 'odendi';
+            $ilk = (float) $validated['tutar'];
         } elseif ($ilk > 0) {
             $durum = 'kismi_odeme';
         }
@@ -1204,21 +1241,35 @@ class MobileDoctorPortalController extends Controller
         $data = $request->validate([
             'tutar' => ['required', 'numeric', 'min:0.01'],
             'tarih' => ['required', 'date'],
-            'kategori' => ['required', 'string', 'max:100'],
+            'kategori' => ['nullable', 'string', 'max:100'],
+            'baslik' => ['nullable', 'string', 'max:255'],
             'aciklama' => ['nullable', 'string', 'max:1000'],
             'finans_kategori_id' => ['nullable', 'integer', 'exists:finans_kategoriler,id'],
             'belge' => ['nullable', 'file', 'mimes:jpeg,png,jpg,pdf', 'max:4096'],
         ]);
 
         unset($data['belge']);
+        $finance = app(\App\Services\Finance\FinanceService::class);
+        $baslik = trim((string) ($data['baslik'] ?? $data['aciklama'] ?? $data['kategori'] ?? 'Gider'));
+        if ($baslik === '') {
+            $baslik = 'Gider';
+        }
+        $payload = [
+            'tutar' => $data['tutar'],
+            'tarih' => $data['tarih'],
+            'baslik' => $baslik,
+            'aciklama' => $data['aciklama'] ?? null,
+            'kategori' => $finance->normalizeGiderKategori($data['kategori'] ?? null),
+            'finans_kategori_id' => $data['finans_kategori_id'] ?? null,
+        ];
         if ($request->hasFile('belge')) {
             $ext = $request->file('belge')->getClientOriginalExtension() ?: 'bin';
             $fileName = 'belge_'.$doktor->id.'_'.time().'_'.Str::random(8).'.'.$ext;
             $request->file('belge')->storeAs('uploads/belgeler', $fileName, 'public');
-            $data['belge_yolu'] = 'uploads/belgeler/'.$fileName;
+            $payload['belge_yolu'] = 'uploads/belgeler/'.$fileName;
         }
 
-        $gider = $doktor->giderler()->create($data);
+        $gider = $doktor->giderler()->create($payload);
 
         return response()->json(['success' => true, 'message' => 'Gider eklendi.', 'data' => $gider], 201);
     }
@@ -1230,19 +1281,29 @@ class MobileDoctorPortalController extends Controller
         $data = $request->validate([
             'tutar' => ['required', 'numeric', 'min:0.01'],
             'tarih' => ['required', 'date'],
-            'kategori' => ['required', 'string', 'max:100'],
+            'baslik' => ['nullable', 'string', 'max:255'],
+            'kategori' => ['nullable', 'string', 'max:100'],
             'aciklama' => ['nullable', 'string', 'max:1000'],
             'finans_kategori_id' => ['nullable', 'integer', 'exists:finans_kategoriler,id'],
             'belge' => ['nullable', 'file', 'mimes:jpeg,png,jpg,pdf', 'max:4096'],
         ]);
         unset($data['belge']);
+        $finance = app(\App\Services\Finance\FinanceService::class);
+        $payload = [
+            'tutar' => $data['tutar'],
+            'tarih' => $data['tarih'],
+            'baslik' => trim((string) ($data['baslik'] ?? $gider->baslik ?? 'Gider')) ?: 'Gider',
+            'aciklama' => $data['aciklama'] ?? null,
+            'kategori' => $finance->normalizeGiderKategori($data['kategori'] ?? $gider->kategori),
+            'finans_kategori_id' => $data['finans_kategori_id'] ?? $gider->finans_kategori_id,
+        ];
         if ($request->hasFile('belge')) {
             $ext = $request->file('belge')->getClientOriginalExtension() ?: 'bin';
             $fileName = 'belge_'.$doktor->id.'_'.time().'_'.Str::random(8).'.'.$ext;
             $request->file('belge')->storeAs('uploads/belgeler', $fileName, 'public');
-            $data['belge_yolu'] = 'uploads/belgeler/'.$fileName;
+            $payload['belge_yolu'] = 'uploads/belgeler/'.$fileName;
         }
-        $gider->update($data);
+        $gider->update($payload);
 
         return response()->json(['success' => true, 'message' => 'Gider güncellendi.', 'data' => $gider->fresh()]);
     }

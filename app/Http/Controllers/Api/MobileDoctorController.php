@@ -1660,6 +1660,18 @@ class MobileDoctorController extends Controller
             ->get()
             ->map(fn ($r) => $this->appointmentPayload($r));
 
+        $odemeler = $doktor->odemeler()
+            ->where('hasta_id', $id)
+            ->whereNotIn('durum', ['iptal'])
+            ->orderByDesc('odeme_tarihi')
+            ->orderByDesc('id')
+            ->limit(40)
+            ->get(['id', 'tutar', 'odenen_tutar', 'durum', 'odeme_yontemi', 'odeme_tarihi', 'aciklama']);
+
+        $toplamOdenen = (float) $odemeler->sum('odenen_tutar');
+        $toplamTutar = (float) $odemeler->sum('tutar');
+        $kalanBakiye = max(0, $toplamTutar - $toplamOdenen);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -1669,6 +1681,20 @@ class MobileDoctorController extends Controller
                 'telefon' => $hasta->telefon,
                 'e_posta' => $hasta->e_posta,
                 'randevular' => $randevular,
+                'finans' => [
+                    'toplam_odenen' => $toplamOdenen,
+                    'toplam_tutar' => $toplamTutar,
+                    'kalan_bakiye' => $kalanBakiye,
+                    'odemeler' => $odemeler->map(fn ($o) => [
+                        'id' => $o->id,
+                        'tutar' => (float) $o->tutar,
+                        'odenen_tutar' => (float) $o->odenen_tutar,
+                        'durum' => $o->durum,
+                        'odeme_yontemi' => $o->odeme_yontemi,
+                        'odeme_tarihi' => optional($o->odeme_tarihi)?->format('Y-m-d'),
+                        'aciklama' => $o->aciklama,
+                    ])->values(),
+                ],
             ],
         ]);
     }

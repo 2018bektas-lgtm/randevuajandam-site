@@ -737,25 +737,21 @@ class MobileDoctorClinicController extends Controller
 
         $target = $klinik->doktorlar()->findOrFail($data['doktor_id']);
 
-        $toplamGelir = (float) DB::table('odemeler')
-            ->where('doktor_id', $target->id)
-            ->whereBetween('created_at', [
-                $data['donem_baslangic'].' 00:00:00',
-                $data['donem_bitis'].' 23:59:59',
-            ])
-            ->sum('tutar');
-
-        $komisyonTutari = round(($toplamGelir * (float) $data['komisyon_orani']) / 100, 2);
-        $netHakedis = $toplamGelir - $komisyonTutari;
+        $amounts = app(\App\Services\Finance\FinanceService::class)->settlementAmounts(
+            (int) $target->id,
+            (string) $data['donem_baslangic'],
+            (string) $data['donem_bitis'],
+            (float) $data['komisyon_orani'],
+        );
 
         $row = $klinik->hakedisler()->create([
             'doktor_id' => $target->id,
             'donem_baslangic' => $data['donem_baslangic'],
             'donem_bitis' => $data['donem_bitis'],
-            'toplam_gelir' => $toplamGelir,
+            'toplam_gelir' => $amounts['toplam_gelir'],
             'komisyon_orani' => $data['komisyon_orani'],
-            'komisyon_tutari' => $komisyonTutari,
-            'net_hakedis' => $netHakedis,
+            'komisyon_tutari' => $amounts['komisyon_tutari'],
+            'net_hakedis' => $amounts['net_hakedis'],
             'durum' => 'hesaplandi',
         ]);
 

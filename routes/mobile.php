@@ -10,11 +10,21 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Mobil hasta + hekim uygulaması (React Native) — ana site
+| Mobil API (React Native) — web session (/hekim, /personel) ile KARIŞMAZ
+|--------------------------------------------------------------------------
+| Base: /api/mobile/v1
+|
+|  doctor/*  → Hekim + klinik sahibi hekim (Bearer / X-Doktor-Token)
+|  staff/*   → Klinik personeli (Bearer / X-Personel-Token)
+|  auth/* + public → Hasta mobil (ayrı uygulama)
+|
+| Klinik paneli: ayrı login YOK. Sahip hekim doctor/auth/login ile girer;
+| klinik işlemleri doctor/clinic/* (doktor.mobile middleware).
 |--------------------------------------------------------------------------
 */
 
 Route::prefix('v1')->group(function () {
+    // --- HEKİM MOBİL (klinik sahibi dahil) ---
     Route::prefix('doctor')->group(function () {
         Route::post('/auth/login', [MobileDoctorController::class, 'login'])->middleware('throttle:12,1');
         Route::post('/auth/two-factor', [MobileDoctorController::class, 'verifyTwoFactor'])->middleware('throttle:12,1');
