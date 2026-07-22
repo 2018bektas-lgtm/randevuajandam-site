@@ -30,6 +30,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/packages/iap-confirm', [MobileDoctorController::class, 'confirmIapPurchase']);
             // Auth / profile basics
             Route::get('/auth/me', [MobileDoctorController::class, 'me']);
+            Route::get('/auth/meslek-status', [MobileDoctorController::class, 'meslekStatus']);
             Route::post('/auth/logout', [MobileDoctorController::class, 'logout']);
             Route::post('/auth/device', [MobileDoctorController::class, 'registerDevice']);
             Route::get('/notifications', [MobileDoctorController::class, 'notifications']);

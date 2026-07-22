@@ -16,6 +16,8 @@ class Paket extends Model
         'aylik_indirimli_fiyat',
         'yillik_fiyat',
         'yillik_indirimli_fiyat',
+        'ek_doktor_aylik_fiyat',
+        'ek_doktor_yillik_fiyat',
         'ozellikler',
         'aktif_mi',
         'iyzico_plan_aylik',
@@ -42,6 +44,8 @@ class Paket extends Model
     {
         return [
             'ozellikler' => 'array',
+            'ek_doktor_aylik_fiyat' => 'decimal:2',
+            'ek_doktor_yillik_fiyat' => 'decimal:2',
             'aktif_mi' => 'boolean',
             'merkezi_finans_mi' => 'boolean',
             'toplu_randevu_mi' => 'boolean',

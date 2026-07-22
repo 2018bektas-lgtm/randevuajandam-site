@@ -585,7 +585,7 @@
                                             <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                         </span>
                                         <span class="font-semibold text-slate-700">
-                                            {{ $p->max_doktor_sayisi >= 999 ? 'Sınırsız hekim' : $p->max_doktor_sayisi.' hekime kadar' }}
+                                            {{ $p->max_doktor_sayisi }} hekime kadar
                                         </span>
                                     </li>
                                 @endif
@@ -595,7 +595,7 @@
                                             <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                         </span>
                                         <span class="font-semibold text-slate-700">
-                                            {{ $p->max_personel_sayisi >= 999 ? 'Sınırsız personel' : $p->max_personel_sayisi.' sekreter / personel' }}
+                                            {{ $p->max_personel_sayisi }} sekreter / personel
                                         </span>
                                     </li>
                                 @endif
@@ -613,9 +613,7 @@
                                             $fLower = mb_strtolower((string) $ozellik);
                                             $skipDup = str_contains($fLower, 'muhasebeci')
                                                 || str_contains($fLower, 'merkezi finans')
-                                                || str_contains($fLower, 'maksimum')
-                                                || str_contains($fLower, 'sınırsız hekim')
-                                                || str_contains($fLower, 'sınırsız sekreter');
+                                                || str_contains($fLower, 'maksimum');
                                         @endphp
                                         @if($skipDup) @continue @endif
                                         <li class="feature-row">

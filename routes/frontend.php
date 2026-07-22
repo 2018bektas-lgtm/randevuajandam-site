@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Frontend\HastaController;
+use App\Http\Controllers\Frontend\EkKoltukController;
 use App\Http\Controllers\Frontend\HekimBlogController;
 use App\Http\Controllers\Frontend\HekimController;
 use App\Http\Controllers\Frontend\HekimEgitimController;
@@ -428,6 +429,8 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
 
         // Doctor Management
         Route::middleware(['klinik.yetki:hekim_yonetimi'])->group(function () {
+            Route::get('/hekim/klinik/ek-koltuk', [EkKoltukController::class, 'formGoster'])->name('hekim.klinik.ek-koltuk');
+            Route::post('/hekim/klinik/ek-koltuk/odeme', [EkKoltukController::class, 'odemeBaslat'])->name('hekim.klinik.ek-koltuk.odeme');
             Route::get('/hekim/klinik/doktorlar', [KlinikController::class, 'doktorlar'])->name('hekim.klinik.doktorlar');
             Route::get('/hekim/klinik/doktorlar/calisma-saatleri', [KlinikController::class, 'doktorlarCalismaSaatleri'])->name('hekim.klinik.doktorlar.calisma-saatleri');
             Route::post('/hekim/klinik/doktorlar/davet', [KlinikController::class, 'davetEt'])->name('hekim.klinik.doktorlar.davet');

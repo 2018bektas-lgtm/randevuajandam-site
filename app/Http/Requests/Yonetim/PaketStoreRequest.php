@@ -24,6 +24,8 @@ class PaketStoreRequest extends FormRequest
             'aylik_indirimli_fiyat' => ['nullable', 'numeric', 'min:0'],
             'yillik_fiyat' => ['required', 'numeric', 'min:0'],
             'yillik_indirimli_fiyat' => ['nullable', 'numeric', 'min:0'],
+            'ek_doktor_aylik_fiyat' => ['nullable', 'numeric', 'min:0'],
+            'ek_doktor_yillik_fiyat' => ['nullable', 'numeric', 'min:0'],
             'ozellikler' => ['required', 'array', 'min:1'],
             'ozellikler.*' => ['required', 'string', 'max:255'],
             'aktif_mi' => ['nullable', 'boolean'],
@@ -60,6 +62,8 @@ class PaketStoreRequest extends FormRequest
             'yillik_fiyat.required' => 'Yıllık fiyat alanı zorunludur.',
             'yillik_fiyat.numeric' => 'Lütfen geçerli bir yıllık fiyat girin.',
             'yillik_indirimli_fiyat.numeric' => 'Lütfen geçerli bir yıllık indirimli fiyat girin.',
+            'ek_doktor_aylik_fiyat.numeric' => 'Lütfen geçerli bir ek hekim koltuğu aylık fiyatı girin.',
+            'ek_doktor_yillik_fiyat.numeric' => 'Lütfen geçerli bir ek hekim koltuğu yıllık fiyatı girin.',
             'ozellikler.required' => 'Lütfen en az bir paket özelliği ekleyin.',
         ];
     }

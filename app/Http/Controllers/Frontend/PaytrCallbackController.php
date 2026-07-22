@@ -9,6 +9,7 @@ use App\Models\Ilce;
 use App\Models\Klinik;
 use App\Models\PaytrCallbackLog;
 use App\Models\UyelikOdeme;
+use App\Models\KlinikEkKoltukOdeme;
 use App\Services\PaytrService;
 use App\Support\MetaPixel;
 use Illuminate\Http\Request;
@@ -24,11 +25,22 @@ class PaytrCallbackController extends Controller
     public function iframe(string $merchantOid)
     {
         $doktor = auth('doktor')->user();
-        $odeme = UyelikOdeme::query()
-            ->where('merchant_oid', $merchantOid)
-            ->where('doktor_id', $doktor->id)
-            ->where('durum', 'beklemede')
-            ->firstOrFail();
+        $isEkKoltuk = str_starts_with($merchantOid, 'EK');
+        if ($isEkKoltuk) {
+            $odeme = KlinikEkKoltukOdeme::query()
+                ->where('merchant_oid', $merchantOid)
+                ->where('doktor_id', $doktor->id)
+                ->where('durum', 'beklemede')
+                ->firstOrFail();
+            $paket = $odeme->klinik?->paket;
+        } else {
+            $odeme = UyelikOdeme::query()
+                ->where('merchant_oid', $merchantOid)
+                ->where('doktor_id', $doktor->id)
+                ->where('durum', 'beklemede')
+                ->firstOrFail();
+            $paket = $odeme->paket;
+        }
 
         $token = session('paytr_iframe_token_'.$merchantOid);
         if (! $token) {
@@ -36,8 +48,6 @@ class PaytrCallbackController extends Controller
                 ->route('frontend.hekim.paket_sec')
                 ->with('hata', 'Ödeme oturumu süresi doldu. Lütfen tekrar deneyin.');
         }
-
-        $paket = $odeme->paket;
         MetaPixel::queue('AddPaymentInfo', array_merge(
             MetaPixel::money((float) $odeme->tutar),
             [
@@ -80,9 +90,44 @@ class PaytrCallbackController extends Controller
             return response('PAYTR notification failed: bad hash', 400)->header('Content-Type', 'text/plain');
         }
 
+        // Ek koltuk ödemesi mi?
+        $isEkKoltuk = str_starts_with($merchantOid, 'EK');
+
         $odeme = UyelikOdeme::query()
             ->where('merchant_oid', $merchantOid)
             ->first();
+
+        if (! $odeme && $isEkKoltuk) {
+            $ekKoltukOdeme = KlinikEkKoltukOdeme::where('merchant_oid', $merchantOid)->first();
+            if ($ekKoltukOdeme) {
+                if ($ekKoltukOdeme->durum === 'odendi') {
+                    $this->logCallback($merchantOid, $ekKoltukOdeme->id, $status, $totalAmount, true, true, 'ek_koltuk already approved', $raw);
+                    return response('OK', 200)->header('Content-Type', 'text/plain');
+                }
+
+                if ($status === 'success') {
+                    try {
+                        $this->activateEkKoltuk($ekKoltukOdeme);
+                        $this->logCallback($merchantOid, $ekKoltukOdeme->id, $status, $totalAmount, true, true, null, $raw);
+                    } catch (\Throwable $e) {
+                        Log::error('Ek koltuk activate failed', [
+                            'merchant_oid' => $merchantOid,
+                            'message' => $e->getMessage(),
+                        ]);
+                        $this->logCallback($merchantOid, $ekKoltukOdeme->id, $status, $totalAmount, true, false, $e->getMessage(), $raw);
+                        return response('FAIL', 500)->header('Content-Type', 'text/plain');
+                    }
+                } else {
+                    $ekKoltukOdeme->update([
+                        'durum' => 'reddedildi',
+                        'callback_payload' => $raw,
+                    ]);
+                    $this->logCallback($merchantOid, $ekKoltukOdeme->id, $status, $totalAmount, true, true, 'ek_koltuk payment failed', $raw);
+                }
+
+                return response('OK', 200)->header('Content-Type', 'text/plain');
+            }
+        }
 
         if (! $odeme) {
             Log::warning('PayTR notify: order not found', ['merchant_oid' => $merchantOid]);
@@ -349,5 +394,33 @@ class PaytrCallbackController extends Controller
         } catch (\Throwable $e) {
             Log::warning('PayTR referans ödül hatası: '.$e->getMessage());
         }
+    }
+
+    protected function activateEkKoltuk(KlinikEkKoltukOdeme $odeme): void
+    {
+        DB::transaction(function () use ($odeme) {
+            $odeme->refresh();
+            if ($odeme->durum === 'odendi') {
+                return;
+            }
+
+            $klinik = Klinik::query()->lockForUpdate()->find($odeme->klinik_id);
+            if (! $klinik) {
+                throw new \RuntimeException('Klinik bulunamadı');
+            }
+
+            // Ek koltuk sayısını artır
+            $klinik->increment('ek_doktor_koltuk_sayisi', $odeme->adet);
+
+            // max_doktor_sayisi senkronize et
+            $klinik->refresh();
+            $klinik->syncMaxDoktorSayisi();
+
+            $odeme->update([
+                'durum' => 'odendi',
+                'onaylandi_at' => now(),
+                'callback_payload' => request()->except(['merchant_key', 'merchant_salt']),
+            ]);
+        });
     }
 }

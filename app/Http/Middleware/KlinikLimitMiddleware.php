@@ -29,11 +29,15 @@ class KlinikLimitMiddleware
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Paketinizdeki doktor limitine ulaştınız. Yeni doktor davet edebilmek için paketinizi yükseltmelisiniz.',
+                    'message' => 'Hekim limitiniz doldu. Ek hekim koltuğu satın alabilir veya paketinizi yükseltebilirsiniz.',
+                    'limit' => $klinik->efektifDoktorLimiti(),
+                    'dahil_limit' => $klinik->dahilDoktorLimiti(),
+                    'ek_koltuk' => (int) $klinik->ek_doktor_koltuk_sayisi,
+                    'mevcut' => $klinik->doktorlar()->count(),
                 ], 422);
             }
 
-            return back()->with('error', 'Paketinizdeki doktor limitine ulaştınız. Yeni doktor davet edebilmek için paketinizi yükseltmelisiniz.');
+            return back()->with('error', 'Hekim limitiniz doldu. Ek hekim koltuğu satın alabilir veya paketinizi yükseltebilirsiniz.');
         }
 
         if ($tur === 'personel' && $klinik->personelLimitiDolduMu()) {
@@ -41,6 +45,8 @@ class KlinikLimitMiddleware
                 return response()->json([
                     'success' => false,
                     'message' => 'Paketinizdeki personel limitine ulaştınız. Yeni personel ekleyebilmek için paketinizi yükseltmelisiniz.',
+                    'limit' => $klinik->paket?->max_personel_sayisi,
+                    'mevcut' => $klinik->personeller()->count(),
                 ], 422);
             }
 

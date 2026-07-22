@@ -44,6 +44,7 @@ class Klinik extends Model
         'abonelik_iptal_at',
         'abonelik_iptal_nedeni',
         'max_doktor_sayisi',
+        'ek_doktor_koltuk_sayisi',
         'aktif_mi',
         'platformda_gorunur',
         'meta_baslik',
@@ -59,6 +60,8 @@ class Klinik extends Model
             'uyelik_bitis' => 'datetime',
             'abonelik_yenileme_kapali' => 'boolean',
             'abonelik_iptal_at' => 'datetime',
+            'max_doktor_sayisi' => 'integer',
+            'ek_doktor_koltuk_sayisi' => 'integer',
             'aktif_mi' => 'boolean',
             'platformda_gorunur' => 'boolean',
             'enlem' => 'float',
@@ -259,11 +262,43 @@ class Klinik extends Model
     }
 
     /**
+     * Ek koltuk ödeme kayıtları.
+     */
+    public function ekKoltukOdemeleri(): HasMany
+    {
+        return $this->hasMany(KlinikEkKoltukOdeme::class, 'klinik_id');
+    }
+
+    /**
+     * Paket dahili hekim limiti (ek koltuk hariç).
+     */
+    public function dahilDoktorLimiti(): int
+    {
+        return (int) ($this->paket?->max_doktor_sayisi ?? $this->max_doktor_sayisi ?? 0);
+    }
+
+    /**
+     * Efektif hekim limiti = paket dahil + satın alınan ek koltuklar.
+     */
+    public function efektifDoktorLimiti(): int
+    {
+        return $this->dahilDoktorLimiti() + (int) $this->ek_doktor_koltuk_sayisi;
+    }
+
+    /**
+     * Ek koltuk sonrası max_doktor_sayisi senkronize et.
+     */
+    public function syncMaxDoktorSayisi(): void
+    {
+        $this->update(['max_doktor_sayisi' => $this->efektifDoktorLimiti()]);
+    }
+
+    /**
      * Check if the doctor limit has been reached.
      */
     public function doktorLimitiDolduMu(): bool
     {
-        return $this->doktorlar()->count() >= $this->max_doktor_sayisi;
+        return $this->doktorlar()->count() >= $this->efektifDoktorLimiti();
     }
 
     /**

@@ -16,6 +16,17 @@
         </div>
     @endif
 
+    @if($doktorlar->count() > $klinik->efektifDoktorLimiti())
+        <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+                <div>
+                    <p class="font-bold">Hekim kotanız aşıldı ({{ $doktorlar->count() }}/{{ $klinik->efektifDoktorLimiti() }})</p>
+                    <p class="text-xs mt-1">Yeni hekim daveti gönderemezsiniz. Ek hekim koltuğu satın alabilir, paketinizi yükseltebilir veya hekim sayısını düşürebilirsiniz.</p>
+                </div>
+            </div>
+        </div>
+    @endif
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Left 2 Columns: Hekim Listesi -->
         <div class="lg:col-span-2 space-y-6">
@@ -24,7 +35,7 @@
                     <div class="flex items-center gap-3">
                         <h3 class="text-lg font-bold font-display text-[#111827]">Klinik Hekimleri</h3>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFF7ED] text-[#C96A2B]">
-                            {{ $doktorlar->count() }} / {{ $klinik->max_doktor_sayisi }} Hekim
+                            {{ $doktorlar->count() }} / {{ $klinik->efektifDoktorLimiti() }} Hekim
                         </span>
                     </div>
                     <a href="{{ route('hekim.klinik.doktorlar.calisma-saatleri') }}" class="px-3 py-1.5 bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-semibold rounded-lg hover:bg-gray-100 transition-colors">
@@ -166,19 +177,42 @@
 
             <!-- Limit Info -->
             <div class="p-6 rounded-2xl bg-[#FFF7ED]/50 border border-[#E7B58A]/30">
-                <h4 class="text-xs font-bold text-[#C96A2B] uppercase tracking-wider font-display mb-2">Hekim Limiti ve Kurallar</h4>
+                <h4 class="text-xs font-bold text-[#C96A2B] uppercase tracking-wider font-display mb-3">Hekim Kotası</h4>
+                <div class="space-y-2 mb-4">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-[#4B5563]">Paket dahil</span>
+                        <span class="font-bold text-[#111827]">{{ $klinik->dahilDoktorLimiti() }} hekim</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-[#4B5563]">Ek koltuk</span>
+                        <span class="font-bold text-[#111827]">{{ (int) $klinik->ek_doktor_koltuk_sayisi }} hekim</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs pt-2 border-t border-[#E7B58A]/30">
+                        <span class="text-[#4B5563] font-semibold">Efektif limit</span>
+                        <span class="font-bold text-[#C96A2B]">{{ $klinik->efektifDoktorLimiti() }} hekim</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-[#4B5563]">Kullanılan</span>
+                        <span class="font-bold text-[#111827]">{{ $doktorlar->count() }} hekim</span>
+                    </div>
+                </div>
+
+                @if($klinik->doktorLimitiDolduMu())
+                    <a href="{{ route('hekim.klinik.ek-koltuk') }}"
+                       class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 hover:scale-[1.01] mb-3">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                        Ek Hekim Koltuğu Al
+                    </a>
+                @endif
+
                 <ul class="space-y-2.5 text-xs text-[#4B5563]">
-                    <li class="flex items-start gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] mt-1.5"></span>
-                        <span>Mevcut paketiniz kapsamında kliniğinizde en fazla <strong>{{ $klinik->max_doktor_sayisi }}</strong> doktor aktif olarak çalışabilir.</span>
-                    </li>
                     <li class="flex items-start gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] mt-1.5"></span>
                         <span>Klinik sahibi olan siz de bu limite dahilsiniz.</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] mt-1.5"></span>
-                        <span>Limitinizi artırmak için ayarlar sayfasından abonelik paketini yükseltebilirsiniz.</span>
+                        <span>Limitinizi artırmak için ek koltuk alabilir veya paketinizi yükseltebilirsiniz.</span>
                     </li>
                 </ul>
             </div>

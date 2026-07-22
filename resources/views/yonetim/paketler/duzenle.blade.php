@@ -73,6 +73,21 @@
                         </div>
                     </div>
 
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+                        <div>
+                            <label for="ek_doktor_aylik_fiyat" class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Ek Hekim Koltuğu — Aylık (TL)</label>
+                            <input type="number" name="ek_doktor_aylik_fiyat" id="ek_doktor_aylik_fiyat" value="{{ old('ek_doktor_aylik_fiyat', $paket->ek_doktor_aylik_fiyat) }}" step="0.01" min="0" placeholder="1000.00"
+                                class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all duration-200">
+                            <p class="text-[10px] text-[#9CA3AF] mt-1">Paket dahili hekim limiti aşıldığında ek koltuk birim fiyatı.</p>
+                        </div>
+                        <div>
+                            <label for="ek_doktor_yillik_fiyat" class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Ek Hekim Koltuğu — Yıllık (TL)</label>
+                            <input type="number" name="ek_doktor_yillik_fiyat" id="ek_doktor_yillik_fiyat" value="{{ old('ek_doktor_yillik_fiyat', $paket->ek_doktor_yillik_fiyat) }}" step="0.01" min="0" placeholder="10000.00"
+                                class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all duration-200">
+                            <p class="text-[10px] text-[#9CA3AF] mt-1">Yıllık periyotla alınan ek koltuk birim fiyatı (≈%17 indirim).</p>
+                        </div>
+                    </div>
+
                     <div class="space-y-4">
                         <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider font-display">Klinik Modül Yetkileri</label>
                         

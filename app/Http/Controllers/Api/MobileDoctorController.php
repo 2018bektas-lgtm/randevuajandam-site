@@ -131,7 +131,8 @@ class MobileDoctorController extends Controller
     }
 
     /**
-     * Public: doctor self-registration (native app form).
+     * Public: doctor self-registration (site ile aynı niyet: paket → kayıt → meslek → ödeme).
+     * Doğrudan üyelik açılmaz; kayit_paket_id saklanır, meslek onayı sonrası ödeme.
      */
     public function register(Request $request): JsonResponse
     {
@@ -142,50 +143,178 @@ class MobileDoctorController extends Controller
                 'required',
                 'string',
                 'min:8',
+                'regex:~^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$~',
                 'confirmed',
             ],
             'telefon' => ['required', 'string', 'max:50'],
+            'tc_kimlik_no' => ['required', 'string', 'size:11', 'unique:doktorlar,tc_kimlik_no'],
+            'diploma_no' => ['nullable', 'string', 'min:3', 'max:64'],
+            'edevlet_barkod' => ['nullable', 'string', 'max:64'],
             'unvan' => ['required', 'string', 'max:100'],
             'il_id' => ['required', 'integer', 'exists:iller,id'],
             'ilce_id' => ['required', 'integer', 'exists:ilceler,id'],
             'branslar' => ['required', 'array', 'min:1'],
             'branslar.*' => ['integer', 'exists:branslar,id'],
+            'paket_id' => ['required', 'integer', 'exists:paketler,id'],
+            'kayit_periyot' => ['required', 'in:aylik,yillik'],
+            'kvkk_onay' => ['accepted'],
+            'sozlesme_onay' => ['accepted'],
             'mezuniyet' => ['nullable', 'array'],
             'mezuniyet.*' => ['nullable', 'string', 'max:255'],
             'biyografi' => ['nullable', 'string', 'max:5000'],
             'device' => ['nullable', 'string', 'max:120'],
+            'referans_kodu' => ['nullable', 'string', 'max:16'],
         ], [
             'e_posta.unique' => 'Bu e-posta adresi zaten kayıtlı.',
             'sifre.confirmed' => 'Şifre tekrarı uyuşmuyor.',
+            'sifre.regex' => 'Şifre en az bir büyük harf, bir küçük harf ve bir rakam içermelidir.',
             'branslar.required' => 'En az bir branş seçmelisiniz.',
+            'paket_id.required' => 'Kayıt için paket seçimi zorunludur.',
+            'tc_kimlik_no.required' => 'T.C. kimlik numarası zorunludur.',
+            'tc_kimlik_no.unique' => 'Bu T.C. kimlik numarası ile kayıtlı bir hekim zaten var.',
+            'kvkk_onay.accepted' => 'KVKK metnini kabul etmelisiniz.',
+            'sozlesme_onay.accepted' => 'Kullanım koşullarını kabul etmelisiniz.',
         ]);
+
+        $tc = preg_replace('/\D/', '', (string) $data['tc_kimlik_no']) ?? '';
+        if (strlen($tc) !== 11) {
+            return response()->json(['success' => false, 'message' => 'T.C. kimlik numarası 11 haneli olmalıdır.'], 422);
+        }
+
+        $barkod = ! empty($data['edevlet_barkod'])
+            ? strtoupper(trim((string) $data['edevlet_barkod']))
+            : null;
+        $diplomaNo = ! empty($data['diploma_no']) ? trim((string) $data['diploma_no']) : null;
+        if (! $barkod && ! $diplomaNo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Diploma / tescil no veya e-Devlet barkodu zorunludur.',
+            ], 422);
+        }
+
+        $kayitPaket = \App\Models\Paket::where('aktif_mi', true)->findOrFail($data['paket_id']);
+        $kayitPeriyot = $data['kayit_periyot'];
 
         $bransIsimleri = \App\Models\Brans::whereIn('id', $data['branslar'])->pluck('ad')->toArray();
         $mezuniyet = array_values(array_filter($data['mezuniyet'] ?? [], fn ($v) => $v !== null && trim((string) $v) !== ''));
 
-        $doktor = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $bransIsimleri, $mezuniyet) {
+        // e-Devlet barkod ile otomatik doğrulama denemesi (site mezuniyet akışına benzer, sade)
+        $meslekDurum = 'beklemede';
+        $meslekNot = null;
+        $meslekOnayAt = null;
+        if ($barkod && class_exists(\App\Services\Edevlet\BelgeDogrulamaService::class)) {
+            try {
+                $edevlet = app(\App\Services\Edevlet\BelgeDogrulamaService::class);
+                if (method_exists($edevlet, 'dogrulaMezunBelgesi')) {
+                    $result = $edevlet->dogrulaMezunBelgesi($barkod, $tc, $request->ip());
+                    if (is_array($result) && ! empty($result['ok'])) {
+                        $meslekDurum = 'onaylandi';
+                        $meslekNot = 'otomatik:edevlet-mobil';
+                        $meslekOnayAt = now();
+                        if (empty($diplomaNo) && ! empty($result['diploma_no'])) {
+                            $diplomaNo = (string) $result['diploma_no'];
+                        }
+                    } else {
+                        $meslekNot = is_array($result) ? ($result['message'] ?? 'inceleme') : 'inceleme';
+                    }
+                }
+            } catch (\Throwable $e) {
+                $meslekNot = 'edevlet:'.$e->getMessage();
+            }
+        }
+
+        $doktor = \Illuminate\Support\Facades\DB::transaction(function () use (
+            $data,
+            $bransIsimleri,
+            $mezuniyet,
+            $kayitPaket,
+            $kayitPeriyot,
+            $tc,
+            $diplomaNo,
+            $barkod,
+            $meslekDurum,
+            $meslekNot,
+            $meslekOnayAt
+        ) {
             $doktor = Doktor::create([
                 'ad_soyad' => $data['ad_soyad'],
                 'e_posta' => mb_strtolower(trim($data['e_posta'])),
                 'sifre' => Hash::make($data['sifre']),
                 'telefon' => $data['telefon'],
+                'tc_kimlik_no' => $tc,
+                'diploma_no' => $diplomaNo,
+                'edevlet_barkod' => $barkod,
+                'meslek_dogrulama_durumu' => $meslekDurum,
+                'meslek_dogrulama_notu' => $meslekNot ? \Illuminate\Support\Str::limit((string) $meslekNot, 500) : null,
+                'meslek_dogrulandi_at' => $meslekOnayAt,
                 'il_id' => $data['il_id'],
                 'ilce_id' => $data['ilce_id'],
                 'unvan' => $data['unvan'],
                 'uzmanlik_alani' => implode(', ', $bransIsimleri),
                 'mezuniyet' => $mezuniyet,
                 'biyografi' => $data['biyografi'] ?? null,
-                'tur' => 'bireysel',
+                'tur' => method_exists($kayitPaket, 'klinikPaketiMi') && $kayitPaket->klinikPaketiMi()
+                    ? 'klinik'
+                    : 'bireysel',
                 'paket_id' => null,
+                'kayit_paket_id' => $kayitPaket->id,
+                'kayit_periyot' => $kayitPeriyot,
                 'aktif_mi' => true,
                 'platformda_gorunur' => false,
             ]);
             $doktor->branslar()->attach($data['branslar']);
 
+            if (! empty($data['referans_kodu']) && class_exists(\App\Services\ReferansService::class)) {
+                try {
+                    app(\App\Services\ReferansService::class)->attachOnRegister(
+                        $doktor,
+                        (string) $data['referans_kodu']
+                    );
+                    app(\App\Services\ReferansService::class)->ensureKod($doktor);
+                } catch (\Throwable $e) {
+                    // referans opsiyonel
+                }
+            }
+
             return $doktor;
         });
 
-        return $this->authenticatedResponse($doktor, $data['device'] ?? 'mobile-register', $request->ip());
+        $response = $this->authenticatedResponse($doktor, $data['device'] ?? 'mobile-register', $request->ip());
+        $payload = $response->getData(true);
+        $payload['data']['next_step'] = $meslekDurum === 'onaylandi' ? 'payment' : 'meslek_bekleme';
+        $payload['data']['meslek_dogrulama_durumu'] = $meslekDurum;
+        $payload['data']['kayit_paket_id'] = $kayitPaket->id;
+        $payload['data']['kayit_periyot'] = $kayitPeriyot;
+        $payload['message'] = $meslekDurum === 'onaylandi'
+            ? 'Kaydınız tamamlandı. Seçtiğiniz paket için ödemeye geçebilirsiniz.'
+            : 'Kaydınız alındı. Meslek belgeniz incelendikten sonra paket ödemesine geçebilirsiniz.';
+
+        return response()->json($payload, $response->status());
+    }
+
+    /**
+     * Authenticated: meslek doğrulama durumu (kayıt sonrası bekleme ekranı).
+     */
+    public function meslekStatus(Request $request): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $doktor->refresh();
+        $doktor->loadMissing('kayitPaketi');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'durum' => $doktor->meslek_dogrulama_durumu ?? 'beklemede',
+                'can_proceed' => method_exists($doktor, 'canProceedToPayment')
+                    ? $doktor->canProceedToPayment()
+                    : (($doktor->meslek_dogrulama_durumu ?? '') === 'onaylandi'),
+                'kayit_paket_id' => $doktor->kayit_paket_id,
+                'kayit_periyot' => $doktor->kayit_periyot,
+                'kayit_paket_ad' => $doktor->kayitPaketi?->ad,
+                'not' => $doktor->meslek_dogrulama_notu,
+            ],
+        ]);
     }
 
     /**
@@ -2044,6 +2173,11 @@ class MobileDoctorController extends Controller
             'profil_resmi' => $doktor->profil_resmi,
             'uzmanlik_alani' => $doktor->uzmanlik_alani,
             'branslar' => $doktor->branslar->pluck('ad')->values(),
+            'meslek_dogrulama_durumu' => $doktor->meslek_dogrulama_durumu ?? 'beklemede',
+            'kayit_paket_id' => $doktor->kayit_paket_id,
+            'kayit_periyot' => $doktor->kayit_periyot,
+            'paket_id' => $doktor->paket_id,
+            'platformda_gorunur' => (bool) ($doktor->platformda_gorunur ?? false),
         ];
     }
 }
