@@ -133,6 +133,11 @@ class Klinik extends Model
         return $this->belongsTo(Doktor::class, 'sahip_doktor_id');
     }
 
+    public function sahip(): BelongsTo
+    {
+        return $this->sahipDoktor();
+    }
+
     /**
      * Get the subscription package of the clinic.
      */
