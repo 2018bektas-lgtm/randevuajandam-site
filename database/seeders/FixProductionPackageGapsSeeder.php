@@ -56,11 +56,12 @@ class FixProductionPackageGapsSeeder extends Seeder
                 'toplu_randevu_mi' => false,
                 'raporlama_mi' => false,
                 'hasta_havuzu_mi' => true,
-                'max_doktor_sayisi' => $kBas->max_doktor_sayisi ?: 3,
-                'max_personel_sayisi' => $kBas->max_personel_sayisi ?: 1,
+                'max_doktor_sayisi' => 3,
+                'max_personel_sayisi' => 1,
+                'ek_doktor_aylik_fiyat' => 1000.00,
+                'ek_doktor_yillik_fiyat' => 10000.00,
                 'domain_dahil_mi' => false,
             ])->save();
-            // Hekim paneli özellikleri KlinikSeeder ile gelir; burada silinmez.
         }
 
         $kPlus = Paket::query()->where('tur', 'klinik')->where('ad', 'like', '%Plus%')->first();
@@ -70,8 +71,10 @@ class FixProductionPackageGapsSeeder extends Seeder
                 'toplu_randevu_mi' => true,
                 'raporlama_mi' => (bool) ($kPlus->raporlama_mi ?? false),
                 'hasta_havuzu_mi' => true,
-                'max_doktor_sayisi' => $kPlus->max_doktor_sayisi ?: 6,
-                'max_personel_sayisi' => $kPlus->max_personel_sayisi ?: 2,
+                'max_doktor_sayisi' => 6,
+                'max_personel_sayisi' => 2,
+                'ek_doktor_aylik_fiyat' => 1000.00,
+                'ek_doktor_yillik_fiyat' => 10000.00,
                 'domain_dahil_mi' => false,
             ])->save();
         }
@@ -87,8 +90,10 @@ class FixProductionPackageGapsSeeder extends Seeder
                 'toplu_randevu_mi' => true,
                 'raporlama_mi' => true,
                 'hasta_havuzu_mi' => true,
-                'max_doktor_sayisi' => $kPro->max_doktor_sayisi ?: 10,
-                'max_personel_sayisi' => $kPro->max_personel_sayisi ?: 5,
+                'max_doktor_sayisi' => 10,
+                'max_personel_sayisi' => 5,
+                'ek_doktor_aylik_fiyat' => 1000.00,
+                'ek_doktor_yillik_fiyat' => 10000.00,
                 'domain_dahil_mi' => false,
             ])->save();
         }
@@ -113,8 +118,10 @@ class FixProductionPackageGapsSeeder extends Seeder
                 'domain_dahil_mi' => true,
                 'domain_dahil_yil' => 1,
                 'domain_dahil_tlds' => ['com', 'net'],
-                'max_doktor_sayisi' => $kWeb->max_doktor_sayisi ?: 999,
-                'max_personel_sayisi' => $kWeb->max_personel_sayisi ?: 999,
+                'max_doktor_sayisi' => 20,
+                'max_personel_sayisi' => 10,
+                'ek_doktor_aylik_fiyat' => 1000.00,
+                'ek_doktor_yillik_fiyat' => 10000.00,
             ])->save();
             // klinik_web_sitesi + hekim paneli özellikleri KlinikSeeder ile senkronlanır.
             if ($klinikWebKod) {
