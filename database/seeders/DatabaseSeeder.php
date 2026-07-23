@@ -13,21 +13,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        if (app()->environment('production')) {
-            throw new \RuntimeException(
-                'Production ortamında DatabaseSeeder çalıştırılamaz (sabit demo şifreler).'
-            );
-        }
 
-        // User::factory(10)->create();
 
-        \App\Models\User::updateOrCreate(
-            ['email' => 'test@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => bcrypt('password'),
-            ]
-        );
 
         $this->call(YoneticiSeeder::class);
         $this->call(PaketSeeder::class);
