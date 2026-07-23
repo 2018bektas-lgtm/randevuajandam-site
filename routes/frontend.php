@@ -569,6 +569,15 @@ Route::get('/odeme/paytr/iframe/{merchantOid}', [\App\Http\Controllers\Frontend\
     ->name('frontend.odeme.paytr.iframe')
     ->middleware('auth:doktor');
 
+// PayTR Direct API — sitede kart formu + 3D Secure modal
+Route::post('/odeme/paytr/direct-charge', [\App\Http\Controllers\Frontend\PaytrDirectController::class, 'charge'])
+    ->name('frontend.odeme.paytr.direct')
+    ->middleware('auth:doktor');
+Route::match(['get', 'post'], '/odeme/paytr/3d/ok', [\App\Http\Controllers\Frontend\PaytrDirectController::class, 'threeDOk'])
+    ->name('frontend.odeme.paytr.3d.ok');
+Route::match(['get', 'post'], '/odeme/paytr/3d/fail', [\App\Http\Controllers\Frontend\PaytrDirectController::class, 'threeDFail'])
+    ->name('frontend.odeme.paytr.3d.fail');
+
 Route::get('/iller/{il_id}/ilceler', function ($il_id) {
     return Cache::remember("ilceler_il_{$il_id}", 86400, function () use ($il_id) {
         return Ilce::where('il_id', $il_id)->orderBy('ad')->get(['id', 'ad']);

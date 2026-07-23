@@ -55,6 +55,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/iyzico/webhook',
             'api/paytr/notify',
             'api/mobile/*',
+            'odeme/paytr/3d/ok',
+            'odeme/paytr/3d/fail',
         ]);
 
         $middleware->redirectGuestsTo(function ($request) {

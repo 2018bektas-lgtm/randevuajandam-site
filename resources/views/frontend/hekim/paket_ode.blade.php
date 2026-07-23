@@ -434,29 +434,63 @@
                             </div>
                         @endif
 
-                        <!-- PayTR: kart formu sitede yok -->
-                        <div id="card-payment-fields" class="{{ $paytrOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5 space-y-3">
-                            <h3 class="text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display">
-                                💳 PayTR ile güvenli ödeme
+                        <!-- PayTR Direct: kart formu sitede, 3D Secure modal ile -->
+                        <div id=”card-payment-fields” class=”{{ $paytrOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5 space-y-4”>
+                            <h3 class=”text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display”>
+                                Kart Bilgileri
                             </h3>
-                            <p class="text-xs text-[#6B7280] leading-relaxed">
-                                “Ödemeyi tamamla”ya tıkladığınızda PayTR güvenli ödeme ekranı açılır.
-                                Kart bilgileriniz yalnızca PayTR üzerinde işlenir; sitemizde saklanmaz.
-                                Dönem sonunda abonelik otomatik çekilmez — yenileme için tekrar ödeme alırsınız.
-                            </p>
-                            <div class="space-y-3">
-                                    <button type="submit"
-                                            class="w-full inline-flex items-center justify-center py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
-                                        Ödemeyi Tamamla ve Sistemi Kur
-                                    </button>
-                                    
-                                    <div class="flex items-center justify-center gap-1 text-[9px] text-gray-400">
-                                        <svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"></path>
-                                        </svg>
-                                        <span>256-Bit SSL Güvenli Ödeme Şifrelemesi</span>
-                                    </div>
+
+                            <div id=”paytrError” class=”hidden rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs text-red-700 leading-relaxed”></div>
+
+                            <div>
+                                <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>Kart Üzerindeki İsim</label>
+                                <input type=”text” name=”kart_sahibi” id=”kart_sahibi” value=”{{ old('kart_sahibi') }}”
+                                       autocomplete=”cc-name” placeholder=”AD SOYAD”
+                                       class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs uppercase tracking-wide focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
+                            </div>
+
+                            <div>
+                                <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>Kart Numarası</label>
+                                <input type=”text” name=”kart_no” id=”kart_no”
+                                       autocomplete=”cc-number” inputmode=”numeric”
+                                       placeholder=”0000 0000 0000 0000” maxlength=”19”
+                                       class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs font-mono tracking-widest focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
+                            </div>
+
+                            <div class=”grid grid-cols-3 gap-3”>
+                                <div>
+                                    <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>Ay</label>
+                                    <input type=”text” name=”kart_ay” id=”kart_ay”
+                                           autocomplete=”cc-exp-month” inputmode=”numeric”
+                                           placeholder=”MM” maxlength=”2”
+                                           class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs font-mono text-center focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
                                 </div>
+                                <div>
+                                    <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>Yıl</label>
+                                    <input type=”text” name=”kart_yil” id=”kart_yil”
+                                           autocomplete=”cc-exp-year” inputmode=”numeric”
+                                           placeholder=”YY” maxlength=”2”
+                                           class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs font-mono text-center focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
+                                </div>
+                                <div>
+                                    <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>CVV</label>
+                                    <input type=”text” name=”kart_cvv” id=”kart_cvv”
+                                           autocomplete=”cc-csc” inputmode=”numeric”
+                                           placeholder=”000” maxlength=”4”
+                                           class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs font-mono text-center focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
+                                </div>
+                            </div>
+
+                            <button type=”submit” id=”paytrSubmitBtn”
+                                    class=”w-full inline-flex items-center justify-center py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display disabled:opacity-60 disabled:cursor-not-allowed”>
+                                Ödemeyi Tamamla ve Sistemi Kur
+                            </button>
+
+                            <div class=”flex items-center justify-center gap-1 text-[9px] text-gray-400”>
+                                <svg class=”w-3 h-3 text-emerald-500” fill=”none” stroke=”currentColor” stroke-width=”2” viewBox=”0 0 24 24”>
+                                    <path stroke-linecap=”round” stroke-linejoin=”round” d=”M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z”></path>
+                                </svg>
+                                <span>256-Bit SSL · 3D Secure · Kart bilgisi sitemizde saklanmaz</span>
                             </div>
                         </div>
                         <div id="bank-transfer-fields" class="{{ $paytrOk ? 'hidden' : '' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5">
@@ -486,6 +520,22 @@
         </form>
     </div>
 </section>
+
+<!-- PayTR 3D Secure Modal -->
+<div id="paytr3dModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4" style="display:none">
+    <div class="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+            <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"></path>
+                </svg>
+                <span class="text-xs font-bold text-slate-800">3D Güvenli Ödeme Doğrulama</span>
+            </div>
+            <button type="button" onclick="close3DModal()" class="text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
+        </div>
+        <iframe id="paytr3dFrame" class="w-full border-0" style="height:460px" sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-popups"></iframe>
+    </div>
+</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -590,6 +640,134 @@
             input.addEventListener('change', updatePaymentMethod);
         });
         updatePaymentMethod();
+
+        // Kart numarası otomatik boşluk formatı (XXXX XXXX XXXX XXXX)
+        const kartNoInput = document.getElementById('kart_no');
+        if (kartNoInput) {
+            kartNoInput.addEventListener('input', function () {
+                let digits = this.value.replace(/\D/g, '').substring(0, 16);
+                this.value = digits.replace(/(.{4})/g, '$1 ').trim();
+            });
+        }
+
+        // Ay: sadece 01-12 arası
+        const kartAyInput = document.getElementById('kart_ay');
+        if (kartAyInput) {
+            kartAyInput.addEventListener('input', function () {
+                let v = this.value.replace(/\D/g, '').substring(0, 2);
+                if (v.length === 2 && (parseInt(v) < 1 || parseInt(v) > 12)) v = '';
+                this.value = v;
+            });
+        }
+
+        // Yıl: sadece rakam
+        const kartYilInput = document.getElementById('kart_yil');
+        if (kartYilInput) {
+            kartYilInput.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').substring(0, 2);
+            });
+        }
+
+        // CVV: sadece rakam
+        const kartCvvInput = document.getElementById('kart_cvv');
+        if (kartCvvInput) {
+            kartCvvInput.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').substring(0, 4);
+            });
+        }
+
+        // PayTR Direct AJAX — form submit intercept
+        const checkoutForm = document.getElementById('checkoutForm');
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', function (e) {
+                const method = (document.querySelector('input[name="odeme_yontemi"]:checked')
+                    || document.querySelector('input[name="odeme_yontemi"]'))?.value;
+                if (method === 'paytr') {
+                    e.preventDefault();
+                    submitPaytrDirect(this);
+                }
+            });
+        }
+    });
+
+    function submitPaytrDirect(form) {
+        const btn = document.getElementById('paytrSubmitBtn');
+        const errDiv = document.getElementById('paytrError');
+        if (btn) { btn.disabled = true; btn.textContent = 'İşleniyor...'; }
+        if (errDiv) errDiv.classList.add('hidden');
+
+        // Boşlukları kaldır
+        const kartNoInput = document.getElementById('kart_no');
+        if (kartNoInput) kartNoInput.value = kartNoInput.value.replace(/\s+/g, '');
+
+        fetch('{{ route("frontend.odeme.paytr.direct") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            },
+            body: new FormData(form),
+        })
+        .then(function (res) {
+            return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+        })
+        .then(function (result) {
+            if (!result.ok) throw result.data;
+            const data = result.data;
+            if (data.html) {
+                show3DModal(data.html);
+            } else if (data.redirect) {
+                window.location.href = data.redirect;
+            }
+        })
+        .catch(function (err) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Ödemeyi Tamamla ve Sistemi Kur'; }
+            // Kart no'yu tekrar formatla
+            const kartNoInput = document.getElementById('kart_no');
+            if (kartNoInput) {
+                let digits = kartNoInput.value.replace(/\D/g, '').substring(0, 16);
+                kartNoInput.value = digits.replace(/(.{4})/g, '$1 ').trim();
+            }
+            if (errDiv) {
+                const msg = (err && err.error) || (err && err.message) || 'Ödeme işlemi başlatılamadı. Lütfen tekrar deneyin.';
+                errDiv.textContent = msg;
+                errDiv.classList.remove('hidden');
+                errDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+    }
+
+    function show3DModal(html) {
+        const modal = document.getElementById('paytr3dModal');
+        const frame = document.getElementById('paytr3dFrame');
+        if (!modal || !frame) return;
+        frame.srcdoc = html;
+        modal.style.display = 'flex';
+    }
+
+    function close3DModal() {
+        const modal = document.getElementById('paytr3dModal');
+        const frame = document.getElementById('paytr3dFrame');
+        if (modal) modal.style.display = 'none';
+        if (frame) frame.srcdoc = '';
+    }
+
+    // 3D iframe'den gelen mesajları dinle
+    window.addEventListener('message', function (e) {
+        if (!e.data || typeof e.data !== 'object') return;
+        if (e.data.paytr3d === 'ok') {
+            close3DModal();
+            window.location.href = '{{ route("frontend.odeme.paytr.ok") }}';
+        } else if (e.data.paytr3d === 'fail') {
+            close3DModal();
+            const btn = document.getElementById('paytrSubmitBtn');
+            const errDiv = document.getElementById('paytrError');
+            if (btn) { btn.disabled = false; btn.textContent = 'Ödemeyi Tamamla ve Sistemi Kur'; }
+            if (errDiv) {
+                errDiv.textContent = '3D güvenli doğrulama tamamlanamadı. Kart bilgilerinizi kontrol edip tekrar deneyin.';
+                errDiv.classList.remove('hidden');
+            }
+        }
     });
 </script>
 @endsection
