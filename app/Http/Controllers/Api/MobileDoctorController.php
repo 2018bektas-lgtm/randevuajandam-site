@@ -1668,9 +1668,10 @@ class MobileDoctorController extends Controller
             ->limit(40)
             ->get(['id', 'tutar', 'odenen_tutar', 'durum', 'odeme_yontemi', 'odeme_tarihi', 'aciklama']);
 
+        $aciklar      = $odemeler->whereIn('durum', ['beklemede', 'kismi_odeme']);
+        $toplamBorc   = (float) $aciklar->sum('tutar');
         $toplamOdenen = (float) $odemeler->sum('odenen_tutar');
-        $toplamTutar = (float) $odemeler->sum('tutar');
-        $kalanBakiye = max(0, $toplamTutar - $toplamOdenen);
+        $kalanBakiye  = max(0, $toplamBorc - $toplamOdenen);
 
         return response()->json([
             'success' => true,
@@ -1682,9 +1683,9 @@ class MobileDoctorController extends Controller
                 'e_posta' => $hasta->e_posta,
                 'randevular' => $randevular,
                 'finans' => [
+                    'toplam_borc'   => $toplamBorc,
                     'toplam_odenen' => $toplamOdenen,
-                    'toplam_tutar' => $toplamTutar,
-                    'kalan_bakiye' => $kalanBakiye,
+                    'kalan_bakiye'  => $kalanBakiye,
                     'odemeler' => $odemeler->map(fn ($o) => [
                         'id' => $o->id,
                         'tutar' => (float) $o->tutar,

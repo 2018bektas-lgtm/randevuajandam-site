@@ -142,21 +142,21 @@
 
 <!-- LocalBusiness Schema markup -->
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "MedicalClinic",
-  "name": "{{ $klinik->ad }}",
-  "image": "{{ $klinik->logo ? asset($klinik->logo) : '' }}",
-  "@id": "{{ url()->current() }}",
-  "url": "{{ url()->current() }}",
-  "telephone": "{{ $klinik->telefon }}",
-  "address": {
-    "@type": "PostalAddress",
-    "streetAddress": "{{ $klinik->adres }}",
-    "addressLocality": "{{ $klinik->ilce->ad ?? '' }}",
-    "addressRegion": "{{ $klinik->il->ad ?? '' }}",
-    "addressCountry": "TR"
-  }
-}
+{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type'    => 'MedicalClinic',
+    'name'     => $klinik->ad,
+    'image'    => $klinik->logo ? asset($klinik->logo) : '',
+    '@id'      => url()->current(),
+    'url'      => url()->current(),
+    'telephone'=> $klinik->telefon,
+    'address'  => [
+        '@type'           => 'PostalAddress',
+        'streetAddress'   => $klinik->adres,
+        'addressLocality' => $klinik->ilce->ad ?? '',
+        'addressRegion'   => $klinik->il->ad ?? '',
+        'addressCountry'  => 'TR',
+    ],
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}
 </script>
 @endsection

@@ -51,15 +51,16 @@ class SeoMeta
 
     public static function homeTitle(): string
     {
-        return self::title('Online Doktor Randevusu', 'Hekim ve Klinik Bul');
+        // 56 karakter — Google 60 char pixel sınırının içinde kalır
+        return self::title('Online Doktor Randevusu Al', '90+ Branş');
     }
 
     public static function homeDescription(): string
     {
+        // 155 karakter — 158 sınırından önce doğal sonlanır, kesme yok
         return self::description(
-            'Türkiye genelinde uzman doktor ve kliniklerden online randevu alın. '
-            .'Randevu Ajandam ile hekim arayın, müsait saat seçin, hasta randevunuzu anında oluşturun. '
-            .'Diyetisyen, psikolog, diş hekimi ve tüm branşlar.'
+            'Türkiye genelinde 90+ uzmanlık alanında online doktor ve klinik randevusu alın. '
+            .'Diyetisyen, psikolog, kardiyolog, diş hekimi — anında randevu, 7/24 hizmet.'
         );
     }
 
@@ -92,16 +93,24 @@ class SeoMeta
         $where = collect([$ilce, $il])->filter()->implode(', ');
         $who = $brans ?: 'uzman doktor ve klinik';
 
+        if ($where && $brans) {
+            return self::description(
+                "{$where} bölgesinde {$brans} uzmanı bulun, online randevu alın. "
+                .'Müsait saatleri görün, anında rezervasyon yapın. Randevu Ajandam.'
+            );
+        }
+
         if ($where !== '') {
             return self::description(
-                "{$where} bölgesinde {$who} listesi. Müsait saatleri görün, online randevu alın. "
-                ."Randevu Ajandam ile hızlı ve güvenli hasta randevusu."
+                "{$where} bölgesinde {$who} arayın. Branşa göre filtreleyin, "
+                .'müsait saatleri görün ve anında online randevu oluşturun. Randevu Ajandam.'
             );
         }
 
         return self::description(
-            "Türkiye geneli {$who} arayın. Branş, il ve ilçeye göre filtreleyin; "
-            .'online randevu oluşturun. Randevu Ajandam — hasta ve hekim buluşma platformu.'
+            "Türkiye'de {$who} bulun, online randevu alın. "
+            .'Branş, il ve ilçeye göre filtreleyin. '
+            .'KVKK uyumlu güvenli randevu platformu — Randevu Ajandam.'
         );
     }
 
@@ -115,11 +124,12 @@ class SeoMeta
 
     public static function doctorProfileDescription(string $unvanAd, string $brans, ?string $il = null, ?string $bio = null): string
     {
-        $loc = $il ? " {$il} bölgesinde" : '';
-        $bio = $bio ? ' '.self::limit(strip_tags($bio), 80) : '';
+        $loc = $il ? " {$il}" : '';
+        $bioSnippet = $bio ? ' '.self::limit(strip_tags($bio), 70).'.' : '';
 
         return self::description(
-            "{$unvanAd}{$loc} {$brans} uzmanı. Online randevu alın, müsait saatleri görün.{$bio} Randevu Ajandam."
+            "{$unvanAd}{$loc} {$brans} uzmanı.{$bioSnippet} "
+            .'Online randevu alın, müsait saatleri görün, anında rezervasyon yapın. Randevu Ajandam.'
         );
     }
 

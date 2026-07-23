@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # www → non-www (kanonical alan adı — duplicate content önler)
+    RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+    RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -46,6 +50,12 @@
         Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
     # HTML PHP yanıtları Laravel üretir; burası yalnızca statik dosyalar
+
+    # Güvenlik & gizlilik başlıkları
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(self), payment=()"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
 # Gzip / deflate

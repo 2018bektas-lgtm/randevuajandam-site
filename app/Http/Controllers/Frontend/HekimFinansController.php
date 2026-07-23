@@ -467,19 +467,28 @@ class HekimFinansController extends Controller
 
         $hastalar = $hastalarQuery->get()
             ->map(function ($hasta) use ($doktor) {
-                $odemeler = $hasta->odemeler()->where('doktor_id', $doktor->id)->where('durum', '!=', 'iptal')->get();
-                $hasta->toplam_borc = (float) $odemeler->sum('tutar');
-                $hasta->toplam_odenen = (float) $odemeler->sum('odenen_tutar');
-                $hasta->kalan_bakiye = $hasta->toplam_borc - $hasta->toplam_odenen;
+                $odemeler = $hasta->odemeler()->where('doktor_id', $doktor->id)->get();
+                $aciklar  = $odemeler->whereIn('durum', ['beklemede', 'kismi_odeme']);
+                $hasta->toplam_borc   = (float) $aciklar->sum('tutar');
+                $hasta->toplam_odenen = (float) $odemeler->where('durum', '!=', 'iptal')->sum('odenen_tutar');
+                $hasta->kalan_bakiye  = $hasta->toplam_borc - $hasta->toplam_odenen;
 
                 return $hasta;
             })
             ->filter(function ($hasta) use ($request) {
-                if ($request->filled('sadece_borclular') && $request->sadece_borclular == '1') {
-                    return $hasta->kalan_bakiye > 0;
+                if ($hasta->toplam_borc <= 0) {
+                    return false;
                 }
 
-                return $hasta->toplam_borc > 0;
+                if ($request->filled('durum')) {
+                    if ($request->durum === 'borclu' && $hasta->kalan_bakiye <= 0.009) return false;
+                    if ($request->durum === 'kapali' && $hasta->kalan_bakiye > 0.009) return false;
+                }
+
+                if ($request->filled('min_bakiye') && $hasta->kalan_bakiye < (float) $request->min_bakiye) return false;
+                if ($request->filled('max_bakiye') && $hasta->kalan_bakiye > (float) $request->max_bakiye) return false;
+
+                return true;
             });
 
         return view('hekim.finans.hasta_bakiyeleri', compact('doktor', 'hastalar'));
@@ -501,10 +510,10 @@ class HekimFinansController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $aktif = $odemeler->where('durum', '!=', 'iptal');
-        $toplamBorc = (float) $aktif->sum('tutar');
-        $toplamOdenen = (float) $aktif->sum('odenen_tutar');
-        $kalanBakiye = $toplamBorc - $toplamOdenen;
+        $aciklar      = $odemeler->whereIn('durum', ['beklemede', 'kismi_odeme']);
+        $toplamBorc   = (float) $aciklar->sum('tutar');
+        $toplamOdenen = (float) $odemeler->where('durum', '!=', 'iptal')->sum('odenen_tutar');
+        $kalanBakiye  = $toplamBorc - $toplamOdenen;
 
         $acikFaturalar = $odemeler
             ->whereIn('durum', ['beklemede', 'kismi_odeme'])

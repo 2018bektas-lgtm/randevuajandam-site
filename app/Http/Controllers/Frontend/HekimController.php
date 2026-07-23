@@ -514,7 +514,7 @@ class HekimController extends Controller
             $seoH1 = trim(($seoIlceAd ? $seoIlceAd.' ' : '').$seoIlAd.' '.$seoBransAd.' Doktorları');
         }
 
-        return view('frontend.hekimler.index', compact(
+        $view = view('frontend.hekimler.index', compact(
             'doktorlar',
             'uzmanliklar',
             'unvanlar',
@@ -530,6 +530,19 @@ class HekimController extends Controller
             'seoIlceAd',
             'seoBransAd',
         ));
+
+        // Temiz şehir sayfalarını CDN/proxy'nin kısa süre önbelleğe almasına izin ver
+        $isCleanCityPage = $il_slug
+            && ! $request->filled('arama')
+            && ! $request->filled('uzmanlik')
+            && ! $request->filled('unvan')
+            && ! $request->filled('yakindaki');
+
+        if ($isCleanCityPage) {
+            return response($view)->header('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+        }
+
+        return $view;
     }
 
     /**

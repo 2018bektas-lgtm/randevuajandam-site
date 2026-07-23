@@ -67,6 +67,10 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="theme-color" content="#C96A2B">
 <meta name="format-detection" content="telephone=no">
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<link rel="preconnect" href="https://www.google-analytics.com">
+<link rel="preconnect" href="https://connect.facebook.net" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 @include('frontend.layouts.partials.tracking')
 @if($needsRecaptcha)
     @include('frontend.layouts.partials.recaptcha')
@@ -131,7 +135,7 @@ window.raGetRecaptchaToken = function () { return Promise.resolve(''); };
                 'name' => 'Türkiye',
             ],
             'sameAs' => array_values(array_filter([
-                // Sosyal hesaplar eklendikçe buraya
+                'https://www.instagram.com/randevuajandam',
             ])),
             'contactPoint' => [
                 [

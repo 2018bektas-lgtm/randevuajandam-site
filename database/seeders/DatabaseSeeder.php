@@ -32,14 +32,14 @@ class DatabaseSeeder extends Seeder
         $this->call(YoneticiSeeder::class);
         $this->call(PaketSeeder::class);
         $this->call(KlinikSeeder::class);
+        $this->call(FixProductionPackageGapsSeeder::class); // Paket flag / limit / domain fine-tune
         // Türkiye branş/uzmanlık + unvan listeleri (idempotent)
         $this->call(BransSeeder::class);
         $this->call(UnvanSeeder::class);
+        $this->call(MeslekProgramEslemeSeeder::class); // YÖK diploma → branş/unvan eşlemesi
         $this->call(IlIlceSeeder::class);
-        $this->call(DoktorSeeder::class);
         $this->call(SiteAyariSeeder::class);
-        $this->call(HastaVeRandevuSeeder::class);
+
         // Yönetici + tam dolu hekim (Bektaş Özçetin)
-        $this->call(BektasOzcetinSeeder::class);
     }
 }

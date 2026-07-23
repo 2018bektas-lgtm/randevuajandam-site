@@ -58,6 +58,7 @@
             <!-- Animated R Logo for Header -->
             <div class="relative w-10 h-10 select-none flex-shrink-0 logo-breathing-small-animate">
                 <img src="{{ asset('assets/images/logo.png') }}" alt="Randevu Ajandam"
+                     width="40" height="40"
                      style="mix-blend-mode: multiply;"
                      class="w-full h-full object-contain relative z-10">
                 <div class="shimmer-overlay-small z-20"></div>

@@ -11,7 +11,7 @@ Disallow: /profil/
 Disallow: /randevu-yonet/
 Disallow: /odeme/
 Disallow: /api/
-Disallow: /up
+Disallow: /up/
 Disallow: /kayit-ol
 Disallow: /giris
 Disallow: /doktorlar/arama

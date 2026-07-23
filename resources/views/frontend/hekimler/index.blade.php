@@ -3,6 +3,9 @@
 @section('baslik', $seoTitle ?? \App\Support\SeoMeta::doctorsIndexTitle())
 @section('meta_aciklama', $seoDesc ?? \App\Support\SeoMeta::doctorsIndexDescription())
 @section('meta_anahtar_kelimeler', $seoKeywords ?? 'online randevu, doktor randevu, hekim bul')
+@if(!empty($seoIlAd) && ($toplamDoktorSayisi ?? 0) < 5)
+@section('robots', 'noindex, follow')
+@endif
 
 @section('head')
 @php
