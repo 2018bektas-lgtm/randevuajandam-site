@@ -63,6 +63,7 @@ class Doktor extends Authenticatable
         'web_sitesi',
         'iyzico_subscription_reference_code',
         'iyzico_subscription_status',
+        'paytr_recurring_id',
         'abonelik_yenileme_kapali',
         'abonelik_iptal_at',
         'abonelik_iptal_nedeni',

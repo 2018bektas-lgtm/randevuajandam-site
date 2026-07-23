@@ -27,23 +27,23 @@ class IyzicoSubscriptionService
     }
 
     /**
-     * iyzico kapalı (PAYMENT_DRIVER=paytr). Eski referans iptali için enabled+keys gerekir.
+     * iyzico aktif ve anahtarlar tanımlı mı?
+     * site_ayarlari.iyzico_enabled + api/secret key kontrolü.
      */
     public function isConfigured(): bool
     {
-        if (! (bool) config('services.iyzico.enabled', false)) {
+        $settings = SiteAyari::cached();
+        $enabled  = (bool) ($settings?->iyzico_enabled ?? config('services.iyzico.enabled', false));
+        if (! $enabled) {
             return false;
         }
 
         return $this->apiKey !== '' && $this->secretKey !== '';
     }
 
-    /**
-     * Mock asla açık değil — yalnızca PayTR kullanılır.
-     */
     protected function allowsMock(): bool
     {
-        return false;
+        return ! app()->environment('production');
     }
 
     /**

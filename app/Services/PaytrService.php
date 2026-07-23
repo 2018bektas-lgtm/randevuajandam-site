@@ -56,6 +56,69 @@ class PaytrService
     }
 
     /**
+     * PayTR Tekrarlayan Ödeme: kayıtlı kart ile otomatik çekim.
+     * Merchant hesabında "Tekrarlayan Ödeme" modülü aktif olmalı.
+     *
+     * @return array{status: string, errorMessage?: string, payment_amount?: int, merchant_oid?: string}
+     */
+    public function chargeRecurring(string $recurringId, array $payload): array
+    {
+        if (! $this->isConfigured()) {
+            return ['status' => 'failure', 'errorMessage' => 'PayTR yapılandırılmamış.'];
+        }
+
+        $amountTl = (float) ($payload['payment_amount'] ?? 0);
+        if ($amountTl <= 0) {
+            return ['status' => 'failure', 'errorMessage' => 'Geçersiz tutar.'];
+        }
+
+        $paymentAmount = (int) round($amountTl * 100);
+        $merchantOid   = (string) ($payload['merchant_oid'] ?? $this->makeMerchantOid('REN'));
+        $email         = $this->asciiEmail((string) ($payload['email'] ?? ''));
+
+        $hashStr = $this->merchantId . $recurringId . $merchantOid . $email . $paymentAmount;
+        $token   = base64_encode(hash_hmac('sha256', $hashStr . $this->merchantSalt, $this->merchantKey, true));
+
+        $post = [
+            'merchant_id'       => $this->merchantId,
+            'recurring_id'      => $recurringId,
+            'merchant_oid'      => $merchantOid,
+            'email'             => $email,
+            'payment_amount'    => $paymentAmount,
+            'paytr_token'       => $token,
+            'currency'          => 'TL',
+            'test_mode'         => $this->testMode ? '1' : '0',
+        ];
+
+        try {
+            $response = Http::asForm()->timeout(30)
+                ->post('https://www.paytr.com/odeme/tekrar', $post);
+
+            $body = $response->json() ?? [];
+
+            if (($body['status'] ?? '') === 'success') {
+                return [
+                    'status'         => 'success',
+                    'merchant_oid'   => $merchantOid,
+                    'payment_amount' => $paymentAmount,
+                ];
+            }
+
+            $reason = (string) ($body['reason'] ?? $body['err_msg'] ?? 'PayTR recurring hata');
+            Log::error('PayTR recurring charge failed', [
+                'recurring_id' => $recurringId,
+                'reason'       => $reason,
+            ]);
+
+            return ['status' => 'failure', 'errorMessage' => $reason];
+        } catch (\Throwable $e) {
+            Log::error('PayTR recurring exception: ' . $e->getMessage());
+
+            return ['status' => 'failure', 'errorMessage' => 'PayTR bağlantı hatası.'];
+        }
+    }
+
+    /**
      * iFrame token al.
      *
      * @param  array{
@@ -72,6 +135,7 @@ class PaytrService
      *   no_installment?: int,
      *   max_installment?: int,
      *   currency?: string,
+     *   recurring?: bool,
      * }  $payload
      * @return array{status: string, token?: string, errorMessage?: string}
      */
@@ -140,26 +204,29 @@ class PaytrService
             true
         ));
 
+        $recurringPayment = (bool) ($payload['recurring'] ?? false) ? '1' : '0';
+
         $post = [
-            'merchant_id' => $this->merchantId,
-            'user_ip' => $userIp,
-            'merchant_oid' => $merchantOid,
-            'email' => $email,
-            'payment_amount' => $paymentAmount,
-            'paytr_token' => $paytrToken,
-            'user_basket' => $userBasket,
-            'debug_on' => $debugOn,
-            'no_installment' => $noInstallment,
-            'max_installment' => $maxInstallment,
-            'user_name' => $userName,
-            'user_address' => $userAddress,
-            'user_phone' => $userPhone,
-            'merchant_ok_url' => $merchantOkUrl,
-            'merchant_fail_url' => $merchantFailUrl,
-            'timeout_limit' => $timeoutLimit,
-            'currency' => $currency,
-            'test_mode' => $testMode,
-            'lang' => $lang,
+            'merchant_id'        => $this->merchantId,
+            'user_ip'            => $userIp,
+            'merchant_oid'       => $merchantOid,
+            'email'              => $email,
+            'payment_amount'     => $paymentAmount,
+            'paytr_token'        => $paytrToken,
+            'user_basket'        => $userBasket,
+            'debug_on'           => $debugOn,
+            'no_installment'     => $noInstallment,
+            'max_installment'    => $maxInstallment,
+            'user_name'          => $userName,
+            'user_address'       => $userAddress,
+            'user_phone'         => $userPhone,
+            'merchant_ok_url'    => $merchantOkUrl,
+            'merchant_fail_url'  => $merchantFailUrl,
+            'timeout_limit'      => $timeoutLimit,
+            'currency'           => $currency,
+            'test_mode'          => $testMode,
+            'lang'               => $lang,
+            'recurring_payment'  => $recurringPayment,
         ];
 
         try {

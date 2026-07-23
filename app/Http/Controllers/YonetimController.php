@@ -360,27 +360,37 @@ class YonetimController extends Controller
     public function odemeAyarlariGuncelle(Request $request)
     {
         $request->validate([
-            'paytr_merchant_id' => ['nullable', 'string', 'max:64'],
-            'paytr_merchant_key' => ['nullable', 'string', 'max:500'],
-            'paytr_merchant_salt' => ['nullable', 'string', 'max:500'],
-            'banka_adi' => ['nullable', 'string', 'max:150'],
-            'banka_hesap_sahibi' => ['nullable', 'string', 'max:150'],
-            'banka_iban' => ['nullable', 'string', 'max:34', 'regex:/^TR[0-9]{24}$/'],
-            'banka_aciklama' => ['nullable', 'string', 'max:2000'],
+            'odeme_saglayici'       => ['nullable', 'string', 'in:paytr,iyzico'],
+            'paytr_merchant_id'     => ['nullable', 'string', 'max:64'],
+            'paytr_merchant_key'    => ['nullable', 'string', 'max:500'],
+            'paytr_merchant_salt'   => ['nullable', 'string', 'max:500'],
+            'iyzico_api_key'        => ['nullable', 'string', 'max:500'],
+            'iyzico_secret_key'     => ['nullable', 'string', 'max:500'],
+            'iyzico_base_url'       => ['nullable', 'url', 'max:255'],
+            'banka_adi'             => ['nullable', 'string', 'max:150'],
+            'banka_hesap_sahibi'    => ['nullable', 'string', 'max:150'],
+            'banka_iban'            => ['nullable', 'string', 'max:34', 'regex:/^TR[0-9]{24}$/'],
+            'banka_aciklama'        => ['nullable', 'string', 'max:2000'],
         ], [
             'banka_iban.regex' => 'IBAN, boşluksuz TR ile başlayan 26 karakter olmalıdır.',
         ]);
 
         $ayarlar = SiteAyari::first() ?? SiteAyari::create(['meta_baslik' => config('app.name')]);
         $data = $request->only(['paytr_merchant_id', 'banka_adi', 'banka_hesap_sahibi', 'banka_aciklama']);
-        $data['paytr_merchant_id'] = trim((string) ($data['paytr_merchant_id'] ?? '')) ?: null;
-        $data['banka_adi'] = trim((string) ($data['banka_adi'] ?? '')) ?: null;
+        $data['odeme_saglayici']    = $request->input('odeme_saglayici', 'paytr');
+        $data['iyzico_enabled']     = $request->boolean('iyzico_enabled');
+        $data['paytr_merchant_id']  = trim((string) ($data['paytr_merchant_id'] ?? '')) ?: null;
+        $data['banka_adi']          = trim((string) ($data['banka_adi'] ?? '')) ?: null;
         $data['banka_hesap_sahibi'] = trim((string) ($data['banka_hesap_sahibi'] ?? '')) ?: null;
-        $data['banka_aciklama'] = trim((string) ($data['banka_aciklama'] ?? '')) ?: null;
-        $data['banka_iban'] = strtoupper(preg_replace('/\s+/', '', (string) $request->input('banka_iban')) ?: '') ?: null;
-        $data['paytr_test_mode'] = $request->boolean('paytr_test_mode');
+        $data['banka_aciklama']     = trim((string) ($data['banka_aciklama'] ?? '')) ?: null;
+        $data['banka_iban']         = strtoupper(preg_replace('/\s+/', '', (string) $request->input('banka_iban')) ?: '') ?: null;
+        $data['paytr_test_mode']    = $request->boolean('paytr_test_mode');
 
-        foreach (['paytr_merchant_key', 'paytr_merchant_salt'] as $field) {
+        if ($request->filled('iyzico_base_url')) {
+            $data['iyzico_base_url'] = rtrim(trim((string) $request->input('iyzico_base_url')), '/');
+        }
+
+        foreach (['paytr_merchant_key', 'paytr_merchant_salt', 'iyzico_api_key', 'iyzico_secret_key'] as $field) {
             $value = trim((string) $request->input($field));
             if ($value !== '') {
                 $data[$field] = $value;
@@ -389,6 +399,8 @@ class YonetimController extends Controller
 
         $ayarlar->update($data);
 
-        return back()->with('basarili', 'Ödeme ayarları güncellendi (PayTR + havale).');
+        $saglayici = $data['odeme_saglayici'] === 'iyzico' ? 'iyzico' : 'PayTR';
+
+        return back()->with('basarili', "Ödeme ayarları güncellendi. Aktif sağlayıcı: {$saglayici}.");
     }
 }

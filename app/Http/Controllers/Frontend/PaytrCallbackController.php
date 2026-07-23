@@ -69,11 +69,12 @@ class PaytrCallbackController extends Controller
      */
     public function notify(Request $request, PaytrService $paytr)
     {
-        $merchantOid = (string) $request->input('merchant_oid', '');
-        $status = (string) $request->input('status', '');
-        $totalAmount = (string) $request->input('total_amount', '');
-        $hash = (string) $request->input('hash', '');
-        $raw = $request->except(['merchant_key', 'merchant_salt']);
+        $merchantOid  = (string) $request->input('merchant_oid', '');
+        $status       = (string) $request->input('status', '');
+        $totalAmount  = (string) $request->input('total_amount', '');
+        $hash         = (string) $request->input('hash', '');
+        $recurringId  = (string) $request->input('recurring_id', '');
+        $raw          = $request->except(['merchant_key', 'merchant_salt']);
 
         if ($merchantOid === '' || $hash === '') {
             Log::warning('PayTR notify: missing fields', $request->only(['merchant_oid', 'status']));
@@ -145,7 +146,7 @@ class PaytrCallbackController extends Controller
 
         if ($status === 'success') {
             try {
-                $this->activateMembership($odeme, $paytr);
+                $this->activateMembership($odeme, $paytr, $recurringId);
                 $this->logCallback($merchantOid, $odeme->id, $status, $totalAmount, true, true, null, $raw);
             } catch (\Throwable $e) {
                 Log::error('PayTR activate failed', [
@@ -280,9 +281,9 @@ class PaytrCallbackController extends Controller
         }
     }
 
-    protected function activateMembership(UyelikOdeme $odeme, PaytrService $paytr): void
+    protected function activateMembership(UyelikOdeme $odeme, PaytrService $paytr, string $recurringId = ''): void
     {
-        DB::transaction(function () use ($odeme, $paytr) {
+        DB::transaction(function () use ($odeme, $paytr, $recurringId) {
             $odeme->refresh();
             if ($odeme->durum === 'onaylandi') {
                 return;
@@ -342,6 +343,7 @@ class PaytrCallbackController extends Controller
                     'abonelik_iptal_at' => null,
                     'abonelik_iptal_nedeni' => null,
                     'platformda_gorunur' => true,
+                    'paytr_recurring_id' => $recurringId ?: null,
                 ])->save();
 
                 // Bireysel → klinik geçişinde hasta havuzuna taşı
@@ -370,7 +372,13 @@ class PaytrCallbackController extends Controller
                     'abonelik_iptal_at' => null,
                     'abonelik_iptal_nedeni' => null,
                     'platformda_gorunur' => true,
+                    'paytr_recurring_id' => $recurringId ?: null,
                 ])->save();
+            }
+
+            // PayTR recurring ID'yi odeme kaydına da yaz
+            if ($recurringId !== '') {
+                $odeme->paytr_recurring_id = $recurringId;
             }
 
             $odeme->update([

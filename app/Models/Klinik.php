@@ -40,6 +40,7 @@ class Klinik extends Model
         'uyelik_bitis',
         'iyzico_subscription_reference_code',
         'iyzico_subscription_status',
+        'paytr_recurring_id',
         'abonelik_yenileme_kapali',
         'abonelik_iptal_at',
         'abonelik_iptal_nedeni',

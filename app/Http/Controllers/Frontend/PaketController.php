@@ -19,6 +19,7 @@ use App\Models\Unvan;
 use App\Rules\TcKimlikNo;
 use App\Services\Edevlet\BelgeDogrulamaService;
 use App\Services\Meslek\MeslekEslesmeService;
+use App\Services\PaymentDriverService;
 use App\Services\PaytrService;
 use App\Services\ReferansService;
 use App\Support\MetaPixel;
@@ -1148,7 +1149,7 @@ class PaketController extends Controller
             return $this->redirectAfterMembership($doktor->fresh());
         }
 
-        return $this->startPaytrCheckout(
+        return app(PaymentDriverService::class)->startCheckout(
             $doktor,
             $paket,
             $request->odeme_periyodu,
@@ -1220,7 +1221,7 @@ class PaketController extends Controller
             return $this->redirectAfterMembership($doktor->fresh());
         }
 
-        return $this->startPaytrCheckout(
+        return app(PaymentDriverService::class)->startCheckout(
             $doktor,
             $paket,
             $request->odeme_periyodu,
@@ -1566,8 +1567,9 @@ class PaketController extends Controller
 
         $doktor = Auth::guard('doktor')->user();
         $iller = Il::orderBy('ad')->get();
-        $paytrAvailable = app(PaytrService::class)->isConfigured();
-        $iyzicoAvailable = $paytrAvailable; // blade geriye uyum (kartlı ödeme var mı)
+        $driver = app(PaymentDriverService::class);
+        $paytrAvailable = $driver->isPaytrActive() && app(PaytrService::class)->isConfigured();
+        $iyzicoAvailable = $driver->isIyzicoActive();
         $paymentSettings = SiteAyari::query()->first();
         $bankAvailable = filled($paymentSettings?->banka_adi)
             && filled($paymentSettings?->banka_hesap_sahibi)
@@ -1689,7 +1691,8 @@ class PaketController extends Controller
         }
 
         if (! $isFree) {
-            $rules['odeme_yontemi'] = 'required|in:paytr,havale';
+            $kartYontemi = app(PaymentDriverService::class)->isIyzicoActive() ? 'iyzico' : 'paytr';
+            $rules['odeme_yontemi'] = 'required|in:'.$kartYontemi.',havale';
         }
 
         $request->validate($rules, [
@@ -1704,11 +1707,7 @@ class PaketController extends Controller
             'kvkk_odeme_onay.accepted' => 'KVKK aydınlatma metnini kabul etmelisiniz.',
         ]);
 
-        // Kartlı ödeme yalnızca PayTR (eski iyzico değeri paytr'ye map)
         $odemeYontemi = $request->input('odeme_yontemi', 'paytr');
-        if ($odemeYontemi === 'iyzico') {
-            $odemeYontemi = 'paytr';
-        }
 
         $paymentSettings = SiteAyari::query()->first();
 
@@ -1778,63 +1777,20 @@ class PaketController extends Controller
                     'Havale bildiriminiz alındı ve kaydedildi. Yönetici banka hareketini onaylayınca üyeliğiniz otomatik açılır. Aşağıda bildiriminizin durumunu görebilirsiniz.'
                 );
         } else {
-            // PayTR iFrame — kart formu sitede yok; güvenli iframe
-            $paytr = app(PaytrService::class);
-            if (! $paytr->isConfigured()) {
-                return back()->withInput()->withErrors(['odeme_yontemi' => 'Kartlı ödeme (PayTR) şu anda kullanıma açık değil.']);
-            }
-
-            $merchantOid = $paytr->makeMerchantOid();
-            $kurulumPaytr = $paket->klinikPaketiMi() ? $request->only([
+            // Kartlı ödeme — aktif sağlayıcı (PayTR veya iyzico) üzerinden
+            $kurulumKart = $paket->klinikPaketiMi() ? $request->only([
                 'klinik_adi', 'telefon', 'e_posta', 'adres', 'il_id', 'ilce_id',
             ]) : [];
-            $kurulumPaytr['tutar_brut'] = $tutarBrut;
-            $kurulumPaytr['referans_indirim_yuzde'] = $refFiyat['indirim_yuzde'];
 
-            UyelikOdeme::create([
-                'doktor_id' => $doktor->id,
-                'paket_id' => $paket->id,
-                'odeme_yontemi' => 'paytr',
-                'provider' => 'paytr',
-                'odeme_periyodu' => $request->odeme_periyodu,
-                'tutar' => $tutar,
-                'durum' => 'beklemede',
-                'merchant_oid' => $merchantOid,
-                'kurulum_verisi' => $kurulumPaytr ?: null,
-            ]);
-
-            $tokenResult = $paytr->createIframeToken([
-                'merchant_oid' => $merchantOid,
-                'email' => (string) $doktor->e_posta,
-                'payment_amount' => $tutar,
-                'user_name' => (string) $doktor->ad_soyad,
-                'user_address' => (string) ($doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye')),
-                'user_phone' => (string) $doktor->telefon,
-                'user_ip' => $request->ip(),
-                'basket_name' => 'Randevu Ajandam - '.$paket->ad.' ('.$request->odeme_periyodu.')',
-            ]);
-
-            if (($tokenResult['status'] ?? '') !== 'success') {
-                UyelikOdeme::where('merchant_oid', $merchantOid)->update(['durum' => 'reddedildi']);
-
-                return back()->withInput()->withErrors([
-                    'odeme_yontemi' => $tokenResult['errorMessage'] ?? 'PayTR ödeme oturumu açılamadı.',
-                ]);
-            }
-
-            session(['paytr_iframe_token_'.$merchantOid => $tokenResult['token']]);
-
-            MetaPixel::queue('InitiateCheckout', array_merge(
-                MetaPixel::money((float) $tutar),
-                [
-                    'content_name' => $paket->ad,
-                    'content_ids' => [(string) $paket->id],
-                    'content_type' => 'product',
-                    'num_items' => 1,
-                ]
-            ));
-
-            return redirect()->route('frontend.odeme.paytr.iframe', ['merchantOid' => $merchantOid]);
+            return app(PaymentDriverService::class)->startCheckout(
+                $doktor,
+                $paket,
+                $request->odeme_periyodu,
+                $tutarBrut,
+                $kurulumKart,
+                $request,
+                $request->only(['kart_no', 'kart_ay', 'kart_yil', 'kart_cvv', 'kart_sahibi'])
+            );
         }
 
         // Calculate membership dates
