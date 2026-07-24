@@ -20,10 +20,14 @@ class RandevuAyari extends Model
         'email_bildirimleri',
         'sms_bildirimleri',
         'aktif_mi',
+        'online_randevu_aktif',
+        'yuzyuze_randevu_aktif',
     ];
 
     protected $casts = [
         'aktif_mi' => 'boolean',
+        'online_randevu_aktif' => 'boolean',
+        'yuzyuze_randevu_aktif' => 'boolean',
         'randevu_iptal_aktif_mi' => 'boolean',
         'email_bildirimleri' => 'boolean',
         'sms_bildirimleri' => 'boolean',

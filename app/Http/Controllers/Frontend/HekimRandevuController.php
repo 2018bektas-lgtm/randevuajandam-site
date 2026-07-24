@@ -365,6 +365,8 @@ class HekimRandevuController extends Controller
 
         $ayarlar->update([
             'aktif_mi' => $request->has('aktif_mi'),
+            'online_randevu_aktif' => $request->has('online_randevu_aktif'),
+            'yuzyuze_randevu_aktif' => $request->has('yuzyuze_randevu_aktif'),
             'randevu_onay_tipi' => $request->randevu_onay_tipi,
             'en_erken_randevu_saati' => $request->en_erken_randevu_saati,
             'en_gec_randevu_gunu' => $request->en_gec_randevu_gunu,

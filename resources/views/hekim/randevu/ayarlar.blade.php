@@ -83,17 +83,49 @@
                     @csrf
 
                     <!-- Status iOS Toggles Group -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                         <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col justify-between gap-4 hover:border-[#E7B58A]/30 transition-all duration-300">
                             <div class="space-y-1">
-                                <span class="block text-xs font-bold text-[#111827] font-display">Online Randevu Kabulü</span>
-                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">Hastaların profilinizden online randevu almasını sağlar.</span>
+                                <span class="block text-xs font-bold text-[#111827] font-display">Randevu Kabulü</span>
+                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">Profil sayfanızdan randevu alınmasını açar veya tamamen kapatır.</span>
                             </div>
-                            
+
                             <div class="flex justify-end pt-2">
                                 <label class="relative inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" name="aktif_mi" value="1" 
-                                           {{ $ayarlar->aktif_mi ? 'checked' : '' }} 
+                                    <input type="checkbox" name="aktif_mi" value="1"
+                                           {{ $ayarlar->aktif_mi ? 'checked' : '' }}
+                                           class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C96A2B]"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col justify-between gap-4 hover:border-[#E7B58A]/30 transition-all duration-300">
+                            <div class="space-y-1">
+                                <span class="block text-xs font-bold text-[#111827] font-display">Online Randevu</span>
+                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">Hastalar görüntülü görüşme için online randevu alabilsin.</span>
+                            </div>
+
+                            <div class="flex justify-end pt-2">
+                                <label class="relative inline-flex items-center cursor-pointer select-none">
+                                    <input type="checkbox" name="online_randevu_aktif" value="1"
+                                           {{ ($ayarlar->online_randevu_aktif ?? true) ? 'checked' : '' }}
+                                           class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C96A2B]"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col justify-between gap-4 hover:border-[#E7B58A]/30 transition-all duration-300">
+                            <div class="space-y-1">
+                                <span class="block text-xs font-bold text-[#111827] font-display">Yüz Yüze Randevu</span>
+                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">Hastalar muayenehane ziyareti için yüz yüze randevu alabilsin.</span>
+                            </div>
+
+                            <div class="flex justify-end pt-2">
+                                <label class="relative inline-flex items-center cursor-pointer select-none">
+                                    <input type="checkbox" name="yuzyuze_randevu_aktif" value="1"
+                                           {{ ($ayarlar->yuzyuze_randevu_aktif ?? true) ? 'checked' : '' }}
                                            class="sr-only peer">
                                     <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C96A2B]"></div>
                                 </label>

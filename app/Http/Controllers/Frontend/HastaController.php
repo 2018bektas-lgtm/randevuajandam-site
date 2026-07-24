@@ -240,6 +240,15 @@ class HastaController extends Controller
         $hasta = Auth::guard('hasta')->user();
         $doktor = Doktor::findOrFail($request->doktor_id);
 
+        $gorusmeTipi = $request->input('gorusme_tipi', 'yuz_yuze');
+        $ayarlar = $doktor->randevuAyari;
+        if ($gorusmeTipi === 'online' && $ayarlar && ! $ayarlar->online_randevu_aktif) {
+            return redirect()->back()->withInput()->with('hata', 'Bu hekim için online randevu şu an kapalıdır.');
+        }
+        if ($gorusmeTipi === 'yuz_yuze' && $ayarlar && ! $ayarlar->yuzyuze_randevu_aktif) {
+            return redirect()->back()->withInput()->with('hata', 'Bu hekim için yüz yüze randevu şu an kapalıdır.');
+        }
+
         try {
             $bookingService->assertPackageAppointmentLimit($doktor);
             $onayTipi = $bookingService->resolveDefaultStatus($doktor);
@@ -252,7 +261,7 @@ class HastaController extends Controller
                 'saat' => $request->saat,
                 'not' => $request->not,
                 'durum' => $onayTipi,
-                'gorusme_tipi' => $request->input('gorusme_tipi', 'yuz_yuze'),
+                'gorusme_tipi' => $gorusmeTipi,
             ]);
         } catch (InvalidArgumentException $e) {
             return redirect()->back()->withInput()->with('hata', $e->getMessage());
@@ -331,6 +340,15 @@ class HastaController extends Controller
         $telefon = TurkishMobilePhone::normalize($validated['telefon']);
         $doktor = Doktor::findOrFail($validated['doktor_id']);
 
+        $gorusmeTipi = $validated['gorusme_tipi'] ?? 'yuz_yuze';
+        $ayarlar = $doktor->randevuAyari;
+        if ($gorusmeTipi === 'online' && $ayarlar && ! $ayarlar->online_randevu_aktif) {
+            return redirect()->back()->withInput()->with('hata', 'Bu hekim için online randevu şu an kapalıdır.');
+        }
+        if ($gorusmeTipi === 'yuz_yuze' && $ayarlar && ! $ayarlar->yuzyuze_randevu_aktif) {
+            return redirect()->back()->withInput()->with('hata', 'Bu hekim için yüz yüze randevu şu an kapalıdır.');
+        }
+
         try {
             $otp->assertVerifiedIfRequired($telefon, 'randevu', (int) $doktor->id);
 
@@ -343,7 +361,7 @@ class HastaController extends Controller
                 'telefon' => $telefon,
                 'e_posta' => $validated['e_posta'],
                 'not' => $validated['not'] ?? null,
-                'gorusme_tipi' => $validated['gorusme_tipi'] ?? 'yuz_yuze',
+                'gorusme_tipi' => $gorusmeTipi,
             ]);
         } catch (InvalidArgumentException $e) {
             RateLimiter::hit($throttleKey, 300);

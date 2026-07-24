@@ -3,6 +3,11 @@
     $hastaAuth = Auth::guard('hasta')->check();
     $hastaUser = $hastaAuth ? Auth::guard('hasta')->user() : null;
     $onlineGorusmeAcik = (bool) $doktor->aktifPaket()?->hasFeature('online_gorusme');
+    $_randevuAyari = $doktor->randevuAyari;
+    $onlineRandevuAktif = $_randevuAyari ? (bool) $_randevuAyari->online_randevu_aktif : true;
+    $yuzyuzeRandevuAktif = $_randevuAyari ? (bool) $_randevuAyari->yuzyuze_randevu_aktif : true;
+    $onlineGosterilecek = $onlineGorusmeAcik && $onlineRandevuAktif;
+    $herhangiTipAcik = $onlineGosterilecek || $yuzyuzeRandevuAktif;
     $slotsUrl = route('frontend.doktorlar.slotlar', $doktor->id);
     $daysUrl = route('frontend.doktorlar.musait-gunler', $doktor->id);
     $formAction = $hastaAuth
@@ -19,7 +24,7 @@
     $initialHizmetId = old('hizmet_id', $preselectedHizmetId);
 @endphp
 
-@if($doktor->randevuya_acik_mi && $aktifHizmetler->isNotEmpty())
+@if($doktor->randevuya_acik_mi && $aktifHizmetler->isNotEmpty() && $herhangiTipAcik)
 <section id="randevu-wizard" class="rw{{ !empty($wizardCompact) ? ' rw--compact' : '' }}">
     <div class="rw-shell">
         <header class="rw-head">
@@ -186,7 +191,7 @@
 
             {{-- 3 Bilgi --}}
             <div class="rw-panel" data-panel="3" hidden>
-                @if($onlineGorusmeAcik)
+                @if($onlineGosterilecek && $yuzyuzeRandevuAktif)
                     <p class="rw-label">Görüşme türü</p>
                     <div class="rw-cards rw-cards-2 mb">
                         <button type="button" class="rw-card rw-gorusme-card is-selected" data-value="yuz_yuze">
@@ -205,6 +210,18 @@
                         </button>
                     </div>
                     <input type="hidden" name="gorusme_tipi" id="rw-gorusme" value="{{ old('gorusme_tipi', 'yuz_yuze') }}">
+                @elseif($onlineGosterilecek)
+                    <p class="rw-label">Görüşme türü</p>
+                    <div class="rw-cards rw-cards-2 mb">
+                        <button type="button" class="rw-card rw-gorusme-card is-selected" data-value="online">
+                            <span class="rw-check" aria-hidden="true"></span>
+                            <span class="rw-card-body">
+                                <span class="rw-card-title">Online</span>
+                                <span class="rw-card-meta">Görüntülü görüşme</span>
+                            </span>
+                        </button>
+                    </div>
+                    <input type="hidden" name="gorusme_tipi" id="rw-gorusme" value="online">
                 @else
                     <input type="hidden" name="gorusme_tipi" value="yuz_yuze">
                 @endif
