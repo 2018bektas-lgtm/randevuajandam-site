@@ -10,13 +10,16 @@ use App\Http\Requests\Frontend\YorumKaydetRequest;
 use App\Models\Yorum;
 use App\Models\Doktor;
 use App\Models\Hasta;
+use App\Models\Randevu;
 use App\Rules\TurkishMobilePhone;
 use App\Services\AppointmentBookingService;
 use App\Services\PhoneOtpService;
 use App\Support\MetaPixel;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -122,7 +125,13 @@ class HastaController extends Controller
         if (Auth::guard('hasta')->attempt($credentials, $request->has('remember'))) {
             RateLimiter::clear($throttleKey);
 
-            return redirect()->intended(route('frontend.hasta.profil'));
+            // Hesap silme talebi varsa otomatik iptal et
+            $loggedIn = Auth::guard('hasta')->user();
+            if ($loggedIn->silme_talep_at) {
+                $loggedIn->update(['silme_talep_at' => null]);
+            }
+
+            return redirect()->intended(route('frontend.hasta.dashboard'));
         }
 
         RateLimiter::hit($throttleKey, 300);
@@ -133,6 +142,38 @@ class HastaController extends Controller
     }
 
     /**
+     * Hasta paneli dashboard.
+     */
+    public function dashboard()
+    {
+        /** @var Hasta $hasta */
+        $hasta = Auth::guard('hasta')->user();
+
+        $yaklasanRandevular = $hasta->randevular()
+            ->with('doktor', 'hizmet')
+            ->whereIn('durum', ['beklemede', 'onaylandi'])
+            ->where('tarih', '>=', now()->toDateString())
+            ->orderBy('tarih')->orderBy('saat')
+            ->take(3)->get();
+
+        $toplamRandevuSayisi = $hasta->randevular()->count();
+        $yaklasanSayi = $hasta->randevular()
+            ->whereIn('durum', ['beklemede', 'onaylandi'])
+            ->where('tarih', '>=', now()->toDateString())
+            ->count();
+        $tamamlananSayisi = $hasta->randevular()->where('durum', 'tamamlandi')->count();
+        $bekleyenYorumSayisi = $hasta->randevular()
+            ->where('durum', 'tamamlandi')
+            ->whereDoesntHave('yorum')
+            ->count();
+
+        return view('frontend.hasta.dashboard', compact(
+            'hasta', 'yaklasanRandevular',
+            'toplamRandevuSayisi', 'yaklasanSayi', 'tamamlananSayisi', 'bekleyenYorumSayisi'
+        ));
+    }
+
+    /**
      * Show profile dashboard.
      */
     public function profil()
@@ -140,7 +181,12 @@ class HastaController extends Controller
         /** @var Hasta $hasta */
         $hasta = Auth::guard('hasta')->user();
 
-        return view('frontend.hasta.profil', compact('hasta'));
+        $bekleyenYorumSayisi = $hasta->randevular()
+            ->where('durum', 'tamamlandi')
+            ->whereDoesntHave('yorum')
+            ->count();
+
+        return view('frontend.hasta.profil', compact('hasta', 'bekleyenYorumSayisi'));
     }
 
     /**
@@ -187,9 +233,13 @@ class HastaController extends Controller
     {
         /** @var Hasta $hasta */
         $hasta = Auth::guard('hasta')->user();
-        $randevular = $hasta->randevular()->with('doktor', 'hizmet')->latest()->paginate(10);
+        $randevular = $hasta->randevular()->with('doktor', 'hizmet', 'yorum')->latest()->paginate(10);
+        $bekleyenYorumSayisi = $hasta->randevular()
+            ->where('durum', 'tamamlandi')
+            ->whereDoesntHave('yorum')
+            ->count();
 
-        return view('frontend.hasta.randevular', compact('hasta', 'randevular'));
+        return view('frontend.hasta.randevular', compact('hasta', 'randevular', 'bekleyenYorumSayisi'));
     }
 
     /**
@@ -436,6 +486,188 @@ class HastaController extends Controller
         // Hekime bildirim yok: yorumlar yalnızca platform yönetimi tarafından denetlenir (adil moderasyon).
 
         return redirect()->back()->with('basarili', 'Yorumunuz alındı. Platform yönetimi onayladıktan sonra herkese açık profilde yayınlanacaktır.');
+    }
+
+    /**
+     * Download iCal file for an appointment.
+     */
+    public function randevuIcal(int $id): Response
+    {
+        /** @var Hasta $hasta */
+        $hasta = Auth::guard('hasta')->user();
+        $randevu = $hasta->randevular()->with('doktor', 'hizmet')->findOrFail($id);
+
+        if ($randevu->durum === 'iptal') {
+            abort(410);
+        }
+
+        $periyot = $randevu->doktor?->randevuAyari?->randevu_periyodu
+            ?? $randevu->hizmet?->sure
+            ?? 30;
+        if ($periyot < 5) {
+            $periyot = 30;
+        }
+
+        $tarih = $randevu->tarih instanceof \DateTimeInterface
+            ? $randevu->tarih->format('Y-m-d')
+            : Carbon::parse($randevu->tarih)->toDateString();
+        $saat = strlen($randevu->saat) === 5 ? $randevu->saat.':00' : $randevu->saat;
+
+        $start = Carbon::parse($tarih.' '.$saat);
+        $end = $start->copy()->addMinutes($periyot);
+
+        $doktorAdi = $randevu->doktor
+            ? trim(($randevu->doktor->unvan ? $randevu->doktor->unvan.' ' : '').$randevu->doktor->ad_soyad)
+            : 'Hekim';
+        $hizmetAdi = $randevu->hizmet?->ad ?? 'Randevu';
+
+        $ical = "BEGIN:VCALENDAR\r\n"
+            ."VERSION:2.0\r\n"
+            ."CALSCALE:GREGORIAN\r\n"
+            ."METHOD:PUBLISH\r\n"
+            ."BEGIN:VEVENT\r\n"
+            ."UID:randevu-{$randevu->id}@randevuajandam\r\n"
+            ."DTSTAMP:".now()->utc()->format('Ymd\THis\Z')."\r\n"
+            ."DTSTART:".$start->format('Ymd\THis')."\r\n"
+            ."DTEND:".$end->format('Ymd\THis')."\r\n"
+            ."SUMMARY:".$this->icalEscape($hizmetAdi.' - '.$doktorAdi)."\r\n"
+            ."DESCRIPTION:".$this->icalEscape("Hekim: {$doktorAdi}\nHizmet: {$hizmetAdi}")."\r\n"
+            ."END:VEVENT\r\n"
+            ."END:VCALENDAR\r\n";
+
+        return response($ical, 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="randevu-'.$start->format('Y-m-d-Hi').'.ics"',
+        ]);
+    }
+
+    /**
+     * Show reschedule form.
+     */
+    public function randevuYenidenPlanlaFormu(int $id)
+    {
+        /** @var Hasta $hasta */
+        $hasta = Auth::guard('hasta')->user();
+        $randevu = $hasta->randevular()->with('doktor', 'hizmet')->findOrFail($id);
+
+        if (! in_array($randevu->durum, ['beklemede', 'onaylandi'])) {
+            return redirect()->route('frontend.hasta.randevular')->with('hata', 'Bu randevu yeniden planlanamaz.');
+        }
+
+        return view('frontend.hasta.yeniden-planla', compact('hasta', 'randevu'));
+    }
+
+    /**
+     * Process reschedule request.
+     */
+    public function randevuYenidenPlanla(Request $request, int $id, AppointmentBookingService $bookingService)
+    {
+        /** @var Hasta $hasta */
+        $hasta = Auth::guard('hasta')->user();
+        $randevu = $hasta->randevular()->with('doktor', 'hizmet')->findOrFail($id);
+
+        if (! in_array($randevu->durum, ['beklemede', 'onaylandi'])) {
+            return redirect()->route('frontend.hasta.randevular')->with('hata', 'Bu randevu yeniden planlanamaz.');
+        }
+
+        $request->validate([
+            'tarih' => ['required', 'date', 'after_or_equal:today'],
+            'saat' => ['required', 'regex:/^\d{2}:\d{2}$/'],
+        ], [
+            'tarih.required' => 'Tarih zorunludur.',
+            'tarih.after_or_equal' => 'Geçmiş bir tarih seçilemez.',
+            'saat.required' => 'Saat zorunludur.',
+            'saat.regex' => 'Geçerli bir saat seçin.',
+        ]);
+
+        $doktor = $randevu->doktor;
+        $ayarlar = $doktor?->randevuAyari;
+
+        if ($ayarlar) {
+            if (! $ayarlar->randevu_iptal_aktif_mi) {
+                return back()->with('hata', 'Bu hekim için online randevu değişikliği kapatılmıştır.');
+            }
+            if ($ayarlar->iptal_saat_limiti > 0) {
+                $tarihStr = $randevu->tarih instanceof \DateTimeInterface
+                    ? $randevu->tarih->format('Y-m-d')
+                    : Carbon::parse($randevu->tarih)->toDateString();
+                $randevuZamani = Carbon::parse($tarihStr.' '.$randevu->saat);
+                if ($randevuZamani->lt(now()->addHours($ayarlar->iptal_saat_limiti))) {
+                    return back()->with('hata', 'Randevu başlangıcına '.$ayarlar->iptal_saat_limiti.' saatten az süre kaldığı için değişiklik yapamazsınız.');
+                }
+            }
+        }
+
+        try {
+            $onayTipi = $bookingService->resolveDefaultStatus($doktor);
+            $bookingService->create([
+                'doktor' => $doktor,
+                'hasta' => $hasta,
+                'hizmet_id' => $randevu->hizmet_id,
+                'tarih' => $request->tarih,
+                'saat' => $request->saat,
+                'not' => $randevu->not,
+                'durum' => $onayTipi,
+                'gorusme_tipi' => $randevu->gorusme_tipi ?? 'yuz_yuze',
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return back()->with('hata', $e->getMessage());
+        }
+
+        $eskiDurum = $randevu->durum;
+        $randevu->update(['durum' => 'iptal']);
+        RandevuDurumuDegisti::dispatch($randevu, $eskiDurum, 'iptal');
+
+        return redirect()->route('frontend.hasta.randevular')
+            ->with('basarili', 'Randevunuz yeniden planlandı. Eski randevunuz iptal edildi.');
+    }
+
+    /**
+     * Update notification preferences.
+     */
+    public function bildirimTercihleriniGuncelle(Request $request)
+    {
+        /** @var Hasta $hasta */
+        $hasta = Auth::guard('hasta')->user();
+
+        $hasta->update([
+            'bildirim_email' => $request->boolean('bildirim_email'),
+            'bildirim_sms' => $request->boolean('bildirim_sms'),
+        ]);
+
+        return redirect()->back()->with('basarili', 'Bildirim tercihleriniz güncellendi.');
+    }
+
+    /**
+     * Submit account deletion request (KVKK).
+     */
+    public function hesapSilTalep(Request $request)
+    {
+        /** @var Hasta $hasta */
+        $hasta = Auth::guard('hasta')->user();
+
+        $request->validate([
+            'sifre' => ['required', 'string'],
+        ], [
+            'sifre.required' => 'Hesap silme için şifrenizi girmelisiniz.',
+        ]);
+
+        if (! Hash::check($request->sifre, $hasta->sifre)) {
+            return back()->withErrors(['sifre_sil' => 'Şifre hatalı.']);
+        }
+
+        $hasta->update(['silme_talep_at' => now()]);
+        Auth::guard('hasta')->logout();
+
+        return redirect()->route('frontend.hasta.giris')
+            ->with('basarili', 'Hesap silme talebiniz alındı. Verileriniz 30 gün içinde kalıcı olarak silinecektir. Bu süre içinde giriş yaparsanız talebiniz iptal olur.');
+    }
+
+    private function icalEscape(string $value): string
+    {
+        $value = str_replace(["\r\n", "\n", "\r"], '\n', $value);
+
+        return addcslashes($value, ',;\\');
     }
 
     /**

@@ -29,14 +29,21 @@
                 <!-- Navigation menu -->
                 <div class="bg-white border border-[#E5E7EB] rounded-3xl overflow-hidden shadow-sm">
                     <nav class="flex flex-col">
-                        <a href="{{ route('frontend.hasta.profil') }}" 
+                        <a href="{{ route('frontend.hasta.dashboard') }}"
+                           class="flex items-center gap-3 px-5 py-4 text-xs font-bold font-display uppercase tracking-wider border-b border-slate-100 transition-colors {{ request()->routeIs('frontend.hasta.dashboard') ? 'bg-slate-50 text-[#C96A2B]' : 'text-[#4B5563] hover:text-[#C96A2B] hover:bg-slate-50/50' }}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"></path>
+                            </svg>
+                            Panelim
+                        </a>
+                        <a href="{{ route('frontend.hasta.profil') }}"
                            class="flex items-center gap-3 px-5 py-4 text-xs font-bold font-display uppercase tracking-wider border-b border-slate-100 transition-colors {{ request()->routeIs('frontend.hasta.profil') ? 'bg-slate-50 text-[#C96A2B]' : 'text-[#4B5563] hover:text-[#C96A2B] hover:bg-slate-50/50' }}">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path>
                             </svg>
                             Profil Bilgilerim
                         </a>
-                        <a href="{{ route('frontend.hasta.randevular') }}" 
+                        <a href="{{ route('frontend.hasta.randevular') }}"
                            class="flex items-center gap-3 px-5 py-4 text-xs font-bold font-display uppercase tracking-wider border-b border-slate-100 transition-colors {{ request()->routeIs('frontend.hasta.randevular') ? 'bg-slate-50 text-[#C96A2B]' : 'text-[#4B5563] hover:text-[#C96A2B] hover:bg-slate-50/50' }}">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"></path>
@@ -45,7 +52,7 @@
                         </a>
                         <form action="{{ route('frontend.hasta.cikis') }}" method="POST" class="w-full" onsubmit="return confirm('Çıkış yapmak istediğinize emin misiniz?');">
                             @csrf
-                            <button type="submit" 
+                            <button type="submit"
                                     class="w-full flex items-center gap-3 px-5 py-4 text-xs font-bold font-display uppercase tracking-wider text-red-500 hover:text-red-700 hover:bg-slate-50/50 transition-colors border-none text-left cursor-pointer bg-transparent">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"></path>
@@ -72,6 +79,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             {{ session('basarili') }}
+                        </div>
+                    @endif
+
+                    @if(isset($bekleyenYorumSayisi) && $bekleyenYorumSayisi > 0)
+                        <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 font-medium flex items-center gap-3">
+                            <svg class="w-5 h-5 shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"></path>
+                            </svg>
+                            <span><span class="font-bold">{{ $bekleyenYorumSayisi }}</span> tamamlanmış randevunuz için henüz yorum yazmadınız. Aşağıdan yorum yazabilirsiniz.</span>
                         </div>
                     @endif
 
@@ -167,10 +183,19 @@
                                                     </a>
                                                 @endif
                                                 @if(in_array($randevu->durum, ['beklemede', 'onaylandi']))
-                                                    <form action="{{ route('frontend.hasta.randevu.iptal', $randevu->id) }}" method="POST" 
+                                                    <a href="{{ route('frontend.hasta.randevu.ical', $randevu->id) }}"
+                                                       title="Takvime Ekle (.ics)"
+                                                       class="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 font-bold font-display uppercase text-[9px] tracking-wider rounded-lg transition-colors border border-slate-200">
+                                                        .ics
+                                                    </a>
+                                                    <a href="{{ route('frontend.hasta.randevu.yeniden-planla', $randevu->id) }}"
+                                                       class="px-3 py-1.5 bg-[#FFF7ED] hover:bg-[#FFEDD5] text-[#C96A2B] hover:text-[#B55A20] font-bold font-display uppercase text-[9px] tracking-wider rounded-lg transition-colors border border-[#E7B58A]/30">
+                                                        Değiştir
+                                                    </a>
+                                                    <form action="{{ route('frontend.hasta.randevu.iptal', $randevu->id) }}" method="POST"
                                                           onsubmit="return confirm('Bu randevuyu iptal etmek istediğinize emin misiniz?')" class="inline-block">
                                                         @csrf
-                                                        <button type="submit" 
+                                                        <button type="submit"
                                                                 class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 font-bold font-display uppercase text-[9px] tracking-wider rounded-lg transition-colors cursor-pointer border-none">
                                                             İptal Et
                                                         </button>

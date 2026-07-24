@@ -153,10 +153,16 @@ Route::post('/randevu-yonet/{token}/hesap', [\App\Http\Controllers\Frontend\Rand
 
 // Patient Auth Routes (Hasta Üye Rotaları)
 Route::middleware('auth:hasta')->group(function () {
+    Route::get('/profil/dashboard', [HastaController::class, 'dashboard'])->name('frontend.hasta.dashboard');
     Route::get('/profil', [HastaController::class, 'profil'])->name('frontend.hasta.profil');
     Route::post('/profil', [HastaController::class, 'profilGuncelle'])->name('frontend.hasta.profil.post');
+    Route::post('/profil/bildirim-tercihleri', [HastaController::class, 'bildirimTercihleriniGuncelle'])->name('frontend.hasta.bildirim-tercihleri');
+    Route::post('/profil/hesap-sil-talep', [HastaController::class, 'hesapSilTalep'])->name('frontend.hasta.hesap-sil-talep');
     Route::get('/profil/randevular', [HastaController::class, 'randevular'])->name('frontend.hasta.randevular');
     Route::post('/profil/randevular/{randevu}/iptal', [HastaController::class, 'randevuIptal'])->name('frontend.hasta.randevu.iptal');
+    Route::get('/profil/randevular/{randevu}/ical', [HastaController::class, 'randevuIcal'])->name('frontend.hasta.randevu.ical');
+    Route::get('/profil/randevular/{randevu}/yeniden-planla', [HastaController::class, 'randevuYenidenPlanlaFormu'])->name('frontend.hasta.randevu.yeniden-planla');
+    Route::post('/profil/randevular/{randevu}/yeniden-planla', [HastaController::class, 'randevuYenidenPlanla'])->name('frontend.hasta.randevu.yeniden-planla.post');
     Route::post('/randevu-kaydet', [HastaController::class, 'randevuKaydet'])->name('frontend.hasta.randevu.kaydet');
     Route::post('/yorum-kaydet', [HastaController::class, 'yorumKaydet'])->name('frontend.hasta.yorum.kaydet');
     Route::post('/cikis', [HastaController::class, 'cikisYap'])->name('frontend.hasta.cikis');

@@ -22,6 +22,9 @@ class Hasta extends Authenticatable
         'sifre',
         'telefon',
         'aktif_mi',
+        'bildirim_email',
+        'bildirim_sms',
+        'silme_talep_at',
     ];
 
     protected $hidden = [
@@ -44,6 +47,9 @@ class Hasta extends Authenticatable
         return [
             'sifre' => 'hashed',
             'aktif_mi' => 'boolean',
+            'bildirim_email' => 'boolean',
+            'bildirim_sms' => 'boolean',
+            'silme_talep_at' => 'datetime',
         ];
     }
 
