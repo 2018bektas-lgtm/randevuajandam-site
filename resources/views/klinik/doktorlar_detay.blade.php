@@ -71,6 +71,37 @@
                 </div>
             </div>
 
+            @if($docAyarlar)
+            <div class="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-[#1F2937] font-display mb-4">Randevu Ayarları</h4>
+                <form action="{{ route('hekim.klinik.doktorlar.randevu-ayarlar', $doc->id) }}" method="POST" class="space-y-3">
+                    @csrf
+                    @foreach([
+                        ['aktif_mi',               $docAyarlar->aktif_mi,                       'Randevu Kabulü',     'Profil sayfasından randevu alınabilsin'],
+                        ['online_randevu_aktif',   $docAyarlar->online_randevu_aktif ?? true,   'Online Randevu',     'Görüntülü görüşme randevusu alınabilsin'],
+                        ['yuzyuze_randevu_aktif',  $docAyarlar->yuzyuze_randevu_aktif ?? true,  'Yüz Yüze Randevu',  'Muayenehane randevusu alınabilsin'],
+                    ] as [$name, $checked, $label, $hint])
+                    <div class="flex items-center justify-between py-2 border-b border-[#F5F5F4] last:border-0">
+                        <div>
+                            <span class="block text-xs font-semibold text-[#111827]">{{ $label }}</span>
+                            <span class="block text-[10px] text-[#9CA3AF] mt-0.5">{{ $hint }}</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="{{ $name }}" value="1" {{ $checked ? 'checked' : '' }} class="sr-only peer">
+                            <div class="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#C96A2B]"></div>
+                        </label>
+                    </div>
+                    @endforeach
+                    <div class="pt-2">
+                        <button type="submit" class="w-full py-2.5 bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display">
+                            Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+            @endif
+        </div>
+
             <!-- Right 2 Columns: Stats, Chart and Appointments -->
             <div class="lg:col-span-2 space-y-6">
                 <!-- Stats Overview -->

@@ -761,7 +761,9 @@ class KlinikController extends Controller
                 ->sum('odenen_tutar');
         }
 
-        return view('klinik.doktorlar_detay', compact('klinik', 'doc', 'buAyRandevuSayisi', 'buAyGelir', 'sonRandevular', 'aylar', 'gelirler'));
+        $docAyarlar = $doc->randevuAyari;
+
+        return view('klinik.doktorlar_detay', compact('klinik', 'doc', 'docAyarlar', 'buAyRandevuSayisi', 'buAyGelir', 'sonRandevular', 'aylar', 'gelirler'));
     }
 
     /**
@@ -845,6 +847,28 @@ class KlinikController extends Controller
         ]);
 
         return back()->with('basari', 'Hekim aktiflik durumu güncellendi.');
+    }
+
+    /**
+     * Update randevu type settings for a clinic doctor.
+     */
+    public function doktorRandevuAyarGuncelle(Request $request, $id)
+    {
+        $klinik = Auth::guard('doktor')->user()->klinik;
+        $doc = $klinik->doktorlar()->findOrFail($id);
+
+        $ayarlar = $doc->randevuAyari;
+        if (! $ayarlar) {
+            return back()->with('hata', 'Bu hekime ait randevu ayarı bulunamadı.');
+        }
+
+        $ayarlar->update([
+            'aktif_mi' => $request->has('aktif_mi'),
+            'online_randevu_aktif' => $request->has('online_randevu_aktif'),
+            'yuzyuze_randevu_aktif' => $request->has('yuzyuze_randevu_aktif'),
+        ]);
+
+        return back()->with('basari', 'Randevu ayarları güncellendi.');
     }
 
     /**

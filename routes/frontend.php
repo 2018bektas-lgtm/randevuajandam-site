@@ -439,6 +439,7 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
             Route::get('/hekim/klinik/doktorlar/{id}/duzenle', [KlinikController::class, 'doktorDuzenleFormu'])->name('hekim.klinik.doktorlar.duzenle');
             Route::post('/hekim/klinik/doktorlar/{id}/guncelle', [KlinikController::class, 'doktorGuncelle'])->name('hekim.klinik.doktorlar.guncelle');
             Route::post('/hekim/klinik/doktorlar/{id}/durum-toggle', [KlinikController::class, 'doktorDurumToggle'])->name('hekim.klinik.doktorlar.durum-toggle');
+            Route::post('/hekim/klinik/doktorlar/{id}/randevu-ayarlar', [KlinikController::class, 'doktorRandevuAyarGuncelle'])->name('hekim.klinik.doktorlar.randevu-ayarlar');
             Route::post('/hekim/klinik/doktorlar/{id}/cikar', [KlinikController::class, 'doktorCikar'])->name('hekim.klinik.doktorlar.cikar');
         });
 
