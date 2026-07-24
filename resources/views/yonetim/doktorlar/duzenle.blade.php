@@ -107,7 +107,7 @@
         }
     </style>
 
-    <div class="max-w-3xl mx-auto">
+    <div class="max-w-4xl mx-auto">
         <!-- Top Action Header -->
         <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E5E7EB]">
             <div>
@@ -115,7 +115,7 @@
                     <span class="w-1.5 h-7 rounded-full bg-[#C96A2B] block"></span>
                     Doktor Bilgilerini Düzenle
                 </h2>
-                <p class="text-xs text-[#6B7280] mt-1.5 ml-4">Doktor üyelik bilgileri, paket ataması ve durumunu güncelleyin.</p>
+                <p class="text-xs text-[#6B7280] mt-1.5 ml-4">Üyelik, paket, klinik bağlantısı, rol ve yetkileri buradan yönetin.</p>
             </div>
             <div class="flex-shrink-0">
                 <a href="{{ route('yonetim.doktorlar.index') }}" 
@@ -237,17 +237,141 @@
                 <!-- Hesap Türü -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 bg-slate-50/40 border border-[#E5E7EB] rounded-xl">
                     <div>
-                        <label for="tur" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Hesap Türü</label>
+                        <label for="tur" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Hesap Türü (etiket)</label>
                         <select name="tur" id="tur"
                             class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200 cursor-pointer">
                             <option value="bireysel" {{ old('tur', $doktor->tur) === 'bireysel' ? 'selected' : '' }}>Tek Hekim (Bireysel)</option>
                             <option value="klinik" {{ old('tur', $doktor->tur) === 'klinik' ? 'selected' : '' }}>Klinik</option>
                         </select>
+                        <p class="text-[10px] text-[#6B7280] mt-1.5">Bu alan etiket amaçlıdır. Gerçek klinik yetkisi aşağıdaki klinik bağlantısından gelir.</p>
                     </div>
                     <div id="klinikAdiWrap" style="{{ old('tur', $doktor->tur) === 'klinik' ? '' : 'display:none' }}">
-                        <label for="klinik_adi" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Klinik Adı</label>
+                        <label for="klinik_adi" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Klinik Adı (serbest metin)</label>
                         <input type="text" name="klinik_adi" id="klinik_adi" value="{{ old('klinik_adi', $doktor->klinik_adi) }}" placeholder="Klinik adını girin"
                             class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200">
+                    </div>
+                </div>
+
+                @php
+                    $selectedKlinikId = old('klinik_id', $doktor->klinik_id);
+                    $selectedRolu = old('klinik_rolu', $doktor->klinik_rolu ?: 'doktor');
+                    $oldYetkiler = old('klinik_yetkileri');
+                    $yetkiEtiketleri = [
+                        'yonetim_paneli' => ['Klinik Yönetim Paneli', 'Yönetim özet paneline giriş'],
+                        'klinik_ayarlari' => ['Klinik Ayarları', 'Künye, logo ve çalışma saatleri'],
+                        'hekim_yonetimi' => ['Hekim Yönetimi', 'Davet / çıkarma yetkisi'],
+                        'personel_yonetimi' => ['Personel Yönetimi', 'Personel ekleme ve düzenleme'],
+                        'finans_yonetimi' => ['Gider & Finans', 'Gelir, gider ve raporlar'],
+                        'hakedis_yonetimi' => ['Hakediş Yönetimi', 'Hekim hakediş hesaplama'],
+                        'ortak_hasta_havuzu' => ['Ortak Hasta Havuzu', 'Tüm klinik hastalarını görme'],
+                        'duyuru_yonetimi' => ['Duyuru Yönetimi', 'İç duyuru oluşturma'],
+                    ];
+                    $isOwnerLike = in_array($selectedRolu, ['sahip', 'ortak'], true);
+                @endphp
+
+                <!-- Klinik Üyelik & Yetkiler -->
+                <div class="p-5 border border-indigo-100 bg-indigo-50/30 rounded-2xl space-y-5" id="klinikUyelikBolumu">
+                    <div class="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-indigo-100/80">
+                        <div>
+                            <h4 class="text-sm font-bold text-[#1F2937] font-display flex items-center gap-2">
+                                <span class="inline-flex w-7 h-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 text-xs">K</span>
+                                Klinik Bağlantısı ve Yetkiler
+                            </h4>
+                            <p class="text-[11px] text-[#6B7280] mt-1 ml-9">
+                                Kliniğe bağlı hekim paneli erişimi buradan yönetilir.
+                                <strong>Bağlantıyı kaldır</strong> seçerseniz tüm klinik yetkileri kesilir.
+                            </p>
+                        </div>
+                        @if($doktor->klinik_id)
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                                Şu an bağlı: {{ $doktor->klinik?->ad ?? ('#'.$doktor->klinik_id) }}
+                                @if($doktor->klinik_rolu)
+                                    · {{ $doktor->klinik_rolu }}
+                                @endif
+                            </span>
+                        @else
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                                Kliniğe bağlı değil
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label for="klinik_id" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Bağlı Klinik</label>
+                            <select name="klinik_id" id="klinik_id"
+                                class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200 cursor-pointer">
+                                <option value="">— Bağlantıyı kaldır (bireysel) —</option>
+                                @foreach($klinikler as $k)
+                                    <option value="{{ $k->id }}" {{ (string) $selectedKlinikId === (string) $k->id ? 'selected' : '' }}>
+                                        {{ $k->ad }}{{ $k->aktif_mi ? '' : ' (pasif)' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('klinik_id')<p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div id="klinikRoluWrap">
+                            <label for="klinik_rolu" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Klinik Rolü</label>
+                            <select name="klinik_rolu" id="klinik_rolu"
+                                class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200 cursor-pointer">
+                                <option value="doktor" {{ $selectedRolu === 'doktor' ? 'selected' : '' }}>Hekim (standart üye — yetkileri seçin)</option>
+                                <option value="ortak" {{ $selectedRolu === 'ortak' ? 'selected' : '' }}>Ortak / eş-sahip (tüm yetkiler)</option>
+                                <option value="sahip" {{ $selectedRolu === 'sahip' ? 'selected' : '' }}>Klinik sahibi (tüm yetkiler)</option>
+                            </select>
+                            @error('klinik_rolu')<p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>@enderror
+                            <p class="text-[10px] text-[#6B7280] mt-1.5">Sahip seçilirse klinik kaydındaki <code class="text-[10px]">sahip_doktor_id</code> bu hekime güncellenir.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5" id="klinikEkAlanlar">
+                        <div>
+                            <label for="komisyon_orani" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Komisyon Oranı (%)</label>
+                            <input type="number" name="komisyon_orani" id="komisyon_orani" step="0.01" min="0" max="100"
+                                value="{{ old('komisyon_orani', $doktor->komisyon_orani ?? 0) }}"
+                                class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200">
+                            @error('komisyon_orani')<p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-white border border-[#E5E7EB] rounded-xl">
+                            <div>
+                                <span class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display">Klinik içi aktif</span>
+                                <span class="block text-[11px] text-[#6B7280] mt-0.5">Kliniğe bağlı ama pasif tutulabilir</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer select-none">
+                                <input type="checkbox" name="klinik_aktif_mi" value="1"
+                                    {{ old('klinik_aktif_mi', $doktor->klinik_aktif_mi ?? true) ? 'checked' : '' }}
+                                    class="sr-only peer">
+                                <div class="relative w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:bg-[#C96A2B] transition-colors duration-300 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all after:duration-300 peer-checked:after:translate-x-5 shadow-inner"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="klinikYetkilerAlani" class="p-4 rounded-xl border border-[#E5E7EB] bg-white space-y-3 {{ $isOwnerLike ? 'opacity-50 pointer-events-none' : '' }}">
+                        <div>
+                            <span class="block text-xs font-bold text-[#111827] uppercase tracking-wider font-display">Klinik Yetkileri</span>
+                            <p class="text-[10px] text-[#6B7280] mt-0.5">Sadece “Hekim” rolünde geçerlidir. Sahip ve ortak tüm yetkilere sahiptir.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @foreach($yetkiEtiketleri as $kod => [$baslik, $aciklama])
+                                @php
+                                    if (is_array($oldYetkiler)) {
+                                        $checked = ! empty($oldYetkiler[$kod]);
+                                    } elseif (in_array($selectedRolu, ['sahip', 'ortak'], true)) {
+                                        $checked = true;
+                                    } else {
+                                        $checked = is_array($doktor->klinik_yetkileri)
+                                            && ! empty($doktor->klinik_yetkileri[$kod]);
+                                    }
+                                @endphp
+                                <label class="flex items-start gap-3 cursor-pointer select-none p-2.5 rounded-lg hover:bg-slate-50">
+                                    <input type="checkbox" name="klinik_yetkileri[{{ $kod }}]" value="1" {{ $checked ? 'checked' : '' }}
+                                        class="mt-0.5 rounded text-[#C96A2B] focus:ring-[#C96A2B]/20">
+                                    <div>
+                                        <span class="block text-xs font-semibold text-[#111827]">{{ $baslik }}</span>
+                                        <span class="block text-[10px] text-gray-400">{{ $aciklama }}</span>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
 
@@ -316,9 +440,18 @@
                             @foreach($paketler as $p)
                                 <option value="{{ $p->id }}" {{ old('paket_id', $doktor->paket_id) == $p->id ? 'selected' : '' }}>
                                     {{ $p->ad }}
+                                    @if(($p->tur ?? '') === 'klinik')
+                                        · Klinik
+                                    @else
+                                        · Bireysel
+                                    @endif
+                                    @if(! $p->aktif_mi)
+                                        (pasif)
+                                    @endif
                                 </option>
                             @endforeach
                         </select>
+                        <p class="text-[10px] text-[#6B7280] mt-1.5">Kliniğe bağlı hekimde panel özellikleri çoğunlukla <strong>klinik paketinden</strong> okunur; bu alan hekimin kendi aboneliğidir.</p>
                     </div>
                     <div>
                         <label for="odeme_periyodu" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Ödeme Periyodu</label>
@@ -444,6 +577,67 @@
                     klinikAdiWrap.style.display = this.value === 'klinik' ? '' : 'none';
                 });
             }
+
+            // Klinik üyelik alanları göster/gizle + sahip/ortak yetki kilidi
+            const klinikIdSelect = document.getElementById('klinik_id');
+            const klinikRoluSelect = document.getElementById('klinik_rolu');
+            const klinikRoluWrap = document.getElementById('klinikRoluWrap');
+            const klinikEkAlanlar = document.getElementById('klinikEkAlanlar');
+            const klinikYetkilerAlani = document.getElementById('klinikYetkilerAlani');
+            const turSelectForKlinik = document.getElementById('tur');
+
+            function setKlinikFieldsEnabled(enabled) {
+                [klinikRoluWrap, klinikEkAlanlar, klinikYetkilerAlani].forEach(function(el) {
+                    if (!el) return;
+                    el.style.opacity = enabled ? '' : '0.45';
+                    el.style.pointerEvents = enabled ? '' : 'none';
+                });
+            }
+
+            function syncYetkiLock() {
+                if (!klinikYetkilerAlani || !klinikRoluSelect) return;
+                const rol = klinikRoluSelect.value;
+                const ownerLike = (rol === 'sahip' || rol === 'ortak');
+                if (ownerLike) {
+                    klinikYetkilerAlani.classList.add('opacity-50', 'pointer-events-none');
+                    klinikYetkilerAlani.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+                        cb.checked = true;
+                    });
+                } else {
+                    klinikYetkilerAlani.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            }
+
+            function syncKlinikSection() {
+                const hasKlinik = klinikIdSelect && klinikIdSelect.value !== '';
+                setKlinikFieldsEnabled(hasKlinik);
+                if (hasKlinik) {
+                    syncYetkiLock();
+                    // Kliniğe bağlarken hesap türünü klinik etiketine çek (manuel değiştirilebilir)
+                    if (turSelectForKlinik && turSelectForKlinik.value === 'bireysel') {
+                        // Zorlamıyoruz; sadece kullanıcıya görsel ipucu
+                    }
+                }
+            }
+
+            if (klinikIdSelect) {
+                klinikIdSelect.addEventListener('change', function() {
+                    syncKlinikSection();
+                    // Bağlantı kaldırılırsa tur'u bireysel öner
+                    if (!this.value && turSelectForKlinik) {
+                        turSelectForKlinik.value = 'bireysel';
+                        if (klinikAdiWrap) klinikAdiWrap.style.display = 'none';
+                    }
+                    if (this.value && turSelectForKlinik) {
+                        turSelectForKlinik.value = 'klinik';
+                        if (klinikAdiWrap) klinikAdiWrap.style.display = '';
+                    }
+                });
+            }
+            if (klinikRoluSelect) {
+                klinikRoluSelect.addEventListener('change', syncYetkiLock);
+            }
+            syncKlinikSection();
 
             const telefonInput = document.getElementById('telefon');
             if (telefonInput) {

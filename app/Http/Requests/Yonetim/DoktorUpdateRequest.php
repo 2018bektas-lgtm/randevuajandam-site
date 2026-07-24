@@ -7,6 +7,17 @@ use Illuminate\Validation\Rule;
 
 class DoktorUpdateRequest extends FormRequest
 {
+    public const KLINIK_YETKI_ANAHTARLARI = [
+        'yonetim_paneli',
+        'klinik_ayarlari',
+        'hekim_yonetimi',
+        'personel_yonetimi',
+        'finans_yonetimi',
+        'hakedis_yonetimi',
+        'ortak_hasta_havuzu',
+        'duyuru_yonetimi',
+    ];
+
     public function authorize(): bool
     {
         return true;
@@ -15,7 +26,21 @@ class DoktorUpdateRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         // Boş stringleri null yap (nullable + in: kuralları için)
-        $nullable = ['telefon', 'paket_id', 'odeme_periyodu', 'uyelik_baslangic', 'uyelik_bitis', 'sifre', 'unvan', 'klinik_adi', 'il', 'ilce'];
+        $nullable = [
+            'telefon',
+            'paket_id',
+            'odeme_periyodu',
+            'uyelik_baslangic',
+            'uyelik_bitis',
+            'sifre',
+            'unvan',
+            'klinik_adi',
+            'il',
+            'ilce',
+            'klinik_id',
+            'klinik_rolu',
+            'komisyon_orani',
+        ];
         $merge = [];
         foreach ($nullable as $key) {
             if ($this->has($key) && $this->input($key) === '') {
@@ -33,6 +58,7 @@ class DoktorUpdateRequest extends FormRequest
     public function rules(): array
     {
         $id = $this->route('id');
+        $klinikSecili = filled($this->input('klinik_id'));
 
         return [
             'unvan' => ['nullable', 'string', 'max:50'],
@@ -51,6 +77,18 @@ class DoktorUpdateRequest extends FormRequest
             'aktif_mi' => ['nullable', 'boolean'],
             'platformda_gorunur' => ['nullable', 'boolean'],
             'sifre' => ['nullable', 'string', 'min:8'],
+
+            // Klinik üyelik (yönetim paneli tam kontrol)
+            'klinik_id' => ['nullable', 'exists:klinikler,id'],
+            'klinik_rolu' => [
+                Rule::requiredIf($klinikSecili),
+                'nullable',
+                'in:doktor,ortak,sahip',
+            ],
+            'klinik_aktif_mi' => ['nullable', 'boolean'],
+            'komisyon_orani' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'klinik_yetkileri' => ['nullable', 'array'],
+            'klinik_yetkileri.*' => ['nullable'],
         ];
     }
 
@@ -70,6 +108,12 @@ class DoktorUpdateRequest extends FormRequest
             'odeme_periyodu.in' => 'Ödeme periyodu aylık, yıllık veya deneme olmalıdır.',
             'uyelik_bitis.after_or_equal' => 'Üyelik bitiş tarihi başlangıç tarihinden önce olamaz.',
             'sifre.min' => 'Şifre en az 8 karakter olmalıdır.',
+            'klinik_id.exists' => 'Seçilen klinik geçersizdir.',
+            'klinik_rolu.required' => 'Kliniğe bağlarken klinik rolü seçmelisiniz.',
+            'klinik_rolu.in' => 'Klinik rolü hekim, ortak veya sahip olmalıdır.',
+            'komisyon_orani.numeric' => 'Komisyon oranı sayısal olmalıdır.',
+            'komisyon_orani.min' => 'Komisyon oranı 0\'dan küçük olamaz.',
+            'komisyon_orani.max' => 'Komisyon oranı 100\'den büyük olamaz.',
         ];
     }
 }

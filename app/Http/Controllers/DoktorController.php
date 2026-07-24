@@ -9,6 +9,7 @@ use App\Models\DoktorMezuniyetBelgesi;
 use App\Models\EdevletDogrulamaLog;
 use App\Models\Il;
 use App\Models\Ilce;
+use App\Models\Klinik;
 use App\Models\Paket;
 use App\Models\UyelikOdeme;
 use App\Models\Yonetici;
@@ -206,7 +207,7 @@ class DoktorController extends Controller
     {
         /** @var Yonetici $yonetici */
         $yonetici = Auth::guard('yonetici')->user();
-        $doktor = Doktor::with('il', 'ilce', 'paket')->findOrFail($id);
+        $doktor = Doktor::with('il', 'ilce', 'paket', 'klinik')->findOrFail($id);
         // Aktif paketler + hekimin mevcut (pasif olsa bile) paketi kaybolmasın
         $paketler = Paket::query()
             ->where(function ($q) use ($doktor) {
@@ -219,7 +220,19 @@ class DoktorController extends Controller
             ->orderBy('ad')
             ->get();
 
-        return view('yonetim.doktorlar.duzenle', compact('yonetici', 'doktor', 'paketler'));
+        $klinikler = Klinik::query()
+            ->orderBy('ad')
+            ->get(['id', 'ad', 'aktif_mi', 'sahip_doktor_id']);
+
+        $klinikYetkiAnahtarlari = DoktorUpdateRequest::KLINIK_YETKI_ANAHTARLARI;
+
+        return view('yonetim.doktorlar.duzenle', compact(
+            'yonetici',
+            'doktor',
+            'paketler',
+            'klinikler',
+            'klinikYetkiAnahtarlari'
+        ));
     }
 
     /**
@@ -236,7 +249,6 @@ class DoktorController extends Controller
             ? Ilce::where('il_id', $ilModel->id)->where('ad', $request->ilce)->first()
             : null;
 
-        // Klinik hekimin türünü zorla bireysel yapma
         $tur = $request->input('tur', $doktor->tur);
         if (! in_array($tur, ['bireysel', 'klinik'], true)) {
             $tur = $doktor->tur ?: 'bireysel';
@@ -268,11 +280,111 @@ class DoktorController extends Controller
             $data['sifre'] = Hash::make($request->sifre);
         }
 
+        $eskiKlinikId = $doktor->klinik_id;
+        $data = array_merge($data, $this->resolveKlinikUyelikData($request, $doktor));
+
         $doktor->update($data);
+
+        $this->syncKlinikSahip($doktor->fresh(), $eskiKlinikId);
 
         return redirect()
             ->route('yonetim.doktorlar.duzenle', $doktor->id)
             ->with('basarili', 'Doktor bilgileri başarıyla güncellendi.');
+    }
+
+    /**
+     * Yönetim paneli: klinik bağlantısı / rol / yetki / komisyon.
+     *
+     * @return array<string, mixed>
+     */
+    private function resolveKlinikUyelikData(DoktorUpdateRequest $request, Doktor $doktor): array
+    {
+        $klinikId = $request->input('klinik_id');
+
+        if (! $klinikId) {
+            return [
+                'klinik_id' => null,
+                'klinik_rolu' => null,
+                'klinik_yetkileri' => null,
+                'klinik_aktif_mi' => null,
+                'klinik_katilma_tarihi' => null,
+                // DB: komisyon_orani NOT NULL default 0
+                'komisyon_orani' => 0,
+            ];
+        }
+
+        $rol = $request->input('klinik_rolu', 'doktor');
+        if (! in_array($rol, ['doktor', 'ortak', 'sahip'], true)) {
+            $rol = 'doktor';
+        }
+
+        $yetkiler = $this->buildKlinikYetkileri($request, $rol);
+
+        $data = [
+            'klinik_id' => (int) $klinikId,
+            'klinik_rolu' => $rol,
+            'klinik_yetkileri' => $yetkiler,
+            'klinik_aktif_mi' => $request->boolean('klinik_aktif_mi'),
+            'komisyon_orani' => $request->input('komisyon_orani', 0),
+        ];
+
+        // Yeni kliniğe bağlanıyorsa katılma tarihini yenile
+        if ((int) $doktor->klinik_id !== (int) $klinikId || ! $doktor->klinik_katilma_tarihi) {
+            $data['klinik_katilma_tarihi'] = now();
+        }
+
+        return $data;
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private function buildKlinikYetkileri(DoktorUpdateRequest $request, string $rol): array
+    {
+        $anahtarlar = DoktorUpdateRequest::KLINIK_YETKI_ANAHTARLARI;
+
+        if (in_array($rol, ['sahip', 'ortak'], true)) {
+            return array_fill_keys($anahtarlar, true);
+        }
+
+        $input = $request->input('klinik_yetkileri', []);
+        $yetkiler = [];
+        foreach ($anahtarlar as $key) {
+            $yetkiler[$key] = ! empty($input[$key]);
+        }
+
+        return $yetkiler;
+    }
+
+    /**
+     * Sahip rolü atandıysa klinik.sahip_doktor_id senkronize et.
+     * sahip_doktor_id NOT NULL olduğu için ayrılmada null yazılmaz; mümkünse başka üyeye devredilir.
+     */
+    private function syncKlinikSahip(Doktor $doktor, ?int $eskiKlinikId): void
+    {
+        if ($doktor->klinik_id && $doktor->klinik_rolu === 'sahip') {
+            Klinik::where('id', $doktor->klinik_id)->update([
+                'sahip_doktor_id' => $doktor->id,
+            ]);
+        }
+
+        // Eski klinikten ayrıldıysa ve o kliniğin sahibi kendisiyse: kalan bir üyeye devret
+        if ($eskiKlinikId && (int) $eskiKlinikId !== (int) ($doktor->klinik_id ?? 0)) {
+            $klinik = Klinik::find($eskiKlinikId);
+            if ($klinik && (int) $klinik->sahip_doktor_id === (int) $doktor->id) {
+                $yeniSahipId = Doktor::query()
+                    ->where('klinik_id', $eskiKlinikId)
+                    ->where('id', '!=', $doktor->id)
+                    ->orderByRaw("CASE WHEN klinik_rolu = 'sahip' THEN 0 WHEN klinik_rolu = 'ortak' THEN 1 ELSE 2 END")
+                    ->value('id');
+
+                if ($yeniSahipId) {
+                    $klinik->update(['sahip_doktor_id' => $yeniSahipId]);
+                    Doktor::where('id', $yeniSahipId)->update(['klinik_rolu' => 'sahip']);
+                }
+                // Kalan üye yoksa sahip_doktor_id (NOT NULL) olduğu gibi bırakılır.
+            }
+        }
     }
 
     /**
