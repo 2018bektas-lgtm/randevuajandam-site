@@ -194,14 +194,6 @@ class BransSeeder extends Seeder
             ['ad' => 'Ergoterapi', 'aciklama' => 'Günlük yaşam aktivitelerine yönelik fonksiyonel rehabilitasyon ve destek.'],
             ['ad' => 'Dil ve Konuşma Terapisi', 'aciklama' => 'Konuşma bozuklukları, dil gelişim geriliği ve yutma sorularının tedavisi.'],
             ['ad' => 'Odyoloji (Dil, Konuşma ve Ses Bozuklukları)', 'aciklama' => 'İşitme kaybı, tinnitus ve ses bozukluklarının tanı ve rehabilitasyonu.'],
-
-            // ——— Tamamlayıcı tıp ———
-            ['ad' => 'Akupunktur', 'aciklama' => 'Geleneksel Çin tıbbına dayalı akupunktur tedavisi; ağrı ve kronik hastalıklarda uygulanır.'],
-            ['ad' => 'Ozon Terapi', 'aciklama' => 'Tıbbi ozon gazının uygulanmasıyla yapılan tedavi yöntemi.'],
-            ['ad' => 'Mezoterapi', 'aciklama' => 'Deri altı mikroenjeksiyonla uygulanan ağrı, selülit ve saç dökülmesi tedavileri.'],
-            ['ad' => 'Fitoterapi', 'aciklama' => 'Bitkisel kaynaklı ilaç ve ürünlerin terapötik kullanımı.'],
-            ['ad' => 'Proloterapi', 'aciklama' => 'Kronik kas-iskelet ağrısında bağ doku iyileşmesini uyaran enjeksiyon tedavisi.'],
-
             // ——— Medikal estetik ———
             ['ad' => 'Sertifikalı Medikal Estetik', 'aciklama' => 'Medikal estetik sertifikasına sahip hekimler tarafından uygulanan estetik işlemler.', 'aliases' => ['Estetik ve Kozmetik Uygulamalar', 'Saç Ekimi ve Medikal Estetik']],
         ];
