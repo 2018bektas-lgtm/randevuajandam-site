@@ -218,9 +218,9 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     // Success page
     Route::get('/hekim/basarili', [PaketController::class, 'basarili'])->name('frontend.hekim.basarili');
 
-    // Clinic Upgrade
-    Route::get('/hekim/klinik/gecis', [PaketController::class, 'gecisFormu'])->name('frontend.hekim.klinik.gecis');
-    Route::post('/hekim/klinik/gecis', [PaketController::class, 'gecisYap'])->name('frontend.hekim.klinik.gecis.post');
+    // Clinic Upgrade — devre dışı: klinik geçişi yalnızca admin panelinden yapılabilir
+    Route::get('/hekim/klinik/gecis', fn () => abort(403, 'Klinik geçişi yalnızca yönetici tarafından yapılabilir.'))->name('frontend.hekim.klinik.gecis');
+    Route::post('/hekim/klinik/gecis', fn () => abort(403, 'Klinik geçişi yalnızca yönetici tarafından yapılabilir.'))->name('frontend.hekim.klinik.gecis.post');
 
     // Doctor Dashboard
     Route::get('/hekim/panel', [HekimController::class, 'panel'])->name('hekim.panel');

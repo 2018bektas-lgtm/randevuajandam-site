@@ -75,9 +75,7 @@
             'icon' => 'M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3',
             'items' => array_values(array_filter([
                 ['href' => $hasWebSitesi ? route('hekim.web-sitesi.kurulum') : $paketYukseltUrl, 'match' => 'hekim.web-sitesi.*', 'label' => 'Kisisel Web Sitem', 'locked' => ! $hasWebSitesi],
-                $doktorUser && $doktorUser->bireyselMi()
-                    ? ['href' => route('frontend.hekim.klinik.gecis'), 'match' => 'frontend.hekim.klinik.gecis', 'label' => 'Klinik Yonetimine Gec']
-                    : null,
+                // Klinik geçişi yalnızca yönetici tarafından yapılabilir — hekim sidebar'dan kaldırıldı
                 ['href' => route('hekim.uyelik'), 'match' => 'hekim.uyelik*', 'label' => 'Uyelik / Abonelik'],
                 ['href' => route('hekim.referans'), 'match' => 'hekim.referans*', 'label' => 'Referans programi'],
                 ['href' => route('hekim.profil'), 'match' => 'hekim.profil', 'label' => 'Profil'],
