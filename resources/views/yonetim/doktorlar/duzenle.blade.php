@@ -234,8 +234,22 @@
             <form action="{{ route('yonetim.doktorlar.update', $doktor->id) }}" method="POST" class="space-y-6" id="doktorDuzenleForm">
                 @csrf
 
-                <input type="hidden" name="tur" value="{{ old('tur', $doktor->tur === 'klinik' ? 'klinik' : 'bireysel') }}">
-                <input type="hidden" name="klinik_adi" value="{{ old('klinik_adi', $doktor->klinik_adi) }}">
+                <!-- Hesap Türü -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 bg-slate-50/40 border border-[#E5E7EB] rounded-xl">
+                    <div>
+                        <label for="tur" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Hesap Türü</label>
+                        <select name="tur" id="tur"
+                            class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200 cursor-pointer">
+                            <option value="bireysel" {{ old('tur', $doktor->tur) === 'bireysel' ? 'selected' : '' }}>Tek Hekim (Bireysel)</option>
+                            <option value="klinik" {{ old('tur', $doktor->tur) === 'klinik' ? 'selected' : '' }}>Klinik</option>
+                        </select>
+                    </div>
+                    <div id="klinikAdiWrap" style="{{ old('tur', $doktor->tur) === 'klinik' ? '' : 'display:none' }}">
+                        <label for="klinik_adi" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Klinik Adı</label>
+                        <input type="text" name="klinik_adi" id="klinik_adi" value="{{ old('klinik_adi', $doktor->klinik_adi) }}" placeholder="Klinik adını girin"
+                            class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200">
+                    </div>
+                </div>
 
                 <!-- Unvan & Ad Soyad -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -423,6 +437,14 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            const turSelect = document.getElementById('tur');
+            const klinikAdiWrap = document.getElementById('klinikAdiWrap');
+            if (turSelect && klinikAdiWrap) {
+                turSelect.addEventListener('change', function() {
+                    klinikAdiWrap.style.display = this.value === 'klinik' ? '' : 'none';
+                });
+            }
+
             const telefonInput = document.getElementById('telefon');
             if (telefonInput) {
                 telefonInput.value = formatTurkishPhoneNumber(telefonInput.value);
