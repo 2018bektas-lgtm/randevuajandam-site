@@ -6,7 +6,7 @@
 @section('icerik')
 <div class="mb-6">
     <h2 class="text-xl font-bold font-display text-[#111827]">Meslek belgesi inceleme</h2>
-    <p class="text-xs text-slate-500 mt-1">Otomatik onaya düşmeyen veya beklemede kalan kayıtlar. Her belgede TC, ad, program ve yüklenen dosyalar yan yana.</p>
+    <p class="text-xs text-slate-500 mt-1">Hekim kayıt olurken yüklediği belgeler burada incelenir. Sistem otomatik onay vermez; siz onayladıktan sonra hekim ödemeye geçebilir.</p>
 </div>
 
 @if(session('basarili'))

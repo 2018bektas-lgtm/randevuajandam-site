@@ -173,7 +173,7 @@ php artisan queue:work --sleep=3 --tries=3
 ### e-Devlet
 
 ```env
-EDEVLET_AUTO_VERIFY=true
+EDEVLET_AUTO_VERIFY=false
 ```
 
 Admin: `/yonetim/edevlet-loglari`, meslek kuyruğu.

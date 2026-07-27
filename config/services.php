@@ -74,7 +74,8 @@ return [
     | e-Devlet barkodlu mezun belgesi otomatik doğrulama (resmi API yok; form otomasyonu)
     */
     'edevlet' => [
-        'auto_verify' => filter_var(env('EDEVLET_AUTO_VERIFY', true), FILTER_VALIDATE_BOOLEAN),
+        // Ürün kararı: otomatik e-Devlet kapalı; hekim belge yükler, yönetici onaylar.
+        'auto_verify' => filter_var(env('EDEVLET_AUTO_VERIFY', false), FILTER_VALIDATE_BOOLEAN),
         'timeout' => (int) env('EDEVLET_TIMEOUT', 28),
         'retry' => (int) env('EDEVLET_RETRY', 2),
         'ad_esik' => (float) env('EDEVLET_AD_ESIK', 0.85),

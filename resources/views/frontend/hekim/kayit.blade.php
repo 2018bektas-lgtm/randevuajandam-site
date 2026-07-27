@@ -398,46 +398,46 @@
                 </h3>
 
                 <div class="rounded-2xl border border-[#E7B58A]/40 bg-[#FFF7ED] px-4 py-3.5 text-[11px] text-[#78350F] leading-relaxed space-y-2">
-                    <p class="font-bold text-[#9A3412]">Birden fazla belge yükleyin</p>
+                    <p class="font-bold text-[#9A3412]">Belgelerinizi yükleyin — yönetici onaylar</p>
                     <ul class="list-disc pl-4 space-y-1.5">
-                        <li><strong>Tüm mezuniyet belgelerinizi</strong> yükleyin: lisans, yüksek lisans, uzmanlık, YÖK mezun belgesi vb. (en fazla 8 dosya).</li>
-                        <li><strong>Her belge ayrı ayrı</strong> aynı işlemlerden geçer: e-Devlet doğrulama → TC eşleşmesi → ad soyad eşleşmesi → branş/meslek listesi kontrolü.</li>
-                        <li>İsterseniz her belge için barkodları da yazın (satır satır veya virgülle). PDF içinde barkod varsa otomatik okunur.</li>
-                        <li><strong>En az bir belge</strong> TC + ad + program olarak tam uyarsa otomatik onay verilir; diğer belgeler de kayda eklenir.</li>
-                        <li>Hiçbiri tam uymasa bile devam edebilirsiniz → durum <em>«Talebiniz inceleniyor»</em>.</li>
+                        <li><strong>Tüm mezuniyet / meslek belgelerinizi</strong> yükleyin: diploma, YÖK mezun belgesi, uzmanlık belgesi vb. (en fazla 8 dosya).</li>
+                        <li>Sistem otomatik doğrulama yapmaz. Kaydınız <strong>hemen oluşur</strong>; belgeleriniz <strong>yönetici onay kuyruğuna</strong> düşer.</li>
+                        <li>Onaylandıktan sonra seçtiğiniz paket için ödemeye geçebilirsiniz.</li>
+                        <li>İsteğe bağlı: e-Devlet barkodu ve diploma/tescil no yazabilirsiniz (yönetici incelemesini kolaylaştırır).</li>
                     </ul>
                     <p class="text-[10px] text-[#92400E] pt-1">
                         <a href="https://www.turkiye.gov.tr/yuksekogretim-mezun-belgesi-sorgulama" target="_blank" rel="noopener" class="font-bold underline text-[#C96A2B]">YÖK mezun belgesi al</a>
-                        ·
-                        <a href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener" class="font-bold underline text-[#C96A2B]">Barkod doğrulama</a>
                     </p>
                 </div>
 
                 <div>
-                    <label for="edevlet_barkod" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">e-Devlet barkod(lar)</label>
+                    <label for="edevlet_barkod" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">e-Devlet barkod(lar) <span class="normal-case font-medium text-[#9CA3AF]">(isteğe bağlı)</span></label>
                     <textarea name="edevlet_barkod" id="edevlet_barkod" rows="2" placeholder="Her satıra bir barkod&#10;YOKME…&#10;YOKME…"
                         class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all font-mono uppercase">{{ old('edevlet_barkod') }}</textarea>
-                    <p class="mt-1 text-[10px] text-[#9CA3AF]">Birden fazla barkod: satır satır veya virgülle. Sıra, yüklediğiniz dosya sırasıyla eşleştirilir; fazlası ayrı doğrulanır.</p>
+                    <p class="mt-1 text-[10px] text-[#9CA3AF]">Birden fazla barkod: satır satır veya virgülle. Yönetici incelemesi için yardımcı olur; otomatik doğrulama yapılmaz.</p>
                     @error('edevlet_barkod')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
-                    <label for="mezuniyet_belgeleri" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Mezuniyet belgeleri (çoklu seçim)</label>
+                    <label for="mezuniyet_belgeleri" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Mezuniyet / meslek belgeleri (zorunlu)</label>
                     <input type="file" name="mezuniyet_belgeleri[]" id="mezuniyet_belgeleri" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" multiple
                         class="w-full text-xs text-[#4B5563] file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#FFF7ED] file:text-[#C96A2B] file:font-bold file:text-[11px]">
-                    <p class="mt-1.5 text-[10px] text-[#9CA3AF]">Ctrl/Cmd ile birden fazla dosya seçin · PDF/JPG/PNG · dosya başı en fazla 5 MB · en fazla 8 belge. Her dosya tek tek doğrulanır.</p>
+                    <p class="mt-1.5 text-[10px] text-[#9CA3AF]">Ctrl/Cmd ile birden fazla dosya · PDF/JPG/PNG · dosya başı en fazla 5 MB · en fazla 8 belge</p>
                     <p id="mezuniyetDosyaListesi" class="mt-2 text-[11px] text-slate-600 space-y-0.5"></p>
                     @error('mezuniyet_belgeleri')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
                     @error('mezuniyet_belgeleri.*')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
                 </div>
 
-                <input type="hidden" name="diploma_no" id="diploma_no" value="{{ old('diploma_no') }}">
-                {{-- geriye uyum gizli alan --}}
-                <input type="hidden" name="meslek_belgesi" id="meslek_belgesi_legacy" value="">
+                <div>
+                    <label for="diploma_no_visible" class="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-2 font-display">Diploma / tescil no <span class="normal-case font-medium text-[#9CA3AF]">(isteğe bağlı)</span></label>
+                    <input type="text" name="diploma_no" id="diploma_no" value="{{ old('diploma_no') }}" placeholder="Diploma veya tescil numarası"
+                        class="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                    @error('diploma_no')<p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>@enderror
+                </div>
 
                 <button type="button" id="btnMezuniyetDogrula"
                         class="w-full py-3 rounded-xl border-2 border-[#C96A2B] text-[#C96A2B] hover:bg-[#FFF7ED] font-bold text-xs uppercase tracking-wider">
-                    Tüm belgeleri doğrula (her biri ayrı)
+                    Belgeleri yükle ve kayda hazırla
                 </button>
                 <p id="mezuniyetDogrulaStatus" class="text-[11px] text-slate-500"></p>
 
@@ -457,7 +457,7 @@
             <!-- ADIM 3: MESLEKİ BİLGİLER -->
             <div id="step3" class="wizard-step hidden-step space-y-6">
                 <h3 class="text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display pb-2 border-b border-[#E5E7EB]">
-                    3. Mesleki bilgiler (otomatik doldurulabilir)
+                    3. Mesleki bilgiler
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -751,55 +751,35 @@
 
     function goToMeslekStep() {
         if (!mezuniyetVerified) {
-            const barkod = (document.getElementById('edevlet_barkod')?.value || '').trim();
             const files = document.getElementById('mezuniyet_belgeleri')?.files;
-            if (!barkod && !(files && files.length)) {
-                alert('Devam etmeden önce en az bir mezuniyet belgesi yükleyin veya barkod girip “Tüm belgeleri doğrula”ya basın.');
+            if (!(files && files.length)) {
+                alert('Devam etmeden önce en az bir mezuniyet / meslek belgesi seçip «Belgeleri yükle ve kayda hazırla»ya basın.');
                 return;
             }
-            if (!confirm('Doğrulama yapılmadan devam ederseniz kaydınız «Talebiniz inceleniyor» durumunda kalır. Yine de devam?')) {
-                return;
-            }
+            alert('Önce «Belgeleri yükle ve kayda hazırla» ile belgelerinizi kayda ekleyin.');
+            return;
         }
         nextStep(3);
     }
 
     function renderOneBelgeCard(p, index) {
-        const auto = !!p.auto_onay_uygun;
-        const badge = auto
-            ? '<span class="inline-flex px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">Otomatik onay uygun</span>'
-            : '<span class="inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-extrabold uppercase">İncelenecek</span>';
-        const ad = p.ad_soyad_belge || 'Ad okunamadı';
-        const program = p.program || '—';
+        const badge = '<span class="inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-extrabold uppercase">Yönetici onayı bekliyor</span>';
+        const ad = p.ad_soyad_belge || 'Yüklendi';
         const detay = [
             p.diploma_no ? 'Dip: ' + p.diploma_no : null,
-            p.mezuniyet_tarihi || null,
             p.barkod ? 'Barkod: ' + p.barkod : null
         ].filter(Boolean).join(' · ');
         const dosya = p.dosya_adi ? `<p class="text-[10px] text-slate-500 font-mono">${p.dosya_adi}</p>` : '';
-        let kontrollerHtml = '';
-        (p.kontroller || []).forEach(k => {
-            const icon = k.ok ? '✓' : '!';
-            const color = k.ok ? 'text-emerald-600' : 'text-amber-600';
-            kontrollerHtml += `<div class="flex gap-1.5 text-[11px]"><span class="${color} font-bold">${icon}</span><span><strong>${k.label || ''}</strong> — ${k.detay || ''}</span></div>`;
-        });
-        let nedenHtml = '';
-        if ((p.nedenler || []).length) {
-            nedenHtml = '<ul class="text-[11px] text-slate-600 space-y-0.5 pt-1 border-t border-black/5">' +
-                p.nedenler.map(n => `<li>• ${n}</li>`).join('') + '</ul>';
-        }
         return `
-            <div class="rounded-2xl border p-4 space-y-2 text-xs ${auto ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'}">
+            <div class="rounded-2xl border p-4 space-y-2 text-xs border-amber-200 bg-amber-50/70">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-600">Belge ${index + 1}</p>
                     ${badge}
                 </div>
                 ${dosya}
                 <p class="font-bold text-[#111827]">${ad}</p>
-                <p class="text-slate-700">${program}</p>
-                <p class="text-slate-500 text-[11px]">${detay}</p>
-                <div class="space-y-1">${kontrollerHtml}</div>
-                ${nedenHtml}
+                <p class="text-slate-500 text-[11px]">${detay || 'Dosya kayda eklendi'}</p>
+                <p class="text-[11px] text-amber-800">Kayıt sonrası yönetici onaylayacaktır.</p>
             </div>`;
     }
 
@@ -862,8 +842,8 @@
             alert('Önce 1. adımda ad soyad ve 11 haneli T.C. kimlik numaranızı girin.');
             return;
         }
-        if (!barkod.trim() && !(fileInput?.files?.length)) {
-            alert('En az bir mezuniyet belgesi seçin veya barkod girin.');
+        if (!(fileInput?.files?.length)) {
+            alert('En az bir mezuniyet / meslek belgesi seçin (PDF veya görsel).');
             return;
         }
 
@@ -874,17 +854,15 @@
             fd.append('edevlet_barkod', barkod.trim());
             fd.append('edevlet_barkodlar', barkod.trim());
         }
-        if (fileInput?.files?.length) {
-            Array.from(fileInput.files).forEach(f => fd.append('mezuniyet_belgeleri[]', f));
-        }
+        Array.from(fileInput.files).forEach(f => fd.append('mezuniyet_belgeleri[]', f));
         fd.append('_token', document.querySelector('input[name="_token"]')?.value || '');
 
         btn.disabled = true;
-        const n = fileInput?.files?.length || 0;
+        const n = fileInput.files.length;
         if (statusEl) {
             statusEl.textContent = n > 1
-                ? `${n} belge tek tek doğrulanıyor… Her belge için e-Devlet sorgusu yapılabilir (1–2 dk sürebilir).`
-                : 'Belge doğrulanıyor… 10–30 saniye sürebilir.';
+                ? `${n} belge yükleniyor…`
+                : 'Belge yükleniyor…';
             statusEl.className = 'text-[11px] text-slate-500';
         }
 
@@ -897,7 +875,7 @@
             });
             const data = await res.json();
             if (!res.ok || !data.ok) {
-                throw new Error(data.error || data.message || 'Doğrulama başarısız');
+                throw new Error(data.error || data.message || 'Belge yükleme başarısız');
             }
             mezuniyetVerified = true;
             const items = data.items || (data.payload ? [data.payload] : []);
@@ -908,26 +886,17 @@
             const ozetEl = document.getElementById('mezuniyetSonucOzet');
             if (ozetEl) {
                 ozetEl.classList.remove('hidden');
-                const auto = !!data.auto_onay_uygun;
-                ozetEl.className = 'rounded-2xl border p-4 text-xs space-y-1 ' + (auto
-                    ? 'border-emerald-300 bg-emerald-50'
-                    : 'border-amber-300 bg-amber-50');
+                ozetEl.className = 'rounded-2xl border p-4 text-xs space-y-1 border-amber-300 bg-amber-50';
                 ozetEl.innerHTML = `
-                    <p class="font-bold text-sm ${auto ? 'text-emerald-900' : 'text-amber-900'}">
-                        ${auto ? 'Özet: Otomatik onay uygun' : 'Özet: Talebiniz incelenecek'}
-                    </p>
+                    <p class="font-bold text-sm text-amber-900">Belgeler yüklendi — yönetici onayı bekleniyor</p>
                     <p class="text-slate-700">${data.ozet || ''}</p>
-                    <p class="text-[11px] text-slate-600">${data.adet || items.length} belge işlendi · ${data.basarili_adet || 0} belge otomatik onaya uygun</p>
-                    ${data.uyari ? `<p class="text-amber-800 text-[11px]">${data.uyari}</p>` : ''}
-                    <p class="text-[10px] text-slate-500 pt-1">${auto
-                        ? 'Kaydı tamamlayınca ödemeye geçebilirsiniz. Tüm belgeler profilinize işlenir.'
-                        : '«Devam Et» ile kaydı tamamlayın. Her belge ayrı incelenir; ekibimiz bilgilendirir.'}</p>
+                    <p class="text-[11px] text-slate-600">${data.adet || items.length} belge kayda eklenecek</p>
+                    <p class="text-[10px] text-slate-500 pt-1">«Devam Et» ile kaydı tamamlayın. Onay sonrası paket ödemesine geçersiniz.</p>
                 `;
             }
-            applyAutoFillFromItems(items);
             if (statusEl) {
-                statusEl.textContent = data.ozet || 'Doğrulama tamam.';
-                statusEl.className = 'text-[11px] font-semibold ' + (data.auto_onay_uygun ? 'text-emerald-700' : 'text-amber-800');
+                statusEl.textContent = data.ozet || 'Belgeler yüklendi.';
+                statusEl.className = 'text-[11px] font-semibold text-amber-800';
             }
         } catch (e) {
             mezuniyetVerified = false;
@@ -935,7 +904,7 @@
                 statusEl.textContent = e.message || 'Hata';
                 statusEl.className = 'text-[11px] text-red-600 font-semibold';
             }
-            alert((e.message || 'Doğrulama başarısız') + '\n\nBelgeleri yükleyip kayda devam edebilirsiniz; talebiniz incelenir.');
+            alert(e.message || 'Belge yükleme başarısız');
         } finally {
             btn.disabled = false;
         }

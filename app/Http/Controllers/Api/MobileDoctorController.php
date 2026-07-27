@@ -164,6 +164,9 @@ class MobileDoctorController extends Controller
             'biyografi' => ['nullable', 'string', 'max:5000'],
             'device' => ['nullable', 'string', 'max:120'],
             'referans_kodu' => ['nullable', 'string', 'max:16'],
+            'meslek_belgesi' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'mezuniyet_belgeleri' => ['nullable', 'array', 'max:8'],
+            'mezuniyet_belgeleri.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
             'e_posta.unique' => 'Bu e-posta adresi zaten kayıtlı.',
             'sifre.confirmed' => 'Şifre tekrarı uyuşmuyor.',
@@ -174,6 +177,10 @@ class MobileDoctorController extends Controller
             'tc_kimlik_no.unique' => 'Bu T.C. kimlik numarası ile kayıtlı bir hekim zaten var.',
             'kvkk_onay.accepted' => 'KVKK metnini kabul etmelisiniz.',
             'sozlesme_onay.accepted' => 'Kullanım koşullarını kabul etmelisiniz.',
+            'meslek_belgesi.mimes' => 'Belge PDF, JPG veya PNG olmalıdır.',
+            'meslek_belgesi.max' => 'Belge en fazla 5 MB olabilir.',
+            'mezuniyet_belgeleri.*.mimes' => 'Her belge PDF, JPG veya PNG olmalıdır.',
+            'mezuniyet_belgeleri.*.max' => 'Her belge en fazla 5 MB olabilir.',
         ]);
 
         $tc = preg_replace('/\D/', '', (string) $data['tc_kimlik_no']) ?? '';
@@ -185,10 +192,30 @@ class MobileDoctorController extends Controller
             ? strtoupper(trim((string) $data['edevlet_barkod']))
             : null;
         $diplomaNo = ! empty($data['diploma_no']) ? trim((string) $data['diploma_no']) : null;
-        if (! $barkod && ! $diplomaNo) {
+
+        $belgeFiles = [];
+        if ($request->hasFile('mezuniyet_belgeleri')) {
+            foreach ($request->file('mezuniyet_belgeleri') as $f) {
+                if ($f) {
+                    $belgeFiles[] = $f;
+                }
+            }
+        }
+        if ($request->hasFile('meslek_belgesi')) {
+            $belgeFiles[] = $request->file('meslek_belgesi');
+        }
+
+        // Otomatik e-Devlet yok: en az bir belge (veya diploma/barkod + belge tercih)
+        if ($belgeFiles === [] && ! $diplomaNo && ! $barkod) {
             return response()->json([
                 'success' => false,
-                'message' => 'Diploma / tescil no veya e-Devlet barkodu zorunludur.',
+                'message' => 'En az bir mezuniyet / meslek belgesi yükleyin veya diploma / tescil no girin. Belgeleriniz yönetici onayına gidecektir.',
+            ], 422);
+        }
+        if ($belgeFiles === []) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Meslek belgesi (PDF veya fotoğraf) yüklemeniz zorunludur. Kaydınız yönetici onayına düşecektir.',
             ], 422);
         }
 
@@ -198,30 +225,15 @@ class MobileDoctorController extends Controller
         $bransIsimleri = \App\Models\Brans::whereIn('id', $data['branslar'])->pluck('ad')->toArray();
         $mezuniyet = array_values(array_filter($data['mezuniyet'] ?? [], fn ($v) => $v !== null && trim((string) $v) !== ''));
 
-        // e-Devlet barkod ile otomatik doğrulama denemesi (site mezuniyet akışına benzer, sade)
+        // Her zaman yönetici onayı — sistem otomatik doğrulamaz
         $meslekDurum = 'beklemede';
-        $meslekNot = null;
-        $meslekOnayAt = null;
-        if ($barkod && class_exists(\App\Services\Edevlet\BelgeDogrulamaService::class)) {
-            try {
-                $edevlet = app(\App\Services\Edevlet\BelgeDogrulamaService::class);
-                if (method_exists($edevlet, 'dogrulaMezunBelgesi')) {
-                    $result = $edevlet->dogrulaMezunBelgesi($barkod, $tc, $request->ip());
-                    if (is_array($result) && ! empty($result['ok'])) {
-                        $meslekDurum = 'onaylandi';
-                        $meslekNot = 'otomatik:edevlet-mobil';
-                        $meslekOnayAt = now();
-                        if (empty($diplomaNo) && ! empty($result['diploma_no'])) {
-                            $diplomaNo = (string) $result['diploma_no'];
-                        }
-                    } else {
-                        $meslekNot = is_array($result) ? ($result['message'] ?? 'inceleme') : 'inceleme';
-                    }
-                }
-            } catch (\Throwable $e) {
-                $meslekNot = 'edevlet:'.$e->getMessage();
-            }
+        $meslekNot = 'manuel_yukleme:mobil;'.count($belgeFiles).' belge; yonetici onayi bekleniyor';
+        $belgeRel = null;
+        $storedPaths = [];
+        foreach ($belgeFiles as $file) {
+            $storedPaths[] = $file->store('private/mezuniyet-yukleme', 'local');
         }
+        $belgeRel = $storedPaths[0] ?? null;
 
         $doktor = \Illuminate\Support\Facades\DB::transaction(function () use (
             $data,
@@ -234,7 +246,8 @@ class MobileDoctorController extends Controller
             $barkod,
             $meslekDurum,
             $meslekNot,
-            $meslekOnayAt
+            $belgeRel,
+            $storedPaths
         ) {
             $doktor = Doktor::create([
                 'ad_soyad' => $data['ad_soyad'],
@@ -244,9 +257,10 @@ class MobileDoctorController extends Controller
                 'tc_kimlik_no' => $tc,
                 'diploma_no' => $diplomaNo,
                 'edevlet_barkod' => $barkod,
+                'meslek_belge_yolu' => $belgeRel,
                 'meslek_dogrulama_durumu' => $meslekDurum,
                 'meslek_dogrulama_notu' => $meslekNot ? \Illuminate\Support\Str::limit((string) $meslekNot, 500) : null,
-                'meslek_dogrulandi_at' => $meslekOnayAt,
+                'meslek_dogrulandi_at' => null,
                 'il_id' => $data['il_id'],
                 'ilce_id' => $data['ilce_id'],
                 'unvan' => $data['unvan'],
@@ -263,6 +277,22 @@ class MobileDoctorController extends Controller
                 'platformda_gorunur' => false,
             ]);
             $doktor->branslar()->attach($data['branslar']);
+
+            if (class_exists(\App\Models\DoktorMezuniyetBelgesi::class)) {
+                foreach ($storedPaths as $path) {
+                    \App\Models\DoktorMezuniyetBelgesi::create([
+                        'doktor_id' => $doktor->id,
+                        'barkod' => $barkod,
+                        'tc_kimlik_no' => $tc,
+                        'ad_soyad_belge' => $data['ad_soyad'],
+                        'diploma_no' => $diplomaNo,
+                        'dogrulama_durumu' => 'beklemede',
+                        'eslesme_detay' => ['nedenler' => ['manuel_yukleme', 'mobil']],
+                        'dosya_yolu' => $path,
+                        'auto_onay_uygun' => false,
+                    ]);
+                }
+            }
 
             if (! empty($data['referans_kodu']) && class_exists(\App\Services\ReferansService::class)) {
                 try {
@@ -281,13 +311,11 @@ class MobileDoctorController extends Controller
 
         $response = $this->authenticatedResponse($doktor, $data['device'] ?? 'mobile-register', $request->ip());
         $payload = $response->getData(true);
-        $payload['data']['next_step'] = $meslekDurum === 'onaylandi' ? 'payment' : 'meslek_bekleme';
+        $payload['data']['next_step'] = 'meslek_bekleme';
         $payload['data']['meslek_dogrulama_durumu'] = $meslekDurum;
         $payload['data']['kayit_paket_id'] = $kayitPaket->id;
         $payload['data']['kayit_periyot'] = $kayitPeriyot;
-        $payload['message'] = $meslekDurum === 'onaylandi'
-            ? 'Kaydınız tamamlandı. Seçtiğiniz paket için ödemeye geçebilirsiniz.'
-            : 'Kaydınız alındı. Meslek belgeniz incelendikten sonra paket ödemesine geçebilirsiniz.';
+        $payload['message'] = 'Kaydınız alındı. Belgeleriniz yönetici onayına gönderildi. Onay sonrası paket ödemesine geçebilirsiniz.';
 
         return response()->json($payload, $response->status());
     }
