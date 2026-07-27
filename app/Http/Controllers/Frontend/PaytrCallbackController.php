@@ -69,12 +69,18 @@ class PaytrCallbackController extends Controller
      */
     public function notify(Request $request, PaytrService $paytr)
     {
-        $merchantOid  = (string) $request->input('merchant_oid', '');
-        $status       = (string) $request->input('status', '');
-        $totalAmount  = (string) $request->input('total_amount', '');
-        $hash         = (string) $request->input('hash', '');
-        $recurringId  = (string) $request->input('recurring_id', '');
-        $raw          = $request->except(['merchant_key', 'merchant_salt']);
+        $merchantOid = (string) $request->input('merchant_oid', '');
+        $status = (string) $request->input('status', '');
+        $totalAmount = (string) $request->input('total_amount', '');
+        $hash = (string) $request->input('hash', '');
+        // Kart saklama: utoken/ctoken notify'da döner (store_card=1)
+        $utoken = (string) ($request->input('utoken') ?? $request->input('u_token') ?? '');
+        $ctoken = (string) ($request->input('ctoken') ?? $request->input('c_token') ?? '');
+        $recurringId = (string) $request->input('recurring_id', '');
+        if ($recurringId === '' && $ctoken !== '') {
+            $recurringId = $ctoken; // geriye uyum: ctoken = kayıtlı kart kimliği
+        }
+        $raw = $request->except(['merchant_key', 'merchant_salt']);
 
         if ($merchantOid === '' || $hash === '') {
             Log::warning('PayTR notify: missing fields', $request->only(['merchant_oid', 'status']));
@@ -146,7 +152,7 @@ class PaytrCallbackController extends Controller
 
         if ($status === 'success') {
             try {
-                $this->activateMembership($odeme, $paytr, $recurringId);
+                $this->activateMembership($odeme, $paytr, $recurringId, $utoken, $ctoken);
                 $this->logCallback($merchantOid, $odeme->id, $status, $totalAmount, true, true, null, $raw);
             } catch (\Throwable $e) {
                 Log::error('PayTR activate failed', [
@@ -281,9 +287,14 @@ class PaytrCallbackController extends Controller
         }
     }
 
-    protected function activateMembership(UyelikOdeme $odeme, PaytrService $paytr, string $recurringId = ''): void
-    {
-        DB::transaction(function () use ($odeme, $paytr, $recurringId) {
+    protected function activateMembership(
+        UyelikOdeme $odeme,
+        PaytrService $paytr,
+        string $recurringId = '',
+        string $utoken = '',
+        string $ctoken = ''
+    ): void {
+        DB::transaction(function () use ($odeme, $paytr, $recurringId, $utoken, $ctoken) {
             $odeme->refresh();
             if ($odeme->durum === 'onaylandi') {
                 return;
@@ -301,13 +312,19 @@ class PaytrCallbackController extends Controller
 
             $kurulum = $odeme->kurulum_verisi ?? [];
 
+            $tokenFill = array_filter([
+                'paytr_utoken' => $utoken !== '' ? $utoken : null,
+                'paytr_ctoken' => $ctoken !== '' ? $ctoken : null,
+                'paytr_recurring_id' => $recurringId !== '' ? $recurringId : ($ctoken !== '' ? $ctoken : null),
+            ], fn ($v) => $v !== null);
+
             if ($paket->klinikPaketiMi() && ! empty($kurulum['klinik_adi'])) {
                 $ilModel = Il::find($kurulum['il_id'] ?? null);
                 $ilceModel = Ilce::where('il_id', $ilModel?->id)
                     ->where('ad', $kurulum['ilce_id'] ?? '')
                     ->first();
 
-                $klinik = Klinik::create([
+                $klinik = Klinik::create(array_merge([
                     'ad' => $kurulum['klinik_adi'],
                     'sahip_doktor_id' => $doktor->id,
                     'paket_id' => $paket->id,
@@ -324,9 +341,9 @@ class PaytrCallbackController extends Controller
                     'iyzico_subscription_status' => 'ACTIVE',
                     'abonelik_yenileme_kapali' => false,
                     'aktif_mi' => true,
-                ]);
+                ], $tokenFill));
 
-                $doktor->forceFill([
+                $doktor->forceFill(array_merge([
                     'tur' => 'klinik',
                     'klinik_id' => $klinik->id,
                     'klinik_rolu' => 'sahip',
@@ -343,10 +360,8 @@ class PaytrCallbackController extends Controller
                     'abonelik_iptal_at' => null,
                     'abonelik_iptal_nedeni' => null,
                     'platformda_gorunur' => true,
-                    'paytr_recurring_id' => $recurringId ?: null,
-                ])->save();
+                ], $tokenFill))->save();
 
-                // Bireysel → klinik geçişinde hasta havuzuna taşı
                 $patientIds = \App\Models\Hasta::whereHas('randevular', function ($q) use ($doktor) {
                     $q->where('doktor_id', $doktor->id);
                 })->pluck('id')->all();
@@ -361,7 +376,12 @@ class PaytrCallbackController extends Controller
                     $klinik->hastalar()->syncWithoutDetaching($sync);
                 }
             } else {
-                $doktor->forceFill([
+                // Mevcut klinik sahibi yenilemesi: klinik token'larını da güncelle
+                if ($doktor->klinik_id && $doktor->klinik_rolu === 'sahip' && $tokenFill !== []) {
+                    Klinik::where('id', $doktor->klinik_id)->update($tokenFill);
+                }
+
+                $doktor->forceFill(array_merge([
                     'paket_id' => $paket->id,
                     'odeme_periyodu' => $odeme->odeme_periyodu,
                     'uyelik_baslangic' => $baslangic,
@@ -372,23 +392,22 @@ class PaytrCallbackController extends Controller
                     'abonelik_iptal_at' => null,
                     'abonelik_iptal_nedeni' => null,
                     'platformda_gorunur' => true,
-                    'paytr_recurring_id' => $recurringId ?: null,
-                ])->save();
+                ], $tokenFill))->save();
             }
 
-            // PayTR recurring ID'yi odeme kaydına da yaz
-            if ($recurringId !== '') {
-                $odeme->paytr_recurring_id = $recurringId;
-            }
+            $odemeFill = array_filter([
+                'paytr_recurring_id' => $recurringId !== '' ? $recurringId : null,
+                'paytr_utoken' => $utoken !== '' ? $utoken : null,
+                'paytr_ctoken' => $ctoken !== '' ? $ctoken : null,
+            ]);
 
-            $odeme->update([
+            $odeme->forceFill(array_merge($odemeFill, [
                 'durum' => 'onaylandi',
                 'onaylandi_at' => now(),
                 'provider' => 'paytr',
                 'fatura_durumu' => 'bekliyor',
-            ]);
+            ]))->save();
 
-            // Kayıt niyeti tamamlandı
             $doktor->forceFill([
                 'kayit_paket_id' => null,
                 'kayit_periyot' => null,

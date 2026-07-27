@@ -8,13 +8,16 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * PayTR iFrame API — tek seferlik kartlı ödeme (3D Secure).
+ * PayTR ödeme servisi.
  *
- * Ürün kararı (risksiz):
- * - Kart formu sitede yok; ödeme PayTR iFrame sayfasında.
- * - Otomatik recurring / Non3D kapalı.
- * - Dönem sonunda hekim yeniden öder (manuel yenileme).
- * - createDirectPayment / chargeRecurring kodda kalabilir ama checkout kullanmaz.
+ * Model (dokümantasyon):
+ * 1) İlk ödeme: Direkt API + 3D (non_3d=0) + store_card=1 → utoken/ctoken notify'da
+ *    @see https://dev.paytr.com/direkt-api/direkt-api-1-adim
+ *    @see https://dev.paytr.com/direkt-api/kart-saklama-api/yeni-kart-ekleme
+ * 2) Otomatik yenileme: kayıtlı kart + non_3d=1 + recurring_payment=1
+ *    @see https://dev.paytr.com/direkt-api/kart-saklama-api/kayitli-kart-tekrarlayan-odeme
+ *
+ * iFrame tek seferlik ödeme de desteklenir (ek koltuk vb.).
  */
 class PaytrService
 {
@@ -61,15 +64,18 @@ class PaytrService
     }
 
     /**
-     * PayTR Tekrarlayan Ödeme: kayıtlı kart ile otomatik çekim.
-     * Merchant hesabında "Tekrarlayan Ödeme" modülü aktif olmalı.
+     * Kayıtlı kart ile tekrarlayan ödeme (Non3D).
+     * POST https://www.paytr.com/odeme — utoken + ctoken, non_3d=1, recurring_payment=1
      *
-     * @return array{status: string, errorMessage?: string, payment_amount?: int, merchant_oid?: string}
+     * @return array{status: string, errorMessage?: string, merchant_oid?: string, raw?: array, try_again?: bool}
      */
-    public function chargeRecurring(string $recurringId, array $payload): array
+    public function chargeStoredCardRecurring(string $utoken, string $ctoken, array $payload): array
     {
         if (! $this->isConfigured()) {
             return ['status' => 'failure', 'errorMessage' => 'PayTR yapılandırılmamış.'];
+        }
+        if ($utoken === '' || $ctoken === '') {
+            return ['status' => 'failure', 'errorMessage' => 'Kayıtlı kart token eksik (utoken/ctoken).'];
         }
 
         $amountTl = (float) ($payload['payment_amount'] ?? 0);
@@ -77,50 +83,115 @@ class PaytrService
             return ['status' => 'failure', 'errorMessage' => 'Geçersiz tutar.'];
         }
 
-        $paymentAmount = (int) round($amountTl * 100);
-        $merchantOid   = (string) ($payload['merchant_oid'] ?? $this->makeMerchantOid('REN'));
-        $email         = $this->asciiEmail((string) ($payload['email'] ?? ''));
+        // Direkt API: tutar ondalıklı string (100.99), kuruş değil
+        $paymentAmount = number_format($amountTl, 2, '.', '');
+        $merchantOid = (string) ($payload['merchant_oid'] ?? $this->makeMerchantOid('REN'));
+        $email = $this->asciiEmail((string) ($payload['email'] ?? ''));
+        $userIp = (string) ($payload['user_ip'] ?? config('services.paytr.fallback_ip', '85.34.78.112'));
+        $userName = Str::limit((string) ($payload['user_name'] ?? 'Musteri'), 60, '');
+        $userAddress = Str::limit((string) ($payload['user_address'] ?? 'Turkiye'), 400, '');
+        $userPhone = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
+        $basketName = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik Yenileme');
+        $userBasket = base64_encode(json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE));
 
-        $hashStr = $this->merchantId . $recurringId . $merchantOid . $email . $paymentAmount;
-        $token   = base64_encode(hash_hmac('sha256', $hashStr . $this->merchantSalt, $this->merchantKey, true));
+        $paymentType = 'card';
+        $installmentCount = '0';
+        $currency = 'TL';
+        $testMode = $this->testMode ? '1' : '0';
+        $non3d = '1'; // Tekrarlayan ödeme: Non3D zorunlu
+
+        $hashStr = $this->merchantId
+            .$userIp
+            .$merchantOid
+            .$email
+            .$paymentAmount
+            .$paymentType
+            .$installmentCount
+            .$currency
+            .$testMode
+            .$non3d;
+
+        $paytrToken = base64_encode(hash_hmac('sha256', $hashStr.$this->merchantSalt, $this->merchantKey, true));
 
         $post = [
-            'merchant_id'       => $this->merchantId,
-            'recurring_id'      => $recurringId,
-            'merchant_oid'      => $merchantOid,
-            'email'             => $email,
-            'payment_amount'    => $paymentAmount,
-            'paytr_token'       => $token,
-            'currency'          => 'TL',
-            'test_mode'         => $this->testMode ? '1' : '0',
+            'merchant_id' => $this->merchantId,
+            'user_ip' => $userIp,
+            'merchant_oid' => $merchantOid,
+            'email' => $email,
+            'payment_type' => $paymentType,
+            'payment_amount' => $paymentAmount,
+            'installment_count' => $installmentCount,
+            'currency' => $currency,
+            'test_mode' => $testMode,
+            'non_3d' => $non3d,
+            'merchant_ok_url' => (string) ($payload['merchant_ok_url'] ?? route('frontend.odeme.paytr.ok')),
+            'merchant_fail_url' => (string) ($payload['merchant_fail_url'] ?? route('frontend.odeme.paytr.fail')),
+            'user_name' => $userName,
+            'user_address' => $userAddress,
+            'user_phone' => $userPhone,
+            'user_basket' => $userBasket,
+            'debug_on' => $this->debugOn ? '1' : '0',
+            'client_lang' => 'tr',
+            'paytr_token' => $paytrToken,
+            'utoken' => $utoken,
+            'ctoken' => $ctoken,
+            'recurring_payment' => '1',
         ];
 
         try {
-            $response = Http::asForm()->timeout(30)
-                ->post('https://www.paytr.com/odeme/tekrar', $post);
+            $response = Http::asForm()->timeout(35)->post('https://www.paytr.com/odeme', $post);
+            $body = $response->json();
+            if (! is_array($body)) {
+                Log::error('PayTR stored recurring non-JSON', [
+                    'oid' => $merchantOid,
+                    'body' => substr($response->body(), 0, 300),
+                ]);
 
-            $body = $response->json() ?? [];
+                return ['status' => 'failure', 'errorMessage' => 'PayTR beklenmeyen yanıt.', 'merchant_oid' => $merchantOid];
+            }
 
-            if (($body['status'] ?? '') === 'success') {
+            $status = (string) ($body['status'] ?? 'failed');
+            // success | wait_callback | failed
+            if (in_array($status, ['success', 'wait_callback'], true)) {
                 return [
-                    'status'         => 'success',
-                    'merchant_oid'   => $merchantOid,
-                    'payment_amount' => $paymentAmount,
+                    'status' => $status === 'wait_callback' ? 'wait_callback' : 'success',
+                    'merchant_oid' => $merchantOid,
+                    'raw' => $body,
                 ];
             }
 
-            $reason = (string) ($body['reason'] ?? $body['err_msg'] ?? 'PayTR recurring hata');
-            Log::error('PayTR recurring charge failed', [
-                'recurring_id' => $recurringId,
-                'reason'       => $reason,
+            $reason = (string) ($body['msg'] ?? $body['reason'] ?? $body['err_msg'] ?? 'Kayıtlı kart çekimi başarısız');
+            Log::error('PayTR stored recurring failed', [
+                'oid' => $merchantOid,
+                'reason' => $reason,
+                'try_again' => $body['try_again'] ?? null,
             ]);
 
-            return ['status' => 'failure', 'errorMessage' => $reason];
+            return [
+                'status' => 'failure',
+                'errorMessage' => $reason,
+                'merchant_oid' => $merchantOid,
+                'try_again' => (bool) ($body['try_again'] ?? false),
+                'raw' => $body,
+            ];
         } catch (\Throwable $e) {
-            Log::error('PayTR recurring exception: ' . $e->getMessage());
+            Log::error('PayTR stored recurring exception: '.$e->getMessage());
 
-            return ['status' => 'failure', 'errorMessage' => 'PayTR bağlantı hatası.'];
+            return ['status' => 'failure', 'errorMessage' => 'PayTR bağlantı hatası: '.$e->getMessage()];
         }
+    }
+
+    /**
+     * @deprecated Eski /odeme/tekrar + recurring_id — resmi kart saklama utoken/ctoken kullanın.
+     */
+    public function chargeRecurring(string $recurringId, array $payload): array
+    {
+        // Geriye uyum: recurring_id bazen ctoken olarak saklanmış olabilir — tercih utoken+ctoken
+        return $this->chargeStoredCardRecurring(
+            (string) ($payload['utoken'] ?? ''),
+            $recurringId !== '' ? $recurringId : (string) ($payload['ctoken'] ?? ''),
+            $payload
+        );
     }
 
     /**
@@ -290,9 +361,10 @@ class PaytrService
     }
 
     /**
-     * PayTR Direct API: kart bilgileri doğrudan gönderilir, 3D Secure HTML döner.
+     * Direkt API 1. adım: ilk ödeme + opsiyonel kart saklama (store_card).
+     * non_3d=0 → 3D Secure HTML döner.
      *
-     * @return array{status: string, html?: string, errorMessage?: string}
+     * @return array{status: string, html?: string, errorMessage?: string, utoken?: string, ctoken?: string}
      */
     public function createDirectPayment(array $payload): array
     {
@@ -305,7 +377,8 @@ class PaytrService
             return ['status' => 'failure', 'errorMessage' => 'Geçersiz ödeme tutarı.'];
         }
 
-        $paymentAmount = (int) round($amountTl * 100);
+        // Direkt API: ondalıklı TL string (iframe kuruş integer kullanır)
+        $paymentAmount = number_format($amountTl, 2, '.', '');
         $merchantOid = (string) $payload['merchant_oid'];
         $email = $this->asciiEmail((string) ($payload['email'] ?? ''));
         $userIp = (string) ($payload['user_ip'] ?? request()->ip() ?? '127.0.0.1');
@@ -313,19 +386,18 @@ class PaytrService
             $userIp = (string) config('services.paytr.fallback_ip', '85.34.78.112');
         }
 
-        $userName    = Str::limit((string) ($payload['user_name'] ?? 'Musteri'), 60, '');
+        $userName = Str::limit((string) ($payload['user_name'] ?? 'Musteri'), 60, '');
         $userAddress = Str::limit((string) ($payload['user_address'] ?? 'Turkiye'), 400, '');
-        $userPhone   = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
+        $userPhone = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
+        $basketName = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik');
+        $userBasket = base64_encode(json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE));
 
-        $basketName  = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik');
-        $unitPrice   = number_format($amountTl, 2, '.', '');
-        $userBasket  = base64_encode(json_encode([[$basketName, $unitPrice, 1]], JSON_UNESCAPED_UNICODE));
-
-        $currency         = 'TL';
-        $testMode         = $this->testMode ? '1' : '0';
-        $paymentType      = 'card';
+        $currency = 'TL';
+        $testMode = $this->testMode ? '1' : '0';
+        $paymentType = 'card';
         $installmentCount = '0';
-        $non3d            = '0';
+        // İlk abonelik ödemesi: 3D Secure
+        $non3d = (string) ($payload['non_3d'] ?? '0');
 
         $hashStr = $this->merchantId
             .$userIp
@@ -340,73 +412,80 @@ class PaytrService
 
         $paytrToken = base64_encode(hash_hmac('sha256', $hashStr.$this->merchantSalt, $this->merchantKey, true));
 
-        $merchantOkUrl   = (string) ($payload['merchant_ok_url']   ?? route('frontend.odeme.paytr.3d.ok'));
+        $merchantOkUrl = (string) ($payload['merchant_ok_url'] ?? route('frontend.odeme.paytr.3d.ok'));
         $merchantFailUrl = (string) ($payload['merchant_fail_url'] ?? route('frontend.odeme.paytr.3d.fail'));
 
-        $recurringPayment = (bool) ($payload['recurring'] ?? false) ? '1' : '0';
-
         $cardNumber = preg_replace('/\D+/', '', (string) ($payload['card_number'] ?? ''));
-        $cardType   = (string) ($payload['card_type'] ?? '');
-        if ($cardType === '' && $cardNumber !== '') {
-            $cardType = match (true) {
-                str_starts_with($cardNumber, '9') => 'troy',
-                str_starts_with($cardNumber, '4') => 'visa',
-                str_starts_with($cardNumber, '5') => 'mastercard',
-                str_starts_with($cardNumber, '3') => 'amex',
-                default => '',
-            };
+        $ccOwner = Str::limit((string) ($payload['card_owner'] ?? $payload['cc_owner'] ?? ''), 50, '');
+        $expiryMonth = preg_replace('/\D+/', '', (string) ($payload['expiry_month'] ?? ''));
+        $expiryYear = preg_replace('/\D+/', '', (string) ($payload['expiry_year'] ?? ''));
+        if (strlen($expiryYear) === 4) {
+            $expiryYear = substr($expiryYear, -2);
         }
+        $cvv = preg_replace('/\D+/', '', (string) ($payload['card_cvv'] ?? $payload['cvv'] ?? ''));
+
+        $storeCard = (bool) ($payload['store_card'] ?? true);
+        $existingUtoken = trim((string) ($payload['utoken'] ?? ''));
 
         $post = [
-            'merchant_id'       => $this->merchantId,
-            'user_ip'           => $userIp,
-            'merchant_oid'      => $merchantOid,
-            'email'             => $email,
-            'payment_amount'    => $paymentAmount,
-            'paytr_token'       => $paytrToken,
-            'user_basket'       => $userBasket,
-            'debug_on'          => $this->debugOn ? '1' : '0',
-            'no_installment'    => '1',
-            'max_installment'   => '0',
-            'user_name'         => $userName,
-            'user_address'      => $userAddress,
-            'user_phone'        => $userPhone,
-            'merchant_ok_url'   => $merchantOkUrl,
-            'merchant_fail_url' => $merchantFailUrl,
-            'currency'          => $currency,
-            'test_mode'         => $testMode,
-            'lang'              => 'tr',
-            'payment_type'      => $paymentType,
+            'merchant_id' => $this->merchantId,
+            'user_ip' => $userIp,
+            'merchant_oid' => $merchantOid,
+            'email' => $email,
+            'payment_type' => $paymentType,
+            'payment_amount' => $paymentAmount,
             'installment_count' => $installmentCount,
-            'non_3d'            => $non3d,
-            'card_type'         => $cardType,
-            'card_owner'        => (string) ($payload['card_owner'] ?? ''),
-            'card_number'       => $cardNumber,
-            'card_expire'       => (string) ($payload['card_expire'] ?? ''),
-            'card_cvv'          => (string) ($payload['card_cvv'] ?? ''),
-            'recurring_payment' => $recurringPayment,
+            'currency' => $currency,
+            'test_mode' => $testMode,
+            'non_3d' => $non3d,
+            'merchant_ok_url' => $merchantOkUrl,
+            'merchant_fail_url' => $merchantFailUrl,
+            'user_name' => $userName,
+            'user_address' => $userAddress,
+            'user_phone' => $userPhone,
+            'user_basket' => $userBasket,
+            'debug_on' => $this->debugOn ? '1' : '0',
+            'client_lang' => 'tr',
+            'paytr_token' => $paytrToken,
+            'cc_owner' => $ccOwner,
+            'card_number' => $cardNumber,
+            'expiry_month' => $expiryMonth,
+            'expiry_year' => $expiryYear,
+            'cvv' => $cvv,
         ];
 
-        try {
-            $response = Http::asForm()->timeout(30)->post('https://www.paytr.com/odeme', $post);
-            $body     = $response->body();
+        if ($storeCard) {
+            $post['store_card'] = '1';
+            if ($existingUtoken !== '') {
+                $post['utoken'] = $existingUtoken;
+            }
+        }
 
-            if (empty($body)) {
+        try {
+            $response = Http::asForm()->timeout(35)->post('https://www.paytr.com/odeme', $post);
+            $body = $response->body();
+
+            if ($body === '' || $body === null) {
                 return ['status' => 'failure', 'errorMessage' => 'PayTR boş yanıt döndürdü.'];
             }
 
             $decoded = json_decode($body, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                if (($decoded['status'] ?? '') === 'success') {
-                    return ['status' => 'success'];
+                $st = (string) ($decoded['status'] ?? '');
+                if (in_array($st, ['success', 'wait_callback'], true)) {
+                    return [
+                        'status' => $st === 'wait_callback' ? 'wait_callback' : 'success',
+                        'utoken' => (string) ($decoded['utoken'] ?? ''),
+                        'ctoken' => (string) ($decoded['ctoken'] ?? ''),
+                    ];
                 }
-                $reason = (string) ($decoded['reason'] ?? $decoded['err_msg'] ?? 'PayTR ödeme reddedildi.');
+                $reason = (string) ($decoded['reason'] ?? $decoded['msg'] ?? $decoded['err_msg'] ?? 'PayTR ödeme reddedildi.');
                 Log::error('PayTR direct payment failed', ['reason' => $reason, 'merchant_oid' => $merchantOid]);
 
                 return ['status' => 'failure', 'errorMessage' => $reason];
             }
 
-            // HTML yanıt = 3D Secure yönlendirme formu
+            // HTML = 3D Secure formu
             if (str_contains($body, '<') && (str_contains($body, '<form') || str_contains($body, '<!DOCTYPE') || str_contains($body, '<html'))) {
                 return ['status' => '3d', 'html' => $body];
             }

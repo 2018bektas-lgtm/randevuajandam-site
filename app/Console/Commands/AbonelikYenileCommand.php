@@ -12,42 +12,43 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Abonelik otomatik yenileme:
- *   - PayTR: recurring_id varsa bugün biten/biten üyelikleri tekrarlayan ödeme ile yeniler.
- *   - iyzico: iyzico webhook üzerinden otomatik; bu command iyzico için sadece log/kontrol yapar.
+ * PayTR kayıtlı kart (utoken+ctoken) ile biten üyelikleri Non3D yeniler.
+ *
+ * @see https://dev.paytr.com/direkt-api/kart-saklama-api/kayitli-kart-tekrarlayan-odeme
+ *
+ * PAYTR_RECURRING_ENABLED=true ve mağazada Non3D + kart saklama yetkisi gerekir.
  */
 class AbonelikYenileCommand extends Command
 {
-    protected $signature   = 'abonelik:yenile
+    protected $signature = 'abonelik:yenile
                             {--dry-run : Gerçek ödeme yapmadan simüle et}
-                            {--force : PAYTR_RECURRING_ENABLED olmadan da dene (önerilmez)}';
-    protected $description = 'PayTR recurring ile biten üyelikleri otomatik yeniler (varsayılan KAPALI).';
+                            {--force : PAYTR_RECURRING_ENABLED olmadan da dene}';
+
+    protected $description = 'PayTR utoken/ctoken ile biten üyelikleri otomatik yeniler.';
 
     public function handle(PaymentDriverService $driver, PaytrService $paytr): int
     {
-        // Risksiz model: tek seferlik iFrame. Otomatik çekim PayTR onayı + env ile açılır.
         $recurringEnabled = (bool) config('services.paytr.recurring_enabled', false);
         if (! $recurringEnabled && ! $this->option('force')) {
-            $this->warn('abonelik:yenile atlandı — PAYTR_RECURRING_ENABLED=false (iframe-only, otomatik çekim kapalı).');
+            $this->warn('abonelik:yenile atlandı — PAYTR_RECURRING_ENABLED=false.');
             Log::info('abonelik:yenile skipped: PAYTR_RECURRING_ENABLED is false');
 
             return self::SUCCESS;
         }
 
-        $dryRun    = (bool) $this->option('dry-run');
-        $isPaytr   = $driver->isPaytrActive();
-        $renewed   = 0;
-        $failed    = 0;
+        $dryRun = (bool) $this->option('dry-run');
+        $isPaytr = $driver->isPaytrActive();
+        $renewed = 0;
+        $failed = 0;
 
-        $this->info('Abonelik yenileme başladı. Driver: ' . $driver->driver() . ($dryRun ? ' [DRY-RUN]' : ''));
+        $this->info('Abonelik yenileme. Driver: '.$driver->driver().($dryRun ? ' [DRY-RUN]' : ''));
 
-        // ── PayTR recurring yenileme ──────────────────────────────────────────
         if ($isPaytr) {
-            // Bugün biten veya dün biten (grace: 1 gün) + recurring_id var + yenileme kapalı değil
             $doktorlar = Doktor::query()
                 ->where('aktif_mi', true)
                 ->whereNotNull('paket_id')
-                ->whereNotNull('paytr_recurring_id')
+                ->whereNotNull('paytr_utoken')
+                ->whereNotNull('paytr_ctoken')
                 ->where('abonelik_yenileme_kapali', false)
                 ->whereNotNull('uyelik_bitis')
                 ->where('uyelik_bitis', '<=', now()->endOfDay())
@@ -60,13 +61,17 @@ class AbonelikYenileCommand extends Command
                     continue;
                 }
 
+                // Klinik sahibi: klinik token'ı üzerinden yenile (aşağıda)
+                if ($doktor->tur === 'klinik' && $doktor->klinik_rolu === 'sahip' && $doktor->klinik_id) {
+                    continue;
+                }
+
                 $periyot = $doktor->odeme_periyodu ?? 'aylik';
-                $tutar   = $periyot === 'aylik'
-                    ? (float) $paket->aylik_fiyat
-                    : (float) $paket->yillik_fiyat;
+                $tutar = $periyot === 'aylik'
+                    ? (float) ($paket->aylik_indirimli_fiyat ?: $paket->aylik_fiyat)
+                    : (float) ($paket->yillik_indirimli_fiyat ?: $paket->yillik_fiyat);
 
                 $merchantOid = $paytr->makeMerchantOid('REN');
-
                 $this->line("Doktor #{$doktor->id} — {$doktor->ad_soyad} — {$tutar} TL");
 
                 if ($dryRun) {
@@ -74,46 +79,60 @@ class AbonelikYenileCommand extends Command
                     continue;
                 }
 
-                $result = $paytr->chargeRecurring((string) $doktor->paytr_recurring_id, [
-                    'payment_amount' => $tutar,
-                    'merchant_oid'   => $merchantOid,
-                    'email'          => $doktor->e_posta,
-                ]);
+                $result = $paytr->chargeStoredCardRecurring(
+                    (string) $doktor->paytr_utoken,
+                    (string) $doktor->paytr_ctoken,
+                    [
+                        'payment_amount' => $tutar,
+                        'merchant_oid' => $merchantOid,
+                        'email' => $doktor->e_posta,
+                        'user_name' => $doktor->ad_soyad,
+                        'user_phone' => $doktor->telefon,
+                        'user_address' => $doktor->adres ?: 'Turkiye',
+                        'basket_name' => 'Randevu Ajandam Yenileme - '.$paket->ad,
+                    ]
+                );
 
-                if (($result['status'] ?? '') === 'success') {
-                    $this->extendDoktorMembership($doktor, $paket, $periyot, $tutar, $merchantOid);
+                if (in_array($result['status'] ?? '', ['success', 'wait_callback'], true)) {
+                    // success: hemen uzat; wait_callback: notify üyelik satırını onaylar — yine de kayıt aç
+                    $this->extendDoktorMembership($doktor, $paket, $periyot, $tutar, $merchantOid, $result['status'] === 'success');
                     $renewed++;
-                    Log::info('PayTR recurring: doktor yenilendi', ['doktor_id' => $doktor->id, 'oid' => $merchantOid]);
+                    Log::info('PayTR recurring doktor', [
+                        'doktor_id' => $doktor->id,
+                        'oid' => $merchantOid,
+                        'status' => $result['status'],
+                    ]);
                 } else {
                     $failed++;
-                    Log::error('PayTR recurring: yenileme başarısız', [
+                    Log::error('PayTR recurring doktor fail', [
                         'doktor_id' => $doktor->id,
-                        'error'     => $result['errorMessage'] ?? '?',
+                        'error' => $result['errorMessage'] ?? '?',
                     ]);
-                    // Bildirim: doktor_uyelik-hatirlat command zaten e-posta gönderiyor
                 }
             }
 
-            // Klinikler
             $klinikler = Klinik::query()
                 ->where('aktif_mi', true)
-                ->whereNotNull('paytr_recurring_id')
+                ->whereNotNull('paytr_utoken')
+                ->whereNotNull('paytr_ctoken')
                 ->where('abonelik_yenileme_kapali', false)
                 ->whereNotNull('uyelik_bitis')
                 ->where('uyelik_bitis', '<=', now()->endOfDay())
                 ->where('uyelik_bitis', '>=', now()->subDay())
-                ->with('paket', 'sahipDoktor')
+                ->with(['paket', 'sahipDoktor'])
                 ->get();
 
             foreach ($klinikler as $klinik) {
-                $paket  = $klinik->paket;
-                $sahip  = $klinik->sahipDoktor;
+                $paket = $klinik->paket;
+                $sahip = $klinik->sahipDoktor;
                 if (! $paket || ! $sahip) {
                     continue;
                 }
 
-                $periyot     = $klinik->odeme_periyodu ?? 'aylik';
-                $tutar       = $periyot === 'aylik' ? (float) $paket->aylik_fiyat : (float) $paket->yillik_fiyat;
+                $periyot = $klinik->odeme_periyodu ?? 'aylik';
+                $tutar = $periyot === 'aylik'
+                    ? (float) ($paket->aylik_indirimli_fiyat ?: $paket->aylik_fiyat)
+                    : (float) ($paket->yillik_indirimli_fiyat ?: $paket->yillik_fiyat);
                 $merchantOid = $paytr->makeMerchantOid('RKL');
 
                 $this->line("Klinik #{$klinik->id} — {$klinik->ad} — {$tutar} TL");
@@ -123,85 +142,109 @@ class AbonelikYenileCommand extends Command
                     continue;
                 }
 
-                $result = $paytr->chargeRecurring((string) $klinik->paytr_recurring_id, [
-                    'payment_amount' => $tutar,
-                    'merchant_oid'   => $merchantOid,
-                    'email'          => $sahip->e_posta,
-                ]);
+                $result = $paytr->chargeStoredCardRecurring(
+                    (string) $klinik->paytr_utoken,
+                    (string) $klinik->paytr_ctoken,
+                    [
+                        'payment_amount' => $tutar,
+                        'merchant_oid' => $merchantOid,
+                        'email' => $sahip->e_posta,
+                        'user_name' => $sahip->ad_soyad,
+                        'user_phone' => $sahip->telefon,
+                        'user_address' => $klinik->adres ?: 'Turkiye',
+                        'basket_name' => 'Randevu Ajandam Klinik Yenileme - '.$paket->ad,
+                    ]
+                );
 
-                if (($result['status'] ?? '') === 'success') {
-                    $this->extendKlinikMembership($klinik, $periyot, $tutar, $merchantOid, $sahip);
+                if (in_array($result['status'] ?? '', ['success', 'wait_callback'], true)) {
+                    $this->extendKlinikMembership($klinik, $periyot, $tutar, $merchantOid, $sahip, $result['status'] === 'success');
                     $renewed++;
                 } else {
                     $failed++;
-                    Log::error('PayTR recurring: klinik yenileme başarısız', [
+                    Log::error('PayTR recurring klinik fail', [
                         'klinik_id' => $klinik->id,
-                        'error'     => $result['errorMessage'] ?? '?',
+                        'error' => $result['errorMessage'] ?? '?',
                     ]);
                 }
             }
+        } else {
+            $this->info('iyzico aktif — yenileme webhook üzerinden.');
         }
 
-        // ── iyzico: sadece log ────────────────────────────────────────────────
-        if (! $isPaytr) {
-            $this->info('iyzico aktif — yenileme webhook üzerinden otomatik yönetilir.');
-        }
-
-        $this->info("Tamamlandı: {$renewed} yenilendi, {$failed} başarısız.");
+        $this->info("Tamamlandı: {$renewed} yenilendi/istek, {$failed} başarısız.");
 
         return self::SUCCESS;
     }
 
-    protected function extendDoktorMembership(Doktor $doktor, \App\Models\Paket $paket, string $periyot, float $tutar, string $merchantOid): void
-    {
-        DB::transaction(function () use ($doktor, $paket, $periyot, $tutar, $merchantOid) {
-            $bitis = $periyot === 'aylik' ? now()->addMonth() : now()->addYear();
-
-            $doktor->forceFill([
-                'uyelik_bitis'               => $bitis,
-                'iyzico_subscription_status' => 'ACTIVE',
-            ])->save();
+    protected function extendDoktorMembership(
+        Doktor $doktor,
+        \App\Models\Paket $paket,
+        string $periyot,
+        float $tutar,
+        string $merchantOid,
+        bool $immediateApprove
+    ): void {
+        DB::transaction(function () use ($doktor, $paket, $periyot, $tutar, $merchantOid, $immediateApprove) {
+            if ($immediateApprove) {
+                $bitis = $periyot === 'aylik' ? now()->addMonth() : now()->addYear();
+                $doktor->forceFill([
+                    'uyelik_bitis' => $bitis,
+                    'iyzico_subscription_status' => 'ACTIVE',
+                ])->save();
+            }
 
             UyelikOdeme::create([
-                'doktor_id'         => $doktor->id,
-                'paket_id'          => $paket->id,
-                'odeme_yontemi'     => 'paytr',
-                'provider'          => 'paytr',
-                'odeme_periyodu'    => $periyot,
-                'tutar'             => $tutar,
-                'durum'             => 'onaylandi',
-                'onaylandi_at'      => now(),
-                'merchant_oid'      => $merchantOid,
-                'paytr_recurring_id'=> $doktor->paytr_recurring_id,
+                'doktor_id' => $doktor->id,
+                'paket_id' => $paket->id,
+                'odeme_yontemi' => 'paytr',
+                'provider' => 'paytr',
+                'odeme_periyodu' => $periyot,
+                'tutar' => $tutar,
+                'durum' => $immediateApprove ? 'onaylandi' : 'beklemede',
+                'onaylandi_at' => $immediateApprove ? now() : null,
+                'merchant_oid' => $merchantOid,
+                'paytr_recurring_id' => $doktor->paytr_ctoken,
+                'paytr_utoken' => $doktor->paytr_utoken,
+                'paytr_ctoken' => $doktor->paytr_ctoken,
                 'otomatik_yenileme' => true,
-                'fatura_durumu'     => 'bekliyor',
+                'fatura_durumu' => 'bekliyor',
             ]);
         });
     }
 
-    protected function extendKlinikMembership(Klinik $klinik, string $periyot, float $tutar, string $merchantOid, Doktor $sahip): void
-    {
-        DB::transaction(function () use ($klinik, $periyot, $tutar, $merchantOid, $sahip) {
-            $bitis = $periyot === 'aylik' ? now()->addMonth() : now()->addYear();
-
-            $klinik->forceFill([
-                'uyelik_bitis'               => $bitis,
-                'iyzico_subscription_status' => 'ACTIVE',
-            ])->save();
+    protected function extendKlinikMembership(
+        Klinik $klinik,
+        string $periyot,
+        float $tutar,
+        string $merchantOid,
+        Doktor $sahip,
+        bool $immediateApprove
+    ): void {
+        DB::transaction(function () use ($klinik, $periyot, $tutar, $merchantOid, $sahip, $immediateApprove) {
+            if ($immediateApprove) {
+                $bitis = $periyot === 'aylik' ? now()->addMonth() : now()->addYear();
+                $klinik->forceFill([
+                    'uyelik_bitis' => $bitis,
+                    'iyzico_subscription_status' => 'ACTIVE',
+                ])->save();
+                $sahip->forceFill(['uyelik_bitis' => $bitis])->save();
+            }
 
             UyelikOdeme::create([
-                'doktor_id'         => $sahip->id,
-                'paket_id'          => $klinik->paket_id,
-                'odeme_yontemi'     => 'paytr',
-                'provider'          => 'paytr',
-                'odeme_periyodu'    => $periyot,
-                'tutar'             => $tutar,
-                'durum'             => 'onaylandi',
-                'onaylandi_at'      => now(),
-                'merchant_oid'      => $merchantOid,
-                'paytr_recurring_id'=> $klinik->paytr_recurring_id,
+                'doktor_id' => $sahip->id,
+                'paket_id' => $klinik->paket_id,
+                'odeme_yontemi' => 'paytr',
+                'provider' => 'paytr',
+                'odeme_periyodu' => $periyot,
+                'tutar' => $tutar,
+                'durum' => $immediateApprove ? 'onaylandi' : 'beklemede',
+                'onaylandi_at' => $immediateApprove ? now() : null,
+                'merchant_oid' => $merchantOid,
+                'paytr_recurring_id' => $klinik->paytr_ctoken,
+                'paytr_utoken' => $klinik->paytr_utoken,
+                'paytr_ctoken' => $klinik->paytr_ctoken,
                 'otomatik_yenileme' => true,
-                'fatura_durumu'     => 'bekliyor',
+                'fatura_durumu' => 'bekliyor',
             ]);
         });
     }

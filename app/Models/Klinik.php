@@ -41,6 +41,8 @@ class Klinik extends Model
         'iyzico_subscription_reference_code',
         'iyzico_subscription_status',
         'paytr_recurring_id',
+        'paytr_utoken',
+        'paytr_ctoken',
         'abonelik_yenileme_kapali',
         'abonelik_iptal_at',
         'abonelik_iptal_nedeni',
@@ -67,6 +69,8 @@ class Klinik extends Model
             'platformda_gorunur' => 'boolean',
             'enlem' => 'float',
             'boylam' => 'float',
+            'paytr_utoken' => 'encrypted',
+            'paytr_ctoken' => 'encrypted',
         ];
     }
 

@@ -3,42 +3,189 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\Doktor;
+use App\Models\Paket;
+use App\Models\UyelikOdeme;
+use App\Services\PaytrService;
+use App\Services\ReferansService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Eski Direct API (sitede kart formu) — bilerek kapalı.
- * Aktif akış: PayTR iFrame + notify (PaytrCallbackController).
+ * PayTR Direkt API — ilk abonelik ödemesi (3D) + store_card.
+ *
+ * @see https://dev.paytr.com/direkt-api/direkt-api-1-adim
+ * @see https://dev.paytr.com/direkt-api/kart-saklama-api/yeni-kart-ekleme
  */
 class PaytrDirectController extends Controller
 {
-    /**
-     * Siteden kartlı Direct charge — 410 Gone (iframe-only politika).
-     */
     public function charge(Request $request)
     {
-        Log::info('PayTR Direct charge reddedildi — iframe-only politika', [
-            'ip' => $request->ip(),
-            'doktor_id' => Auth::guard('doktor')->id(),
+        /** @var Doktor|null $doktor */
+        $doktor = Auth::guard('doktor')->user();
+        if (! $doktor || ! $doktor->canProceedToPayment()) {
+            return response()->json(['error' => 'Ödeme yapılamaz.'], 403);
+        }
+
+        $paket = Paket::where('aktif_mi', true)->findOrFail($request->input('paket_id'));
+
+        $periyot = $request->input('odeme_periyodu', 'aylik');
+        $periodPrice = $periyot === 'yillik' ? (float) $paket->yillik_fiyat : (float) $paket->aylik_fiyat;
+        $discountedPrice = $periyot === 'yillik' ? $paket->yillik_indirimli_fiyat : $paket->aylik_indirimli_fiyat;
+        $tutar = $discountedPrice !== null && (float) $discountedPrice > 0 ? (float) $discountedPrice : $periodPrice;
+        $refFiyat = app(ReferansService::class)->indirimliTutar($doktor, $tutar);
+        $tutarBrut = $refFiyat['brut'];
+        $tutar = $refFiyat['tutar'];
+
+        $rules = [
+            'paket_id' => 'required|exists:paketler,id',
+            'odeme_periyodu' => 'required|in:aylik,yillik',
+            'mesafeli_onay' => 'accepted',
+            'kvkk_odeme_onay' => 'accepted',
+            'kart_sahibi' => 'required|string|max:100',
+            'kart_no' => 'required|string|min:15|max:19',
+            'kart_ay' => 'required|string|min:1|max:2',
+            'kart_yil' => 'required|string|min:2|max:4',
+            'kart_cvv' => 'required|string|min:3|max:4',
+            'store_card' => 'nullable|boolean',
+        ];
+
+        if ($paket->klinikPaketiMi()) {
+            $rules['klinik_adi'] = 'required|string|max:255';
+            $rules['telefon'] = 'required|string';
+            $rules['e_posta'] = 'nullable|email|max:255';
+            $rules['adres'] = 'required|string';
+            $rules['il_id'] = 'required|exists:iller,id';
+            $rules['ilce_id'] = 'required|string|max:255';
+        }
+
+        $request->validate($rules, [
+            'mesafeli_onay.accepted' => 'Mesafeli satış sözleşmesini kabul etmelisiniz.',
+            'kvkk_odeme_onay.accepted' => 'KVKK aydınlatma metnini kabul etmelisiniz.',
+            'kart_sahibi.required' => 'Kart sahibinin adını girin.',
+            'kart_no.required' => 'Kart numarasını girin.',
+            'kart_ay.required' => 'Son kullanma ayını girin.',
+            'kart_yil.required' => 'Son kullanma yılını girin.',
+            'kart_cvv.required' => 'CVV kodunu girin.',
         ]);
 
+        $paytr = app(PaytrService::class);
+        if (! $paytr->isConfigured()) {
+            return response()->json(['error' => 'Kartlı ödeme şu anda kullanıma açık değil.'], 422);
+        }
+
+        $merchantOid = $paytr->makeMerchantOid();
+        $kurulum = $paket->klinikPaketiMi()
+            ? $request->only(['klinik_adi', 'telefon', 'e_posta', 'adres', 'il_id', 'ilce_id'])
+            : [];
+        $kurulum['tutar_brut'] = $tutarBrut;
+        $kurulum['referans_indirim_yuzde'] = $refFiyat['indirim_yuzde'];
+        $storeCard = $request->boolean('store_card', true);
+
+        UyelikOdeme::create([
+            'doktor_id' => $doktor->id,
+            'paket_id' => $paket->id,
+            'odeme_yontemi' => 'paytr',
+            'provider' => 'paytr',
+            'odeme_periyodu' => $periyot,
+            'tutar' => $tutar,
+            'durum' => 'beklemede',
+            'merchant_oid' => $merchantOid,
+            'kurulum_verisi' => $kurulum ?: null,
+            'otomatik_yenileme' => $storeCard,
+        ]);
+
+        $result = $paytr->createDirectPayment([
+            'merchant_oid' => $merchantOid,
+            'email' => $doktor->e_posta,
+            'payment_amount' => $tutar,
+            'user_name' => $doktor->ad_soyad,
+            'user_address' => $doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye'),
+            'user_phone' => $doktor->telefon,
+            'user_ip' => $request->ip(),
+            'basket_name' => 'Randevu Ajandam - '.$paket->ad.' ('.$periyot.')',
+            'card_owner' => $request->input('kart_sahibi'),
+            'card_number' => $request->input('kart_no'),
+            'expiry_month' => $request->input('kart_ay'),
+            'expiry_year' => $request->input('kart_yil'),
+            'card_cvv' => $request->input('kart_cvv'),
+            'store_card' => $storeCard,
+            'utoken' => (string) ($doktor->paytr_utoken ?? ''),
+            'non_3d' => '0', // İlk ödeme: 3D Secure
+            'merchant_ok_url' => route('frontend.odeme.paytr.3d.ok'),
+            'merchant_fail_url' => route('frontend.odeme.paytr.3d.fail'),
+        ]);
+
+        if (($result['status'] ?? '') === '3d') {
+            return response()->json(['html' => $result['html'], 'merchant_oid' => $merchantOid]);
+        }
+
+        if (in_array($result['status'] ?? '', ['success', 'wait_callback'], true)) {
+            // Token JSON yanıtta gelmiş olabilir (Non3D); 3D'de genelde notify'da gelir
+            $this->persistTokensIfAny($doktor, $result);
+
+            return response()->json(['redirect' => route('frontend.odeme.paytr.ok')]);
+        }
+
+        UyelikOdeme::where('merchant_oid', $merchantOid)->update(['durum' => 'reddedildi']);
+
         return response()->json([
-            'error' => 'Kartlı ödeme yalnızca PayTR güvenli ekranı (iFrame) ile yapılır. Lütfen paket ödeme sayfasından “Ödemeyi tamamla” ile devam edin.',
-            'code' => 'paytr_iframe_only',
-        ], 410);
+            'error' => $result['errorMessage'] ?? 'Ödeme başlatılamadı. Kart bilgilerinizi kontrol edin.',
+        ], 422);
     }
 
-    /**
-     * Eski 3D modal dönüş URL'leri — artık kullanılmıyor; yönlendir.
-     */
     public function threeDOk(Request $request)
     {
-        return redirect()->route('frontend.odeme.paytr.ok');
+        return response(
+            '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+            .'<body style="font-family:sans-serif;text-align:center;padding:40px;background:#f0fdf4">'
+            .'<div style="max-width:280px;margin:0 auto">'
+            .'<div style="font-size:52px;color:#16a34a">&#10003;</div>'
+            .'<p style="color:#15803d;font-weight:bold;font-size:14px;margin:8px 0">Ödeme onaylandı</p>'
+            .'<p style="color:#6b7280;font-size:12px">Lütfen bekleyin...</p>'
+            .'</div>'
+            .'<script>try{window.parent.postMessage({paytr3d:"ok"},"*")}catch(e){}'
+            .'try{window.top.postMessage({paytr3d:"ok"},"*")}catch(e){}</script>'
+            .'</body></html>',
+            200,
+            ['Content-Type' => 'text/html; charset=utf-8']
+        );
     }
 
     public function threeDFail(Request $request)
     {
-        return redirect()->route('frontend.odeme.paytr.fail');
+        return response(
+            '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+            .'<body style="font-family:sans-serif;text-align:center;padding:40px;background:#fef2f2">'
+            .'<div style="max-width:280px;margin:0 auto">'
+            .'<div style="font-size:52px;color:#dc2626">&#10007;</div>'
+            .'<p style="color:#b91c1c;font-weight:bold;font-size:14px;margin:8px 0">3D doğrulama başarısız</p>'
+            .'<p style="color:#6b7280;font-size:12px">Kart bilgilerinizi kontrol edin.</p>'
+            .'</div>'
+            .'<script>try{window.parent.postMessage({paytr3d:"fail"},"*")}catch(e){}'
+            .'try{window.top.postMessage({paytr3d:"fail"},"*")}catch(e){}</script>'
+            .'</body></html>',
+            200,
+            ['Content-Type' => 'text/html; charset=utf-8']
+        );
+    }
+
+    protected function persistTokensIfAny(Doktor $doktor, array $result): void
+    {
+        $u = trim((string) ($result['utoken'] ?? ''));
+        $c = trim((string) ($result['ctoken'] ?? ''));
+        if ($u === '' && $c === '') {
+            return;
+        }
+        try {
+            $doktor->forceFill(array_filter([
+                'paytr_utoken' => $u !== '' ? $u : null,
+                'paytr_ctoken' => $c !== '' ? $c : null,
+                'paytr_recurring_id' => $c !== '' ? $c : null,
+            ]))->save();
+        } catch (\Throwable $e) {
+            Log::warning('PayTR token kaydı (direct JSON): '.$e->getMessage());
+        }
     }
 }

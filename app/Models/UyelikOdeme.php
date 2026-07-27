@@ -20,6 +20,11 @@ class UyelikOdeme extends Model
         'fatura_durumu',
         'havale_referans',
         'merchant_oid',
+        'paytr_recurring_id',
+        'paytr_utoken',
+        'paytr_ctoken',
+        'otomatik_yenileme',
+        'yenileme_kaynak_odeme_id',
         'kurulum_verisi',
         'callback_payload',
         'onaylandi_at',
@@ -33,6 +38,7 @@ class UyelikOdeme extends Model
             'kurulum_verisi' => 'array',
             'callback_payload' => 'array',
             'onaylandi_at' => 'datetime',
+            'otomatik_yenileme' => 'boolean',
         ];
     }
 

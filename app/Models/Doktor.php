@@ -64,6 +64,8 @@ class Doktor extends Authenticatable
         'iyzico_subscription_reference_code',
         'iyzico_subscription_status',
         'paytr_recurring_id',
+        'paytr_utoken',
+        'paytr_ctoken',
         'abonelik_yenileme_kapali',
         'abonelik_iptal_at',
         'abonelik_iptal_nedeni',
@@ -162,6 +164,8 @@ class Doktor extends Authenticatable
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'datetime',
+            'paytr_utoken' => 'encrypted',
+            'paytr_ctoken' => 'encrypted',
         ];
     }
 

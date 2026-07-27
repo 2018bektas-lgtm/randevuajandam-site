@@ -30,38 +30,31 @@ Canlı: `apps/randevuajandam-site` → `randevuajandam.com`.
 
 ---
 
-## Ödeme (PayTR only — risksiz model)
+## Ödeme (PayTR Direct + kart saklama / abonelik)
 
 ### Ürün kararı
 
 | | |
 |--|--|
-| Kartlı ödeme | **PayTR iFrame + 3D Secure** (tek seferlik) |
-| Kart sitede? | **Hayır** — form PayTR sayfasında |
-| Otomatik aylık çekim | **Kapalı** (`PAYTR_RECURRING_ENABLED=false`) |
-| Non3D / Direct kart formu | **Kapalı** (`/odeme/paytr/direct-charge` → 410) |
-| Dönem sonu | Hatırlatma + hekim **yeniden öder** |
+| İlk ödeme | **Direkt API + 3D Secure** (`non_3d=0`) + **`store_card=1`** |
+| Kart saklama | PayTR `utoken` + `ctoken` (notify’da) → `doktorlar` / `klinikler` |
+| Otomatik yenileme | Cron `abonelik:yenile` → **Non3D** `utoken/ctoken` + `recurring_payment=1` |
+| Yetki | PayTR’de **Direkt API + Non3D + kart saklama** onayı gerekir |
 | Yedek | **Havale** (admin onayı) |
+
+Dokümanlar:  
+[Direkt 1. adım](https://dev.paytr.com/direkt-api/direkt-api-1-adim) ·  
+[Kayıtlı kart](https://dev.paytr.com/direkt-api/kart-saklama-api/kayitli-karttan-odeme) ·  
+[Tekrarlayan](https://dev.paytr.com/direkt-api/kart-saklama-api/kayitli-kart-tekrarlayan-odeme)
 
 ### Web abonelik akışı
 
-1. Hekim / klinik paket seçer  
-2. `paket_ode` → **Ödemeyi tamamla** (kart alanı yok)  
-3. PayTR iFrame + 3D Secure  
-4. Notify: `POST /api/paytr/notify`  
-5. Üyelik aktif (`UyelikOdeme` + `uyelik_bitis`)  
-6. Alternatif: **havale**
-
-### iyzico
-
-- `IYZICO_ENABLED=false` (varsayılan)  
-- Webhook → **410 disabled**  
-- Eski `iyzico_*` DB kolonları tarihçe  
-
-### Mobil
-
-- Mağaza **IAP / RevenueCat** (hekim app)  
-- Web’den **PayTR** de mümkün  
+1. Hekim paket seçer → kart formu (3D) + “Kartımı kaydet”  
+2. `POST /odeme/paytr/direct-charge` → PayTR `/odeme`  
+3. 3D modal → başarı sayfası  
+4. Notify `POST /api/paytr/notify` → üyelik + **utoken/ctoken** kaydı  
+5. Her gün 07:00: `abonelik:yenile` biten üyelikleri Non3D çeker  
+6. Notify ile yenileme onayı  
 
 ### Env
 
@@ -71,14 +64,14 @@ PAYTR_MERCHANT_ID=
 PAYTR_MERCHANT_KEY=
 PAYTR_MERCHANT_SALT=
 PAYTR_TEST_MODE=false   # prod
-PAYTR_RECURRING_ENABLED=false
+PAYTR_RECURRING_ENABLED=true
 IYZICO_ENABLED=false
 ```
 
 ### PayTR iş modeli (kısa)
 
-> B2B SaaS: hekim/klinik platform aboneliği. PayTR’den geçen bedel **muayene ücreti değildir**.  
-> Kart sitede saklanmaz. ChatGPT tarzı otomatik çekim yok; süre bitince yeniden ödeme.
+> B2B SaaS abonelik: ilk ödeme 3D, kart PayTR’de saklanır; dönem sonunda sizin cron Non3D çeker.  
+> Kart numarası sizin DB’de tutulmaz (yalnızca token).
 
 ---
 
