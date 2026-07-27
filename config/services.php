@@ -59,6 +59,8 @@ return [
         'test_mode' => filter_var(env('PAYTR_TEST_MODE', true), FILTER_VALIDATE_BOOLEAN),
         'debug_on' => filter_var(env('PAYTR_DEBUG_ON', true), FILTER_VALIDATE_BOOLEAN),
         'fallback_ip' => env('PAYTR_FALLBACK_IP', '85.34.78.112'),
+        // Otomatik karttan yenileme (Non3D/recurring) — risksiz modelde kapalı
+        'recurring_enabled' => filter_var(env('PAYTR_RECURRING_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
     ],
 
     /*

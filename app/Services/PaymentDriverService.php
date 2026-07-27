@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Tek arayüz: aktif ödeme sağlayıcısına göre checkout başlatır ve abonelik yönetir.
+ * Tek arayüz: aktif ödeme sağlayıcısına göre checkout başlatır.
+ * PayTR: yalnızca iFrame + 3D (tek seferlik). Otomatik recurring kapalı.
  * Sağlayıcı site_ayarlari.odeme_saglayici ile belirlenir ('paytr' | 'iyzico').
  */
 class PaymentDriverService
@@ -112,7 +113,8 @@ class PaymentDriverService
             'user_phone'    => (string) $doktor->telefon,
             'user_ip'       => $request->ip(),
             'basket_name'   => 'Randevu Ajandam - ' . $paket->ad . ' (' . $periyot . ')',
-            'recurring'     => true,
+            // Risksiz model: tek seferlik iFrame; otomatik recurring yok
+            'recurring'     => false,
         ]);
 
         if (($tokenResult['status'] ?? '') !== 'success') {

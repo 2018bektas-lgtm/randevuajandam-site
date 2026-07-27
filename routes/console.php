@@ -14,4 +14,6 @@ Schedule::command('klinik:davet-suresi-kontrol')->daily();
 Schedule::command('klinik:gider-tekrarla')->monthlyOn(1, '01:00');
 Schedule::command('klinik:uyelik-hatirlat')->dailyAt('09:00');
 Schedule::command('doktor:uyelik-hatirlat')->dailyAt('09:15');
-Schedule::command('abonelik:yenile')->dailyAt('07:00');
+// Otomatik PayTR recurring çekim — varsayılan KAPALI (PAYTR_RECURRING_ENABLED).
+// Command env false iken no-op; schedule log gürültüsü için yorumda.
+// Schedule::command('abonelik:yenile')->dailyAt('07:00');

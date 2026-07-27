@@ -18,11 +18,22 @@ use Illuminate\Support\Facades\Log;
  */
 class AbonelikYenileCommand extends Command
 {
-    protected $signature   = 'abonelik:yenile {--dry-run : Gerçek ödeme yapmadan simüle et}';
-    protected $description = 'PayTR recurring ile biten üyelikleri otomatik yeniler.';
+    protected $signature   = 'abonelik:yenile
+                            {--dry-run : Gerçek ödeme yapmadan simüle et}
+                            {--force : PAYTR_RECURRING_ENABLED olmadan da dene (önerilmez)}';
+    protected $description = 'PayTR recurring ile biten üyelikleri otomatik yeniler (varsayılan KAPALI).';
 
     public function handle(PaymentDriverService $driver, PaytrService $paytr): int
     {
+        // Risksiz model: tek seferlik iFrame. Otomatik çekim PayTR onayı + env ile açılır.
+        $recurringEnabled = (bool) config('services.paytr.recurring_enabled', false);
+        if (! $recurringEnabled && ! $this->option('force')) {
+            $this->warn('abonelik:yenile atlandı — PAYTR_RECURRING_ENABLED=false (iframe-only, otomatik çekim kapalı).');
+            Log::info('abonelik:yenile skipped: PAYTR_RECURRING_ENABLED is false');
+
+            return self::SUCCESS;
+        }
+
         $dryRun    = (bool) $this->option('dry-run');
         $isPaytr   = $driver->isPaytrActive();
         $renewed   = 0;

@@ -1782,6 +1782,7 @@ class PaketController extends Controller
                 'klinik_adi', 'telefon', 'e_posta', 'adres', 'il_id', 'ilce_id',
             ]) : [];
 
+            // Kart bilgisi sitede yok — yalnızca PayTR iFrame (veya kapalı iyzico)
             return app(PaymentDriverService::class)->startCheckout(
                 $doktor,
                 $paket,
@@ -1789,7 +1790,7 @@ class PaketController extends Controller
                 $tutarBrut,
                 $kurulumKart,
                 $request,
-                $request->only(['kart_no', 'kart_ay', 'kart_yil', 'kart_cvv', 'kart_sahibi'])
+                []
             );
         }
 

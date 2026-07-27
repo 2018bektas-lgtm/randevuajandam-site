@@ -30,30 +30,38 @@ Canlı: `apps/randevuajandam-site` → `randevuajandam.com`.
 
 ---
 
-## Ödeme (PayTR only)
+## Ödeme (PayTR only — risksiz model)
 
-### Web abonelik
+### Ürün kararı
+
+| | |
+|--|--|
+| Kartlı ödeme | **PayTR iFrame + 3D Secure** (tek seferlik) |
+| Kart sitede? | **Hayır** — form PayTR sayfasında |
+| Otomatik aylık çekim | **Kapalı** (`PAYTR_RECURRING_ENABLED=false`) |
+| Non3D / Direct kart formu | **Kapalı** (`/odeme/paytr/direct-charge` → 410) |
+| Dönem sonu | Hatırlatma + hekim **yeniden öder** |
+| Yedek | **Havale** (admin onayı) |
+
+### Web abonelik akışı
 
 1. Hekim / klinik paket seçer  
-2. `paket_ode` veya klinik kayıt/geçiş → **PayTR iFrame + 3D Secure**  
-3. Notify: `/odeme/paytr/notify`  
-4. Üyelik aktif (`UyelikOdeme` + doktor/klinik tarihleri)  
-5. Alternatif: **havale** (admin onayı)
+2. `paket_ode` → **Ödemeyi tamamla** (kart alanı yok)  
+3. PayTR iFrame + 3D Secure  
+4. Notify: `POST /api/paytr/notify`  
+5. Üyelik aktif (`UyelikOdeme` + `uyelik_bitis`)  
+6. Alternatif: **havale**
 
 ### iyzico
 
 - `IYZICO_ENABLED=false` (varsayılan)  
 - Webhook → **410 disabled**  
-- `IyzicoSubscriptionService::isConfigured()` false  
-- Eski `iyzico_*` DB kolonları tarihçe; yeni abonelik yok  
-- Admin paket formunda iyzico plan alanları gizli  
+- Eski `iyzico_*` DB kolonları tarihçe  
 
 ### Mobil
 
 - Mağaza **IAP / RevenueCat** (hekim app)  
 - Web’den **PayTR** de mümkün  
-- IAP: `REVENUECAT_SECRET_KEY` zorunlu doğrulama; production’da client_tx yok  
-- Webhook secret zorunlu  
 
 ### Env
 
@@ -63,12 +71,14 @@ PAYTR_MERCHANT_ID=
 PAYTR_MERCHANT_KEY=
 PAYTR_MERCHANT_SALT=
 PAYTR_TEST_MODE=false   # prod
+PAYTR_RECURRING_ENABLED=false
 IYZICO_ENABLED=false
 ```
 
 ### PayTR iş modeli (kısa)
 
-> B2B SaaS: hekim/klinik platform aboneliği. PayTR’den geçen bedel **muayene ücreti değildir**. Kart sitede saklanmaz.
+> B2B SaaS: hekim/klinik platform aboneliği. PayTR’den geçen bedel **muayene ücreti değildir**.  
+> Kart sitede saklanmaz. ChatGPT tarzı otomatik çekim yok; süre bitince yeniden ödeme.
 
 ---
 

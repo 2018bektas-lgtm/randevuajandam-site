@@ -8,8 +8,13 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * PayTR iFrame API (tek seferlik kartlı ödeme).
- * Abonelik yenilemesi otomatik değildir — dönem sonunda hekim yeniden öder.
+ * PayTR iFrame API — tek seferlik kartlı ödeme (3D Secure).
+ *
+ * Ürün kararı (risksiz):
+ * - Kart formu sitede yok; ödeme PayTR iFrame sayfasında.
+ * - Otomatik recurring / Non3D kapalı.
+ * - Dönem sonunda hekim yeniden öder (manuel yenileme).
+ * - createDirectPayment / chargeRecurring kodda kalabilir ama checkout kullanmaz.
  */
 class PaytrService
 {
