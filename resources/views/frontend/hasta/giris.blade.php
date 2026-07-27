@@ -1,4 +1,4 @@
-﻿@extends('frontend.layouts.app-tw')
+@extends('frontend.layouts.app')
 
 @section('baslik', 'Hasta Girişi - Randevu Ajandam')
 

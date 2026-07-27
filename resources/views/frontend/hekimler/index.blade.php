@@ -150,7 +150,6 @@
 @endsection
 
 @section('icerik')
-@include('frontend.layouts.delogis.page-header', ['title' => 'Uzman Hekimler', 'crumb' => 'Hekimler'])
 <style>
     /* Premium Shimmer Sweep */
     .shimmer-sweep {
