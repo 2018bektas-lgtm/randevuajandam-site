@@ -6,6 +6,9 @@
 <section class="fe-page fe-page--auth relative bg-[#FAFAFA] flex items-center justify-center overflow-hidden">
     <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#E7B58A]/8 blur-[120px] pointer-events-none"></div>
     <div class="max-w-md w-full px-6 relative z-10 text-center space-y-6">
+        <div class="text-left">
+            @include('frontend.layouts.partials.payment-merchant-info')
+        </div>
         @if($basarili ?? false)
             <div class="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>

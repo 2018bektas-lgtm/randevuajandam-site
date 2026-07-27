@@ -17,6 +17,10 @@
             <a href="{{ route('frontend.hekim.paket_sec') }}" class="text-xs font-bold text-[#6B7280] hover:text-[#C96A2B]">← Geri</a>
         </div>
 
+        <div class="mb-5">
+            @include('frontend.layouts.partials.payment-merchant-info')
+        </div>
+
         <div class="bg-white border border-[#E5E7EB] rounded-3xl p-3 sm:p-5 shadow-sm">
             <script src="https://www.paytr.com/js/iframeResizer.min.js"></script>
             <iframe

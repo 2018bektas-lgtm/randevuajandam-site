@@ -360,6 +360,9 @@
 
                 <!-- ÖDEME BİLGİLERİ -->
                 <div class="space-y-6">
+                    {{-- PayTR: satıcı iletişim + yurt içi adres (ödeme sayfasında açık) --}}
+                    @include('frontend.layouts.partials.payment-merchant-info')
+
                     <div class="rounded-2xl border border-[#E5E7EB] bg-slate-50/80 p-4 space-y-3">
                         <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Sözleşme onayı</p>
                         <p class="text-[11px] text-slate-500">Ödenecek tutar <strong class="text-[#C96A2B]">KDV dahildir</strong>.</p>

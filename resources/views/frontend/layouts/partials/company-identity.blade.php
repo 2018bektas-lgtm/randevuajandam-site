@@ -5,10 +5,16 @@
         $v = trim((string) $value);
         return ['label' => $label, 'value' => $v !== '' ? $v : '—'];
     };
+    $adresTam = trim(implode(', ', array_filter([
+        $c['adres'] ?? '',
+        $c['ilce'] ?? '',
+        $c['il'] ?? '',
+        $c['posta_kodu'] ?? '',
+        $c['ulke'] ?? 'Türkiye',
+    ])));
     $rows = [
         $row('Ticari unvan', $c['unvan'] ?? ''),
-        $row('Adres', $c['adres'] ?? ''),
-        $row('İl', $c['il'] ?? ''),
+        $row('Adres (yurt içi)', $adresTam),
         $row('Vergi dairesi', $c['vergi_dairesi'] ?? ''),
         $row('Vergi no', $c['vergi_no'] ?? ''),
         $row('MERSİS', $c['mersis'] ?? ''),
