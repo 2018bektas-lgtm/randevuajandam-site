@@ -109,19 +109,23 @@
 
 @section('icerik')
 <style>
-    /* Premium visual credit card styling */
-    .credit-card {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-        box-shadow: 0 15px 30px rgba(15, 23, 42, 0.15);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        transition: transform 0.6s;
-        transform-style: preserve-3d;
-        position: relative;
+    .payment-method-card {
+        transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
     }
-    .card-chip {
-        background: linear-gradient(135deg, #E2E8F0 0%, #94A3B8 100%);
-        border-radius: 4px;
-        box-shadow: inset 0 1px 1px rgba(255,255,255,0.5);
+    .payment-method-card.is-active {
+        border-color: #C96A2B !important;
+        background: #FFF7ED !important;
+        box-shadow: 0 0 0 1px #C96A2B;
+    }
+    .paytr-card-form input[type="text"] {
+        background: #fff;
+        color: #111827;
+        min-height: 2.75rem;
+    }
+    .paytr-card-form input[type="text"]:focus {
+        border-color: #C96A2B;
+        box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.12);
+        outline: none;
     }
 </style>
 
@@ -373,7 +377,7 @@
                             <input type="checkbox" name="mesafeli_onay" value="1" required @checked(old('mesafeli_onay'))
                                    class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
                             <span>
-                                <a href="{{ route('frontend.legal.mesafeli') }}" target="_blank" class="text-[#C96A2B] font-bold underline">Mesafeli satış sözleşmesi</a>’ni okudum ve kabul ediyorum.
+                                <a href="{{ route('frontend.legal.mesafeli') }}" target="_blank" class="text-[#C96A2B] font-bold underline">Mesafeli satış sözleşmesi</a>'ni okudum ve kabul ediyorum.
                             </span>
                         </label>
                         @error('mesafeli_onay')<p class="text-[11px] text-red-600">{{ $message }}</p>@enderror
@@ -381,7 +385,7 @@
                             <input type="checkbox" name="kvkk_odeme_onay" value="1" required @checked(old('kvkk_odeme_onay'))
                                    class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
                             <span>
-                                <a href="{{ route('frontend.legal.kvkk') }}" target="_blank" class="text-[#C96A2B] font-bold underline">KVKK Aydınlatma Metni</a>’ni okudum, faturalama ve üyelik için verilerimin işlenmesini kabul ediyorum.
+                                <a href="{{ route('frontend.legal.kvkk') }}" target="_blank" class="text-[#C96A2B] font-bold underline">KVKK Aydınlatma Metni</a>'ni okudum, faturalama ve üyelik için verilerimin işlenmesini kabul ediyorum.
                             </span>
                         </label>
                         @error('kvkk_odeme_onay')<p class="text-[11px] text-red-600">{{ $message }}</p>@enderror
@@ -434,61 +438,76 @@
                             </div>
                         @endif
 
-                        <!-- PayTR Direct: kart formu sitede, 3D Secure modal ile -->
-                        <div id=”card-payment-fields” class=”{{ $paytrOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5 space-y-4”>
-                            <h3 class=”text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display”>
-                                Kart Bilgileri
-                            </h3>
-
-                            <div id=”paytrError” class=”hidden rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs text-red-700 leading-relaxed”></div>
-
-                            <div>
-                                <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>Kart Üzerindeki İsim</label>
-                                <input type=”text” name=”kart_sahibi” id=”kart_sahibi” value=”{{ old('kart_sahibi') }}”
-                                       autocomplete=”cc-name” placeholder=”AD SOYAD”
-                                       class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs uppercase tracking-wide focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
-                            </div>
-
-                            <div>
-                                <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>Kart Numarası</label>
-                                <input type=”text” name=”kart_no” id=”kart_no”
-                                       autocomplete=”cc-number” inputmode=”numeric”
-                                       placeholder=”0000 0000 0000 0000” maxlength=”19”
-                                       class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs font-mono tracking-widest focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
-                            </div>
-
-                            <div class=”grid grid-cols-3 gap-3”>
+                        {{-- PayTR Direct: sitede kart formu, 3D Secure modal --}}
+                        <div id="card-payment-fields" class="{{ $paytrOk ? '' : 'hidden' }} paytr-card-form rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 space-y-5 shadow-sm">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div>
-                                    <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>Ay</label>
-                                    <input type=”text” name=”kart_ay” id=”kart_ay”
-                                           autocomplete=”cc-exp-month” inputmode=”numeric”
-                                           placeholder=”MM” maxlength=”2”
-                                           class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs font-mono text-center focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
+                                    <h3 class="text-sm font-bold text-[#111827] font-display tracking-tight">
+                                        Kart bilgileri
+                                    </h3>
+                                    <p class="mt-1 text-[11px] text-slate-500 leading-relaxed">
+                                        3D Secure ile güvenli ödeme. Kart bilgisi sitemizde saklanmaz.
+                                    </p>
                                 </div>
-                                <div>
-                                    <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>Yıl</label>
-                                    <input type=”text” name=”kart_yil” id=”kart_yil”
-                                           autocomplete=”cc-exp-year” inputmode=”numeric”
-                                           placeholder=”YY” maxlength=”2”
-                                           class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs font-mono text-center focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
-                                </div>
-                                <div>
-                                    <label class=”mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600”>CVV</label>
-                                    <input type=”text” name=”kart_cvv” id=”kart_cvv”
-                                           autocomplete=”cc-csc” inputmode=”numeric”
-                                           placeholder=”000” maxlength=”4”
-                                           class=”w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-xs font-mono text-center focus:border-[#C96A2B] focus:outline-none focus:ring-1 focus:ring-[#C96A2B]”>
+                                <div class="shrink-0 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                                    @include('frontend.layouts.partials.payment-methods', ['compact' => true])
                                 </div>
                             </div>
 
-                            <button type=”submit” id=”paytrSubmitBtn”
-                                    class=”w-full inline-flex items-center justify-center py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display disabled:opacity-60 disabled:cursor-not-allowed”>
+                            <div id="paytrError" class="hidden rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs text-red-700 leading-relaxed"></div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="kart_sahibi" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Kart üzerindeki isim</label>
+                                    <input type="text" name="kart_sahibi" id="kart_sahibi" value="{{ old('kart_sahibi') }}"
+                                           autocomplete="cc-name" placeholder="AD SOYAD"
+                                           class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm uppercase tracking-wide text-[#111827] placeholder:text-slate-400">
+                                </div>
+
+                                <div>
+                                    <label for="kart_no" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Kart numarası</label>
+                                    <input type="text" name="kart_no" id="kart_no"
+                                           autocomplete="cc-number" inputmode="numeric"
+                                           placeholder="0000 0000 0000 0000" maxlength="19"
+                                           class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono tracking-widest text-[#111827] placeholder:text-slate-400">
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label for="kart_ay" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Ay</label>
+                                        <input type="text" name="kart_ay" id="kart_ay"
+                                               autocomplete="cc-exp-month" inputmode="numeric"
+                                               placeholder="MM" maxlength="2"
+                                               class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
+                                    </div>
+                                    <div>
+                                        <label for="kart_yil" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Yıl</label>
+                                        <input type="text" name="kart_yil" id="kart_yil"
+                                               autocomplete="cc-exp-year" inputmode="numeric"
+                                               placeholder="YY" maxlength="2"
+                                               class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
+                                    </div>
+                                    <div>
+                                        <label for="kart_cvv" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">CVV</label>
+                                        <input type="text" name="kart_cvv" id="kart_cvv"
+                                               autocomplete="cc-csc" inputmode="numeric"
+                                               placeholder="000" maxlength="4"
+                                               class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="paytrSubmitBtn"
+                                    class="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display disabled:opacity-60 disabled:cursor-not-allowed">
+                                <svg class="w-4 h-4 opacity-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"></path>
+                                </svg>
                                 Ödemeyi Tamamla ve Sistemi Kur
                             </button>
 
-                            <div class=”flex items-center justify-center gap-1 text-[9px] text-gray-400”>
-                                <svg class=”w-3 h-3 text-emerald-500” fill=”none” stroke=”currentColor” stroke-width=”2” viewBox=”0 0 24 24”>
-                                    <path stroke-linecap=”round” stroke-linejoin=”round” d=”M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z”></path>
+                            <div class="flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+                                <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"></path>
                                 </svg>
                                 <span>256-Bit SSL · 3D Secure · Kart bilgisi sitemizde saklanmaz</span>
                             </div>
@@ -498,7 +517,7 @@
                             @if(!empty($bekleyenHavale))
                                 <p class="mt-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 leading-relaxed">
                                     Zaten <strong>onay bekleyen bir havale bildiriminiz</strong> var.
-                                    Yeni referans girerseniz mevcut bildirim güncellenir; yöneticiye tekrar “göndermedim” sanmayın — kayıt sistemde duruyor.
+                                    Yeni referans girerseniz mevcut bildirim güncellenir; yöneticiye tekrar "göndermedim" sanmayın — kayıt sistemde duruyor.
                                 </p>
                             @endif
                             @if($bankAvailable)
