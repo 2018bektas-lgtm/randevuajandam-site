@@ -40,14 +40,17 @@
         Sitemizde Visa, Mastercard, Troy ve PayTR logoları yer alır. SSL ile bağlantı şifrelenir.
         Kart bilgileri Randevu Ajandam sunucularında saklanmaz.
     </p>
-    @include('frontend.layouts.partials.payment-methods', ['compact' => true])
+    <div class="not-prose my-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        @include('frontend.layouts.partials.payment-methods', ['compact' => true])
+    </div>
 
     <h2 id="iletisim">4. İletişim</h2>
     @include('frontend.layouts.partials.company-identity')
     <p>
-        E-posta: <a href="mailto:{{ config('company.email', 'info@randevuajandam.com') }}">{{ config('company.email', 'info@randevuajandam.com') }}</a><br>
-        Telefon / WhatsApp: <a href="https://wa.me/{{ config('company.whatsapp', '905319912427') }}" target="_blank" rel="noopener">{{ config('company.telefon', '+90 531 991 24 27') }}</a><br>
-        Detay: <a href="{{ route('frontend.legal.iletisim') }}">İletişim sayfası</a>
+        Detaylı iletişim:
+        <a href="{{ route('frontend.legal.iletisim') }}">İletişim sayfası</a>
+        · WhatsApp:
+        <a href="https://wa.me/{{ config('company.whatsapp', '905319912427') }}" target="_blank" rel="noopener">{{ config('company.telefon', '+90 531 991 24 27') }}</a>
     </p>
 @endcomponent
 @endsection
