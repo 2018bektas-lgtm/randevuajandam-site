@@ -44,19 +44,42 @@
                 <p class="text-[11px] text-[#6B7280] leading-relaxed max-w-[220px]">
                     Danışanları uzman hekimlerle buluşturan randevu platformu.
                 </p>
+                @php
+                    $c = config('company', []);
+                    $footerUnvan = trim((string) ($c['unvan'] ?? ''));
+                    $footerAdres = trim(implode(', ', array_filter([
+                        $c['adres'] ?? '',
+                        $c['ilce'] ?? '',
+                        $c['il'] ?? '',
+                        $c['posta_kodu'] ?? '',
+                        $c['ulke'] ?? 'Türkiye',
+                    ])));
+                    $footerTel = trim((string) ($c['telefon'] ?? '+90 531 991 24 27'));
+                    $footerEmail = trim((string) ($c['email'] ?? 'info@randevuajandam.com'));
+                @endphp
                 <ul class="space-y-1.5 text-[11px] text-[#6B7280]">
+                    @if($footerUnvan !== '')
+                        <li class="font-semibold text-[#4B5563]">{{ $footerUnvan }}</li>
+                    @endif
                     <li>
                         <a href="{{ route('frontend.legal.hakkimizda') }}" class="hover:text-[#C96A2B] transition-colors">Hakkımızda</a>
-                    </li>
-                    <li>
+                        <span class="text-[#D1D5DB] mx-1">·</span>
                         <a href="{{ route('frontend.legal.iletisim') }}" class="hover:text-[#C96A2B] transition-colors">İletişim</a>
                     </li>
+                    <li class="leading-relaxed text-[#4B5563]">
+                        <span class="block text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-0.5">Adres</span>
+                        @if(trim((string) ($c['adres'] ?? '')) !== '')
+                            {{ $footerAdres }}
+                        @else
+                            <span class="text-amber-700">Adres: COMPANY_ADRES / COMPANY_IL .env dosyasına ekleyin</span>
+                        @endif
+                    </li>
                     <li>
-                        <a href="mailto:{{ config('company.email', 'info@randevuajandam.com') }}"
+                        <a href="mailto:{{ $footerEmail }}"
                            data-meta-event="Contact"
                            data-meta-params='{"content_name":"Footer e-posta"}'
                            class="hover:text-[#C96A2B] transition-colors break-all">
-                            {{ config('company.email', 'info@randevuajandam.com') }}
+                            {{ $footerEmail }}
                         </a>
                     </li>
                     <li>
@@ -66,7 +89,7 @@
                            data-meta-params='{"content_name":"Footer WhatsApp"}'
                            class="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-800">
                             <svg class="w-3 h-3 fill-current shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.257 5.26 0 11.722 0c3.13 0 6.073 1.22 8.286 3.433 2.213 2.213 3.431 5.158 3.43 8.288-.003 6.465-5.26 11.721-11.721 11.721-2.001-.001-3.97-.51-5.733-1.485L0 24zm6.49-4.22c1.657.982 3.267 1.48 4.966 1.481 5.36 0 9.72-4.36 9.723-9.723.001-2.597-1.01-5.038-2.85-6.877-1.839-1.839-4.281-2.85-6.877-2.852-5.364 0-9.723 4.359-9.726 9.723 0 1.762.474 3.415 1.373 4.908L1.96 22.04l4.587-1.26z"/></svg>
-                            {{ config('company.telefon', '+90 531 991 24 27') }}
+                            {{ $footerTel }}
                         </a>
                     </li>
                 </ul>
@@ -141,7 +164,19 @@
                 <div class="min-w-0 flex-1">
                     @include('frontend.layouts.partials.payment-methods')
                 </div>
-                <div class="text-[11px] text-[#9CA3AF] lg:text-right leading-relaxed shrink-0 space-y-1">
+                <div class="text-[11px] text-[#9CA3AF] lg:text-right leading-relaxed shrink-0 space-y-1 max-w-md lg:ml-auto">
+                    @if(trim((string) (config('company.adres') ?? '')) !== '')
+                        <p class="text-[#6B7280]">
+                            <span class="font-semibold text-[#4B5563]">{{ config('company.unvan') ?: 'Randevu Ajandam' }}</span>
+                            — {{ trim(implode(', ', array_filter([
+                                config('company.adres'),
+                                config('company.ilce'),
+                                config('company.il'),
+                                config('company.posta_kodu'),
+                                config('company.ulke', 'Türkiye'),
+                            ]))) }}
+                        </p>
+                    @endif
                     <p>
                         © {{ date('Y') }} <span class="font-semibold text-[#6B7280]">Randevu Ajandam</span>.
                         Tüm hakları saklıdır.
