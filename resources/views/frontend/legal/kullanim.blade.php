@@ -106,7 +106,7 @@
     <ul>
         <li>Bireysel ve klinik paketleri, özellik seti ve fiyatları sitede veya panelde ilan edilir.</li>
         <li>Havale/EFT: ödeme kanıtı sonrası manuel onay ile aktivasyon yapılabilir.</li>
-        <li>Online ödeme (Iyzico vb.): ilgili ödeme kuruluşunun koşulları geçerlidir.</li>
+        <li>Online ödeme (PayTR): ilgili ödeme kuruluşunun koşulları geçerlidir.</li>
         <li>Mobil abonelik (IAP): App Store / Google Play abonelik ve iptal kuralları geçerlidir.</li>
         <li>İade talepleri yasal haklar, mağaza politikası ve yazılı destek kaydı ile değerlendirilir.</li>
         <li>Vergi fatura bilgisi talep edildiğinde doğru bilgi vermek kullanıcıya aittir.</li>

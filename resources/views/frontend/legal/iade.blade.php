@@ -40,14 +40,14 @@
         <li>İptal, <strong>otomatik yenilemeyi kapatır</strong>.</li>
         <li>Ödenen dönem bitiş tarihine kadar erişim <strong>devam eder</strong>.</li>
         <li>Dönem sonunda yeni ücret çekilmez; erişim sona erer.</li>
-        <li>Kartlı aboneliklerde iptal, önce iyzico aboneliğini kapatır (yenileme/çekim durur); iyzico başarısızsa sitede iptal tamamlanmaz.</li>
+        <li>Kartlı aboneliklerde iptal: panelden “aboneliği iptal et” ile yenileme kapatılır; dönem sonuna kadar kullanım hakkı korunabilir.</li>
     </ul>
 
     <h2 id="iade">4. Ücret iadesi</h2>
     <p>
         Genel kural: Kullanıma açılmış dönem için kısmi iade yapılmaz.
         Hizmetin teknik olarak sunulamadığı, mükerrer tahsilat veya yasal zorunluluk hallerinde
-        iade talebi değerlendirilir. Onaylanan iadeler, ödeme kuruluşu (iyzico) ve banka sürelerine bağlıdır.
+        iade talebi değerlendirilir. Onaylanan iadeler, ödeme kuruluşu (PayTR) ve banka sürelerine bağlıdır.
     </p>
 
     <h2 id="deneme">5. Ücretsiz deneme</h2>

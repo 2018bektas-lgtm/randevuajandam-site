@@ -15,7 +15,7 @@
 @component('frontend.legal._layout', [
     'baslik' => $baslik,
     'guncelleme' => $guncelleme,
-    'ozet' => 'iyzico mağaza şartları kapsamında site üzerinden doğrudan ulaşılabilir iletişim bilgileri.',
+    'ozet' => 'PayTR sanal POS / abonelik şartları kapsamında site üzerinden doğrudan ulaşılabilir iletişim ve adres bilgileri.',
     'sections' => $sections,
 ])
     <h2 id="bilgi">1. İletişim ve ticari bilgiler</h2>

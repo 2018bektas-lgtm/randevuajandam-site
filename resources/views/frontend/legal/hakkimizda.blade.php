@@ -36,15 +36,17 @@
 
     <h2 id="guven">3. Güven ve ödeme</h2>
     <p>
-        Kartlı abonelik ödemeleri <strong>iyzico</strong> güvenli ödeme altyapısı ile alınır.
-        Sitemizde Visa, Mastercard ve iyzico ile Öde logoları yer alır. SSL ile bağlantı şifrelenir.
+        Kartlı abonelik ödemeleri <strong>PayTR</strong> güvenli ödeme altyapısı ile alınır (3D Secure).
+        Sitemizde Visa, Mastercard, Troy ve PayTR logoları yer alır. SSL ile bağlantı şifrelenir.
+        Kart bilgileri Randevu Ajandam sunucularında saklanmaz.
     </p>
     @include('frontend.layouts.partials.payment-methods', ['compact' => true])
 
     <h2 id="iletisim">4. İletişim</h2>
+    @include('frontend.layouts.partials.company-identity')
     <p>
-        E-posta: <a href="mailto:info@randevuajandam.com">info@randevuajandam.com</a><br>
-        WhatsApp: <a href="https://wa.me/905319912427" target="_blank" rel="noopener">+90 531 991 24 27</a><br>
+        E-posta: <a href="mailto:{{ config('company.email', 'info@randevuajandam.com') }}">{{ config('company.email', 'info@randevuajandam.com') }}</a><br>
+        Telefon / WhatsApp: <a href="https://wa.me/{{ config('company.whatsapp', '905319912427') }}" target="_blank" rel="noopener">{{ config('company.telefon', '+90 531 991 24 27') }}</a><br>
         Detay: <a href="{{ route('frontend.legal.iletisim') }}">İletişim sayfası</a>
     </p>
 @endcomponent

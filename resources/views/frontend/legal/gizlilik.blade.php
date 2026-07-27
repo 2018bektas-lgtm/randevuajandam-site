@@ -68,7 +68,7 @@
     <h3>3.3 Ödeme verileri</h3>
     <ul>
         <li>Havale/EFT referans ve durum bilgisi</li>
-        <li>Iyzico / App Store / Google Play işlem kimlikleri</li>
+        <li>PayTR / App Store / Google Play işlem kimlikleri</li>
         <li><strong>Tam kart numarası Platform veritabanında saklanmaz.</strong></li>
     </ul>
 

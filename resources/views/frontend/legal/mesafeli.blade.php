@@ -94,7 +94,7 @@
     </p>
 
     <p class="text-xs text-slate-500 mt-8">
-        Ödeme altyapısı: iyzico · Kart logoları: Visa, Mastercard, Troy · Güvenlik: 3D Secure (desteklenen işlemlerde).
+        Ödeme altyapısı: PayTR · Kart logoları: Visa, Mastercard, Troy · Güvenlik: 3D Secure (desteklenen işlemlerde).
     </p>
 @endcomponent
 @endsection
