@@ -1,4 +1,4 @@
-@extends('frontend.layouts.app')
+﻿@extends('frontend.layouts.app-tw')
 
 @section('baslik', ($basarili ?? false) ? 'Ödeme sonucu - Randevu Ajandam' : 'Ödeme tamamlanamadı - Randevu Ajandam')
 

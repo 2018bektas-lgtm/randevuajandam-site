@@ -4,6 +4,7 @@
 @section('meta_aciklama', 'Platformdaki uzman hekim ve sağlık profesyonellerinin sunduğu eğitim, seminer ve kursları keşfedin.')
 
 @section('icerik')
+@include('frontend.layouts.delogis.page-header', ['title' => 'Eğitimler', 'crumb' => 'Eğitimler'])
 <style>
     .eg-search-shell {
         position: relative;

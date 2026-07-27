@@ -7,6 +7,7 @@
 ]))
 
 @section('icerik')
+@include('frontend.layouts.delogis.page-header', ['title' => 'Blog', 'crumb' => 'Blog'])
 <style>
     /* Premium Shimmer Sweep */
     .shimmer-sweep {

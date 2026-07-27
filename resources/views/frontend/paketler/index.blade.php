@@ -8,6 +8,7 @@
 ]))
 
 @section('icerik')
+@include('frontend.layouts.delogis.page-header', ['title' => 'Paketler', 'crumb' => 'Paketler'])
 @php
     $referansRefRaw = request('ref') ?: session('ra_ref') ?: request()->cookie('ra_ref');
     $referansRef = (is_string($referansRefRaw) && preg_match('/^[A-Za-z0-9]{4,16}$/', $referansRefRaw))

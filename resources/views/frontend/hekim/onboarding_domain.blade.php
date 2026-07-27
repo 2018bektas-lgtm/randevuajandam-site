@@ -1,4 +1,4 @@
-@extends('frontend.layouts.app')
+﻿@extends('frontend.layouts.app-tw')
 
 @section('baslik', ($phase ?? 'pre_payment') === 'pre_payment' ? 'Domain seçimi - Ödeme öncesi' : 'Domain seçimi - Randevu Ajandam')
 
