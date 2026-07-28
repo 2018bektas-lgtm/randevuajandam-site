@@ -4,43 +4,60 @@
 @section('sayfa_baslik', 'Ödeme Ayarları')
 
 @section('icerik')
+    @php
+        $paytrOn  = (bool) old('paytr_aktif', $ayarlar->paytr_aktif ?? (($ayarlar->odeme_saglayici ?? 'paytr') !== 'iyzico'));
+        $iyzicoOn = (bool) old('iyzico_aktif', $ayarlar->iyzico_aktif ?? (($ayarlar->odeme_saglayici ?? '') === 'iyzico' || ($ayarlar->iyzico_enabled ?? false)));
+        $havaleOn = (bool) old('havale_aktif', $ayarlar->havale_aktif ?? true);
+    @endphp
     <div class="max-w-4xl mx-auto">
         <form action="{{ route('yonetim.odeme-ayarlari.post') }}" method="POST" class="space-y-6">
             @csrf
 
-            {{-- Sağlayıcı seçimi --}}
+            {{-- Kanal seçimi (çoklu) --}}
             <div class="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
-                <h3 class="border-b border-slate-100 pb-3 text-lg font-bold text-slate-900">Aktif ödeme sağlayıcısı</h3>
+                <h3 class="border-b border-slate-100 pb-3 text-lg font-bold text-slate-900">Ödeme kanalları</h3>
                 <p class="mt-3 text-xs leading-relaxed text-slate-500">
-                    Tüm kartlı ödemeler seçilen sağlayıcı üzerinden gerçekleşir.
-                    İkinci sağlayıcının kimlik bilgilerini kaydetmiş olsanız bile yalnızca seçili olanı aktif olur.
+                    İstediğiniz kanalları bağımsız açıp kapatabilirsiniz. Hepsi açık, yalnız POS, yalnız havale veya ikisi birden olabilir.
+                    Kapalı kanallar hekim ödeme sayfasında gösterilmez. API anahtarları / IBAN bilgileri aşağıda saklanır; kanal kapalı olsa bile silinmez.
                 </p>
-                <div class="mt-5 flex flex-col gap-3 sm:flex-row">
+                <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 px-4 py-3 transition
-                        {{ ($ayarlar->odeme_saglayici ?? 'paytr') === 'paytr' ? 'border-[#C96A2B] bg-orange-50' : 'border-slate-200' }}"
+                        {{ $paytrOn ? 'border-[#C96A2B] bg-orange-50' : 'border-slate-200' }}"
                         id="label-paytr">
-                        <input type="radio" name="odeme_saglayici" value="paytr"
-                               {{ ($ayarlar->odeme_saglayici ?? 'paytr') === 'paytr' ? 'checked' : '' }}
-                               class="mt-0.5 text-[#C96A2B]" onchange="switchProvider('paytr')">
+                        <input type="checkbox" name="paytr_aktif" value="1" {{ $paytrOn ? 'checked' : '' }}
+                               class="mt-0.5 rounded border-slate-300 text-[#C96A2B]" onchange="toggleChannel('paytr', this.checked)">
                         <span>
                             <span class="block text-xs font-bold text-slate-800">PayTR</span>
-                            <span class="block text-[11px] text-slate-500 leading-snug">iFrame, güvenli kart girişi. Recurring ödeme destekli.</span>
+                            <span class="block text-[11px] text-slate-500 leading-snug">Kartlı ödeme (iFrame / Direct). Merchant bilgileri aşağıda.</span>
                         </span>
                     </label>
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 px-4 py-3 transition
-                        {{ ($ayarlar->odeme_saglayici ?? '') === 'iyzico' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"
+                        {{ $iyzicoOn ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"
                         id="label-iyzico">
-                        <input type="radio" name="odeme_saglayici" value="iyzico"
-                               {{ ($ayarlar->odeme_saglayici ?? '') === 'iyzico' ? 'checked' : '' }}
-                               class="mt-0.5 text-indigo-600" onchange="switchProvider('iyzico')">
+                        <input type="checkbox" name="iyzico_aktif" value="1" {{ $iyzicoOn ? 'checked' : '' }}
+                               class="mt-0.5 rounded border-slate-300 text-indigo-600" onchange="toggleChannel('iyzico', this.checked)">
                         <span>
                             <span class="block text-xs font-bold text-slate-800">iyzico</span>
                             <span class="block text-[11px] text-slate-500 leading-snug">Abonelik API, otomatik yenileme. API anahtarları aşağıda.</span>
                         </span>
                     </label>
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 px-4 py-3 transition
+                        {{ $havaleOn ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200' }}"
+                        id="label-havale">
+                        <input type="checkbox" name="havale_aktif" value="1" {{ $havaleOn ? 'checked' : '' }}
+                               class="mt-0.5 rounded border-slate-300 text-emerald-600" onchange="toggleChannel('havale', this.checked)">
+                        <span>
+                            <span class="block text-xs font-bold text-slate-800">Havale / IBAN</span>
+                            <span class="block text-[11px] text-slate-500 leading-snug">Banka transferi. IBAN bilgileri aşağıda; yönetici onayı gerekir.</span>
+                        </span>
+                    </label>
                 </div>
-                <input type="hidden" name="iyzico_enabled" value="0">
-                <input type="hidden" name="iyzico_enabled" value="{{ ($ayarlar->odeme_saglayici ?? '') === 'iyzico' ? '1' : '0' }}" id="iyzico_enabled_field">
+                <p class="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate-500 leading-relaxed">
+                    <strong class="text-slate-700">Örnekler:</strong>
+                    Sadece havale → PayTR ve iyzico kapalı, havale açık.
+                    Sadece POS → havale kapalı, PayTR ve/veya iyzico açık.
+                    İkisi birden → hem PayTR hem iyzico işaretli; hekim ödeme sayfasında seçer.
+                </p>
             </div>
 
             {{-- PayTR --}}
@@ -79,8 +96,7 @@
             </div>
 
             {{-- iyzico --}}
-            <div class="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm" id="section-iyzico"
-                 style="{{ ($ayarlar->odeme_saglayici ?? 'paytr') !== 'iyzico' ? 'display:none' : '' }}">
+            <div class="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm" id="section-iyzico">
                 <h3 class="border-b border-slate-100 pb-3 text-lg font-bold text-slate-900">iyzico (abonelik API)</h3>
                 <p class="mt-3 text-xs leading-relaxed text-slate-500">
                     iyzico merchant paneli → API bilgileri. Webhook URL:
@@ -111,8 +127,8 @@
             </div>
 
             {{-- Banka havalesi --}}
-            <div class="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
-                <h3 class="border-b border-slate-100 pb-3 text-lg font-bold text-slate-900">Banka havalesi</h3>
+            <div class="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm" id="section-havale">
+                <h3 class="border-b border-slate-100 pb-3 text-lg font-bold text-slate-900">Banka havalesi (IBAN)</h3>
                 <p class="mt-3 text-xs leading-relaxed text-slate-500">Bu bilgiler ödeme sayfasında gösterilir. Hekimin gönderdiği havale referansı yönetici onayı bekleyen üyelik ödemelerine eklenir.</p>
                 <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <div><label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-700">Banka adı</label><input type="text" name="banka_adi" value="{{ old('banka_adi', $ayarlar->banka_adi) }}" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs"></div>
@@ -127,14 +143,18 @@
     </div>
 
     <script>
-    function switchProvider(val) {
-        document.getElementById('section-paytr').style.display = val === 'paytr' ? '' : 'none';
-        document.getElementById('section-iyzico').style.display = val === 'iyzico' ? '' : 'none';
-        document.getElementById('iyzico_enabled_field').value = val === 'iyzico' ? '1' : '0';
-        document.getElementById('label-paytr').className = document.getElementById('label-paytr').className
-            .replace(/border-\[#C96A2B\] bg-orange-50|border-slate-200/, val === 'paytr' ? 'border-[#C96A2B] bg-orange-50' : 'border-slate-200');
-        document.getElementById('label-iyzico').className = document.getElementById('label-iyzico').className
-            .replace(/border-indigo-500 bg-indigo-50|border-slate-200/, val === 'iyzico' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200');
+    function toggleChannel(name, on) {
+        var styles = {
+            paytr:  { on: 'border-[#C96A2B] bg-orange-50', off: 'border-slate-200' },
+            iyzico: { on: 'border-indigo-500 bg-indigo-50', off: 'border-slate-200' },
+            havale: { on: 'border-emerald-500 bg-emerald-50', off: 'border-slate-200' }
+        };
+        var el = document.getElementById('label-' + name);
+        if (!el || !styles[name]) return;
+        el.className = el.className
+            .replace(/border-\[#C96A2B\] bg-orange-50|border-indigo-500 bg-indigo-50|border-emerald-500 bg-emerald-50|border-slate-200/g, '')
+            .trim();
+        el.className += ' ' + (on ? styles[name].on : styles[name].off);
     }
     </script>
 @endsection

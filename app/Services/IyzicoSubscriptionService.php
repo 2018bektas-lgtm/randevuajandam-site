@@ -27,18 +27,26 @@ class IyzicoSubscriptionService
     }
 
     /**
-     * iyzico aktif ve anahtarlar tanımlı mı?
-     * site_ayarlari.iyzico_enabled + api/secret key kontrolü.
+     * iyzico anahtarları tanımlı mı?
+     * Kanal aç/kapa (iyzico_aktif) PaymentDriverService üzerinden kontrol edilir;
+     * burada yalnızca API key + secret varlığı doğrulanır.
+     * Geriye dönük: iyzico_enabled / config.services.iyzico.enabled da kabul edilir.
      */
     public function isConfigured(): bool
     {
         $settings = SiteAyari::cached();
-        $enabled  = (bool) ($settings?->iyzico_enabled ?? config('services.iyzico.enabled', false));
-        if (! $enabled) {
-            return false;
+
+        // Anahtarlar doluysa yapılandırılmış say (aktiflik ayrı bayrakta)
+        if ($this->apiKey !== '' && $this->secretKey !== '') {
+            return true;
         }
 
-        return $this->apiKey !== '' && $this->secretKey !== '';
+        // Eski davranış: enabled bayrağı true ama key boş → false
+        $enabled = (bool) ($settings?->iyzico_aktif
+            ?? $settings?->iyzico_enabled
+            ?? config('services.iyzico.enabled', false));
+
+        return $enabled && $this->apiKey !== '' && $this->secretKey !== '';
     }
 
     protected function allowsMock(): bool

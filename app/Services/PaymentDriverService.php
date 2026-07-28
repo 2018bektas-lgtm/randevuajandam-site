@@ -14,42 +14,113 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Tek arayüz: aktif ödeme sağlayıcısına göre checkout başlatır.
- * PayTR: yalnızca iFrame + 3D (tek seferlik). Otomatik recurring kapalı.
- * Sağlayıcı site_ayarlari.odeme_saglayici ile belirlenir ('paytr' | 'iyzico').
+ * Ödeme kanalları bağımsız aç/kapa:
+ * site_ayarlari.paytr_aktif | iyzico_aktif | havale_aktif
+ * (Eski odeme_saglayici alanı geriye dönük senkron tutulur.)
  */
 class PaymentDriverService
 {
+    /**
+     * Geriye dönük: birincil sürücü (yenileme / varsayılan).
+     * Öncelik: iyzico (aktif+yapılandırılmış) → paytr → paytr (fallback string).
+     */
     public function driver(): string
     {
-        $ayar = SiteAyari::cached();
-        $saglayici = trim((string) ($ayar?->odeme_saglayici ?? 'paytr'));
-
-        // iyzico sadece hem enabled hem de configured ise aktif
-        if ($saglayici === 'iyzico' && app(IyzicoSubscriptionService::class)->isConfigured()) {
+        if ($this->isIyzicoActive()) {
             return 'iyzico';
         }
 
         return 'paytr';
     }
 
+    /** Yönetim paneli bayrağı (yapılandırma şartı yok). */
+    public function isPaytrEnabled(): bool
+    {
+        $ayar = SiteAyari::cached();
+        if ($ayar !== null && $ayar->getAttribute('paytr_aktif') !== null) {
+            return (bool) $ayar->paytr_aktif;
+        }
+
+        // Migration öncesi: exclusive odeme_saglayici
+        return trim((string) ($ayar?->odeme_saglayici ?? 'paytr')) !== 'iyzico';
+    }
+
+    public function isIyzicoEnabled(): bool
+    {
+        $ayar = SiteAyari::cached();
+        if ($ayar !== null && $ayar->getAttribute('iyzico_aktif') !== null) {
+            return (bool) $ayar->iyzico_aktif;
+        }
+
+        return trim((string) ($ayar?->odeme_saglayici ?? '')) === 'iyzico'
+            || (bool) ($ayar?->iyzico_enabled ?? false);
+    }
+
+    public function isHavaleEnabled(): bool
+    {
+        $ayar = SiteAyari::cached();
+        if ($ayar !== null && $ayar->getAttribute('havale_aktif') !== null) {
+            return (bool) $ayar->havale_aktif;
+        }
+
+        return true;
+    }
+
+    /** Bayrak + merchant/API yapılandırması. */
     public function isPaytrActive(): bool
     {
-        return $this->driver() === 'paytr';
+        return $this->isPaytrEnabled() && app(PaytrService::class)->isConfigured();
     }
 
     public function isIyzicoActive(): bool
     {
-        return $this->driver() === 'iyzico';
+        if (! $this->isIyzicoEnabled()) {
+            return false;
+        }
+
+        return app(IyzicoSubscriptionService::class)->isConfigured();
+    }
+
+    public function isHavaleActive(): bool
+    {
+        if (! $this->isHavaleEnabled()) {
+            return false;
+        }
+
+        $ayar = SiteAyari::cached() ?? SiteAyari::query()->first();
+
+        return filled($ayar?->banka_adi)
+            && filled($ayar?->banka_hesap_sahibi)
+            && filled($ayar?->banka_iban);
+    }
+
+    /**
+     * Checkout'ta seçilebilir yöntemler: paytr | iyzico | havale
+     *
+     * @return list<string>
+     */
+    public function availableMethods(): array
+    {
+        $methods = [];
+        if ($this->isPaytrActive()) {
+            $methods[] = 'paytr';
+        }
+        if ($this->isIyzicoActive()) {
+            $methods[] = 'iyzico';
+        }
+        if ($this->isHavaleActive()) {
+            $methods[] = 'havale';
+        }
+
+        return $methods;
     }
 
     /**
      * Ödeme akışını başlat.
-     * PayTR → iFrame yönlendirme döner.
-     * iyzico → kart formu POST sonucu (success redirect veya errors).
+     * $preferredMethod: 'paytr' | 'iyzico' | null (driver fallback)
      *
      * @param  array<string, mixed>  $kurulum
-     * @param  array<string, mixed>  $kartBilgileri  (yalnızca iyzico için, PayTR'de boş)
+     * @param  array<string, mixed>  $kartBilgileri  (iyzico için)
      */
     public function startCheckout(
         Doktor $doktor,
@@ -58,13 +129,30 @@ class PaymentDriverService
         float $tutar,
         array $kurulum,
         Request $request,
-        array $kartBilgileri = []
+        array $kartBilgileri = [],
+        ?string $preferredMethod = null
     ) {
+        $method = $preferredMethod ?: $this->driver();
+
+        if ($method === 'iyzico' && $this->isIyzicoActive()) {
+            return $this->startIyzicoCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $kartBilgileri);
+        }
+
+        if ($method === 'paytr' && $this->isPaytrActive()) {
+            return $this->startPaytrCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $request);
+        }
+
+        // Tercih geçersizse diğer aktif POS'a düş
+        if ($this->isPaytrActive()) {
+            return $this->startPaytrCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $request);
+        }
         if ($this->isIyzicoActive()) {
             return $this->startIyzicoCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $kartBilgileri);
         }
 
-        return $this->startPaytrCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $request);
+        return back()->withInput()->withErrors([
+            'odeme_yontemi' => 'Kartlı ödeme şu an kapalı. Havale ile devam edebilir veya yöneticiye bildirebilirsiniz.',
+        ]);
     }
 
     // ─── PayTR ────────────────────────────────────────────────────────────────

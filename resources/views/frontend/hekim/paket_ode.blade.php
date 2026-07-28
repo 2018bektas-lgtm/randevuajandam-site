@@ -405,45 +405,68 @@
                             </button>
                         </div>
                     @else
-                        @php $paytrOk = $paytrAvailable ?? $iyzicoAvailable ?? false; @endphp
+                        @php
+                            $paytrOk = (bool) ($paytrAvailable ?? false);
+                            $iyzicoOk = (bool) ($iyzicoAvailable ?? false);
+                            $cardOk = $paytrOk || $iyzicoOk;
+                            $methodCount = ($paytrOk ? 1 : 0) + ($iyzicoOk ? 1 : 0) + ($bankAvailable ? 1 : 0);
+                            $defaultMethod = $paytrOk ? 'paytr' : ($iyzicoOk ? 'iyzico' : 'havale');
+                            $oldMethod = old('odeme_yontemi', $defaultMethod);
+                        @endphp
 
                         <h3 class="text-xs font-bold text-[#1F2937] uppercase tracking-wider font-display pb-2 border-b border-[#E5E7EB]">
                             Ödeme yöntemi
                         </h3>
 
-                        @if($paytrOk && $bankAvailable)
-                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <label class="payment-method-card is-active cursor-pointer rounded-2xl border-2 border-[#C96A2B] bg-[#FFF7ED] p-4">
-                                    <input type="radio" name="odeme_yontemi" value="paytr" checked class="sr-only">
-                                    <span class="block text-xs font-bold text-[#111827]">Kredi / banka kartı</span>
-                                    <span class="mt-1 block text-[11px] text-slate-500">PayTR güvenli ekran + 3D Secure — kart sitede girilmez</span>
-                                </label>
-                                <label class="payment-method-card cursor-pointer rounded-2xl border border-[#E5E7EB] bg-white p-4">
-                                    <input type="radio" name="odeme_yontemi" value="havale" class="sr-only">
-                                    <span class="block text-xs font-bold text-[#111827]">Banka havalesi</span>
-                                    <span class="mt-1 block text-[11px] text-slate-500">Yönetici onayı sonrası aktifleşir</span>
-                                </label>
+                        @if($methodCount > 1)
+                            <div class="grid grid-cols-1 gap-3 {{ $methodCount >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2' }}">
+                                @if($paytrOk)
+                                    <label class="payment-method-card cursor-pointer rounded-2xl border p-4 {{ $oldMethod === 'paytr' ? 'is-active border-2 border-[#C96A2B] bg-[#FFF7ED]' : 'border-[#E5E7EB] bg-white' }}">
+                                        <input type="radio" name="odeme_yontemi" value="paytr" {{ $oldMethod === 'paytr' ? 'checked' : '' }} class="sr-only">
+                                        <span class="block text-xs font-bold text-[#111827]">Kredi / banka kartı (PayTR)</span>
+                                        <span class="mt-1 block text-[11px] text-slate-500">3D Secure — kart sitede saklanmaz</span>
+                                    </label>
+                                @endif
+                                @if($iyzicoOk)
+                                    <label class="payment-method-card cursor-pointer rounded-2xl border p-4 {{ $oldMethod === 'iyzico' ? 'is-active border-2 border-[#C96A2B] bg-[#FFF7ED]' : 'border-[#E5E7EB] bg-white' }}">
+                                        <input type="radio" name="odeme_yontemi" value="iyzico" {{ $oldMethod === 'iyzico' ? 'checked' : '' }} class="sr-only">
+                                        <span class="block text-xs font-bold text-[#111827]">Kredi / banka kartı (iyzico)</span>
+                                        <span class="mt-1 block text-[11px] text-slate-500">Abonelik + otomatik yenileme</span>
+                                    </label>
+                                @endif
+                                @if($bankAvailable)
+                                    <label class="payment-method-card cursor-pointer rounded-2xl border p-4 {{ $oldMethod === 'havale' ? 'is-active border-2 border-[#C96A2B] bg-[#FFF7ED]' : 'border-[#E5E7EB] bg-white' }}">
+                                        <input type="radio" name="odeme_yontemi" value="havale" {{ $oldMethod === 'havale' ? 'checked' : '' }} class="sr-only">
+                                        <span class="block text-xs font-bold text-[#111827]">Banka havalesi</span>
+                                        <span class="mt-1 block text-[11px] text-slate-500">Yönetici onayı sonrası aktifleşir</span>
+                                    </label>
+                                @endif
                             </div>
                         @elseif($paytrOk)
                             <input type="hidden" name="odeme_yontemi" value="paytr">
-                        @else
+                        @elseif($iyzicoOk)
+                            <input type="hidden" name="odeme_yontemi" value="iyzico">
+                        @elseif($bankAvailable)
                             <input type="hidden" name="odeme_yontemi" value="havale">
                         @endif
 
-                        @if(! $bankAvailable && ! $paytrOk)
+                        @if(! $bankAvailable && ! $cardOk)
                             <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-                                Kartlı ödeme (PayTR) ve havale bilgileri henüz yapılandırılmamış. Yönetici panelinden PayTR merchant bilgilerini girin.
+                                Şu an açık bir ödeme kanalı yok. Yönetici panelinden PayTR, iyzico veya havale/IBAN açılmalıdır.
                             </div>
                         @endif
 
-                        {{-- PayTR Direct: ilk odeme 3D + store_card; sonraki donem Non3D utoken/ctoken --}}
-                        <div id="card-payment-fields" class="{{ $paytrOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 space-y-4 shadow-sm">
+                        {{-- Kart alanları: PayTR Direct veya iyzico --}}
+                        <div id="card-payment-fields" class="{{ in_array($oldMethod, ['paytr', 'iyzico'], true) && $cardOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 space-y-4 shadow-sm">
                             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                 <div>
                                     <h3 class="text-sm font-bold text-[#111827] font-display tracking-tight">Kart bilgileri</h3>
-                                    <p class="mt-1.5 text-xs text-[#6B7280] leading-relaxed max-w-lg">
-                                        Ilk odeme <strong>3D Secure</strong> ile alinir. Kartiniz PayTR'de saklanir;
-                                        donem sonunda otomatik yenileme (Non3D) icin kullanilir. Kart numarasi sunucumuzda tutulmaz.
+                                    <p class="mt-1.5 text-xs text-[#6B7280] leading-relaxed max-w-lg" id="card-help-paytr" style="{{ $oldMethod === 'iyzico' ? 'display:none' : '' }}">
+                                        İlk ödeme <strong>3D Secure</strong> ile alınır. Kartınız PayTR'de saklanır;
+                                        dönem sonunda otomatik yenileme için kullanılır. Kart numarası sunucumuzda tutulmaz.
+                                    </p>
+                                    <p class="mt-1.5 text-xs text-[#6B7280] leading-relaxed max-w-lg" id="card-help-iyzico" style="{{ $oldMethod === 'iyzico' ? '' : 'display:none' }}">
+                                        iyzico abonelik API ile kartınız kaydedilir; dönem yenilemeleri otomatik yapılır.
                                     </p>
                                 </div>
                                 <div class="shrink-0 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
@@ -455,13 +478,13 @@
 
                             <div class="space-y-4">
                                 <div>
-                                    <label for="kart_sahibi" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Kart uzerindeki isim</label>
+                                    <label for="kart_sahibi" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Kart üzerindeki isim</label>
                                     <input type="text" name="kart_sahibi" id="kart_sahibi" value="{{ old('kart_sahibi') }}"
                                            autocomplete="cc-name" placeholder="AD SOYAD"
                                            class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm uppercase tracking-wide text-[#111827] placeholder:text-slate-400">
                                 </div>
                                 <div>
-                                    <label for="kart_no" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Kart numarasi</label>
+                                    <label for="kart_no" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Kart numarası</label>
                                     <input type="text" name="kart_no" id="kart_no"
                                            autocomplete="cc-number" inputmode="numeric"
                                            placeholder="0000 0000 0000 0000" maxlength="19"
@@ -475,7 +498,7 @@
                                                class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
                                     </div>
                                     <div>
-                                        <label for="kart_yil" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Yil</label>
+                                        <label for="kart_yil" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Yıl</label>
                                         <input type="text" name="kart_yil" id="kart_yil" autocomplete="cc-exp-year" inputmode="numeric"
                                                placeholder="YY" maxlength="4"
                                                class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
@@ -487,12 +510,12 @@
                                                class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
                                     </div>
                                 </div>
-                                <label class="flex items-start gap-2.5 text-xs text-slate-600 cursor-pointer rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3.5 py-3">
+                                <label id="store-card-label" class="flex items-start gap-2.5 text-xs text-slate-600 cursor-pointer rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3.5 py-3" style="{{ $oldMethod === 'iyzico' ? 'display:none' : '' }}">
                                     <input type="checkbox" name="store_card" id="store_card" value="1" checked
                                            class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
                                     <span>
-                                        <strong class="text-[#111827]">Kartimi kaydet ve otomatik yenile</strong>
-                                        <span class="block mt-0.5 text-[11px] text-slate-500">Donem sonunda uyelik, kayitli karttan (3D'siz) yenilenir. Iptal paneldendir.</span>
+                                        <strong class="text-[#111827]">Kartımı kaydet ve otomatik yenile</strong>
+                                        <span class="block mt-0.5 text-[11px] text-slate-500">Dönem sonunda üyelik, kayıtlı karttan (3D'siz) yenilenir. İptal paneldendir.</span>
                                     </span>
                                 </label>
                             </div>
@@ -500,12 +523,12 @@
                             <button type="submit" id="paytrSubmitBtn"
                                     class="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm hover:shadow-md cursor-pointer font-display disabled:opacity-60">
                                 <svg class="w-4 h-4 opacity-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                                Odemeyi tamamla — ₺{{ number_format($toplam, 2, ',', '.') }}
+                                Ödemeyi tamamla — ₺{{ number_format($toplam, 2, ',', '.') }}
                             </button>
-                            <p class="text-center text-[10px] text-slate-400">3D Secure banka dogrulamasi acilabilir. Onay Bildirim URL ile tamamlanir.</p>
+                            <p class="text-center text-[10px] text-slate-400" id="card-footer-hint">3D Secure banka doğrulaması açılabilir. Onay Bildirim URL ile tamamlanır.</p>
                         </div>
 
-                        <div id="bank-transfer-fields" class="{{ $paytrOk ? 'hidden' : '' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5 sm:p-6 space-y-4">
+                        <div id="bank-transfer-fields" class="{{ $oldMethod === 'havale' || (! $cardOk && $bankAvailable) ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5 sm:p-6 space-y-4">
                             <div>
                                 <h3 class="text-sm font-bold text-[#111827] font-display tracking-tight">Banka havalesi ile ödeme</h3>
                                 <p class="mt-1 text-xs text-slate-500 leading-relaxed">Havale yaptıktan sonra referansı girin; yönetici onayından sonra üyelik açılır.</p>
@@ -613,13 +636,19 @@
         const cardFields = document.getElementById('card-payment-fields');
         const bankFields = document.getElementById('bank-transfer-fields');
         const bankReference = document.getElementById('havale_referans');
+        const helpPaytr = document.getElementById('card-help-paytr');
+        const helpIyzico = document.getElementById('card-help-iyzico');
+        const storeCardLabel = document.getElementById('store-card-label');
         function updatePaymentMethod() {
             const method = document.querySelector('input[name="odeme_yontemi"]:checked')?.value
                 || document.querySelector('input[name="odeme_yontemi"]')?.value;
             const isCard = method === 'paytr' || method === 'iyzico';
             cardFields?.classList.toggle('hidden', !isCard);
-            bankFields?.classList.toggle('hidden', isCard);
-            if (bankReference) bankReference.required = !isCard && method === 'havale';
+            bankFields?.classList.toggle('hidden', isCard || method !== 'havale');
+            if (bankReference) bankReference.required = method === 'havale';
+            if (helpPaytr) helpPaytr.style.display = method === 'paytr' ? '' : 'none';
+            if (helpIyzico) helpIyzico.style.display = method === 'iyzico' ? '' : 'none';
+            if (storeCardLabel) storeCardLabel.style.display = method === 'paytr' ? '' : 'none';
             document.querySelectorAll('.payment-method-card').forEach(function (lab) {
                 const on = !!lab.querySelector('input')?.checked;
                 lab.classList.toggle('is-active', on);

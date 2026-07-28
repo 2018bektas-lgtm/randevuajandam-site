@@ -65,6 +65,9 @@ class SiteAyari extends Model
         'paytr_merchant_salt',
         'paytr_test_mode',
         'odeme_saglayici',
+        'paytr_aktif',
+        'iyzico_aktif',
+        'havale_aktif',
         'iyzico_enabled',
         'banka_adi',
         'banka_hesap_sahibi',
@@ -82,6 +85,9 @@ class SiteAyari extends Model
             'paytr_merchant_key' => 'encrypted',
             'paytr_merchant_salt' => 'encrypted',
             'paytr_test_mode' => 'boolean',
+            'paytr_aktif' => 'boolean',
+            'iyzico_aktif' => 'boolean',
+            'havale_aktif' => 'boolean',
             'iyzico_enabled' => 'boolean',
         ];
     }

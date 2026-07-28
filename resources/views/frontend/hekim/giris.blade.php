@@ -280,6 +280,26 @@
             </button>
         </form>
 
+        <!-- Hekim / klinik kayıt -->
+        <div class="mt-6 pt-5 border-t border-slate-100 space-y-3">
+            <p class="text-center text-xs text-[#6B7280]">
+                Hesabınız yok mu?
+                <a href="{{ route('frontend.paketler') }}" class="font-bold text-[#C96A2B] hover:underline">
+                    Hekim / klinik kaydı oluşturun
+                </a>
+            </p>
+            <a href="{{ route('frontend.paketler') }}"
+               class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-[#111827] bg-[#111827] hover:bg-black text-[#E7B58A] font-bold text-xs uppercase tracking-wider transition-all duration-200 font-display">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12h-15M9 21h6v-3H9v3z"></path>
+                </svg>
+                Kayıt Ol — Paket Seç
+            </a>
+            <p class="text-center text-[10px] text-slate-400 leading-relaxed">
+                Önce paket seçersiniz; ardından kayıt ve meslek belgesi adımları gelir.
+            </p>
+        </div>
+
         <!-- Back to Homepage & Personnel Redirect -->
         <div class="w-full flex items-center justify-between mt-6 select-none">
             <a href="/" class="text-xs font-bold text-[#6B7280] hover:text-[#C96A2B] transition-colors font-display flex items-center gap-1.5">

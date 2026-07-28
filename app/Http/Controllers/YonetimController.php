@@ -360,7 +360,6 @@ class YonetimController extends Controller
     public function odemeAyarlariGuncelle(Request $request)
     {
         $request->validate([
-            'odeme_saglayici'       => ['nullable', 'string', 'in:paytr,iyzico'],
             'paytr_merchant_id'     => ['nullable', 'string', 'max:64'],
             'paytr_merchant_key'    => ['nullable', 'string', 'max:500'],
             'paytr_merchant_salt'   => ['nullable', 'string', 'max:500'],
@@ -377,8 +376,18 @@ class YonetimController extends Controller
 
         $ayarlar = SiteAyari::first() ?? SiteAyari::create(['meta_baslik' => config('app.name')]);
         $data = $request->only(['paytr_merchant_id', 'banka_adi', 'banka_hesap_sahibi', 'banka_aciklama']);
-        $data['odeme_saglayici']    = $request->input('odeme_saglayici', 'paytr');
-        $data['iyzico_enabled']     = $request->boolean('iyzico_enabled');
+
+        $paytrAktif  = $request->boolean('paytr_aktif');
+        $iyzicoAktif = $request->boolean('iyzico_aktif');
+        $havaleAktif = $request->boolean('havale_aktif');
+
+        $data['paytr_aktif']  = $paytrAktif;
+        $data['iyzico_aktif'] = $iyzicoAktif;
+        $data['havale_aktif'] = $havaleAktif;
+        // Geriye dönük alanlar
+        $data['iyzico_enabled']  = $iyzicoAktif;
+        $data['odeme_saglayici'] = $iyzicoAktif && ! $paytrAktif ? 'iyzico' : 'paytr';
+
         $data['paytr_merchant_id']  = trim((string) ($data['paytr_merchant_id'] ?? '')) ?: null;
         $data['banka_adi']          = trim((string) ($data['banka_adi'] ?? '')) ?: null;
         $data['banka_hesap_sahibi'] = trim((string) ($data['banka_hesap_sahibi'] ?? '')) ?: null;
@@ -399,8 +408,13 @@ class YonetimController extends Controller
 
         $ayarlar->update($data);
 
-        $saglayici = $data['odeme_saglayici'] === 'iyzico' ? 'iyzico' : 'PayTR';
+        $aktifler = array_filter([
+            $paytrAktif ? 'PayTR' : null,
+            $iyzicoAktif ? 'iyzico' : null,
+            $havaleAktif ? 'Havale/IBAN' : null,
+        ]);
+        $ozet = $aktifler !== [] ? implode(', ', $aktifler) : 'Hiçbiri (ödeme kanalları kapalı)';
 
-        return back()->with('basarili', "Ödeme ayarları güncellendi. Aktif sağlayıcı: {$saglayici}.");
+        return back()->with('basarili', "Ödeme ayarları güncellendi. Açık kanallar: {$ozet}.");
     }
 }

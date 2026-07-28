@@ -1519,12 +1519,10 @@ class PaketController extends Controller
         $doktor = Auth::guard('doktor')->user();
         $iller = Il::orderBy('ad')->get();
         $driver = app(PaymentDriverService::class);
-        $paytrAvailable = $driver->isPaytrActive() && app(PaytrService::class)->isConfigured();
+        $paytrAvailable = $driver->isPaytrActive();
         $iyzicoAvailable = $driver->isIyzicoActive();
         $paymentSettings = SiteAyari::query()->first();
-        $bankAvailable = filled($paymentSettings?->banka_adi)
-            && filled($paymentSettings?->banka_hesap_sahibi)
-            && filled($paymentSettings?->banka_iban);
+        $bankAvailable = $driver->isHavaleActive();
         $listedPrice = $periyot === 'aylik'
             ? (float) $secilenPaket->aylik_fiyat
             : (float) $secilenPaket->yillik_fiyat;
@@ -1641,9 +1639,16 @@ class PaketController extends Controller
             $rules['ilce_id'] = 'required|string|max:255';
         }
 
+        $driver = app(PaymentDriverService::class);
+        $allowedMethods = $driver->availableMethods();
+
         if (! $isFree) {
-            $kartYontemi = app(PaymentDriverService::class)->isIyzicoActive() ? 'iyzico' : 'paytr';
-            $rules['odeme_yontemi'] = 'required|in:'.$kartYontemi.',havale';
+            if ($allowedMethods === []) {
+                return back()->withInput()->withErrors([
+                    'odeme_yontemi' => 'Şu an açık bir ödeme kanalı yok. Yönetici panelinden PayTR, iyzico veya havale açılmalıdır.',
+                ]);
+            }
+            $rules['odeme_yontemi'] = 'required|in:'.implode(',', $allowedMethods);
         }
 
         $request->validate($rules, [
@@ -1656,9 +1661,11 @@ class PaketController extends Controller
             'ilce_id.required' => 'İlçe seçimi zorunludur.',
             'mesafeli_onay.accepted' => 'Mesafeli satış sözleşmesini kabul etmelisiniz.',
             'kvkk_odeme_onay.accepted' => 'KVKK aydınlatma metnini kabul etmelisiniz.',
+            'odeme_yontemi.in' => 'Seçilen ödeme yöntemi şu an kullanılamıyor.',
         ]);
 
-        $odemeYontemi = $request->input('odeme_yontemi', 'paytr');
+        $defaultMethod = $allowedMethods[0] ?? 'havale';
+        $odemeYontemi = $request->input('odeme_yontemi', $defaultMethod);
 
         $paymentSettings = SiteAyari::query()->first();
 
@@ -1669,10 +1676,8 @@ class PaketController extends Controller
                 'subscriptionStatus' => 'ACTIVE',
             ];
         } elseif ($odemeYontemi === 'havale') {
-            if (! filled($paymentSettings?->banka_adi)
-                || ! filled($paymentSettings?->banka_hesap_sahibi)
-                || ! filled($paymentSettings?->banka_iban)) {
-                return back()->withInput()->withErrors(['odeme_yontemi' => 'Havale bilgileri henüz yönetici tarafından yapılandırılmadı.']);
+            if (! $driver->isHavaleActive()) {
+                return back()->withInput()->withErrors(['odeme_yontemi' => 'Havale kanalı kapalı veya banka bilgileri yapılandırılmamış.']);
             }
 
             $request->validate([
@@ -1728,20 +1733,35 @@ class PaketController extends Controller
                     'Havale bildiriminiz alındı ve kaydedildi. Yönetici banka hareketini onaylayınca üyeliğiniz otomatik açılır. Aşağıda bildiriminizin durumunu görebilirsiniz.'
                 );
         } else {
-            // Kartlı ödeme — aktif sağlayıcı (PayTR veya iyzico) üzerinden
+            // Kartlı ödeme — hekimin seçtiği kanal (paytr | iyzico)
             $kurulumKart = $paket->klinikPaketiMi() ? $request->only([
                 'klinik_adi', 'telefon', 'e_posta', 'adres', 'il_id', 'ilce_id',
             ]) : [];
 
-            // Kart bilgisi sitede yok — yalnızca PayTR iFrame (veya kapalı iyzico)
-            return app(PaymentDriverService::class)->startCheckout(
+            $kartBilgileri = [];
+            if ($odemeYontemi === 'iyzico') {
+                $ay = str_pad(preg_replace('/\D/', '', (string) $request->input('kart_ay', '')), 2, '0', STR_PAD_LEFT);
+                $yil = preg_replace('/\D/', '', (string) $request->input('kart_yil', ''));
+                if (strlen($yil) === 4) {
+                    $yil = substr($yil, -2);
+                }
+                $kartBilgileri = [
+                    'kart_sahibi' => trim((string) $request->input('kart_sahibi', '')),
+                    'kart_no' => preg_replace('/\D/', '', (string) $request->input('kart_no', '')),
+                    'kart_cvv' => preg_replace('/\D/', '', (string) $request->input('kart_cvv', '')),
+                    'kart_skt' => $ay.'/'.$yil,
+                ];
+            }
+
+            return $driver->startCheckout(
                 $doktor,
                 $paket,
                 $request->odeme_periyodu,
                 $tutarBrut,
                 $kurulumKart,
                 $request,
-                []
+                $kartBilgileri,
+                $odemeYontemi === 'iyzico' ? 'iyzico' : 'paytr'
             );
         }
 

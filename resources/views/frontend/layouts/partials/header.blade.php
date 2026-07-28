@@ -1,4 +1,19 @@
-<!-- Top Contact & Social Bar -->
+{{-- Mobil top şerit: kayıt linki (masaüstü topbar md altında gizli kalıyordu) --}}
+<div class="bg-[#111827] text-gray-300 text-[11px] py-2 border-b border-gray-800 relative z-50 md:hidden">
+    <div class="max-w-7xl mx-auto px-4 flex items-center justify-between gap-2">
+        <a href="{{ route('frontend.paketler') }}" class="flex-1 min-w-0 text-[#E7B58A] hover:text-white transition-colors flex items-center gap-1.5 font-bold font-display uppercase tracking-wider text-[10px]">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12h-15M9 21h6v-3H9v3z"></path>
+            </svg>
+            <span class="truncate">Klinik &amp; Hekim Kaydı</span>
+        </a>
+        <a href="{{ route('frontend.hasta.kayit') }}" class="shrink-0 text-white/90 hover:text-white transition-colors font-bold font-display uppercase tracking-wider text-[10px] px-2 py-0.5 rounded border border-white/20">
+            Hasta Kayıt
+        </a>
+    </div>
+</div>
+
+<!-- Top Contact & Social Bar (tablet/desktop) -->
 <div class="bg-[#111827] text-gray-300 text-[11px] py-2 border-b border-gray-800 relative z-50 hidden md:block">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">
         <!-- Contact Info & Badges -->
@@ -138,13 +153,14 @@
 </header>
 
 <!-- Mobile Navigation Drawer -->
-<div id="mobile-menu-drawer" class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm hidden transition-opacity duration-300">
-    <div id="mobile-menu-container" class="fixed top-20 left-0 right-0 bg-white border-b border-[#E5E7EB] p-6 shadow-xl transform -translate-y-full opacity-0 transition-all duration-300 flex flex-col gap-6">
-        <nav class="flex flex-col gap-4 font-display">
+<div id="mobile-menu-drawer" class="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm hidden transition-opacity duration-300">
+    <div id="mobile-menu-container" class="fixed top-[7.5rem] sm:top-24 left-0 right-0 max-h-[calc(100vh-7.5rem)] overflow-y-auto bg-white border-b border-[#E5E7EB] p-5 shadow-xl transform -translate-y-full opacity-0 transition-all duration-300 flex flex-col gap-5">
+        <nav class="flex flex-col gap-3.5 font-display">
             <a href="/" class="text-sm font-bold {{ request()->is('/') ? 'text-[#C96A2B]' : 'text-[#111827]' }} hover:text-[#C96A2B] transition-colors">Ana Sayfa</a>
             <a href="{{ route('frontend.hekimler') }}" class="text-sm font-bold {{ request()->routeIs('frontend.hekimler') ? 'text-[#C96A2B]' : 'text-[#6B7280]' }} hover:text-[#111827] transition-colors">Uzman Hekimler</a>
             <a href="{{ route('frontend.egitimler.index') }}" class="text-sm font-bold {{ request()->routeIs('frontend.egitimler.*') || request()->routeIs('frontend.hekim.egitim*') ? 'text-[#C96A2B]' : 'text-[#6B7280]' }} hover:text-[#111827] transition-colors">Eğitimler</a>
             <a href="{{ route('frontend.blog.index') }}" class="text-sm font-bold {{ request()->routeIs('frontend.blog.index') ? 'text-[#C96A2B]' : 'text-[#6B7280]' }} hover:text-[#111827] transition-colors">Blog</a>
+            <a href="{{ route('frontend.paketler') }}" class="text-sm font-bold {{ request()->routeIs('frontend.paketler') || request()->routeIs('frontend.hekim.kayit*') ? 'text-[#C96A2B]' : 'text-[#6B7280]' }} hover:text-[#111827] transition-colors">Klinik &amp; Hekim Kaydı</a>
             <a href="https://wa.me/905319912427" target="_blank" data-meta-event="Contact" data-meta-params='{"content_name":"Mobile menu WhatsApp"}' class="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-2">
                 <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.257 5.26 0 11.722 0c3.13 0 6.073 1.22 8.286 3.433 2.213 2.213 3.431 5.158 3.43 8.288-.003 6.465-5.26 11.721-11.721 11.721-2.001-.001-3.97-.51-5.733-1.485L0 24zm6.49-4.22c1.657.982 3.267 1.48 4.966 1.481 5.36 0 9.72-4.36 9.723-9.723.001-2.597-1.01-5.038-2.85-6.877-1.839-1.839-4.281-2.85-6.877-2.852-5.364 0-9.723 4.359-9.726 9.723 0 1.762.474 3.415 1.373 4.908L1.96 22.04l4.587-1.26zm11.393-6.223c-.302-.151-1.785-.882-2.057-.981-.273-.1-.471-.151-.669.15-.198.3-.765.966-.938 1.165-.173.199-.347.223-.649.073-.302-.15-1.273-.469-2.426-1.496-.897-.8-1.502-1.788-1.678-2.088-.176-.3-.019-.462.132-.612.136-.135.302-.35.453-.524.151-.174.2-.3.302-.5.101-.2.05-.376-.025-.526-.075-.15-.669-1.612-.916-2.207-.24-.579-.48-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.785-.73 2.033-1.433.248-.704.248-1.307.173-1.431-.074-.124-.272-.198-.57-.347z"/>
@@ -170,11 +186,12 @@
                     </form>
                 </div>
             @else
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Hasta hesabı</p>
                 <div class="grid grid-cols-2 gap-3">
                     <a href="{{ route('frontend.hasta.giris') }}" class="text-center py-2.5 rounded-xl border border-gray-200 text-xs font-bold uppercase tracking-wider text-[#1F2937] hover:bg-gray-50 font-display">
                         Giriş Yap
                     </a>
-                    <a href="{{ route('frontend.hasta.kayit') }}" class="text-center py-2.5 rounded-xl border border-gray-200 text-xs font-bold uppercase tracking-wider text-[#6B7280] hover:bg-gray-50 font-display">
+                    <a href="{{ route('frontend.hasta.kayit') }}" class="text-center py-2.5 rounded-xl border border-[#C96A2B]/40 bg-[#FFF7ED] text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:bg-orange-50 font-display">
                         Kayıt Ol
                     </a>
                 </div>
@@ -185,8 +202,12 @@
                     Hekim Paneli
                 </a>
             @else
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display mt-1">Hekim / klinik</p>
                 <a href="{{ route('frontend.hekim.giris') }}" class="text-center py-2.5 rounded-xl border border-[#C96A2B]/30 text-xs font-bold uppercase tracking-wider text-[#C96A2B] hover:bg-orange-50 font-display">
                     Hekim Girişi
+                </a>
+                <a href="{{ route('frontend.paketler') }}" class="w-full text-center py-3 rounded-xl bg-[#111827] hover:bg-black text-[#E7B58A] font-bold text-xs uppercase tracking-wider shadow-sm font-display">
+                    Klinik &amp; Hekim Kaydı
                 </a>
             @endif
 
@@ -204,25 +225,36 @@
         const container = document.getElementById('mobile-menu-container');
         const iconPath = document.getElementById('menu-icon-path');
 
+        function closeMobileMenu() {
+            if (!container || !drawer) return;
+            container.classList.remove('translate-y-0', 'opacity-100');
+            container.classList.add('-translate-y-full', 'opacity-0');
+            if (iconPath) {
+                iconPath.setAttribute('d', 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5');
+            }
+            setTimeout(() => {
+                drawer.classList.add('hidden');
+            }, 300);
+        }
+
         if (toggleBtn && drawer && container) {
             toggleBtn.addEventListener('click', function() {
                 const isHidden = drawer.classList.contains('hidden');
 
                 if (isHidden) {
-                    // Open menu
                     drawer.classList.remove('hidden');
                     setTimeout(() => {
                         container.classList.remove('-translate-y-full', 'opacity-0');
                         container.classList.add('translate-y-0', 'opacity-100');
                     }, 50);
-                    // Change icon to close (X)
-                    iconPath.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+                    if (iconPath) {
+                        iconPath.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+                    }
                 } else {
                     closeMobileMenu();
                 }
             });
 
-            // Close when clicking overlay
             drawer.addEventListener('click', function(e) {
                 if (e.target === drawer) {
                     closeMobileMenu();
@@ -230,19 +262,9 @@
             });
         }
 
-        function closeMobileMenu() {
-            container.classList.remove('translate-y-0', 'opacity-100');
-            container.classList.add('-translate-y-full', 'opacity-0');
-            // Change icon to hamburger
-            iconPath.setAttribute('d', 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5');
-            setTimeout(() => {
-                drawer.classList.add('hidden');
-            }, 300);
-        }
+        window.closeMobileMenu = closeMobileMenu;
     });
 </script>
-    </div>
-</header>
 
 <!-- Spotlight Search Modal -->
 <div id="spotlightSearch" class="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-start justify-center p-4 pt-16 md:pt-24 hidden transition-all duration-200">
