@@ -29,13 +29,17 @@ class HtmlSanitizer
             $html = $next;
         }
 
-        // Strip script / style / iframe / object / embed completely
-        $html = preg_replace('#<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base|svg|math|section|article|header|footer|nav|aside)\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $html) ?? $html;
-        $html = preg_replace('#<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base|svg|math|section|article|header|footer|nav|aside)\b[^>]*/?\s*>#is', '', $html) ?? $html;
+        // Tehlikeli etiketler: içerikle birlikte kaldır
+        $html = preg_replace('#<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base|svg|math)\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $html) ?? $html;
+        $html = preg_replace('#<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base|svg|math)\b[^>]*/?\s*>#is', '', $html) ?? $html;
+
+        // Yapısal sarmalayıcılar (ChatGPT section vb.): SADECE etiketi aç/kapa kaldır, metni koru
+        $html = preg_replace('#<\s*/?\s*(section|article|header|footer|nav|aside)\b[^>]*>#i', '', $html) ?? $html;
 
         // HTML comments (can hide IE conditionals)
         $html = preg_replace('/<!--.*?-->/s', '', $html) ?? $html;
 
+        // data-* attribute'lu gereksiz span sarmalayıcıları korunur; strip_tags allowlist sonrası kalır
         // Allowlisted tags only
         $html = strip_tags($html, self::$allowedTags);
 
