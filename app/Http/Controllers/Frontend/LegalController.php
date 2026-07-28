@@ -7,11 +7,14 @@ use Illuminate\View\View;
 
 class LegalController extends Controller
 {
+    /** Tüm yasal sayfalarda ortak son güncelleme */
+    private const GUNCELLEME = '28 Temmuz 2026';
+
     public function gizlilik(): View
     {
         return view('frontend.legal.gizlilik', [
             'baslik' => 'Gizlilik Politikası',
-            'guncelleme' => '18 Temmuz 2026',
+            'guncelleme' => self::GUNCELLEME,
         ]);
     }
 
@@ -19,7 +22,7 @@ class LegalController extends Controller
     {
         return view('frontend.legal.kullanim', [
             'baslik' => 'Kullanım Koşulları',
-            'guncelleme' => '18 Temmuz 2026',
+            'guncelleme' => self::GUNCELLEME,
         ]);
     }
 
@@ -27,7 +30,7 @@ class LegalController extends Controller
     {
         return view('frontend.legal.kvkk', [
             'baslik' => 'KVKK Aydınlatma Metni',
-            'guncelleme' => '18 Temmuz 2026',
+            'guncelleme' => self::GUNCELLEME,
         ]);
     }
 
@@ -35,7 +38,7 @@ class LegalController extends Controller
     {
         return view('frontend.legal.mesafeli', [
             'baslik' => 'Mesafeli Satış ve Abonelik Sözleşmesi',
-            'guncelleme' => '20 Temmuz 2026',
+            'guncelleme' => self::GUNCELLEME,
         ]);
     }
 
@@ -43,7 +46,7 @@ class LegalController extends Controller
     {
         return view('frontend.legal.iade', [
             'baslik' => 'İade, Cayma ve Abonelik İptal Politikası',
-            'guncelleme' => '20 Temmuz 2026',
+            'guncelleme' => self::GUNCELLEME,
         ]);
     }
 
@@ -51,7 +54,7 @@ class LegalController extends Controller
     {
         return view('frontend.legal.hakkimizda', [
             'baslik' => 'Hakkımızda',
-            'guncelleme' => '20 Temmuz 2026',
+            'guncelleme' => self::GUNCELLEME,
         ]);
     }
 
@@ -59,7 +62,7 @@ class LegalController extends Controller
     {
         return view('frontend.legal.iletisim', [
             'baslik' => 'İletişim',
-            'guncelleme' => '20 Temmuz 2026',
+            'guncelleme' => self::GUNCELLEME,
         ]);
     }
 }
