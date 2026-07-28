@@ -57,6 +57,10 @@ class HekimOnboardingController extends Controller
             $eligibility = $this->eligibilityForSelectedPackage($paket);
             $steps = $this->wizardSteps('pre', $target);
 
+            // Kayıtlı domain var mı? (hekim veya klinik web sitesi)
+            $mevcutDomain = $this->existingDomainForTarget($doktor, $target);
+            $degistirDomain = $request->boolean('degistir_domain');
+
             return view('frontend.hekim.onboarding_domain', [
                 'doktor' => $doktor,
                 'target' => $target,
@@ -67,6 +71,8 @@ class HekimOnboardingController extends Controller
                 'steps' => $steps,
                 'checkUrl' => route('frontend.hekim.onboarding.domain.check'),
                 'pending' => session(self::SESSION_PENDING),
+                'mevcutDomain' => $mevcutDomain,
+                'degistirDomain' => $degistirDomain,
             ]);
         }
 
@@ -149,6 +155,93 @@ class HekimOnboardingController extends Controller
     }
 
     /**
+     * Ödeme öncesi: kayıtlı domain ile devam (onay).
+     */
+    public function domainContinueExisting(Request $request)
+    {
+        $doktor = Auth::guard('doktor')->user();
+        if (! $doktor) {
+            return redirect()->route('frontend.hekim.giris');
+        }
+
+        $data = $request->validate([
+            'paket_id' => ['required', 'integer', 'exists:paketler,id'],
+            'periyot' => ['required', 'in:aylik,yillik'],
+        ]);
+
+        $paket = Paket::where('aktif_mi', true)->findOrFail($data['paket_id']);
+        if (! self::packageNeedsDomain($paket)) {
+            return redirect()->route('frontend.hekim.paket_ode', [
+                'paket' => $paket->id,
+                'periyot' => $data['periyot'],
+            ]);
+        }
+
+        $target = ($paket->hasFeature('klinik_web_sitesi') || $paket->klinikPaketiMi()) ? 'clinic' : 'doctor';
+        $mevcut = $this->existingDomainForTarget($doktor, $target);
+        if (! $mevcut) {
+            return redirect()->route('frontend.hekim.onboarding.domain', [
+                'paket' => $paket->id,
+                'periyot' => $data['periyot'],
+                'degistir_domain' => 1,
+            ])->with('hata', 'Kayıtlı domain bulunamadı. Lütfen domain seçin.');
+        }
+
+        session([
+            self::SESSION_PENDING => [
+                'mode' => 'existing',
+                'domain' => $mevcut['domain'],
+                'paket_id' => (int) $paket->id,
+                'periyot' => $data['periyot'],
+                'target' => $target,
+                'web_site_id' => $mevcut['web_site_id'] ?? null,
+                'saved_at' => now()->toIso8601String(),
+            ],
+            'onboarding_domain_skipped' => false,
+        ]);
+
+        return redirect()->route('frontend.hekim.paket_ode', [
+            'paket' => $paket->id,
+            'periyot' => $data['periyot'],
+        ])->with(
+            'basarili',
+            'Mevcut domain ile devam: '.$mevcut['domain'].' — ödeme sonrası site bu alana bağlı kalır / güncellenir.'
+        );
+    }
+
+    /**
+     * Hekim veya klinik için kayıtlı domain (varsa).
+     *
+     * @return array{domain: string, durum: ?string, web_site_id: ?int}|null
+     */
+    protected function existingDomainForTarget($doktor, string $target): ?array
+    {
+        $site = null;
+        if ($target === 'clinic' && $doktor->klinik) {
+            $doktor->loadMissing('klinik.webSite');
+            $site = $doktor->klinik->webSite;
+        } else {
+            $doktor->loadMissing('webSite');
+            $site = $doktor->webSite;
+        }
+
+        if (! $site) {
+            return null;
+        }
+
+        $domain = app(DomainInclusionService::class)->normalizeDomain((string) ($site->domain ?? ''));
+        if ($domain === '' || ! str_contains($domain, '.')) {
+            return null;
+        }
+
+        return [
+            'domain' => $domain,
+            'durum' => $site->durum ?? null,
+            'web_site_id' => (int) $site->id,
+        ];
+    }
+
+    /**
      * Ödeme öncesi: domain tercihini session'a yaz → ödeme sayfası.
      */
     public function domainSave(Request $request)
@@ -156,7 +249,7 @@ class HekimOnboardingController extends Controller
         $data = $request->validate([
             'paket_id' => ['required', 'integer', 'exists:paketler,id'],
             'periyot' => ['required', 'in:aylik,yillik'],
-            'mode' => ['required', 'in:included,byod'],
+            'mode' => ['required', 'in:included,byod,existing'],
             'domain' => ['required', 'string', 'max:150'],
         ]);
 

@@ -209,6 +209,8 @@ Route::middleware(['auth:doktor'])->group(function () {
         ->name('frontend.hekim.onboarding.domain.check');
     Route::post('/hekim/onboarding/domain/save', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainSave'])
         ->name('frontend.hekim.onboarding.domain.save');
+    Route::post('/hekim/onboarding/domain/continue-existing', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainContinueExisting'])
+        ->name('frontend.hekim.onboarding.domain.continue_existing');
     Route::post('/hekim/onboarding/domain/skip-pre', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainSkipPre'])
         ->name('frontend.hekim.onboarding.domain.skip_pre');
     Route::post('/hekim/onboarding/domain/byod', [\App\Http\Controllers\Frontend\HekimOnboardingController::class, 'domainByod'])

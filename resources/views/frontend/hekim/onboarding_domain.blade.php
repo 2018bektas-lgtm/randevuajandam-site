@@ -67,6 +67,52 @@
             <div class="rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-800 text-sm px-4 py-3">{{ session('basarili') }}</div>
         @endif
 
+        {{-- Kayıtlı domain varsa: bu domain ile devam? --}}
+        @php
+            $mevcutDomain = $mevcutDomain ?? null;
+            $degistirDomain = (bool) ($degistirDomain ?? false);
+            $showExistingConfirm = $isPre && is_array($mevcutDomain) && ! empty($mevcutDomain['domain']) && ! $degistirDomain;
+        @endphp
+        @if($showExistingConfirm)
+            <div class="bg-white rounded-2xl border-2 border-emerald-200 shadow-sm p-6 md:p-8 space-y-5">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Kayıtlı web sitesi bulundu</p>
+                        <h2 class="text-lg font-bold text-slate-900 font-display mt-1">Bu domain ile mi devam edilsin?</h2>
+                        <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                            Sistemde size bağlı bir alan adı var. Web sitesi paketinde yeni domain seçmek zorunda değilsiniz;
+                            mevcut alan adıyla ödemeye geçebilir veya başka bir domain seçebilirsiniz.
+                        </p>
+                        <p class="mt-3 font-mono text-base font-bold text-[#111827] break-all">{{ $mevcutDomain['domain'] }}</p>
+                        @if(!empty($mevcutDomain['durum']))
+                            <p class="mt-1 text-[11px] text-slate-500">Durum: <strong class="text-slate-700">{{ $mevcutDomain['durum'] }}</strong></p>
+                        @endif
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <form method="POST" action="{{ route('frontend.hekim.onboarding.domain.continue_existing') }}" class="flex-1">
+                        @csrf
+                        <input type="hidden" name="paket_id" value="{{ $paket->id }}">
+                        <input type="hidden" name="periyot" value="{{ $periyot }}">
+                        <button type="submit"
+                                class="w-full py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-xs font-bold uppercase tracking-wider shadow-sm">
+                            Evet — {{ $mevcutDomain['domain'] }} ile devam
+                        </button>
+                    </form>
+                    <a href="{{ route('frontend.hekim.onboarding.domain', ['paket' => $paket->id, 'periyot' => $periyot, 'degistir_domain' => 1]) }}"
+                       class="flex-1 inline-flex items-center justify-center py-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Hayır — başka domain seç
+                    </a>
+                </div>
+                <p class="text-[11px] text-slate-400 text-center">
+                    <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}" class="underline hover:text-[#C96A2B]">← Paket seçimine dön</a>
+                </p>
+            </div>
+        @else
+
         <div class="grid md:grid-cols-2 gap-4" id="choice-cards">
             <button type="button" data-mode="byod"
                 class="mode-card text-left p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-[#C96A2B] transition-all shadow-sm space-y-2">
@@ -209,6 +255,7 @@
                 </form>
             @endif
         </div>
+        @endif {{-- /showExistingConfirm else --}}
     </div>
 </section>
 

@@ -153,7 +153,14 @@
                     <p class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">Seçilen domain (ödeme sonrası kurulur)</p>
                     <p class="text-sm font-bold text-emerald-950 font-mono mt-0.5">{{ $pendingDomain['domain'] }}</p>
                     <p class="text-[11px] text-emerald-800/80 mt-1">
-                        {{ ($pendingDomain['mode'] ?? '') === 'byod' ? 'Kendi domaininiz (BYOD) — DNS sizin' : 'Pakete dahil yeni domain — ek ücret yok' }}
+                        @php $dm = $pendingDomain['mode'] ?? ''; @endphp
+                        @if($dm === 'existing')
+                            Mevcut kayıtlı domain — bu alan adıyla devam
+                        @elseif($dm === 'byod')
+                            Kendi domaininiz (BYOD) — DNS sizin
+                        @else
+                            Pakete dahil yeni domain — ek ücret yok
+                        @endif
                     </p>
                 </div>
                 <a href="{{ route('frontend.hekim.onboarding.domain', ['paket' => $secilenPaket->id, 'periyot' => $periyot]) }}"
