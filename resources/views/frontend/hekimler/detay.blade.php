@@ -259,20 +259,17 @@
                         Online Randevuya Açık
                     </span>
                     @if($doktor->hasWebSitesiPaketi())
-                        @php $webUrl = $doktor->publicWebsiteUrl(); @endphp
-                        @if($webUrl)
+                        @php
+                            $webUrl = $doktor->publicWebsiteUrl();
+                            $webHost = $doktor->publicWebsiteHost();
+                        @endphp
+                        @if($webUrl && $webHost)
                             <a href="{{ $webUrl }}" target="_blank" rel="noopener noreferrer"
-                               class="inline-flex items-center gap-1 self-center md:self-auto px-2.5 py-1 text-[9px] uppercase font-bold tracking-wider rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
-                               title="Kişisel web sitesi">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg>
-                                Web Sitesi
+                               class="inline-flex items-center gap-1 self-center md:self-auto px-2.5 py-1 text-[10px] font-semibold tracking-normal rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors normal-case"
+                               title="{{ $webHost }}">
+                                <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                                {{ $webHost }}
                             </a>
-                        @else
-                            <span class="inline-flex items-center gap-1 self-center md:self-auto px-2.5 py-1 text-[9px] uppercase font-bold tracking-wider rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200"
-                                  title="Web sitesi paketi aktif">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg>
-                                Web Sitesi
-                            </span>
                         @endif
                     @endif
                 </div>

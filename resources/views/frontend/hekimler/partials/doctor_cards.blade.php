@@ -113,14 +113,14 @@
                                 <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
                                     <span class="text-[9px] font-bold text-[#C96A2B] font-display uppercase tracking-widest">{{ $doktor->uzmanlik_alani ?? 'Uzman Hekim' }}</span>
                                     @if(method_exists($doktor, 'hasWebSitesiPaketi') && $doktor->hasWebSitesiPaketi())
-                                        @php $cardWebUrl = method_exists($doktor, 'publicWebsiteUrl') ? $doktor->publicWebsiteUrl() : null; @endphp
-                                        @if($cardWebUrl)
+                                        @php
+                                            $cardWebUrl = method_exists($doktor, 'publicWebsiteUrl') ? $doktor->publicWebsiteUrl() : null;
+                                            $cardWebHost = method_exists($doktor, 'publicWebsiteHost') ? $doktor->publicWebsiteHost() : null;
+                                        @endphp
+                                        @if($cardWebUrl && $cardWebHost)
                                             <a href="{{ $cardWebUrl }}" target="_blank" rel="noopener noreferrer"
-                                               class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 text-[8px] font-extrabold uppercase tracking-wide hover:bg-indigo-100"
-                                               title="Web sitesi" onclick="event.stopPropagation()">Web Sitesi</a>
-                                        @else
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 text-[8px] font-extrabold uppercase tracking-wide"
-                                                  title="Web sitesi paketi">Web Sitesi</span>
+                                               class="inline-flex items-center max-w-[11rem] truncate px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 text-[9px] font-semibold normal-case tracking-normal hover:bg-indigo-100"
+                                               title="{{ $cardWebHost }}" onclick="event.stopPropagation()">{{ $cardWebHost }}</a>
                                         @endif
                                     @endif
                                 </div>

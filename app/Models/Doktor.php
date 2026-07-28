@@ -414,24 +414,35 @@ class Doktor extends Authenticatable
      */
     public function publicWebsiteUrl(): ?string
     {
+        $host = $this->publicWebsiteHost();
+        if ($host === null || $host === '') {
+            return null;
+        }
+
+        return 'https://'.$host;
+    }
+
+    /**
+     * Gösterim için domain (örn. pskdanmeliskaratas.com). Yoksa null.
+     */
+    public function publicWebsiteHost(): ?string
+    {
         $site = $this->relationLoaded('webSite') ? $this->webSite : $this->webSite()->first();
         $domain = is_object($site) ? trim((string) ($site->domain ?? '')) : '';
         if ($domain === '') {
-            // Eski serbest alan (profilde elle girilmiş olabilir)
             $legacy = trim((string) ($this->web_sitesi ?? ''));
-            if ($legacy !== '' && preg_match('#^https?://#i', $legacy)) {
-                return $legacy;
+            if ($legacy === '') {
+                return null;
             }
-            if ($legacy !== '' && str_contains($legacy, '.')) {
-                return 'https://'.preg_replace('#^//#', '', $legacy);
-            }
-
-            return null;
+            $domain = $legacy;
         }
         $domain = preg_replace('#^https?://#i', '', $domain) ?? $domain;
-        $domain = rtrim((string) $domain, '/');
+        $domain = preg_replace('#^//#', '', (string) $domain) ?? $domain;
+        $domain = preg_replace('#/.*$#', '', (string) $domain) ?? $domain;
+        $domain = preg_replace('#^www\.#i', '', trim((string) $domain)) ?? $domain;
+        $domain = rtrim(strtolower((string) $domain), '.');
 
-        return $domain !== '' ? 'https://'.$domain : null;
+        return $domain !== '' && str_contains($domain, '.') ? $domain : null;
     }
 
     /** Bu pakette ücretsiz deneme hakkı var mı? (bir kez) */
