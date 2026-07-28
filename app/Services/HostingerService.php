@@ -42,28 +42,46 @@ class HostingerService
             || str_contains($key, 'dummy');
     }
 
+    /**
+     * Hekim web sitesi temaları (randevuajandam-hekim ile aynı id'ler).
+     * Klinik temaları ayrıdır — burada listelenmez.
+     *
+     * @return list<array{id: string, name: string, description: string, preview_image: ?string, premium?: bool, renk?: string}>
+     */
     public function getThemes(): array
     {
-        return [
-            [
-                'id' => 'modern',
-                'name' => 'Modern Klinik Teması',
-                'description' => 'Geniş karşılama ekranı, modern hizmet kartları ve entegre takvim yapısı.',
-                'preview_image' => '/assets/images/themes/modern_preview.jpg',
-            ],
-            [
-                'id' => 'minimalist',
-                'name' => 'Elegance Minimalist Tema',
-                'description' => 'Yüksek tipografi kalitesi ve hekim özgeçmişini ön plana çıkaran sade tasarım.',
-                'preview_image' => '/assets/images/themes/minimalist_preview.jpg',
-            ],
-            [
-                'id' => 'pediatrik',
-                'name' => 'Çocuk Sağlığı & Renkli Tema',
-                'description' => 'Pediatri ve çocuk branşları için samimi renk paleti.',
-                'preview_image' => '/assets/images/themes/pediatrik_preview.jpg',
-            ],
-        ];
+        $catalog = (array) config('hekim_themes.catalog', []);
+        $out = [];
+        foreach ($catalog as $id => $t) {
+            $out[] = [
+                'id' => (string) ($t['id'] ?? $id),
+                'name' => (string) ($t['name'] ?? $t['ad'] ?? $id),
+                'description' => (string) ($t['description'] ?? $t['aciklama'] ?? ''),
+                'preview_image' => $t['preview_image'] ?? null,
+                'premium' => (bool) ($t['premium'] ?? false),
+                'renk' => $t['renk'] ?? null,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Hekim tema id doğrulama (tema-1 | delogis).
+     */
+    public function isValidHekimTheme(?string $tema): bool
+    {
+        if (! is_string($tema) || $tema === '') {
+            return false;
+        }
+        $catalog = (array) config('hekim_themes.catalog', []);
+
+        return isset($catalog[$tema]);
+    }
+
+    public function defaultHekimTheme(): string
+    {
+        return (string) config('hekim_themes.default', 'tema-1');
     }
 
     public function createSubdomain(string $domain): array

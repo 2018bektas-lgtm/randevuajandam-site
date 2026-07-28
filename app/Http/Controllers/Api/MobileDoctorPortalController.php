@@ -1853,7 +1853,7 @@ class MobileDoctorPortalController extends Controller
         HekimWebSitesi::create([
             'doktor_id' => $doktor->id,
             'domain' => $domain,
-            'tema' => 'custom',
+            'tema' => (string) config('hekim_themes.default', 'tema-1'),
             'durum' => 'aktif',
         ]);
 

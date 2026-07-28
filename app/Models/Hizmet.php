@@ -98,7 +98,8 @@ class Hizmet extends Model
     }
 
     /**
-     * Public absolute URL for service image (uploads under public/).
+     * Public absolute URL for service image.
+     * Dosyalar genelde public/uploads veya storage/app/public (symlink /storage) altında.
      */
     public function getResimUrlAttribute(): ?string
     {
@@ -110,12 +111,33 @@ class Hizmet extends Model
             return $path;
         }
 
-        // DB yolu: uploads/... → URL: /uploads/...
-        $path = ltrim(str_replace('\\', '/', $path), '/');
-        if (str_starts_with($path, 'storage/')) {
-            $path = substr($path, strlen('storage/'));
+        $path = ltrim(str_replace('\\', '/', (string) $path), '/');
+        if (str_starts_with($path, 'public/')) {
+            $path = substr($path, 7);
         }
 
-        return asset($path);
+        // storage/app/public/uploads/... → storage/uploads/...
+        if (str_starts_with($path, 'storage/app/public/')) {
+            $path = 'storage/'.substr($path, strlen('storage/app/public/'));
+        }
+
+        // public/uploads altında varsa doğrudan /uploads/...
+        $publicFile = public_path($path);
+        if (is_file($publicFile)) {
+            return asset($path);
+        }
+
+        // storage symlink: public/storage/uploads/...
+        $storageRel = str_starts_with($path, 'storage/') ? $path : 'storage/'.$path;
+        if (is_file(public_path($storageRel))) {
+            return asset($storageRel);
+        }
+
+        // uploads/… çoğu canlı kurulumda public/uploads
+        if (str_starts_with($path, 'uploads/')) {
+            return asset($path);
+        }
+
+        return asset($storageRel);
     }
 }

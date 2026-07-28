@@ -163,7 +163,7 @@ class PaketSeeder extends Seeder
                 'ozellikler' => [
                     'VIP paketinin tümü',
                     'Kişisel hekim web sitesi (CMS)',
-                    'Tema seçimi (Sıcak, Ocean, Modern, Minimal, Klasik)',
+                    'Hekim tema seçimi (Hipno, Delogis)',
                     '1 yıl domain dahil (.com / .net)',
                     'Hosting ve SSL dahil',
                     'Siteden online randevu alma',

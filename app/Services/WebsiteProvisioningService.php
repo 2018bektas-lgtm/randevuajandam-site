@@ -49,7 +49,8 @@ class WebsiteProvisioningService
                 $site = HekimWebSitesi::create([
                     'doktor_id' => $doktor->id,
                     'domain' => $domain,
-                    'tema' => 'custom',
+                    // Hekim temaları: tema-1 (Hipno) | delogis — klinik temalarından ayrı
+                    'tema' => (string) config('hekim_themes.default', 'tema-1'),
                     'durum' => $order->kaynak === DomainOrder::KAYNAK_BYOD ? 'dns_bekliyor' : 'aktif',
                     'hostinger_domain_id' => $order->hostinger_order_id,
                 ]);
