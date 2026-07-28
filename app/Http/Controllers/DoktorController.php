@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Yonetim\DoktorUpdateRequest;
 use App\Models\BelgeErisimLog;
+use App\Models\Brans;
 use App\Models\Doktor;
 use App\Models\DoktorMezuniyetBelgesi;
 use App\Models\EdevletDogrulamaLog;
@@ -208,7 +209,7 @@ class DoktorController extends Controller
     {
         /** @var Yonetici $yonetici */
         $yonetici = Auth::guard('yonetici')->user();
-        $doktor = Doktor::with('il', 'ilce', 'paket', 'klinik')->findOrFail($id);
+        $doktor = Doktor::with('il', 'ilce', 'paket', 'klinik', 'branslar')->findOrFail($id);
         // Aktif paketler + hekimin mevcut (pasif olsa bile) paketi kaybolmasın
         $paketler = Paket::query()
             ->where(function ($q) use ($doktor) {
@@ -227,8 +228,10 @@ class DoktorController extends Controller
 
         $klinikYetkiAnahtarlari = DoktorUpdateRequest::KLINIK_YETKI_ANAHTARLARI;
 
-        // Tüm unvanlar DB'den (hardcoded liste kullanılmaz)
+        // Tüm unvanlar / branşlar DB'den
         $unvanlar = Unvan::query()->orderBy('ad')->get(['id', 'ad']);
+        $branslar = Brans::query()->orderBy('ad')->get(['id', 'ad']);
+        $seciliBransIds = old('branslar', $doktor->branslar->pluck('id')->all());
 
         return view('yonetim.doktorlar.duzenle', compact(
             'yonetici',
@@ -236,7 +239,9 @@ class DoktorController extends Controller
             'paketler',
             'klinikler',
             'klinikYetkiAnahtarlari',
-            'unvanlar'
+            'unvanlar',
+            'branslar',
+            'seciliBransIds'
         ));
     }
 
@@ -259,6 +264,18 @@ class DoktorController extends Controller
             $tur = $doktor->tur ?: 'bireysel';
         }
 
+        $bransIds = collect($request->input('branslar', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        $bransIsimleri = $bransIds === []
+            ? []
+            : Brans::query()->whereIn('id', $bransIds)->orderBy('ad')->pluck('ad')->all();
+        $uzmanlikAlani = $bransIsimleri === [] ? null : implode(', ', $bransIsimleri);
+
         $data = [
             'unvan' => $request->unvan,
             'ad_soyad' => $request->ad_soyad,
@@ -274,6 +291,7 @@ class DoktorController extends Controller
             'uyelik_bitis' => $request->uyelik_bitis,
             'aktif_mi' => $request->boolean('aktif_mi'),
             'platformda_gorunur' => $request->boolean('platformda_gorunur'),
+            'uzmanlik_alani' => $uzmanlikAlani,
         ];
 
         // İl seçilmediyse mevcut konum korunsun
@@ -289,6 +307,7 @@ class DoktorController extends Controller
         $data = array_merge($data, $this->resolveKlinikUyelikData($request, $doktor));
 
         $doktor->update($data);
+        $doktor->branslar()->sync($bransIds);
 
         $this->syncKlinikSahip($doktor->fresh(), $eskiKlinikId);
 

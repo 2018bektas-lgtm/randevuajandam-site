@@ -100,6 +100,30 @@
             color: #C96A2B !important;
             font-weight: 600 !important;
         }
+        .select2-container--default .select2-selection--multiple {
+            background-color: #FFF !important;
+            border: 1px solid #E5E7EB !important;
+            border-radius: 0.75rem !important;
+            min-height: 48px !important;
+            padding: 4px 8px !important;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--multiple {
+            border-color: #C96A2B !important;
+            box-shadow: 0 0 0 4px rgba(201, 106, 43, 0.08) !important;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #FFF7ED !important;
+            border: 1px solid rgba(231, 181, 138, 0.5) !important;
+            color: #B55A20 !important;
+            border-radius: 0.5rem !important;
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+            padding: 2px 8px !important;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: #C96A2B !important;
+            margin-right: 4px !important;
+        }
         .select2-container--default .select2-results__option[aria-selected=true] {
             background-color: #FDF2E9 !important;
             color: #C96A2B !important;
@@ -402,6 +426,35 @@
                     </div>
                 </div>
 
+                <!-- Branş / Uzmanlık -->
+                <div>
+                    <label for="branslar" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Branş / Uzmanlık Alanları</label>
+                    @php
+                        $seciliBransIds = collect($seciliBransIds ?? [])->map(fn ($id) => (int) $id)->all();
+                    @endphp
+                    <select name="branslar[]" id="branslar" multiple
+                        class="w-full"
+                        data-placeholder="Branş seçin (birden fazla seçilebilir)...">
+                        @foreach(($branslar ?? []) as $b)
+                            <option value="{{ $b->id }}" @selected(in_array((int) $b->id, $seciliBransIds, true))>{{ $b->ad }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-[10px] text-[#6B7280] mt-1.5">
+                        Seçilen branşlar vitrin filtreleri ve profil URL’si için kullanılır.
+                        @if($doktor->uzmanlik_alani)
+                            <span class="text-[#4B5563]">Mevcut metin: <strong>{{ $doktor->uzmanlik_alani }}</strong></span>
+                        @else
+                            <span class="text-amber-700 font-semibold">Henüz branş atanmamış.</span>
+                        @endif
+                    </p>
+                    @error('branslar')
+                        <span class="text-[11px] text-red-500 font-semibold mt-1 block">{{ $message }}</span>
+                    @enderror
+                    @error('branslar.*')
+                        <span class="text-[11px] text-red-500 font-semibold mt-1 block">{{ $message }}</span>
+                    @enderror
+                </div>
+
                 <!-- İletişim Bilgileri -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
@@ -702,6 +755,17 @@
             ilceSelect.select2({
                 placeholder: "İlçe Seçin...",
                 allowClear: false
+            });
+
+            $('#branslar').select2({
+                placeholder: $('#branslar').data('placeholder') || 'Branş seçin...',
+                allowClear: true,
+                width: '100%',
+                closeOnSelect: false,
+                language: {
+                    noResults: function () { return 'Branş bulunamadı'; },
+                    searching: function () { return 'Aranıyor…'; }
+                }
             });
 
             // Current user values

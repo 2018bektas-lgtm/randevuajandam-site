@@ -79,6 +79,10 @@ class DoktorUpdateRequest extends FormRequest
             'platformda_gorunur' => ['nullable', 'boolean'],
             'sifre' => ['nullable', 'string', 'min:8'],
 
+            // Branş / uzmanlık (çoklu)
+            'branslar' => ['nullable', 'array'],
+            'branslar.*' => ['integer', 'exists:branslar,id'],
+
             // Klinik üyelik (yönetim paneli tam kontrol)
             'klinik_id' => ['nullable', 'exists:klinikler,id'],
             'klinik_rolu' => [
