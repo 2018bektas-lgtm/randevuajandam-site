@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Blog;
 use App\Models\Doktor;
 use App\Services\HtmlSanitizer;
+use App\Support\PublicMedia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class HekimBlogController extends Controller
@@ -66,7 +66,7 @@ class HekimBlogController extends Controller
         ];
 
         if ($request->hasFile('resim')) {
-            $data['resim'] = $request->file('resim')->store('uploads/blog', 'public');
+            $data['resim'] = PublicMedia::store($request->file('resim'), 'uploads/blog');
         }
 
         $doktor->bloglar()->create($data);
@@ -95,6 +95,7 @@ class HekimBlogController extends Controller
             'baslik' => ['required', 'string', 'max:255'],
             'icerik' => ['required', 'string'],
             'resim' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
+            'resim_sil' => ['nullable'],
             'meta_baslik' => ['nullable', 'string', 'max:255'],
             'meta_aciklama' => ['nullable', 'string', 'max:255'],
             'meta_anahtar_kelimeler' => ['nullable', 'string', 'max:255'],
@@ -119,11 +120,11 @@ class HekimBlogController extends Controller
         ];
 
         if ($request->hasFile('resim')) {
-            if ($blog->resim) {
-                Storage::disk('public')->delete($blog->resim);
-            }
-
-            $data['resim'] = $request->file('resim')->store('uploads/blog', 'public');
+            PublicMedia::delete($blog->resim);
+            $data['resim'] = PublicMedia::store($request->file('resim'), 'uploads/blog');
+        } elseif ($request->boolean('resim_sil')) {
+            PublicMedia::delete($blog->resim);
+            $data['resim'] = null;
         }
 
         $blog->update($data);
@@ -140,9 +141,7 @@ class HekimBlogController extends Controller
         $doktor = Auth::guard('doktor')->user();
         $blog = $doktor->bloglar()->findOrFail($id);
 
-        if ($blog->resim) {
-            Storage::disk('public')->delete($blog->resim);
-        }
+        PublicMedia::delete($blog->resim);
 
         $blog->delete();
 

@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Doktor;
+use App\Support\PublicMedia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class HekimHizmetController extends Controller
@@ -72,7 +72,7 @@ class HekimHizmetController extends Controller
         ];
 
         if ($request->hasFile('resim')) {
-            $data['resim'] = $request->file('resim')->store('uploads/hizmet', 'public');
+            $data['resim'] = PublicMedia::store($request->file('resim'), 'uploads/hizmet');
         }
 
         $doktor->hizmetler()->create($data);
@@ -101,6 +101,7 @@ class HekimHizmetController extends Controller
             'ad' => ['required', 'string', 'max:255'],
             'aciklama' => ['nullable', 'string'],
             'resim' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
+            'resim_sil' => ['nullable'],
             'sure' => ['required', 'integer', 'min:1', 'max:1440'],
             'fiyat' => ['nullable', 'numeric', 'min:0'],
             'meta_baslik' => ['nullable', 'string', 'max:255'],
@@ -133,11 +134,11 @@ class HekimHizmetController extends Controller
         ];
 
         if ($request->hasFile('resim')) {
-            if ($hizmet->resim) {
-                Storage::disk('public')->delete($hizmet->resim);
-            }
-
-            $data['resim'] = $request->file('resim')->store('uploads/hizmet', 'public');
+            PublicMedia::delete($hizmet->resim);
+            $data['resim'] = PublicMedia::store($request->file('resim'), 'uploads/hizmet');
+        } elseif ($request->boolean('resim_sil')) {
+            PublicMedia::delete($hizmet->resim);
+            $data['resim'] = null;
         }
 
         $hizmet->update($data);
@@ -154,9 +155,7 @@ class HekimHizmetController extends Controller
         $doktor = Auth::guard('doktor')->user();
         $hizmet = $doktor->hizmetler()->findOrFail($id);
 
-        if ($hizmet->resim) {
-            Storage::disk('public')->delete($hizmet->resim);
-        }
+        PublicMedia::delete($hizmet->resim);
 
         $hizmet->delete();
 

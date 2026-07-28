@@ -951,6 +951,7 @@ class MobileDoctorController extends Controller
             'youtube' => ['sometimes', 'nullable', 'string', 'max:255'],
             'web_sitesi' => ['sometimes', 'nullable', 'string', 'max:255'],
             'profil_resmi' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
+            'profil_resmi_sil' => ['sometimes', 'nullable'],
         ]);
 
         $update = $request->only([
@@ -960,10 +961,11 @@ class MobileDoctorController extends Controller
         ]);
 
         if ($request->hasFile('profil_resmi')) {
-            if ($doktor->profil_resmi) {
-                Storage::disk('public')->delete($doktor->profil_resmi);
-            }
-            $update['profil_resmi'] = $request->file('profil_resmi')->store('uploads/profil', 'public');
+            \App\Support\PublicMedia::delete($doktor->profil_resmi);
+            $update['profil_resmi'] = \App\Support\PublicMedia::store($request->file('profil_resmi'), 'uploads/profil');
+        } elseif ($request->boolean('profil_resmi_sil')) {
+            \App\Support\PublicMedia::delete($doktor->profil_resmi);
+            $update['profil_resmi'] = null;
         }
 
         if ($update !== []) {
@@ -1979,7 +1981,7 @@ class MobileDoctorController extends Controller
         $hizmet = $doktor->hizmetler()->create($data);
         if ($request->hasFile('resim')) {
             $hizmet->update([
-                'resim' => $request->file('resim')->store('uploads/hizmet', 'public'),
+                'resim' => \App\Support\PublicMedia::store($request->file('resim'), 'uploads/hizmet'),
             ]);
         }
 
@@ -1992,15 +1994,16 @@ class MobileDoctorController extends Controller
         $doktor = $request->attributes->get('auth_doktor');
         $hizmet = $doktor->hizmetler()->findOrFail($id);
         $data = $this->validateService($request);
-        unset($data['resim']);
+        unset($data['resim'], $data['resim_sil']);
         $hizmet->update($data);
         if ($request->hasFile('resim')) {
-            if ($hizmet->resim) {
-                Storage::disk('public')->delete($hizmet->resim);
-            }
+            \App\Support\PublicMedia::delete($hizmet->resim);
             $hizmet->update([
-                'resim' => $request->file('resim')->store('uploads/hizmet', 'public'),
+                'resim' => \App\Support\PublicMedia::store($request->file('resim'), 'uploads/hizmet'),
             ]);
+        } elseif ($request->boolean('resim_sil')) {
+            \App\Support\PublicMedia::delete($hizmet->resim);
+            $hizmet->update(['resim' => null]);
         }
 
         return response()->json(['success' => true, 'message' => 'Hizmet güncellendi.', 'data' => $hizmet->fresh()]);
@@ -2010,7 +2013,9 @@ class MobileDoctorController extends Controller
     {
         /** @var Doktor $doktor */
         $doktor = $request->attributes->get('auth_doktor');
-        $doktor->hizmetler()->findOrFail($id)->delete();
+        $hizmet = $doktor->hizmetler()->findOrFail($id);
+        \App\Support\PublicMedia::delete($hizmet->resim);
+        $hizmet->delete();
 
         return response()->json(['success' => true, 'message' => 'Hizmet silindi.']);
     }
@@ -2152,6 +2157,7 @@ class MobileDoctorController extends Controller
             'meta_aciklama' => ['nullable', 'string', 'max:255'],
             'meta_anahtar_kelimeler' => ['nullable', 'string', 'max:255'],
             'resim' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
+            'resim_sil' => ['nullable'],
         ]);
         // FormData may send aktif_mi as "1"/"0"/"true"
         if ($request->has('aktif_mi')) {

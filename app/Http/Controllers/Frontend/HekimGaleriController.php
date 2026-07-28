@@ -57,12 +57,8 @@ class HekimGaleriController extends Controller
                 if (! in_array($ext, ['jpeg', 'jpg', 'png', 'gif', 'webp'], true)) {
                     continue;
                 }
-                $fileName = 'doktor_'.$doktor->id.'_'.Str::uuid().'.'.$ext;
-                $stored = $file->storeAs('uploads/galeri', $fileName, 'public');
-                if (! $stored) {
-                    continue;
-                }
-                // DB: uploads/... → public URL: /uploads/...
+                // public/uploads/galeri (paylaşılan medya)
+                $stored = \App\Support\PublicMedia::store($file, 'uploads/galeri');
                 $baslik = isset($basliklar[$index]) ? $basliklar[$index] : null;
 
                 $doktor->galeriler()->create([
@@ -111,14 +107,7 @@ class HekimGaleriController extends Controller
 
         $galeri = $doktor->galeriler()->findOrFail($id);
 
-        $path = ltrim((string) $galeri->resim_yolu, '/');
-        if ($path !== '' && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
-        }
-        $legacy = public_path($path);
-        if (is_file($legacy)) {
-            @unlink($legacy);
-        }
+        \App\Support\PublicMedia::delete($galeri->resim_yolu);
 
         $galeri->delete();
 

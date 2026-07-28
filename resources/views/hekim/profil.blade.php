@@ -152,8 +152,14 @@
                                     <span class="text-[9px] font-bold uppercase tracking-wider font-display">Resim Seç</span>
                                 </label>
                                 <input type="file" name="profil_resmi" id="profil_resmi" accept="image/*" class="hidden" onchange="previewAvatar(this)">
+                                <input type="hidden" name="profil_resmi_sil" id="profil_resmi_sil" value="0">
                             </div>
-                            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Görsel Önizleme</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Görsel Önizleme</span>
+                                @if($doktor->profil_resmi)
+                                    <button type="button" onclick="clearProfilResmi()" class="text-[10px] font-bold text-red-500 hover:underline">Fotoğrafı kaldır</button>
+                                @endif
+                            </div>
                         </div>
 
                         <!-- Photo Upload Instructions Card -->
@@ -477,18 +483,34 @@
         function previewAvatar(input) {
             const preview = document.getElementById('previewImage');
             const initials = document.getElementById('avatarInitials');
-            
+            const silFlag = document.getElementById('profil_resmi_sil');
+            if (silFlag) silFlag.value = '0';
+
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    if (preview && initials) {
+                    if (preview) {
                         preview.src = e.target.result;
                         preview.classList.remove('hidden');
-                        initials.classList.add('hidden');
                     }
+                    if (initials) initials.classList.add('hidden');
                 };
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        function clearProfilResmi() {
+            const fileInput = document.getElementById('profil_resmi');
+            const preview = document.getElementById('previewImage');
+            const initials = document.getElementById('avatarInitials');
+            const silFlag = document.getElementById('profil_resmi_sil');
+            if (fileInput) fileInput.value = '';
+            if (preview) {
+                preview.src = '';
+                preview.classList.add('hidden');
+            }
+            if (initials) initials.classList.remove('hidden');
+            if (silFlag) silFlag.value = '1';
         }
 
         // Leaflet Map Initialization & Location Picker

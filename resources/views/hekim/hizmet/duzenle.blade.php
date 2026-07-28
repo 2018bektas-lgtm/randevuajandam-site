@@ -71,6 +71,8 @@
                             </button>
                         </div>
                         <input type="file" name="resim" id="resim" accept="image/*" class="hidden" onchange="previewBlogImageHandler(this)">
+                        <input type="hidden" name="resim_sil" id="resim_sil" value="0">
+                        <p class="text-[9px] text-slate-400 text-center">Kaldırmak için × — ardından kaydet.</p>
                     </div>
                 </div>
 
@@ -248,7 +250,8 @@
         const preview = document.getElementById('previewBlogImage');
         const placeholder = document.getElementById('uploadPlaceholder');
         const removeBtn = document.getElementById('removeImageBtn');
-        
+        const silFlag = document.getElementById('resim_sil');
+        if (silFlag) silFlag.value = '0';
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -268,7 +271,7 @@
         const preview = document.getElementById('previewBlogImage');
         const placeholder = document.getElementById('uploadPlaceholder');
         const removeBtn = document.getElementById('removeImageBtn');
-        
+        const silFlag = document.getElementById('resim_sil');
         if (fileInput && preview && placeholder && removeBtn) {
             fileInput.value = '';
             preview.src = '';
@@ -276,6 +279,7 @@
             placeholder.classList.remove('hidden');
             removeBtn.classList.add('hidden');
         }
+        if (silFlag) silFlag.value = '1';
     }
 </script>
 @endsection

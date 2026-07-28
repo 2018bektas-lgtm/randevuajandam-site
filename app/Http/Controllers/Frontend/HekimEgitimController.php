@@ -8,10 +8,10 @@ use App\Models\EgitimBasvuru;
 use App\Models\EgitimFormAlani;
 use App\Services\EgitimBasvuruService;
 use App\Services\HtmlSanitizer;
+use App\Support\PublicMedia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use InvalidArgumentException;
@@ -40,7 +40,7 @@ class HekimEgitimController extends Controller
         $doktor = Auth::guard('doktor')->user();
 
         if ($request->hasFile('kapak')) {
-            $data['kapak'] = $request->file('kapak')->store('uploads/egitim', 'public');
+            $data['kapak'] = PublicMedia::store($request->file('kapak'), 'uploads/egitim');
         }
 
         $data['basvuru_acik_mi'] = $request->boolean('basvuru_acik_mi');
@@ -67,14 +67,12 @@ class HekimEgitimController extends Controller
         $egitim = $doktor->egitimler()->findOrFail($id);
         $data = $this->validated($request);
 
-        if ($request->boolean('kapak_sil') && $egitim->kapak) {
-            Storage::disk('public')->delete($egitim->kapak);
+        if ($request->boolean('kapak_sil')) {
+            PublicMedia::delete($egitim->kapak);
             $data['kapak'] = null;
         } elseif ($request->hasFile('kapak')) {
-            if ($egitim->kapak) {
-                Storage::disk('public')->delete($egitim->kapak);
-            }
-            $data['kapak'] = $request->file('kapak')->store('uploads/egitim', 'public');
+            PublicMedia::delete($egitim->kapak);
+            $data['kapak'] = PublicMedia::store($request->file('kapak'), 'uploads/egitim');
         }
 
         $data['basvuru_acik_mi'] = $request->boolean('basvuru_acik_mi');
@@ -88,9 +86,7 @@ class HekimEgitimController extends Controller
     {
         $doktor = Auth::guard('doktor')->user();
         $egitim = $doktor->egitimler()->findOrFail($id);
-        if ($egitim->kapak) {
-            Storage::disk('public')->delete($egitim->kapak);
-        }
+        PublicMedia::delete($egitim->kapak);
         $egitim->delete();
 
         return redirect()->route('hekim.egitimler.index')->with('basarili', 'Eğitim silindi.');

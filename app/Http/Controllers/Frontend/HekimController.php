@@ -954,6 +954,7 @@ class HekimController extends Controller
             'ilce' => 'required|string|max:255',
             'adres' => 'nullable|string|max:1000',
             'profil_resmi' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'profil_resmi_sil' => 'nullable',
             'instagram' => 'nullable|string|max:255',
             'facebook' => 'nullable|string|max:255',
             'twitter' => 'nullable|string|max:255',
@@ -996,14 +997,13 @@ class HekimController extends Controller
             'boylam' => $request->boylam,
         ];
 
-        // Handle Profile Image Upload
+        // Handle Profile Image Upload / Remove
         if ($request->hasFile('profil_resmi')) {
-            // Delete old file if exists
-            if ($doktor->profil_resmi) {
-                Storage::disk('public')->delete($doktor->profil_resmi);
-            }
-
-            $data['profil_resmi'] = $request->file('profil_resmi')->store('uploads/profil', 'public');
+            \App\Support\PublicMedia::delete($doktor->profil_resmi);
+            $data['profil_resmi'] = \App\Support\PublicMedia::store($request->file('profil_resmi'), 'uploads/profil');
+        } elseif ($request->boolean('profil_resmi_sil')) {
+            \App\Support\PublicMedia::delete($doktor->profil_resmi);
+            $data['profil_resmi'] = null;
         }
 
         $doktor->update($data);
