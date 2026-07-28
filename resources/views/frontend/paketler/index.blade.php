@@ -349,6 +349,7 @@
             @forelse($bireyselPaketler as $p)
                 @php
                     $isFree = (float) $p->aylik_fiyat == 0;
+                    $trialDaysPublic = (int) ($p->deneme_gun ?? 0);
                     $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'web sitesi')
                         || (method_exists($p, 'hasFeature') && $p->hasFeature('web_sitesi'))
                         || (bool) ($p->domain_dahil_mi ?? false);
@@ -370,7 +371,9 @@
                     }
                 @endphp
                 <article class="{{ $cardClass }}">
-                    @if($vitrin)
+                    @if($trialDaysPublic > 0)
+                        <span class="ribbon ribbon-free">{{ $trialDaysPublic }} gün deneme</span>
+                    @elseif($vitrin)
                         <span class="ribbon {{ $ribbonClass }}">
                             @if(($vitrin['stil'] ?? '') === 'popular')
                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -393,6 +396,14 @@
                         <div class="mb-5 pr-16">
                             <h3 class="text-[17px] font-bold font-display text-[#0F172A] leading-snug">{{ $p->ad }}</h3>
                             <p class="text-[12.5px] text-slate-500 mt-2 leading-relaxed min-h-[40px]">{{ $p->aciklama }}</p>
+                            @if($trialDaysPublic > 0)
+                                <div class="mt-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 px-3 py-2.5">
+                                    <p class="text-[15px] font-extrabold text-emerald-900 font-display leading-none">{{ $trialDaysPublic }} GÜN ÜCRETSİZ DENEME</p>
+                                    <p class="text-[11px] font-semibold text-emerald-800 mt-1.5 leading-snug">
+                                        Deneme bitince tam ücret ödersiniz. Otomatik çekim yok.
+                                    </p>
+                                </div>
+                            @endif
                         </div>
 
                         <div class="mb-6 pb-6 border-b border-slate-100 min-h-[88px]">
