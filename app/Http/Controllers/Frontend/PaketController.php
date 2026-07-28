@@ -1639,6 +1639,22 @@ class PaketController extends Controller
             $rules['ilce_id'] = 'required|string|max:255';
         }
 
+        // Ücretli ödemede fatura bilgileri zorunlu (kayıtta değil, burada)
+        if (! $isFree) {
+            $rules['fatura_tipi'] = 'required|in:bireysel,kurumsal';
+            $rules['fatura_unvan'] = 'required|string|max:255';
+            $rules['fatura_tc_vkn'] = ['required', 'string', 'regex:/^[0-9]{10,11}$/'];
+            $rules['fatura_adres'] = 'required|string|max:1000';
+            $rules['fatura_il'] = 'required|string|max:80';
+            $rules['fatura_ilce'] = 'required|string|max:80';
+            $rules['fatura_posta_kodu'] = 'nullable|string|max:10';
+            $rules['fatura_email'] = 'required|email|max:190';
+            $rules['fatura_telefon'] = 'required|string|max:40';
+            $rules['fatura_vergi_dairesi'] = $request->input('fatura_tipi') === 'kurumsal'
+                ? 'required|string|max:120'
+                : 'nullable|string|max:120';
+        }
+
         $driver = app(PaymentDriverService::class);
         $allowedMethods = $driver->availableMethods();
 
@@ -1662,7 +1678,32 @@ class PaketController extends Controller
             'mesafeli_onay.accepted' => 'Mesafeli satış sözleşmesini kabul etmelisiniz.',
             'kvkk_odeme_onay.accepted' => 'KVKK aydınlatma metnini kabul etmelisiniz.',
             'odeme_yontemi.in' => 'Seçilen ödeme yöntemi şu an kullanılamıyor.',
+            'fatura_tipi.required' => 'Fatura tipi seçin (bireysel veya kurumsal).',
+            'fatura_unvan.required' => 'Fatura unvanı / ad soyad zorunludur.',
+            'fatura_tc_vkn.required' => 'T.C. kimlik veya vergi numarası zorunludur.',
+            'fatura_tc_vkn.regex' => 'T.C. 11 hane veya vergi no 10 hane olmalıdır.',
+            'fatura_adres.required' => 'Fatura adresi zorunludur.',
+            'fatura_il.required' => 'Fatura ili zorunludur.',
+            'fatura_ilce.required' => 'Fatura ilçesi zorunludur.',
+            'fatura_email.required' => 'Fatura e-postası zorunludur.',
+            'fatura_telefon.required' => 'Fatura telefonu zorunludur.',
+            'fatura_vergi_dairesi.required' => 'Kurumsal faturada vergi dairesi zorunludur.',
         ]);
+
+        // TC / VKN hane kontrolü
+        $faturaBilgisi = null;
+        if (! $isFree) {
+            $faturaBilgisi = Doktor::normalizeFaturaFromRequest($request);
+            $digits = $faturaBilgisi['tc_vkn'];
+            if ($faturaBilgisi['tip'] === 'bireysel' && strlen($digits) !== 11) {
+                return back()->withInput()->withErrors(['fatura_tc_vkn' => 'Bireysel faturada T.C. kimlik 11 haneli olmalıdır.']);
+            }
+            if ($faturaBilgisi['tip'] === 'kurumsal' && strlen($digits) !== 10) {
+                return back()->withInput()->withErrors(['fatura_tc_vkn' => 'Kurumsal faturada vergi no 10 haneli olmalıdır.']);
+            }
+            // Prefill için hekim kaydına yaz
+            $doktor->saveFaturaBilgileri($faturaBilgisi);
+        }
 
         $defaultMethod = $allowedMethods[0] ?? 'havale';
         $odemeYontemi = $request->input('odeme_yontemi', $defaultMethod);
@@ -1691,6 +1732,9 @@ class PaketController extends Controller
             ]) : [];
             $kurulumHavale['tutar_brut'] = $tutarBrut;
             $kurulumHavale['referans_indirim_yuzde'] = $refFiyat['indirim_yuzde'];
+            if ($faturaBilgisi) {
+                $kurulumHavale['fatura'] = $faturaBilgisi;
+            }
 
             // Aynı paket için zaten bekleyen havale varsa yeni satır açma — hekime durumu göster
             $mevcutBekleyen = UyelikOdeme::query()
@@ -1707,6 +1751,7 @@ class PaketController extends Controller
                     'tutar' => $tutar,
                     'odeme_periyodu' => $request->odeme_periyodu,
                     'kurulum_verisi' => $kurulumHavale ?: $mevcutBekleyen->kurulum_verisi,
+                    'fatura_bilgisi' => $faturaBilgisi ?: $mevcutBekleyen->fatura_bilgisi,
                 ]);
             } else {
                 UyelikOdeme::create([
@@ -1719,6 +1764,7 @@ class PaketController extends Controller
                     'durum' => 'beklemede',
                     'havale_referans' => trim((string) $request->havale_referans),
                     'kurulum_verisi' => $kurulumHavale ?: null,
+                    'fatura_bilgisi' => $faturaBilgisi,
                 ]);
             }
 
@@ -1737,6 +1783,9 @@ class PaketController extends Controller
             $kurulumKart = $paket->klinikPaketiMi() ? $request->only([
                 'klinik_adi', 'telefon', 'e_posta', 'adres', 'il_id', 'ilce_id',
             ]) : [];
+            if ($faturaBilgisi) {
+                $kurulumKart['fatura'] = $faturaBilgisi;
+            }
 
             $kartBilgileri = [];
             if ($odemeYontemi === 'iyzico') {

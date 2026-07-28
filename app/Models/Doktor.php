@@ -52,6 +52,16 @@ class Doktor extends Authenticatable
         'mezuniyet',
         'biyografi',
         'adres',
+        'fatura_tipi',
+        'fatura_unvan',
+        'fatura_tc_vkn',
+        'fatura_vergi_dairesi',
+        'fatura_adres',
+        'fatura_il',
+        'fatura_ilce',
+        'fatura_posta_kodu',
+        'fatura_email',
+        'fatura_telefon',
         'enlem',
         'boylam',
         'profil_resmi',
@@ -407,6 +417,76 @@ class Doktor extends Authenticatable
     public function hasWebSitesiPaketi(): bool
     {
         return $this->hasPaketFeature('web_sitesi');
+    }
+
+    /**
+     * Ödeme formundan gelen fatura alanlarını doğrula ve normalize et.
+     *
+     * @return array{tip: string, unvan: string, tc_vkn: string, vergi_dairesi: ?string, adres: string, il: string, ilce: string, posta_kodu: ?string, email: string, telefon: string}
+     */
+    public static function normalizeFaturaFromRequest(\Illuminate\Http\Request $request): array
+    {
+        $tip = $request->input('fatura_tipi', 'bireysel') === 'kurumsal' ? 'kurumsal' : 'bireysel';
+        $tcVkn = preg_replace('/\D/', '', (string) $request->input('fatura_tc_vkn', '')) ?? '';
+
+        return [
+            'tip' => $tip,
+            'unvan' => trim((string) $request->input('fatura_unvan', '')),
+            'tc_vkn' => $tcVkn,
+            'vergi_dairesi' => trim((string) $request->input('fatura_vergi_dairesi', '')) ?: null,
+            'adres' => trim((string) $request->input('fatura_adres', '')),
+            'il' => trim((string) $request->input('fatura_il', '')),
+            'ilce' => trim((string) $request->input('fatura_ilce', '')),
+            'posta_kodu' => trim((string) $request->input('fatura_posta_kodu', '')) ?: null,
+            'email' => trim((string) $request->input('fatura_email', '')),
+            'telefon' => trim((string) $request->input('fatura_telefon', '')),
+        ];
+    }
+
+    /**
+     * Fatura bilgilerini hekim kaydına yaz (sonraki ödemelerde prefiller).
+     *
+     * @param  array<string, mixed>  $fatura
+     */
+    public function saveFaturaBilgileri(array $fatura): void
+    {
+        $this->forceFill([
+            'fatura_tipi' => $fatura['tip'] ?? null,
+            'fatura_unvan' => $fatura['unvan'] ?? null,
+            'fatura_tc_vkn' => $fatura['tc_vkn'] ?? null,
+            'fatura_vergi_dairesi' => $fatura['vergi_dairesi'] ?? null,
+            'fatura_adres' => $fatura['adres'] ?? null,
+            'fatura_il' => $fatura['il'] ?? null,
+            'fatura_ilce' => $fatura['ilce'] ?? null,
+            'fatura_posta_kodu' => $fatura['posta_kodu'] ?? null,
+            'fatura_email' => $fatura['email'] ?? null,
+            'fatura_telefon' => $fatura['telefon'] ?? null,
+        ])->save();
+    }
+
+    /**
+     * Kayıtlı fatura özeti (admin / fatura kesimi).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function faturaBilgisiArray(): ?array
+    {
+        if (empty($this->fatura_tipi) && empty($this->fatura_unvan) && empty($this->fatura_tc_vkn)) {
+            return null;
+        }
+
+        return [
+            'tip' => $this->fatura_tipi,
+            'unvan' => $this->fatura_unvan,
+            'tc_vkn' => $this->fatura_tc_vkn,
+            'vergi_dairesi' => $this->fatura_vergi_dairesi,
+            'adres' => $this->fatura_adres,
+            'il' => $this->fatura_il,
+            'ilce' => $this->fatura_ilce,
+            'posta_kodu' => $this->fatura_posta_kodu,
+            'email' => $this->fatura_email,
+            'telefon' => $this->fatura_telefon,
+        ];
     }
 
     /**

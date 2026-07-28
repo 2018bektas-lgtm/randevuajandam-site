@@ -358,6 +358,13 @@
                     </div>
                 @endif
 
+                {{-- Fatura: kayıtta değil, ödeme anında (ücretli paketlerde zorunlu) --}}
+                @if(($tutar ?? 0) > 0 && $doktor)
+                    <div class="rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 shadow-sm">
+                        @include('frontend.hekim.partials.fatura_bilgileri', ['doktor' => $doktor])
+                    </div>
+                @endif
+
                 <!-- ÖDEME BİLGİLERİ -->
                 <div class="space-y-6">
                     {{-- PayTR: satıcı iletişim + yurt içi adres (ödeme sayfasında açık) --}}

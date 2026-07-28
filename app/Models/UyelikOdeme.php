@@ -26,6 +26,7 @@ class UyelikOdeme extends Model
         'otomatik_yenileme',
         'yenileme_kaynak_odeme_id',
         'kurulum_verisi',
+        'fatura_bilgisi',
         'callback_payload',
         'onaylandi_at',
         'onaylayan_yonetici_id',
@@ -36,6 +37,7 @@ class UyelikOdeme extends Model
         return [
             'tutar' => 'decimal:2',
             'kurulum_verisi' => 'array',
+            'fatura_bilgisi' => 'array',
             'callback_payload' => 'array',
             'onaylandi_at' => 'datetime',
             'otomatik_yenileme' => 'boolean',

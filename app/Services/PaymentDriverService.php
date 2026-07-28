@@ -180,6 +180,7 @@ class PaymentDriverService
         ]);
 
         $merchantOid = $paytr->makeMerchantOid();
+        $faturaSnap = is_array($kurulum['fatura'] ?? null) ? $kurulum['fatura'] : ($doktor->faturaBilgisiArray());
         UyelikOdeme::create([
             'doktor_id'    => $doktor->id,
             'paket_id'     => $paket->id,
@@ -190,15 +191,17 @@ class PaymentDriverService
             'durum'        => 'beklemede',
             'merchant_oid' => $merchantOid,
             'kurulum_verisi' => $kurulum,
+            'fatura_bilgisi' => $faturaSnap,
+            'fatura_durumu' => 'bekliyor',
         ]);
 
         $tokenResult = $paytr->createIframeToken([
             'merchant_oid'  => $merchantOid,
-            'email'         => (string) $doktor->e_posta,
+            'email'         => (string) (($faturaSnap['email'] ?? null) ?: $doktor->e_posta),
             'payment_amount'=> $tutar,
-            'user_name'     => (string) $doktor->ad_soyad,
-            'user_address'  => (string) ($doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye')),
-            'user_phone'    => (string) $doktor->telefon,
+            'user_name'     => (string) (($faturaSnap['unvan'] ?? null) ?: $doktor->ad_soyad),
+            'user_address'  => (string) (($faturaSnap['adres'] ?? null) ?: ($doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye'))),
+            'user_phone'    => (string) (($faturaSnap['telefon'] ?? null) ?: $doktor->telefon),
             'user_ip'       => $request->ip(),
             'basket_name'   => 'Randevu Ajandam - ' . $paket->ad . ' (' . $periyot . ')',
             // Risksiz model: tek seferlik iFrame; otomatik recurring yok
@@ -286,6 +289,7 @@ class PaymentDriverService
             $baslangic = now();
             $bitis     = $periyot === 'aylik' ? now()->addMonth() : now()->addYear();
 
+            $faturaSnap = is_array($kurulum['fatura'] ?? null) ? $kurulum['fatura'] : ($doktor->faturaBilgisiArray());
             $odeme = UyelikOdeme::create([
                 'doktor_id'     => $doktor->id,
                 'paket_id'      => $paket->id,
@@ -296,6 +300,7 @@ class PaymentDriverService
                 'durum'         => 'onaylandi',
                 'onaylandi_at'  => now(),
                 'kurulum_verisi'=> $kurulum,
+                'fatura_bilgisi'=> $faturaSnap,
                 'fatura_durumu' => 'bekliyor',
                 'otomatik_yenileme' => true,
             ]);
