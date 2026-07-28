@@ -664,7 +664,7 @@
                 </div>
                 <div>
                     <p class="text-xs font-bold text-slate-800 font-display">Güvenli ödeme</p>
-                    <p class="text-[11px] text-slate-500">iyzico altyapısı</p>
+                    <p class="text-[11px] text-slate-500">PayTR altyapısı</p>
                 </div>
             </div>
             <div class="trust-item">
