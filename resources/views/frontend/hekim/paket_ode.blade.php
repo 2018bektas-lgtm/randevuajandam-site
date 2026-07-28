@@ -269,6 +269,15 @@
                             <span class="text-[10px] font-bold text-[#C96A2B] block mt-1">Fiyatlara KDV dahildir.</span>
                         </div>
                     </div>
+
+                    <div class="mt-4 rounded-xl border border-amber-100 bg-amber-50/90 px-3.5 py-3 text-[11px] text-amber-950 leading-relaxed">
+                        <strong class="font-bold">Süre:</strong>
+                        Ödeme onaylanınca üyelik <strong>{{ $periyot === 'yillik' ? 'bugünden 1 yıl' : 'bugünden 1 ay' }}</strong>
+                        olarak yenilenir. Varsa kalan günler <strong>eklenmez</strong> (sıfırdan dönem).
+                        @if($doktor && method_exists($doktor, 'membershipDaysLeft') && $doktor->membershipDaysLeft() !== null)
+                            <span class="block mt-1 text-amber-900/80">Mevcut kalan: {{ $doktor->membershipDaysLeft() }} gün — bu ödeme sonrası devretmez.</span>
+                        @endif
+                    </div>
                 </div>
 
                 <!-- Paket Özellikleri Listesi -->

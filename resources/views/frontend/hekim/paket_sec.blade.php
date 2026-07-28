@@ -253,6 +253,27 @@
             </p>
             <p class="mt-3 text-xs font-bold text-[#C96A2B]">Fiyatlara KDV dahildir.</p>
 
+            @if($doktor->hasActiveMembership() || ($doktor->paket_id && $doktor->uyelik_bitis && $doktor->uyelik_bitis->isFuture()))
+                <div class="mt-5 max-w-xl mx-auto rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
+                    <p class="text-[11px] font-bold text-amber-900 uppercase tracking-wide mb-1">Üyelik süresi hakkında</p>
+                    <p class="text-xs text-amber-900/90 leading-relaxed">
+                        Paket değiştirip ödeme yaptığınızda süre <strong>ödeme anından itibaren sıfırdan</strong> başlar
+                        (aylık ≈ 1 ay, yıllık ≈ 1 yıl). Mevcut üyelikteki <strong>kalan günler devretmez</strong>; kısmi dönem indirimi uygulanmaz.
+                        @if($doktor->membershipDaysLeft() !== null)
+                            <span class="block mt-1.5">Şu an kalan: <strong>{{ $doktor->membershipDaysLeft() }} gün</strong>
+                                @if($doktor->uyelik_bitis)
+                                    (bitiş {{ $doktor->uyelik_bitis->format('d.m.Y') }})
+                                @endif
+                            </span>
+                        @endif
+                    </p>
+                </div>
+            @else
+                <p class="mt-4 max-w-lg mx-auto text-[11px] text-slate-500 leading-relaxed">
+                    Ödeme onayından sonra üyelik süresi <strong>ödeme gününden</strong> başlar (aylık / yıllık dönem).
+                </p>
+            @endif
+
             @if(session('hata'))
                 <div class="mt-6 max-w-md mx-auto p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-600 font-semibold">
                     {{ session('hata') }}

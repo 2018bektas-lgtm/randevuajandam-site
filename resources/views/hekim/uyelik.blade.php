@@ -80,11 +80,16 @@
             @endif
         </dl>
 
-        <div class="pt-2 flex flex-wrap gap-2">
-            <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}"
-               class="inline-flex px-4 py-2.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-xs font-bold">
-                Paket değiştir / yenile
-            </a>
+        <div class="pt-2 space-y-3">
+            <p class="text-[11px] text-amber-900/90 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 leading-relaxed">
+                <strong>Paket değiştir / yenile:</strong> Ödeme sonrası süre sıfırdan başlar (kalan günler devretmez; tam dönem ücreti alınır).
+            </p>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}"
+                   class="inline-flex px-4 py-2.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-xs font-bold">
+                    Paket değiştir / yenile
+                </a>
+            </div>
         </div>
     </div>
 
