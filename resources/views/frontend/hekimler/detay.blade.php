@@ -251,13 +251,30 @@
 
             <!-- Header Info Details -->
             <div class="text-center md:text-left space-y-3 flex-1">
-                <div class="flex flex-col md:flex-row md:items-center gap-2 justify-center md:justify-start">
+                <div class="flex flex-col md:flex-row md:items-center gap-2 justify-center md:justify-start flex-wrap">
                     <span class="inline-block self-center md:self-auto px-2.5 py-1 text-[9px] uppercase font-bold tracking-wider rounded-full bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30">
                         Bireysel Uzman
                     </span>
                     <span class="inline-block self-center md:self-auto px-2.5 py-1 text-[9px] uppercase font-bold tracking-wider rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                         Online Randevuya Açık
                     </span>
+                    @if($doktor->hasWebSitesiPaketi())
+                        @php $webUrl = $doktor->publicWebsiteUrl(); @endphp
+                        @if($webUrl)
+                            <a href="{{ $webUrl }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-1 self-center md:self-auto px-2.5 py-1 text-[9px] uppercase font-bold tracking-wider rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+                               title="Kişisel web sitesi">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg>
+                                Web Sitesi
+                            </a>
+                        @else
+                            <span class="inline-flex items-center gap-1 self-center md:self-auto px-2.5 py-1 text-[9px] uppercase font-bold tracking-wider rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                  title="Web sitesi paketi aktif">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg>
+                                Web Sitesi
+                            </span>
+                        @endif
+                    @endif
                 </div>
 
                 <div>

@@ -154,6 +154,12 @@ class Paket extends Model
      */
     public function hasFeature(string $featureCode): bool
     {
+        if ($this->relationLoaded('sistemOzellikleri')) {
+            return $this->sistemOzellikleri->contains(
+                fn ($o) => (string) ($o->kod ?? '') === $featureCode
+            );
+        }
+
         return $this->sistemOzellikleri()->where('kod', $featureCode)->exists();
     }
 }

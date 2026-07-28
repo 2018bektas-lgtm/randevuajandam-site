@@ -401,6 +401,39 @@ class Doktor extends Authenticatable
         return $paket->hasFeature('web_sitesi') || $paket->hasFeature('klinik_web_sitesi');
     }
 
+    /**
+     * Bireysel hekim web sitesi paketi (web_sitesi özelliği) aktif mi?
+     */
+    public function hasWebSitesiPaketi(): bool
+    {
+        return $this->hasPaketFeature('web_sitesi');
+    }
+
+    /**
+     * Kurulmuş kişisel domain URL'si (varsa). Yoksa null.
+     */
+    public function publicWebsiteUrl(): ?string
+    {
+        $site = $this->relationLoaded('webSite') ? $this->webSite : $this->webSite()->first();
+        $domain = is_object($site) ? trim((string) ($site->domain ?? '')) : '';
+        if ($domain === '') {
+            // Eski serbest alan (profilde elle girilmiş olabilir)
+            $legacy = trim((string) ($this->web_sitesi ?? ''));
+            if ($legacy !== '' && preg_match('#^https?://#i', $legacy)) {
+                return $legacy;
+            }
+            if ($legacy !== '' && str_contains($legacy, '.')) {
+                return 'https://'.preg_replace('#^//#', '', $legacy);
+            }
+
+            return null;
+        }
+        $domain = preg_replace('#^https?://#i', '', $domain) ?? $domain;
+        $domain = rtrim((string) $domain, '/');
+
+        return $domain !== '' ? 'https://'.$domain : null;
+    }
+
     /** Bu pakette ücretsiz deneme hakkı var mı? (bir kez) */
     public function canStartTrial(?Paket $paket = null): bool
     {

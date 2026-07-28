@@ -278,7 +278,14 @@ class HekimController extends Controller
         // Liste için hafif eager-load (slot hesaplama asenkron; calismaSaatleri burada yüklenmez)
         $query = Doktor::platformdaListelenen()
             ->where('tur', 'bireysel')
-            ->with(['paket:id,ad', 'branslar:id,ad,slug', 'il:id,ad,slug', 'ilce:id,ad,slug']);
+            ->with([
+                'paket:id,ad',
+                'paket.sistemOzellikleri:id,kod,ad',
+                'webSite:id,doktor_id,domain,durum',
+                'branslar:id,ad,slug',
+                'il:id,ad,slug',
+                'ilce:id,ad,slug',
+            ]);
 
         // Search filter
         if ($request->filled('arama')) {
@@ -812,7 +819,8 @@ class HekimController extends Controller
         });
 
         $doktor = $query->with([
-            'paket',
+            'paket.sistemOzellikleri',
+            'webSite',
             'il',
             'ilce',
             'branslar',
