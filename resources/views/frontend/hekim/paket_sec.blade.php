@@ -253,12 +253,39 @@
             </p>
             <p class="mt-3 text-xs font-bold text-[#C96A2B]">Fiyatlara KDV dahildir.</p>
 
+            {{-- Deneme: gözden kaçmasın --}}
+            <div class="mt-5 max-w-2xl mx-auto rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4 py-4 text-left shadow-sm">
+                <p class="text-[11px] font-extrabold uppercase tracking-widest text-emerald-800 mb-2">Ücretsiz deneme (önemli)</p>
+                @if($doktor->isOnTrial() && $doktor->uyelik_bitis)
+                    <p class="text-sm font-bold text-emerald-950 leading-snug">
+                        Denemeniz <strong>{{ $doktor->uyelik_bitis->format('d.m.Y') }}</strong> günü biter
+                        @if($doktor->membershipDaysLeft() !== null)
+                            ({{ max(0, $doktor->membershipDaysLeft()) }} gün kaldı)
+                        @endif.
+                    </p>
+                    <p class="text-xs text-emerald-900 mt-2 leading-relaxed">
+                        Bittikten sonra <strong>tam ücret</strong> ödeyerek devam edersiniz (otomatik çekim yok).
+                        Paket kartlarında deneme süresi büyük yazıyla belirtilir.
+                    </p>
+                @elseif($doktor->deneme_kullanildi)
+                    <p class="text-sm font-bold text-amber-950 leading-snug">Deneme hakkınız kullanılmış.</p>
+                    <p class="text-xs text-amber-900 mt-1.5 leading-relaxed">Aşağıdan paket seçip <strong>tam ücret</strong> ile devam edin.</p>
+                @else
+                    <p class="text-sm font-bold text-emerald-950 leading-snug">
+                        Bazı paketlerde <strong>ücretsiz deneme günü</strong> vardır — kartta yeşil kutu ve şeritte gün sayısı yazar.
+                    </p>
+                    <p class="text-xs text-emerald-900 mt-2 leading-relaxed">
+                        Deneme <strong>ücretsizdir</strong>. Süre bitince tam ücretli pakete geçmeniz gerekir (deneme bitti diye otomatik para çekilmez).
+                    </p>
+                @endif
+            </div>
+
             @if($doktor->hasActiveMembership() || ($doktor->paket_id && $doktor->uyelik_bitis && $doktor->uyelik_bitis->isFuture()))
-                <div class="mt-5 max-w-xl mx-auto rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
-                    <p class="text-[11px] font-bold text-amber-900 uppercase tracking-wide mb-1">Üyelik süresi hakkında</p>
+                <div class="mt-4 max-w-xl mx-auto rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
+                    <p class="text-[11px] font-bold text-amber-900 uppercase tracking-wide mb-1">Üyelik süresi (paket değişimi)</p>
                     <p class="text-xs text-amber-900/90 leading-relaxed">
-                        Paket değiştirip ödeme yaptığınızda süre <strong>ödeme anından itibaren sıfırdan</strong> başlar
-                        (aylık ≈ 1 ay, yıllık ≈ 1 yıl). Mevcut üyelikteki <strong>kalan günler devretmez</strong>; kısmi dönem indirimi uygulanmaz.
+                        Ödeme sonrası süre <strong>sıfırdan</strong> başlar (aylık ≈ 1 ay, yıllık ≈ 1 yıl).
+                        Kalan günler <strong>devretmez</strong> — böylece örneğin 1 yıl alıp hemen üst pakete geçince 2 yıl bedava olmaz.
                         @if($doktor->membershipDaysLeft() !== null)
                             <span class="block mt-1.5">Şu an kalan: <strong>{{ $doktor->membershipDaysLeft() }} gün</strong>
                                 @if($doktor->uyelik_bitis)
@@ -270,7 +297,7 @@
                 </div>
             @else
                 <p class="mt-4 max-w-lg mx-auto text-[11px] text-slate-500 leading-relaxed">
-                    Ödeme onayından sonra üyelik süresi <strong>ödeme gününden</strong> başlar (aylık / yıllık dönem).
+                    Ücretli ödeme onayından sonra üyelik süresi <strong>ödeme gününden</strong> başlar (aylık / yıllık).
                 </p>
             @endif
 
@@ -356,10 +383,25 @@
                         <div class="mb-5 pr-16">
                             <h3 class="text-[17px] font-bold font-display text-[#0F172A]">{{ $p->ad }}</h3>
                             <p class="text-[12.5px] text-slate-500 mt-2 leading-relaxed min-h-[40px]">{{ $p->aciklama }}</p>
-                            @if($canTrial)
-                                <p class="text-[11px] font-semibold text-emerald-700 mt-2">Kart istemeden {{ $trialDays }} gün ücretsiz dene. Süre bitince paket seçip ödersin.</p>
-                            @elseif($trialDays > 0 && $doktor && $doktor->deneme_kullanildi)
-                                <p class="text-[11px] text-amber-700 mt-2">Deneme hakkınız kullanılmış — ödeme ile devam.</p>
+                            @if($trialDays > 0)
+                                <div class="mt-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 px-3 py-2.5">
+                                    <p class="text-[15px] font-extrabold text-emerald-900 font-display leading-none">
+                                        {{ $trialDays }} GÜN ÜCRETSİZ DENEME
+                                    </p>
+                                    @if($canTrial)
+                                        <p class="text-[11px] font-semibold text-emerald-800 mt-1.5 leading-snug">
+                                            Kart istemeden başla. Deneme bitince <strong>tam ücret</strong> ödersiniz (otomatik çekim yok).
+                                        </p>
+                                    @elseif($doktor && $doktor->deneme_kullanildi)
+                                        <p class="text-[11px] font-semibold text-amber-800 mt-1.5 leading-snug">
+                                            Deneme hakkınız kullanılmış — bu pakete <strong>ödeme ile</strong> geçin.
+                                        </p>
+                                    @else
+                                        <p class="text-[11px] font-semibold text-emerald-800 mt-1.5 leading-snug">
+                                            Uygun hesaplarda deneme açılır. Süre bitince tam ücret gerekir.
+                                        </p>
+                                    @endif
+                                </div>
                             @endif
                         </div>
 
@@ -433,13 +475,16 @@
                                 @csrf
                                 <input type="hidden" name="paket_id" value="{{ $p->id }}">
                                 <button type="submit" class="btn-plan btn-plan-primary w-full">
-                                    {{ $trialDays }} gün ücretsiz dene
+                                    {{ $trialDays }} gün ücretsiz dene — kart yok
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                                 </button>
                             </form>
+                            <p class="text-center text-[10px] text-emerald-800 font-bold mt-2 leading-snug">
+                                Bitişte tam ücret ödersiniz · deneme otomatik yenilenmez
+                            </p>
                             <a href="{{ $ctaBase }}?paket={{ $p->id }}&periyot=aylik"
-                               class="block text-center text-[11px] text-slate-500 mt-2 underline hover:text-[#C96A2B]">
-                                Denemesiz öde →
+                               class="block text-center text-[11px] text-slate-500 mt-1.5 underline hover:text-[#C96A2B]">
+                                Denemesiz doğrudan öde →
                             </a>
                         @else
                             <a href="{{ $ctaBase }}?paket={{ $p->id }}&periyot=aylik"

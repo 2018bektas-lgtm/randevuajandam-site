@@ -21,21 +21,52 @@
             </a>
         </div>
     @elseif($doktor->isOnTrial() && $doktor->uyelik_bitis)
-        <div class="mb-6 p-5 md:p-6 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-                <h4 class="font-bold text-emerald-950 text-sm font-display">Ücretsiz deneme aktif</h4>
-                <p class="text-xs text-emerald-900/80 mt-1 max-w-xl">
-                    Denemeniz <strong>{{ $doktor->uyelik_bitis->format('d.m.Y') }}</strong> tarihinde bitiyor
-                    @if($doktor->membershipDaysLeft() !== null)
-                        (yaklaşık {{ max(0, $doktor->membershipDaysLeft()) }} gün kaldı)
-                    @endif.
-                    Süre dolunca girişte paket seçip ödeme ekranına yönlendirilirsiniz.
-                </p>
+        @php
+            $trialKalan = $doktor->membershipDaysLeft();
+            $trialPaket = $doktor->aktifPaket();
+            $trialAylik = $trialPaket ? (float) ($trialPaket->aylik_indirimli_fiyat ?? $trialPaket->aylik_fiyat ?? 0) : 0;
+            if ($trialAylik <= 0 && $trialPaket) {
+                $trialAylik = (float) $trialPaket->aylik_fiyat;
+            }
+        @endphp
+        <div class="mb-6 p-5 md:p-6 rounded-2xl bg-emerald-50 border-2 border-emerald-300 shadow-sm space-y-4">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <p class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-800 mb-1">Ücretsiz deneme</p>
+                    <h4 class="font-bold text-emerald-950 text-base font-display">
+                        Denemeniz {{ $doktor->uyelik_bitis->format('d.m.Y') }} günü bitiyor
+                        @if($trialKalan !== null)
+                            <span class="text-emerald-800">({{ max(0, $trialKalan) }} gün kaldı)</span>
+                        @endif
+                    </h4>
+                    <p class="text-sm text-emerald-900/90 mt-2 max-w-xl leading-relaxed font-medium">
+                        Bu süre <strong>ücretsizdir</strong>. Bittiğinde kartınızdan otomatik çekim
+                        @if($doktor->odeme_periyodu === 'deneme')
+                            <strong>yapılmaz</strong> — devam için
+                        @else
+                            için
+                        @endif
+                        <strong>paket seçip tam ücret ödemeniz</strong> gerekir.
+                        @if($trialAylik > 0)
+                            <span class="block mt-1.5 text-emerald-950">
+                                Örnek tam ücret (KDV dahil): yaklaşık
+                                <strong>₺{{ number_format($trialAylik, 0, ',', '.') }}/ay</strong>
+                                @if($trialPaket)
+                                    ({{ $trialPaket->ad }} ve üzeri paketler)
+                                @endif
+                                — deneme bittikten sonra.
+                            </span>
+                        @endif
+                    </p>
+                </div>
+                <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}"
+                   class="shrink-0 px-5 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold uppercase tracking-wide transition-all shadow-sm">
+                    Şimdi paket seç / öde
+                </a>
             </div>
-            <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}"
-               class="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all">
-                Paket yükselt / öde
-            </a>
+            <p class="text-[11px] text-emerald-900/70 border-t border-emerald-200/80 pt-3 leading-relaxed">
+                Not: Deneme sonrası veya paket değişiminde süre <strong>ödeme gününden sıfırdan</strong> başlar; kalan deneme/üyelik günleri devretmez.
+            </p>
         </div>
     @endif
 

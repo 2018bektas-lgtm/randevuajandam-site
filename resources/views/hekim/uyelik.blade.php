@@ -28,6 +28,39 @@
 
     @include('frontend.hekim.partials.havale_bildirim_durumu')
 
+    @if($deneme && $doktor->uyelik_bitis)
+        @php
+            $uTrialKalan = $doktor->membershipDaysLeft();
+            $uTrialPaket = $paket;
+            $uTrialAylik = $uTrialPaket ? (float) ($uTrialPaket->aylik_indirimli_fiyat ?? $uTrialPaket->aylik_fiyat ?? 0) : 0;
+            if ($uTrialAylik <= 0 && $uTrialPaket) {
+                $uTrialAylik = (float) $uTrialPaket->aylik_fiyat;
+            }
+        @endphp
+        <div class="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 space-y-3">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-800">Ücretsiz deneme</p>
+            <p class="text-base font-bold text-emerald-950 font-display leading-snug">
+                Denemeniz <strong>{{ $doktor->uyelik_bitis->format('d.m.Y') }}</strong> tarihinde biter
+                @if($uTrialKalan !== null)
+                    ({{ max(0, $uTrialKalan) }} gün kaldı)
+                @endif.
+            </p>
+            <p class="text-sm text-emerald-900 leading-relaxed">
+                Süre dolunca erişim için <strong>tam ücretli paket ödemesi</strong> gerekir.
+                Deneme bitiminde otomatik ücret çekilmez; siz paket seçip ödersiniz.
+                @if($uTrialAylik > 0)
+                    <span class="block mt-1 font-semibold text-emerald-950">
+                        Tam ücret örneği: ₺{{ number_format($uTrialAylik, 0, ',', '.') }}/ay (KDV dahil) ve üzeri paketler.
+                    </span>
+                @endif
+            </p>
+            <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}"
+               class="inline-flex px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold uppercase tracking-wide">
+                Paket seç / öde
+            </a>
+        </div>
+    @endif
+
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
         <h2 class="text-lg font-bold font-display text-slate-900">Paket özeti</h2>
 
