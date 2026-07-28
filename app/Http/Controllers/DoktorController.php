@@ -11,6 +11,7 @@ use App\Models\Il;
 use App\Models\Ilce;
 use App\Models\Klinik;
 use App\Models\Paket;
+use App\Models\Unvan;
 use App\Models\UyelikOdeme;
 use App\Models\Yonetici;
 use App\Notifications\MeslekBelgesiSonucBildirimi;
@@ -226,12 +227,16 @@ class DoktorController extends Controller
 
         $klinikYetkiAnahtarlari = DoktorUpdateRequest::KLINIK_YETKI_ANAHTARLARI;
 
+        // Tüm unvanlar DB'den (hardcoded liste kullanılmaz)
+        $unvanlar = Unvan::query()->orderBy('ad')->get(['id', 'ad']);
+
         return view('yonetim.doktorlar.duzenle', compact(
             'yonetici',
             'doktor',
             'paketler',
             'klinikler',
-            'klinikYetkiAnahtarlari'
+            'klinikYetkiAnahtarlari',
+            'unvanlar'
         ));
     }
 

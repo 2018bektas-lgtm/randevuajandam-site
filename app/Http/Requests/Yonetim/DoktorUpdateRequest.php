@@ -61,7 +61,8 @@ class DoktorUpdateRequest extends FormRequest
         $klinikSecili = filled($this->input('klinik_id'));
 
         return [
-            'unvan' => ['nullable', 'string', 'max:50'],
+            // Liste unvanlar tablosundan; eski serbest metin unvan (orphan) da kaydedilebilir
+            'unvan' => ['nullable', 'string', 'max:100'],
             'ad_soyad' => ['required', 'string', 'max:255'],
             'e_posta' => ['required', 'email', 'max:255', Rule::unique('doktorlar', 'e_posta')->ignore($id)],
             // Admin paneli: esnek telefon (maske zorunlu değil)

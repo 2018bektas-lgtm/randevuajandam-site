@@ -191,11 +191,19 @@
                         <!-- Unvan -->
                         <div class="space-y-1.5">
                             <label for="unvan" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Akademik Unvan</label>
+                            @php
+                                $profilSeciliUnvan = old('unvan', $doktor->unvan);
+                                $profilUnvanAdlari = collect($unvanlar)->pluck('ad');
+                            @endphp
                             <select name="unvan" id="unvan" required
                                     class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all cursor-pointer font-semibold">
+                                <option value="" disabled {{ filled($profilSeciliUnvan) ? '' : 'selected' }}>Ünvan seçin...</option>
                                 @foreach($unvanlar as $u)
-                                    <option value="{{ $u->ad }}" {{ $doktor->unvan === $u->ad ? 'selected' : '' }}>{{ $u->ad }}</option>
+                                    <option value="{{ $u->ad }}" @selected($profilSeciliUnvan === $u->ad)>{{ $u->ad }}</option>
                                 @endforeach
+                                @if(filled($profilSeciliUnvan) && ! $profilUnvanAdlari->contains($profilSeciliUnvan))
+                                    <option value="{{ $profilSeciliUnvan }}" selected>{{ $profilSeciliUnvan }} (kayıtlı)</option>
+                                @endif
                             </select>
                         </div>
 

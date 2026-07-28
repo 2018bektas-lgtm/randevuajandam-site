@@ -34,9 +34,12 @@ class UnvanSeeder extends Seeder
             'Doç. Dr. Dt.',
 
             // Psikoloji / danışmanlık
+            'Psk.',
+            'Psk. Dan.',
             'Klinik Psikolog',
             'Psikolog',
             'Uzm. Psikolog',
+            'Uzm. Psk.',
             'Psikolojik Danışman',
             'Aile Danışmanı',
             'Psikoterapist',

@@ -379,18 +379,20 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div>
                         <label for="unvan" class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-2 font-display">Ünvan</label>
+                        @php
+                            $seciliUnvan = old('unvan', $doktor->unvan);
+                            $unvanAdlari = collect($unvanlar ?? [])->pluck('ad');
+                        @endphp
                         <select name="unvan" id="unvan"
                             class="w-full px-4 py-3 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-sm transition-all duration-200 cursor-pointer">
                             <option value="">Ünvan Seçin (Opsiyonel)</option>
-                            <option value="Prof. Dr." {{ old('unvan', $doktor->unvan) === 'Prof. Dr.' ? 'selected' : '' }}>Prof. Dr.</option>
-                            <option value="Doç. Dr." {{ old('unvan', $doktor->unvan) === 'Doç. Dr.' ? 'selected' : '' }}>Doç. Dr.</option>
-                            <option value="Dr. Öğr. Üyesi" {{ old('unvan', $doktor->unvan) === 'Dr. Öğr. Üyesi' ? 'selected' : '' }}>Dr. Öğr. Üyesi</option>
-                            <option value="Uzm. Dr." {{ old('unvan', $doktor->unvan) === 'Uzm. Dr.' ? 'selected' : '' }}>Uzm. Dr.</option>
-                            <option value="Dr." {{ old('unvan', $doktor->unvan) === 'Dr.' ? 'selected' : '' }}>Dr.</option>
-                            <option value="Dt." {{ old('unvan', $doktor->unvan) === 'Dt.' ? 'selected' : '' }}>Dt.</option>
-                            <option value="Uzm. Dt." {{ old('unvan', $doktor->unvan) === 'Uzm. Dt.' ? 'selected' : '' }}>Uzm. Dt.</option>
-                            <option value="Fzt." {{ old('unvan', $doktor->unvan) === 'Fzt.' ? 'selected' : '' }}>Fzt.</option>
-                            <option value="Psk." {{ old('unvan', $doktor->unvan) === 'Psk.' ? 'selected' : '' }}>Psk.</option>
+                            @foreach(($unvanlar ?? []) as $u)
+                                <option value="{{ $u->ad }}" @selected($seciliUnvan === $u->ad)>{{ $u->ad }}</option>
+                            @endforeach
+                            {{-- Eski kayıtta listede olmayan unvan varsa kaybolmasın --}}
+                            @if(filled($seciliUnvan) && ! $unvanAdlari->contains($seciliUnvan))
+                                <option value="{{ $seciliUnvan }}" selected>{{ $seciliUnvan }} (kayıtlı)</option>
+                            @endif
                         </select>
                     </div>
                     <div class="sm:col-span-2">

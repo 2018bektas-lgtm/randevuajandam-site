@@ -6,6 +6,7 @@ use App\Models\Unvan;
 use App\Models\Yonetici;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class UnvanController extends Controller
 {
@@ -55,6 +56,8 @@ class UnvanController extends Controller
             'ad' => $request->ad,
         ]);
 
+        $this->forgetUnvanCaches();
+
         return redirect()->route('yonetim.unvanlar.index')->with('basarili', 'Unvan başarıyla eklendi.');
     }
 
@@ -89,6 +92,8 @@ class UnvanController extends Controller
             'ad' => $request->ad,
         ]);
 
+        $this->forgetUnvanCaches();
+
         return redirect()->route('yonetim.unvanlar.index')->with('basarili', 'Unvan başarıyla güncellendi.');
     }
 
@@ -100,6 +105,14 @@ class UnvanController extends Controller
         $unvan = Unvan::findOrFail($id);
         $unvan->delete();
 
+        $this->forgetUnvanCaches();
+
         return redirect()->route('yonetim.unvanlar.index')->with('basarili', 'Unvan başarıyla silindi.');
+    }
+
+    /** Hekim listesi filtresi vb. için önbellek. */
+    private function forgetUnvanCaches(): void
+    {
+        Cache::forget('unvanlar_listesi');
     }
 }
