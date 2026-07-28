@@ -140,9 +140,9 @@
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-xs font-semibold text-emerald-800 transition-all shadow-sm">
                     Domaini değiştir
                 </a>
-                <a href="{{ route('frontend.hekim.paket_sec') }}" 
+                <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}" 
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-xs font-semibold text-[#6B7280] hover:text-[#C96A2B] transition-all shadow-sm">
-                    ← Paket Seçimine Dön
+                    ← Paket değiştir
                 </a>
             </div>
         </div>

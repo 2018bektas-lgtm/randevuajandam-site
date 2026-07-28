@@ -820,27 +820,34 @@ class Doktor extends Authenticatable
     }
 
     /**
-     * Meslek onayı sonrası checkout URL (paket zaten seçildiyse ödeme; yoksa paket listesi).
+     * Meslek onayı / giriş sonrası: her zaman paket listesi.
+     * Kayıt niyeti varsa öneri olarak query ile taşınır; hekim özgürce başka paket seçebilir.
+     * (Eski davranış: doğrudan ödeme — starter’a kilitleniyordu.)
      */
     public function checkoutUrlAfterMeslek(): string
     {
-        if (! $this->hasKayitPaketNiyeti()) {
-            return route('frontend.hekim.paket_sec');
+        $params = [];
+        if ($this->hasKayitPaketNiyeti()) {
+            $params['oneri'] = (int) $this->kayit_paket_id;
+            if (in_array($this->kayit_periyot, ['aylik', 'yillik'], true)) {
+                $params['periyot'] = $this->kayit_periyot;
+            }
         }
 
-        $periyot = in_array($this->kayit_periyot, ['aylik', 'yillik'], true)
-            ? $this->kayit_periyot
-            : 'aylik';
+        return route('frontend.hekim.paket_sec', $params);
+    }
 
-        $paket = $this->relationLoaded('kayitPaketi')
-            ? $this->kayitPaketi
-            : $this->kayitPaketi()->first();
-
-        if (! $paket || ! $paket->aktif_mi) {
-            return route('frontend.hekim.paket_sec');
+    /**
+     * Ödeme URL’si — yalnızca geçerli aktif paket id ile.
+     */
+    public function packageCheckoutUrl(int|string $paketId, string $periyot = 'aylik'): string
+    {
+        $periyot = in_array($periyot, ['aylik', 'yillik'], true) ? $periyot : 'aylik';
+        $paket = Paket::query()->where('aktif_mi', true)->find($paketId);
+        if (! $paket) {
+            return route('frontend.hekim.paket_sec', ['degistir' => 1]);
         }
 
-        // Domain adımı paket_odeFormu içinde de kontrol edilir; web paketinde domain seçimine yönlenir
         $needsDomain = $paket->hasFeature('web_sitesi')
             || $paket->hasFeature('klinik_web_sitesi')
             || (bool) ($paket->domain_dahil_mi ?? false);

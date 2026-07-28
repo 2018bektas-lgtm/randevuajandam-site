@@ -81,7 +81,7 @@
         </dl>
 
         <div class="pt-2 flex flex-wrap gap-2">
-            <a href="{{ route('frontend.hekim.paket_sec') }}"
+            <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}"
                class="inline-flex px-4 py-2.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-xs font-bold">
                 Paket değiştir / yenile
             </a>

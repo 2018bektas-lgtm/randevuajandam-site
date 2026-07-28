@@ -32,7 +32,7 @@
                     Süre dolunca girişte paket seçip ödeme ekranına yönlendirilirsiniz.
                 </p>
             </div>
-            <a href="{{ route('frontend.hekim.paket_sec') }}"
+            <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}"
                class="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all">
                 Paket yükselt / öde
             </a>

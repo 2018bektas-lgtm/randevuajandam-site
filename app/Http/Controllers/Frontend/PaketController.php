@@ -34,7 +34,7 @@ use Illuminate\Support\Str;
 class PaketController extends Controller
 {
     /**
-     * Public pricing page. Logged-in doctors go to package selection/checkout.
+     * Public pricing page. Logged-in doctors go to package selection (not forced checkout).
      */
     public function index()
     {
@@ -44,7 +44,8 @@ class PaketController extends Controller
                 return redirect()->route('frontend.hekim.meslek.bekleme');
             }
 
-            return redirect()->to($doktor->checkoutUrlAfterMeslek());
+            // Her zaman paket grid — kayit_paket_id ile ödemeye kilitleme yok
+            return redirect()->route('frontend.hekim.paket_sec', ['degistir' => 1]);
         }
 
         $bireyselPaketler = Paket::query()
@@ -1322,7 +1323,8 @@ class PaketController extends Controller
 
     /**
      * Show packages selection for logged-in doctor.
-     * Kayıtta paket zaten seçildiyse ödeme/domain'e yönlendir (?degistir=1 ile değiştirilebilir).
+     * Her zaman grid gösterilir — kayit_paket_id ile otomatik ödeme kilidi YOK.
+     * Öneri: ?oneri=ID (kayıt niyeti / highlight).
      */
     public function paketSecFormu(Request $request)
     {
@@ -1341,28 +1343,10 @@ class PaketController extends Controller
             ? UyelikOdeme::sonOnayliHavaleForDoktor((int) $doktor->id, 30)
             : null;
 
-        // Havale onaylandı + aktif üyelik: ödeme/seçim labirentinde bırakma
-        if (
-            ! $request->boolean('degistir')
-            && ! $bekleyenHavaleEarly
-            && $doktor->hasActiveMembership()
-            && $sonOnayliEarly
-        ) {
-            return redirect()
-                ->route('frontend.hekim.basarili')
-                ->with(
-                    'basarili',
-                    'Havale ödemeniz onaylandı — üyeliğiniz aktif. Aşağıda paket özetinizi görebilirsiniz.'
-                );
-        }
+        // Havale yeni onaylandı + aktif üyelik: labirent yok; paket değiştirmek isterse grid açık
+        // (önceden basarili'ya atılıyordu — paket değişimi engelleniyordu)
 
-        // Kayıt niyeti varsa ve değiştirmek istemiyorsa tekrar seçtirme
-        // (bekleyen havale varsa ödeme sayfasında durum kartı görsün)
-        if ($doktor->hasKayitPaketNiyeti() && ! $request->boolean('degistir') && ! $bekleyenHavaleEarly) {
-            return redirect()->to($doktor->checkoutUrlAfterMeslek());
-        }
-
-        // Get all active packages
+        // Get all active packages (yalnızca aktif — id spoof ile pasif paket yok)
         $paketler = Paket::where('aktif_mi', true)->with('sistemOzellikleri')->orderBy('sira')->get();
 
         // Separate them by type
@@ -1373,6 +1357,23 @@ class PaketController extends Controller
         $bekleyenHavale = $bekleyenHavaleEarly;
         $sonOnayliHavale = $sonOnayliEarly;
 
+        // Highlight: query oneri > kayit niyeti > aktif paket
+        $oneriId = (int) $request->query('oneri', 0);
+        if ($oneriId <= 0 && $doktor->hasKayitPaketNiyeti()) {
+            $oneriId = (int) $doktor->kayit_paket_id;
+        }
+        if ($oneriId <= 0 && $doktor->paket_id) {
+            $oneriId = (int) $doktor->paket_id;
+        }
+        // Geçersiz öneri id (pasif/silinmiş) temizle
+        if ($oneriId > 0 && ! $paketler->contains('id', $oneriId)) {
+            $oneriId = 0;
+        }
+        $oneriPeriyot = $request->query('periyot', $doktor->kayit_periyot ?: 'aylik');
+        if (! in_array($oneriPeriyot, ['aylik', 'yillik'], true)) {
+            $oneriPeriyot = 'aylik';
+        }
+
         return view('frontend.hekim.paket_sec', compact(
             'doktor',
             'bireyselPaketler',
@@ -1380,6 +1381,8 @@ class PaketController extends Controller
             'maxYillikTasarrufYuzde',
             'bekleyenHavale',
             'sonOnayliHavale',
+            'oneriId',
+            'oneriPeriyot',
         ));
     }
 
@@ -1470,19 +1473,29 @@ class PaketController extends Controller
                 ->with('hata', 'Ödeme adımına geçmeden önce meslek belgenizin onaylanması gerekir.');
         }
 
-        $paketId = $request->query('paket');
+        $paketId = (int) $request->query('paket', 0);
         $periyot = $request->query('periyot', 'aylik');
+        if (! in_array($periyot, ['aylik', 'yillik'], true)) {
+            $periyot = 'aylik';
+        }
 
-        $secilenPaket = Paket::where('aktif_mi', true)->with('sistemOzellikleri')->find($paketId);
+        // Güvenlik: yalnız aktif paket; query yoksa veya geçersizse grid'e dön (kayit_paket_id ile sessizce starter'a düşme)
+        $secilenPaket = $paketId > 0
+            ? Paket::where('aktif_mi', true)->with('sistemOzellikleri')->find($paketId)
+            : null;
         if (! $secilenPaket) {
-            return redirect()->route('frontend.hekim.paket_sec')->with('hata', 'Lütfen geçerli bir paket seçin.');
+            return redirect()
+                ->route('frontend.hekim.paket_sec', ['degistir' => 1])
+                ->with('hata', 'Lütfen listeden bir paket seçin. Ödeme yalnızca seçtiğiniz pakete yapılır.');
         }
 
         // Ödeme adımında seçim = kayıt niyetini güncelle (paket değiştiyse)
         $doktor = Auth::guard('doktor')->user();
-        if ($doktor && (! $doktor->hasKayitPaketNiyeti()
+        if ($doktor && (
+            ! $doktor->hasKayitPaketNiyeti()
             || (int) $doktor->kayit_paket_id !== (int) $secilenPaket->id
-            || $doktor->kayit_periyot !== $periyot)) {
+            || $doktor->kayit_periyot !== $periyot
+        )) {
             $doktor->forceFill([
                 'kayit_paket_id' => $secilenPaket->id,
                 'kayit_periyot' => $periyot,
@@ -1606,7 +1619,13 @@ class PaketController extends Controller
                 ->with('hata', 'Meslek belgesi onaylanmadan ödeme yapılamaz.');
         }
 
-        $paket = Paket::where('aktif_mi', true)->findOrFail($request->paket_id);
+        // POST paket_id — yalnız aktif; gizli id ile pasif/ücretsiz spoof engeli
+        $paket = Paket::where('aktif_mi', true)->find($request->input('paket_id'));
+        if (! $paket) {
+            return redirect()
+                ->route('frontend.hekim.paket_sec', ['degistir' => 1])
+                ->with('hata', 'Geçersiz paket. Lütfen listeden yeniden seçin.');
+        }
         $periodPrice = $request->odeme_periyodu === 'yillik'
             ? (float) $paket->yillik_fiyat
             : (float) $paket->aylik_fiyat;

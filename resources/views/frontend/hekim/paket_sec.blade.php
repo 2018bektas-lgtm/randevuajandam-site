@@ -244,12 +244,11 @@
                 </span>
             </h1>
             <p class="text-sm md:text-[15px] text-slate-500 max-w-2xl mx-auto mt-5 leading-relaxed">
-                @if($doktor->hasKayitPaketNiyeti() && $doktor->kayitPaketi)
-                    Kayıtta seçtiğiniz paket: <strong class="text-[#111827]">{{ $doktor->kayitPaketi->ad }}</strong>.
-                    Değiştirmek için yeni bir plan seçin; aksi halde
-                    <a href="{{ $doktor->checkoutUrlAfterMeslek() }}" class="text-[#C96A2B] font-bold underline">ödemeye devam edin</a>.
-                @else
-                    Planınızı seçip kurulumu tamamlayın (ödeme adımı).
+                Aşağıdan <strong class="text-[#111827]">istediğiniz paketi seçin</strong>; ödeme yalnızca tıkladığınız plana yapılır.
+                @if(!empty($oneriId) && $doktor->kayitPaketi && (int) $doktor->kayitPaketi->id === (int) $oneriId)
+                    <span class="block mt-2 text-xs">Kayıt niyetiniz: <strong>{{ $doktor->kayitPaketi->ad }}</strong> (değiştirebilirsiniz).</span>
+                @elseif($doktor->paket)
+                    <span class="block mt-2 text-xs">Mevcut üyelik: <strong>{{ $doktor->paket->ad }}</strong> — yükseltmek için başka plan seçin.</span>
                 @endif
             </p>
             <p class="mt-3 text-xs font-bold text-[#C96A2B]">Fiyatlara KDV dahildir.</p>
@@ -305,6 +304,8 @@
                     $vitrin = $p->vitrinEtiketi();
                     $isFeatured = (bool) ($p->one_cikan_mi ?? false)
                         || in_array($vitrin['stil'] ?? '', ['popular'], true);
+                    $isOneri = ! empty($oneriId) && (int) $oneriId === (int) $p->id;
+                    $isAktifPaket = $doktor->paket_id && (int) $doktor->paket_id === (int) $p->id;
                     $ribbonClass = match ($vitrin['stil'] ?? '') {
                         'popular' => 'ribbon-popular',
                         'web' => 'ribbon-web',
@@ -314,9 +315,14 @@
                     $cardClass = 'price-card';
                     if ($isFeatured) $cardClass .= ' featured';
                     if ($isWebsite) $cardClass .= ' website';
+                    if ($isOneri || $isAktifPaket) $cardClass .= ' ring-2 ring-[#C96A2B] ring-offset-2';
                 @endphp
                 <article class="{{ $cardClass }}">
-                    @if($canTrial)
+                    @if($isAktifPaket)
+                        <span class="ribbon ribbon-custom">Mevcut paket</span>
+                    @elseif($isOneri)
+                        <span class="ribbon ribbon-popular">Öneri</span>
+                    @elseif($canTrial)
                         <span class="ribbon ribbon-free">{{ $trialDays }} gün deneme</span>
                     @elseif($vitrin)
                         <span class="ribbon {{ $ribbonClass }}">{{ $vitrin['label'] }}</span>

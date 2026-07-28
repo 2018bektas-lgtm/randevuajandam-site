@@ -9,7 +9,7 @@
     $hasGaleri = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('galeri');
     $hasWebSitesi = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('web_sitesi');
     $hasEgitimler = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('egitimler');
-    $paketYukseltUrl = route('frontend.hekim.paket_sec');
+    $paketYukseltUrl = route('frontend.hekim.paket_sec', ['degistir' => 1]);
 
     $ysbDash = [
         'href' => route('hekim.panel'),
