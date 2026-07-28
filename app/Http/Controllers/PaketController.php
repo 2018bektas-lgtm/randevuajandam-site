@@ -4,9 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Yonetim\PaketStoreRequest;
 use App\Models\Doktor;
+use App\Models\DomainOrder;
+use App\Models\Klinik;
 use App\Models\Paket;
+use App\Models\UyelikOdeme;
 use App\Models\Yonetici;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class PaketController extends Controller
 {
@@ -125,20 +130,59 @@ class PaketController extends Controller
 
     /**
      * Remove the specified subscription package from storage.
+     *
+     * Ödeme geçmişi (uyelik_odemeleri) pakete FK ile bağlıdır; kayıt varken silinemez.
+     * Bu durumda 500 yerine anlaşılır uyarı + pasife alma önerisi gösterilir.
      */
     public function destroy($id)
     {
         $paket = Paket::findOrFail($id);
 
-        // Prevent deletion if doctors are subscribed to this package
-        $baglıDoktorSayisi = Doktor::where('paket_id', $paket->id)->count();
-        if ($baglıDoktorSayisi > 0) {
+        $engeller = [];
+
+        $doktorSayisi = Doktor::where('paket_id', $paket->id)->count();
+        if ($doktorSayisi > 0) {
+            $engeller[] = "{$doktorSayisi} doktor bu pakete bağlı";
+        }
+
+        $kayitNiyet = Doktor::where('kayit_paket_id', $paket->id)->count();
+        if ($kayitNiyet > 0) {
+            $engeller[] = "{$kayitNiyet} doktor kayıt sırasında bu paketi seçmiş";
+        }
+
+        $klinikSayisi = Klinik::where('paket_id', $paket->id)->count();
+        if ($klinikSayisi > 0) {
+            $engeller[] = "{$klinikSayisi} klinik bu pakete bağlı";
+        }
+
+        $odemeSayisi = UyelikOdeme::where('paket_id', $paket->id)->count();
+        if ($odemeSayisi > 0) {
+            $engeller[] = "{$odemeSayisi} üyelik ödemesi kaydı var (geçmiş silinemez)";
+        }
+
+        if (Schema::hasTable('domain_orders')) {
+            $domainSayisi = DomainOrder::where('paket_id', $paket->id)->count();
+            if ($domainSayisi > 0) {
+                $engeller[] = "{$domainSayisi} domain siparişi bu pakete bağlı";
+            }
+        }
+
+        if ($engeller !== []) {
             return back()->withErrors([
-                'hata' => "Bu pakete kayıtlı {$baglıDoktorSayisi} doktor bulunmaktadır. Önce doktorların paketlerini değiştirin.",
+                'hata' => 'Bu paket silinemez: '.implode('; ', $engeller)
+                    .'. Ödeme ve üyelik geçmişi korunur. Satışta göstermemek için paketi «Pasif» yapın.',
             ]);
         }
 
-        $paket->delete();
+        try {
+            $paket->delete();
+        } catch (QueryException $e) {
+            report($e);
+
+            return back()->withErrors([
+                'hata' => 'Paket silinemedi: veritabanında bağlı kayıtlar var. Paketi pasife almanız yeterli.',
+            ]);
+        }
 
         return redirect()->route('yonetim.paketler.index')->with('basarili', 'Paket başarıyla silindi.');
     }
