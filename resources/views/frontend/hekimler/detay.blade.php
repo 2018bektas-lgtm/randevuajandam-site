@@ -885,7 +885,7 @@
                                                     </a>
                                                 </h4>
                                                 <p class="text-xs text-[#6B7280] leading-relaxed line-clamp-3">
-                                                    {{ Str::limit(strip_tags($blog->icerik), 120) }}
+                                                    {{ plain_text($blog->icerik, 120) }}
                                                 </p>
                                             </div>
                                             <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-[#6B7280]">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Doktor;
+use App\Services\HtmlSanitizer;
 use App\Support\PublicMedia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,13 +62,13 @@ class HekimHizmetController extends Controller
         $doktor = Auth::guard('doktor')->user();
 
         $data = [
-            'ad' => $request->ad,
-            'aciklama' => $request->aciklama,
+            'ad' => decode_text($request->ad),
+            'aciklama' => HtmlSanitizer::clean($request->aciklama),
             'sure' => $request->sure,
             'fiyat' => $request->fiyat,
-            'meta_baslik' => $request->meta_baslik,
-            'meta_aciklama' => $request->meta_aciklama,
-            'meta_anahtar_kelimeler' => $request->meta_anahtar_kelimeler,
+            'meta_baslik' => decode_text($request->meta_baslik),
+            'meta_aciklama' => decode_text($request->meta_aciklama),
+            'meta_anahtar_kelimeler' => decode_text($request->meta_anahtar_kelimeler),
             'aktif_mi' => $request->has('aktif_mi'),
         ];
 
@@ -123,13 +124,13 @@ class HekimHizmetController extends Controller
         $hizmet = $doktor->hizmetler()->findOrFail($id);
 
         $data = [
-            'ad' => $request->ad,
-            'aciklama' => $request->aciklama,
+            'ad' => decode_text($request->ad),
+            'aciklama' => HtmlSanitizer::clean($request->aciklama),
             'sure' => $request->sure,
             'fiyat' => $request->fiyat,
-            'meta_baslik' => $request->meta_baslik,
-            'meta_aciklama' => $request->meta_aciklama,
-            'meta_anahtar_kelimeler' => $request->meta_anahtar_kelimeler,
+            'meta_baslik' => decode_text($request->meta_baslik),
+            'meta_aciklama' => decode_text($request->meta_aciklama),
+            'meta_anahtar_kelimeler' => decode_text($request->meta_anahtar_kelimeler),
             'aktif_mi' => $request->has('aktif_mi'),
         ];
 

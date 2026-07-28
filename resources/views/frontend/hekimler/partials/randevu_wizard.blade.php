@@ -121,7 +121,7 @@
                                 <span class="rw-svc-body">
                                     <span class="rw-svc-name">{{ $hizmet->ad }}</span>
                                     @if($hizmet->aciklama)
-                                        <span class="rw-svc-desc">{{ Str::limit(strip_tags($hizmet->aciklama), 48) }}</span>
+                                        <span class="rw-svc-desc">{{ plain_text($hizmet->aciklama, 48) }}</span>
                                     @endif
                                     @if($sure > 0)
                                         <span class="rw-svc-tags">

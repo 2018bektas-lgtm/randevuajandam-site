@@ -20,9 +20,18 @@ class HtmlSanitizer
         // Remove null bytes
         $html = str_replace("\0", '', $html);
 
+        // CKEditor / kopyala-yapıştır: &ccedil; → ç (UTF-8 sakla; çift encode önle)
+        for ($i = 0; $i < 4; $i++) {
+            $next = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($next === $html) {
+                break;
+            }
+            $html = $next;
+        }
+
         // Strip script / style / iframe / object / embed completely
-        $html = preg_replace('#<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base|svg|math)\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $html) ?? $html;
-        $html = preg_replace('#<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base|svg|math)\b[^>]*/?\s*>#is', '', $html) ?? $html;
+        $html = preg_replace('#<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base|svg|math|section|article|header|footer|nav|aside)\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $html) ?? $html;
+        $html = preg_replace('#<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base|svg|math|section|article|header|footer|nav|aside)\b[^>]*/?\s*>#is', '', $html) ?? $html;
 
         // HTML comments (can hide IE conditionals)
         $html = preg_replace('/<!--.*?-->/s', '', $html) ?? $html;

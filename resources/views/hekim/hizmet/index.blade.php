@@ -67,7 +67,7 @@
                                     </span>
                                     @if($hizmet->aciklama)
                                         <span class="block text-[11px] text-[#6B7280] mt-0.5 truncate">
-                                            {{ Str::limit(strip_tags($hizmet->aciklama), 100) }}
+                                            {{ plain_text($hizmet->aciklama, 100) }}
                                         </span>
                                     @endif
                                 </div>

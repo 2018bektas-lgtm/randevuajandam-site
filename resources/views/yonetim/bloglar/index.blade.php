@@ -68,7 +68,7 @@
                                                 {{ $b->baslik }}
                                             </a>
                                         </span>
-                                        <span class="block text-[10px] text-[#6B7280] mt-0.5 truncate">{{ Str::limit(strip_tags($b->icerik), 100) }}</span>
+                                        <span class="block text-[10px] text-[#6B7280] mt-0.5 truncate">{{ plain_text($b->icerik, 100) }}</span>
                                     </div>
                                 </div>
                             </td>

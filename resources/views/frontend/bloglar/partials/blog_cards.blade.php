@@ -10,11 +10,25 @@
                 $detailUrl = $blog->url;
                 $blogImage = null;
                 if ($blog->resim) {
-                    $resim = (string) $blog->resim;
+                    $resim = str_replace('\\', '/', trim((string) $blog->resim));
                     if (str_starts_with($resim, 'http://') || str_starts_with($resim, 'https://')) {
                         $blogImage = $resim;
                     } else {
-                        $blogImage = asset(ltrim($resim, '/'));
+                        $resim = ltrim($resim, '/');
+                        if (str_starts_with($resim, 'public/')) {
+                            $resim = substr($resim, 7);
+                        }
+                        if (str_starts_with($resim, 'storage/app/public/')) {
+                            $resim = 'storage/'.substr($resim, strlen('storage/app/public/'));
+                        }
+                        // public/uploads veya public/storage
+                        if (is_file(public_path($resim))) {
+                            $blogImage = asset($resim);
+                        } elseif (is_file(public_path('storage/'.ltrim(str_replace('storage/', '', $resim), '/')))) {
+                            $blogImage = asset('storage/'.ltrim(str_replace('storage/', '', $resim), '/'));
+                        } else {
+                            $blogImage = asset(str_starts_with($resim, 'uploads/') ? $resim : $resim);
+                        }
                     }
                 }
             @endphp
@@ -59,7 +73,7 @@
                         </h2>
 
                         <p class="text-xs text-gray-500 leading-relaxed line-clamp-3">
-                            {{ Str::limit(strip_tags((string) $blog->icerik), 120) }}
+                            {{ plain_text($blog->icerik, 120) }}
                         </p>
                     </div>
 

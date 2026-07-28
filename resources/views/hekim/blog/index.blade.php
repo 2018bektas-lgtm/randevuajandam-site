@@ -65,7 +65,7 @@
                                         {{ $blog->baslik }}
                                     </a>
                                     <span class="block text-[11px] text-[#6B7280] mt-0.5 truncate">
-                                        {{ Str::limit(strip_tags($blog->icerik), 80) }}
+                                        {{ plain_text($blog->icerik, 80) }}
                                     </span>
                                 </div>
                             </td>
