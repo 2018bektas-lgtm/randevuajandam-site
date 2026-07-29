@@ -32,7 +32,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
         <a href="{{ route('yonetim.randevular', ['durum' => 'beklemede']) }}" class="p-5 rounded-2xl bg-amber-50/80 border border-amber-100 hover:border-amber-200 transition-colors">
             <span class="text-[10px] font-bold text-amber-800 uppercase tracking-wider font-display">Bekleyen randevu</span>
             <span class="text-2xl font-bold font-display text-amber-900 mt-2 block">{{ $stats['randevu_beklemede'] }}</span>
@@ -48,6 +48,29 @@
         <a href="{{ route('yonetim.uyelikler', ['filtre' => 'biten']) }}" class="p-5 rounded-2xl bg-red-50/80 border border-red-100 hover:border-red-200 transition-colors">
             <span class="text-[10px] font-bold text-red-800 uppercase tracking-wider font-display">Süresi dolmuş (aktif)</span>
             <span class="text-2xl font-bold font-display text-red-900 mt-2 block">{{ $stats['uyelik_suresi_dolmus'] }}</span>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
+        <a href="{{ route('yonetim.faturalar', ['fatura' => 'bekliyor']) }}" class="p-5 rounded-2xl bg-violet-50/80 border border-violet-100 hover:border-violet-200 transition-colors">
+            <span class="text-[10px] font-bold text-violet-800 uppercase tracking-wider font-display">Fatura bekliyor</span>
+            <span class="text-2xl font-bold font-display text-violet-900 mt-2 block">{{ $stats['fatura_bekleyen'] ?? 0 }}</span>
+            <span class="text-[10px] text-violet-700/80 mt-1 block">Manuel GİB kuyruğu</span>
+        </a>
+        <a href="{{ route('yonetim.uyelik-odemeleri.index', ['durum' => 'beklemede']) }}" class="p-5 rounded-2xl bg-emerald-50/80 border border-emerald-100 hover:border-emerald-200 transition-colors">
+            <span class="text-[10px] font-bold text-emerald-800 uppercase tracking-wider font-display">Havale bekleyen</span>
+            <span class="text-2xl font-bold font-display text-emerald-900 mt-2 block">{{ $stats['havale_bekleyen'] ?? 0 }}</span>
+            <span class="text-[10px] text-emerald-700/80 mt-1 block">Banka onayı</span>
+        </a>
+        <a href="{{ route('yonetim.doktorlar.meslek-kuyruk') }}" class="p-5 rounded-2xl bg-indigo-50/80 border border-indigo-100 hover:border-indigo-200 transition-colors">
+            <span class="text-[10px] font-bold text-indigo-800 uppercase tracking-wider font-display">Meslek belgesi</span>
+            <span class="text-2xl font-bold font-display text-indigo-900 mt-2 block">{{ $stats['meslek_bekleyen'] ?? 0 }}</span>
+            <span class="text-[10px] text-indigo-700/80 mt-1 block">Onay bekliyor</span>
+        </a>
+        <a href="{{ route('yonetim.web-siteleri') }}" class="p-5 rounded-2xl bg-rose-50/80 border border-rose-100 hover:border-rose-200 transition-colors">
+            <span class="text-[10px] font-bold text-rose-800 uppercase tracking-wider font-display">Domain / web</span>
+            <span class="text-2xl font-bold font-display text-rose-900 mt-2 block">{{ $stats['domain_sorunlu'] ?? 0 }}</span>
+            <span class="text-[10px] text-rose-700/80 mt-1 block">Hata / DNS / kurulum</span>
         </a>
     </div>
 
@@ -114,6 +137,12 @@
                     </a>
                     <a href="{{ route('yonetim.yorumlar.index') }}" class="flex items-center gap-3 p-3 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] hover:border-[#C96A2B] text-sm font-semibold text-[#111827] transition-colors">
                         Yorum moderasyonu
+                    </a>
+                    <a href="{{ route('yonetim.faturalar') }}" class="flex items-center gap-3 p-3 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] hover:border-[#C96A2B] text-sm font-semibold text-[#111827] transition-colors">
+                        Faturalar (manuel)
+                    </a>
+                    <a href="{{ route('yonetim.web-siteleri') }}" class="flex items-center gap-3 p-3 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] hover:border-[#C96A2B] text-sm font-semibold text-[#111827] transition-colors">
+                        Web siteleri / domain
                     </a>
                 </div>
             </div>

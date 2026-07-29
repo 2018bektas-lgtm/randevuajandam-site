@@ -66,6 +66,7 @@ Route::prefix('yonetim')->name('yonetim.')->group(function () {
         Route::get('/edevlet-loglari', [DoktorController::class, 'edevletLoglari'])->name('edevlet-loglari');
         Route::get('/faturalar', [DoktorController::class, 'faturalar'])->name('faturalar');
         Route::post('/faturalar/{id}', [DoktorController::class, 'faturaDurumGuncelle'])->name('faturalar.guncelle');
+        Route::get('/web-siteleri', [YonetimController::class, 'webSiteleri'])->name('web-siteleri');
 
         // Klinik Yönetimi
         Route::prefix('klinikler')->name('klinikler.')->group(function () {

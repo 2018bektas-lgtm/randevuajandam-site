@@ -88,12 +88,24 @@ class DoktorController extends Controller
     {
         $yonetici = Auth::guard('yonetici')->user();
         $durum = $request->query('fatura', 'bekliyor');
-        $q = UyelikOdeme::query()->with(['doktor', 'paket'])->orderByDesc('id');
+        $q = UyelikOdeme::query()
+            ->with(['doktor', 'paket'])
+            ->orderByDesc('id');
+
+        // Fatura kuyruğu: yalnızca onaylı (gerçek) ödemeler
         if (in_array($durum, ['bekliyor', 'kesildi'], true)) {
-            $q->where('fatura_durumu', $durum);
+            $q->where('durum', 'onaylandi');
+            if ($durum === 'bekliyor') {
+                $q->where(function ($w) {
+                    $w->where('fatura_durumu', 'bekliyor')->orWhereNull('fatura_durumu');
+                });
+            } else {
+                $q->where('fatura_durumu', 'kesildi');
+            }
         } elseif ($durum === 'onayli_odeme') {
             $q->where('durum', 'onaylandi');
         }
+
         $odemeler = $q->limit(300)->get();
 
         return view('yonetim.faturalar', compact('yonetici', 'odemeler', 'durum'));

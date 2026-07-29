@@ -3,18 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\Blog;
+use App\Models\DomainOrder;
 use App\Models\Doktor;
 use App\Models\Hasta;
+use App\Models\HekimWebSitesi;
 use App\Models\Klinik;
+use App\Models\KlinikWebSitesi;
 use App\Models\Paket;
 use App\Models\Randevu;
 use App\Models\SiteAyari;
+use App\Models\UyelikOdeme;
 use App\Models\Yonetici;
 use App\Models\Yorum;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class YonetimController extends Controller
@@ -102,6 +107,40 @@ class YonetimController extends Controller
         $yonetici = Auth::guard('yonetici')->user();
         $bugun = Carbon::today();
 
+        $faturaBekleyen = 0;
+        if (Schema::hasTable('uyelik_odemeleri') && Schema::hasColumn('uyelik_odemeleri', 'fatura_durumu')) {
+            $faturaBekleyen = UyelikOdeme::query()
+                ->where('durum', 'onaylandi')
+                ->where(function ($q) {
+                    $q->where('fatura_durumu', 'bekliyor')->orWhereNull('fatura_durumu');
+                })
+                ->count();
+        }
+
+        $havaleBekleyen = Schema::hasTable('uyelik_odemeleri')
+            ? UyelikOdeme::query()
+                ->where('durum', 'beklemede')
+                ->where(function ($q) {
+                    $q->where('odeme_yontemi', 'havale')
+                        ->orWhere('provider', 'banka')
+                        ->orWhere('provider', 'havale');
+                })
+                ->count()
+            : 0;
+
+        $meslekBekleyen = Doktor::where('meslek_dogrulama_durumu', 'beklemede')->count();
+
+        $domainSorunlu = 0;
+        if (Schema::hasTable('domain_orders')) {
+            $domainSorunlu = DomainOrder::query()
+                ->whereIn('durum', [
+                    DomainOrder::DURUM_FAILED,
+                    DomainOrder::DURUM_DNS_PENDING,
+                    DomainOrder::DURUM_PURCHASING,
+                ])
+                ->count();
+        }
+
         $stats = [
             'doktor_toplam' => Doktor::count(),
             'doktor_aktif' => Doktor::where('aktif_mi', true)->count(),
@@ -123,6 +162,10 @@ class YonetimController extends Controller
             'platform_gizli' => Doktor::where('platformda_gorunur', false)->count(),
             'blog_aktif' => Blog::where('aktif_mi', true)->count(),
             'paket_aktif' => Paket::where('aktif_mi', true)->count(),
+            'fatura_bekleyen' => $faturaBekleyen,
+            'havale_bekleyen' => $havaleBekleyen,
+            'meslek_bekleyen' => $meslekBekleyen,
+            'domain_sorunlu' => $domainSorunlu,
         ];
 
         $sonRandevular = Randevu::with(['doktor', 'hizmet', 'hasta'])
@@ -136,6 +179,75 @@ class YonetimController extends Controller
             ->get();
 
         return view('yonetim.panel', compact('yonetici', 'stats', 'sonRandevular', 'sonDoktorlar'));
+    }
+
+    /**
+     * Domain siparişleri + hekim/klinik web sitesi kayıtları.
+     */
+    public function webSiteleri(Request $request)
+    {
+        /** @var Yonetici $yonetici */
+        $yonetici = Auth::guard('yonetici')->user();
+
+        $domainOrders = collect();
+        $hekimSiteleri = collect();
+        $klinikSiteleri = collect();
+
+        $ozet = [
+            'hekim_site' => 0,
+            'klinik_site' => 0,
+            'domain_toplam' => 0,
+            'domain_sorunlu' => 0,
+        ];
+
+        if (Schema::hasTable('domain_orders')) {
+            $dq = DomainOrder::query()->with(['paket', 'owner'])->orderByDesc('id');
+            if ($request->filled('durum')) {
+                $dq->where('durum', $request->input('durum'));
+            }
+            if ($request->filled('q')) {
+                $q = trim((string) $request->input('q'));
+                $dq->where(function ($w) use ($q) {
+                    $w->where('domain', 'like', "%{$q}%")
+                        ->orWhere('error_message', 'like', "%{$q}%");
+                });
+            }
+            $domainOrders = $dq->paginate(30)->withQueryString();
+            $ozet['domain_toplam'] = DomainOrder::count();
+            $ozet['domain_sorunlu'] = DomainOrder::query()
+                ->whereIn('durum', [
+                    DomainOrder::DURUM_FAILED,
+                    DomainOrder::DURUM_DNS_PENDING,
+                    DomainOrder::DURUM_PURCHASING,
+                ])
+                ->count();
+        }
+
+        if (Schema::hasTable('hekim_web_siteleri')) {
+            $hekimSiteleri = HekimWebSitesi::query()
+                ->with('doktor:id,ad_soyad,unvan,e_posta')
+                ->orderByDesc('id')
+                ->limit(100)
+                ->get();
+            $ozet['hekim_site'] = HekimWebSitesi::count();
+        }
+
+        if (Schema::hasTable('klinik_web_siteleri')) {
+            $klinikSiteleri = KlinikWebSitesi::query()
+                ->with('klinik:id,ad')
+                ->orderByDesc('id')
+                ->limit(100)
+                ->get();
+            $ozet['klinik_site'] = KlinikWebSitesi::count();
+        }
+
+        return view('yonetim.web_siteleri.index', compact(
+            'yonetici',
+            'domainOrders',
+            'hekimSiteleri',
+            'klinikSiteleri',
+            'ozet'
+        ));
     }
 
     /**
