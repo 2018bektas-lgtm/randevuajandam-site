@@ -604,13 +604,15 @@
 </section>
 
 {{-- PayTR 3D Secure modal --}}
-<div id="paytr3dModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4" style="display:none">
+<div id="paytr3dModal" class="fixed inset-0 z-50 items-center justify-center bg-black/70 p-4" style="display:none">
     <div class="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
             <span class="text-xs font-bold text-slate-800">3D Guvenli Odeme Dogrulama</span>
             <button type="button" onclick="close3DModal()" class="text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
         </div>
-        <iframe id="paytr3dFrame" class="w-full border-0" style="height:460px" sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-popups"></iframe>
+        {{-- Banka 3D sayfaları için sandbox gevşek; aksi halde SMS/3D formu kırılır --}}
+        <iframe id="paytr3dFrame" class="w-full border-0" style="height:520px"
+                sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-top-navigation-by-user-activation allow-popups allow-popups-to-escape-sandbox allow-modals"></iframe>
     </div>
 </div>
 
@@ -797,8 +799,10 @@
             close3DModal();
             const errDiv = document.getElementById('paytrError');
             if (errDiv) {
-                errDiv.textContent = '3D dogrulama basarisiz. Kart bilgilerinizi kontrol edin.';
+                errDiv.textContent = e.data.message
+                    || '3D doğrulama başarısız. Kart bilgilerinizi veya banka SMS onayını kontrol edin.';
                 errDiv.classList.remove('hidden');
+                errDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }
     });

@@ -155,16 +155,50 @@ class PaytrDirectController extends Controller
 
     public function threeDFail(Request $request)
     {
+        // PayTR fail_message ile yönlendirir (@see Direkt API 1. adım)
+        $failMessage = (string) (
+            $request->input('fail_message')
+            ?: $request->input('failed_reason_msg')
+            ?: $request->input('failed_reason_code')
+            ?: ''
+        );
+        $failMessage = trim(strip_tags($failMessage));
+        if (mb_strlen($failMessage) > 300) {
+            $failMessage = mb_substr($failMessage, 0, 300).'…';
+        }
+
+        Log::warning('PayTR 3D fail', [
+            'fail_message' => $failMessage !== '' ? $failMessage : null,
+            'merchant_oid' => $request->input('merchant_oid'),
+            'all' => $request->except(['card_number', 'cvv', 'cc_owner']),
+        ]);
+
+        if ($request->filled('merchant_oid')) {
+            try {
+                UyelikOdeme::where('merchant_oid', (string) $request->input('merchant_oid'))
+                    ->where('durum', 'beklemede')
+                    ->update(['durum' => 'reddedildi']);
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+
+        $userMsg = $failMessage !== ''
+            ? $failMessage
+            : '3D doğrulama başarısız. Kart bilgilerinizi veya banka SMS onayını kontrol edin.';
+        $jsMsg = json_encode($userMsg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
+
         return response(
             '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
             .'<body style="font-family:sans-serif;text-align:center;padding:40px;background:#fef2f2">'
-            .'<div style="max-width:280px;margin:0 auto">'
+            .'<div style="max-width:320px;margin:0 auto">'
             .'<div style="font-size:52px;color:#dc2626">&#10007;</div>'
             .'<p style="color:#b91c1c;font-weight:bold;font-size:14px;margin:8px 0">3D doğrulama başarısız</p>'
-            .'<p style="color:#6b7280;font-size:12px">Kart bilgilerinizi kontrol edin.</p>'
+            .'<p style="color:#6b7280;font-size:12px;line-height:1.5">'.e($userMsg).'</p>'
             .'</div>'
-            .'<script>try{window.parent.postMessage({paytr3d:"fail"},"*")}catch(e){}'
-            .'try{window.top.postMessage({paytr3d:"fail"},"*")}catch(e){}</script>'
+            .'<script>(function(){var m={paytr3d:"fail",message:'.$jsMsg.'};'
+            .'try{window.parent.postMessage(m,"*")}catch(e){}'
+            .'try{window.top.postMessage(m,"*")}catch(e){}})();</script>'
             .'</body></html>',
             200,
             ['Content-Type' => 'text/html; charset=utf-8']

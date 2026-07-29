@@ -93,7 +93,8 @@ class PaytrService
         $userAddress = Str::limit((string) ($payload['user_address'] ?? 'Turkiye'), 400, '');
         $userPhone = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
         $basketName = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik Yenileme');
-        $userBasket = base64_encode(json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE));
+        // Direkt API sepet: düz JSON (iFrame base64 kullanır)
+        $userBasket = json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE);
 
         $paymentType = 'card';
         $installmentCount = '0';
@@ -391,12 +392,13 @@ class PaytrService
             $userIp = (string) config('services.paytr.fallback_ip', '85.34.78.112');
         }
 
-        $userName = Str::limit((string) ($payload['user_name'] ?? 'Musteri'), 60, '');
-        $userAddress = Str::limit((string) ($payload['user_address'] ?? 'Turkiye'), 400, '');
+        $userName = Str::limit($this->asciiSafe((string) ($payload['user_name'] ?? 'Musteri')), 60, '');
+        $userAddress = Str::limit($this->asciiSafe((string) ($payload['user_address'] ?? 'Turkiye')), 400, '');
         $userPhone = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
-        $basketName = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik');
-        // Sepet: [ürün, birim_fiyat_TL, adet] — fiyat TL string
-        $userBasket = base64_encode(json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE));
+        $basketName = $this->asciiSafe((string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik'));
+        // Direkt API resmi örnek: json_encode sepet (base64 YOK — base64 iFrame'e özel)
+        // @see https://dev.paytr.com/direkt-api/direkt-api-1-adim PHP örneği
+        $userBasket = json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE);
 
         $currency = 'TL';
         $testMode = $this->testMode ? '1' : '0';
@@ -424,8 +426,12 @@ class PaytrService
         $merchantFailUrl = (string) ($payload['merchant_fail_url'] ?? route('frontend.odeme.paytr.3d.fail'));
 
         $cardNumber = preg_replace('/\D+/', '', (string) ($payload['card_number'] ?? ''));
-        $ccOwner = Str::limit((string) ($payload['card_owner'] ?? $payload['cc_owner'] ?? ''), 50, '');
+        $ccOwner = Str::limit($this->asciiSafe((string) ($payload['card_owner'] ?? $payload['cc_owner'] ?? '')), 50, '');
         $expiryMonth = preg_replace('/\D+/', '', (string) ($payload['expiry_month'] ?? ''));
+        $expiryMonth = str_pad($expiryMonth !== '' ? (string) ((int) $expiryMonth) : '', 2, '0', STR_PAD_LEFT);
+        if ($expiryMonth === '00') {
+            $expiryMonth = '01';
+        }
         $expiryYear = preg_replace('/\D+/', '', (string) ($payload['expiry_year'] ?? ''));
         if (strlen($expiryYear) === 4) {
             $expiryYear = substr($expiryYear, -2);
@@ -471,7 +477,10 @@ class PaytrService
         }
 
         try {
-            $response = Http::asForm()->timeout(35)->post('https://www.paytr.com/odeme', $post);
+            $response = Http::asForm()
+                ->timeout(35)
+                ->withHeaders(['Accept' => 'text/html,application/json'])
+                ->post('https://www.paytr.com/odeme', $post);
             $body = $response->body();
 
             if ($body === '' || $body === null) {
@@ -489,7 +498,12 @@ class PaytrService
                     ];
                 }
                 $reason = (string) ($decoded['reason'] ?? $decoded['msg'] ?? $decoded['err_msg'] ?? 'PayTR ödeme reddedildi.');
-                Log::error('PayTR direct payment failed', ['reason' => $reason, 'merchant_oid' => $merchantOid]);
+                Log::error('PayTR direct payment failed', [
+                    'reason' => $reason,
+                    'merchant_oid' => $merchantOid,
+                    'amount' => $paymentAmount,
+                    'test_mode' => $testMode,
+                ]);
 
                 return ['status' => 'failure', 'errorMessage' => $reason];
             }
@@ -499,7 +513,7 @@ class PaytrService
                 return ['status' => '3d', 'html' => $body];
             }
 
-            Log::warning('PayTR direct unexpected response', ['merchant_oid' => $merchantOid, 'body' => substr($body, 0, 200)]);
+            Log::warning('PayTR direct unexpected response', ['merchant_oid' => $merchantOid, 'body' => substr($body, 0, 300)]);
 
             return ['status' => 'failure', 'errorMessage' => 'PayTR beklenmeyen yanıt döndürdü.'];
         } catch (\Throwable $e) {
@@ -521,11 +535,22 @@ class PaytrService
 
     protected function asciiEmail(string $email): string
     {
-        $email = trim($email);
-        // PayTR Türkçe karakter istemez
-        $map = ['ı' => 'i', 'İ' => 'I', 'ş' => 's', 'Ş' => 'S', 'ğ' => 'g', 'Ğ' => 'G', 'ü' => 'u', 'Ü' => 'U', 'ö' => 'o', 'Ö' => 'O', 'ç' => 'c', 'Ç' => 'C'];
-        $email = strtr($email, $map);
+        $email = $this->asciiSafe(trim($email));
 
         return Str::limit($email !== '' ? $email : 'info@randevuajandam.com', 100, '');
+    }
+
+    /** PayTR alanlarında Türkçe karakter / riskli sembolleri sadeleştir. */
+    protected function asciiSafe(string $text): string
+    {
+        $map = [
+            'ı' => 'i', 'İ' => 'I', 'ş' => 's', 'Ş' => 'S', 'ğ' => 'g', 'Ğ' => 'G',
+            'ü' => 'u', 'Ü' => 'U', 'ö' => 'o', 'Ö' => 'O', 'ç' => 'c', 'Ç' => 'C',
+        ];
+        $text = strtr($text, $map);
+        // Kontrol karakterlerini at
+        $text = preg_replace('/[\x00-\x1F\x7F]/', '', $text) ?? $text;
+
+        return trim($text);
     }
 }
