@@ -96,6 +96,8 @@ class PaytrService
 
         $paymentType = 'card';
         $installmentCount = '0';
+        $noInstallment = '1';
+        $maxInstallment = '0';
         $currency = 'TL';
         $testMode = $this->testMode ? '1' : '0';
         $non3d = '1'; // Tekrarlayan ödeme: Non3D zorunlu
@@ -121,6 +123,8 @@ class PaytrService
             'payment_type' => $paymentType,
             'payment_amount' => $paymentAmount,
             'installment_count' => $installmentCount,
+            'no_installment' => $noInstallment,
+            'max_installment' => $maxInstallment,
             'currency' => $currency,
             'test_mode' => $testMode,
             'non_3d' => $non3d,
@@ -132,6 +136,7 @@ class PaytrService
             'user_basket' => $userBasket,
             'debug_on' => $this->debugOn ? '1' : '0',
             'client_lang' => 'tr',
+            'lang' => 'tr',
             'paytr_token' => $paytrToken,
             'utoken' => $utoken,
             'ctoken' => $ctoken,
@@ -395,7 +400,10 @@ class PaytrService
         $currency = 'TL';
         $testMode = $this->testMode ? '1' : '0';
         $paymentType = 'card';
+        // Abonelik: taksit yok. PayTR SPP hem installment_count hem no_installment ister.
         $installmentCount = '0';
+        $noInstallment = '1';
+        $maxInstallment = '0';
         // İlk abonelik ödemesi: 3D Secure
         $non3d = (string) ($payload['non_3d'] ?? '0');
 
@@ -435,6 +443,9 @@ class PaytrService
             'payment_type' => $paymentType,
             'payment_amount' => $paymentAmount,
             'installment_count' => $installmentCount,
+            // PayTR SPP: "Zorunlu alan ... no_installment" — string 0/1 olmalı
+            'no_installment' => $noInstallment,
+            'max_installment' => $maxInstallment,
             'currency' => $currency,
             'test_mode' => $testMode,
             'non_3d' => $non3d,
@@ -446,6 +457,7 @@ class PaytrService
             'user_basket' => $userBasket,
             'debug_on' => $this->debugOn ? '1' : '0',
             'client_lang' => 'tr',
+            'lang' => 'tr',
             'paytr_token' => $paytrToken,
             'cc_owner' => $ccOwner,
             'card_number' => $cardNumber,
