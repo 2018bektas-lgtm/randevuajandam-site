@@ -83,8 +83,9 @@ class PaytrService
             return ['status' => 'failure', 'errorMessage' => 'Geçersiz tutar.'];
         }
 
-        // Direkt API: tutar ondalıklı string (100.99), kuruş değil
-        $paymentAmount = number_format($amountTl, 2, '.', '');
+        // PayTR SPP: payment_amount integer (kuruş). 1500.00 TL → 150000
+        $paymentAmount = (int) round($amountTl * 100);
+        $unitPriceTl = number_format($amountTl, 2, '.', '');
         $merchantOid = (string) ($payload['merchant_oid'] ?? $this->makeMerchantOid('REN'));
         $email = $this->asciiEmail((string) ($payload['email'] ?? ''));
         $userIp = (string) ($payload['user_ip'] ?? config('services.paytr.fallback_ip', '85.34.78.112'));
@@ -92,7 +93,7 @@ class PaytrService
         $userAddress = Str::limit((string) ($payload['user_address'] ?? 'Turkiye'), 400, '');
         $userPhone = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
         $basketName = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik Yenileme');
-        $userBasket = base64_encode(json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE));
+        $userBasket = base64_encode(json_encode([[$basketName, $unitPriceTl, 1]], JSON_UNESCAPED_UNICODE));
 
         $paymentType = 'card';
         $installmentCount = '0';
@@ -382,8 +383,10 @@ class PaytrService
             return ['status' => 'failure', 'errorMessage' => 'Geçersiz ödeme tutarı.'];
         }
 
-        // Direkt API: ondalıklı TL string (iframe kuruş integer kullanır)
-        $paymentAmount = number_format($amountTl, 2, '.', '');
+        // PayTR SPP: payment_amount integer (kuruş). 1500.00 TL → 150000
+        // (Ondalıklı "1500.00" → "payment_amount degeri integer olmalidir")
+        $paymentAmount = (int) round($amountTl * 100);
+        $unitPriceTl = number_format($amountTl, 2, '.', '');
         $merchantOid = (string) $payload['merchant_oid'];
         $email = $this->asciiEmail((string) ($payload['email'] ?? ''));
         $userIp = (string) ($payload['user_ip'] ?? request()->ip() ?? '127.0.0.1');
@@ -395,7 +398,8 @@ class PaytrService
         $userAddress = Str::limit((string) ($payload['user_address'] ?? 'Turkiye'), 400, '');
         $userPhone = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
         $basketName = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik');
-        $userBasket = base64_encode(json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE));
+        // Sepet satırı TL ondalık (PayTR örnek formatı); payment_amount kuruş integer
+        $userBasket = base64_encode(json_encode([[$basketName, $unitPriceTl, 1]], JSON_UNESCAPED_UNICODE));
 
         $currency = 'TL';
         $testMode = $this->testMode ? '1' : '0';
