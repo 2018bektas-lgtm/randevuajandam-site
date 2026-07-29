@@ -83,9 +83,9 @@ class PaytrService
             return ['status' => 'failure', 'errorMessage' => 'Geçersiz tutar.'];
         }
 
-        // PayTR SPP: payment_amount integer (kuruş). 1500.00 TL → 150000
-        $paymentAmount = (int) round($amountTl * 100);
-        $unitPriceTl = number_format($amountTl, 2, '.', '');
+        // Direkt API: payment_amount TL string "100.99" (iFrame kuruş değil!)
+        // @see https://dev.paytr.com/direkt-api/direkt-api-1-adim
+        $paymentAmount = number_format($amountTl, 2, '.', '');
         $merchantOid = (string) ($payload['merchant_oid'] ?? $this->makeMerchantOid('REN'));
         $email = $this->asciiEmail((string) ($payload['email'] ?? ''));
         $userIp = (string) ($payload['user_ip'] ?? config('services.paytr.fallback_ip', '85.34.78.112'));
@@ -93,16 +93,15 @@ class PaytrService
         $userAddress = Str::limit((string) ($payload['user_address'] ?? 'Turkiye'), 400, '');
         $userPhone = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
         $basketName = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik Yenileme');
-        $userBasket = base64_encode(json_encode([[$basketName, $unitPriceTl, 1]], JSON_UNESCAPED_UNICODE));
+        $userBasket = base64_encode(json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE));
 
         $paymentType = 'card';
         $installmentCount = '0';
-        $noInstallment = '1';
-        $maxInstallment = '0';
         $currency = 'TL';
         $testMode = $this->testMode ? '1' : '0';
         $non3d = '1'; // Tekrarlayan ödeme: Non3D zorunlu
 
+        // Token: merchant_id + user_ip + merchant_oid + email + payment_amount + payment_type + installment_count + currency + test_mode + non_3d
         $hashStr = $this->merchantId
             .$userIp
             .$merchantOid
@@ -124,8 +123,6 @@ class PaytrService
             'payment_type' => $paymentType,
             'payment_amount' => $paymentAmount,
             'installment_count' => $installmentCount,
-            'no_installment' => $noInstallment,
-            'max_installment' => $maxInstallment,
             'currency' => $currency,
             'test_mode' => $testMode,
             'non_3d' => $non3d,
@@ -137,7 +134,6 @@ class PaytrService
             'user_basket' => $userBasket,
             'debug_on' => $this->debugOn ? '1' : '0',
             'client_lang' => 'tr',
-            'lang' => 'tr',
             'paytr_token' => $paytrToken,
             'utoken' => $utoken,
             'ctoken' => $ctoken,
@@ -383,10 +379,11 @@ class PaytrService
             return ['status' => 'failure', 'errorMessage' => 'Geçersiz ödeme tutarı.'];
         }
 
-        // PayTR SPP: payment_amount integer (kuruş). 1500.00 TL → 150000
-        // (Ondalıklı "1500.00" → "payment_amount degeri integer olmalidir")
-        $paymentAmount = (int) round($amountTl * 100);
-        $unitPriceTl = number_format($amountTl, 2, '.', '');
+        // Direkt API resmi doküman: payment_amount = TL, ondalık nokta, 2 hane (örn. "100.99" veya "1500.00")
+        // iFrame API kuruş (×100) kullanır — buraya karıştırma!
+        // @see https://dev.paytr.com/direkt-api/direkt-api-1-adim  POST: payment_amount (double)
+        // @see https://dev.paytr.com/direkt-api/kart-saklama-api/yeni-kart-ekleme
+        $paymentAmount = number_format($amountTl, 2, '.', '');
         $merchantOid = (string) $payload['merchant_oid'];
         $email = $this->asciiEmail((string) ($payload['email'] ?? ''));
         $userIp = (string) ($payload['user_ip'] ?? request()->ip() ?? '127.0.0.1');
@@ -398,19 +395,18 @@ class PaytrService
         $userAddress = Str::limit((string) ($payload['user_address'] ?? 'Turkiye'), 400, '');
         $userPhone = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
         $basketName = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik');
-        // Sepet satırı TL ondalık (PayTR örnek formatı); payment_amount kuruş integer
-        $userBasket = base64_encode(json_encode([[$basketName, $unitPriceTl, 1]], JSON_UNESCAPED_UNICODE));
+        // Sepet: [ürün, birim_fiyat_TL, adet] — fiyat TL string
+        $userBasket = base64_encode(json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE));
 
         $currency = 'TL';
         $testMode = $this->testMode ? '1' : '0';
         $paymentType = 'card';
-        // Abonelik: taksit yok. PayTR SPP hem installment_count hem no_installment ister.
+        // Direkt API: installment_count zorunlu (0 = peşin). no_installment iFrame alanıdır, burada yok.
         $installmentCount = '0';
-        $noInstallment = '1';
-        $maxInstallment = '0';
         // İlk abonelik ödemesi: 3D Secure
         $non3d = (string) ($payload['non_3d'] ?? '0');
 
+        // Token: merchant_id + user_ip + merchant_oid + email + payment_amount + payment_type + installment_count + currency + test_mode + non_3d
         $hashStr = $this->merchantId
             .$userIp
             .$merchantOid
@@ -445,11 +441,9 @@ class PaytrService
             'merchant_oid' => $merchantOid,
             'email' => $email,
             'payment_type' => $paymentType,
+            // Resmi örnek: "100.99" — string, 2 ondalık (integer kuruş DEĞİL)
             'payment_amount' => $paymentAmount,
             'installment_count' => $installmentCount,
-            // PayTR SPP: "Zorunlu alan ... no_installment" — string 0/1 olmalı
-            'no_installment' => $noInstallment,
-            'max_installment' => $maxInstallment,
             'currency' => $currency,
             'test_mode' => $testMode,
             'non_3d' => $non3d,
@@ -461,7 +455,6 @@ class PaytrService
             'user_basket' => $userBasket,
             'debug_on' => $this->debugOn ? '1' : '0',
             'client_lang' => 'tr',
-            'lang' => 'tr',
             'paytr_token' => $paytrToken,
             'cc_owner' => $ccOwner,
             'card_number' => $cardNumber,
