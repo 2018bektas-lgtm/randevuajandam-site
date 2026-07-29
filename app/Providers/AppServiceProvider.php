@@ -106,7 +106,31 @@ class AppServiceProvider extends ServiceProvider
             if (config('app.debug')) {
                 \Illuminate\Support\Facades\Log::critical('APP_DEBUG=true production ortamında açık — kapatın!');
             }
-            if (! config('services.paytr.merchant_id') || ! config('services.paytr.merchant_key') || ! config('services.paytr.merchant_salt')) {
+            // PayTR: .env veya site_ayarlari (yönetim paneli) — ikisinden biri yeterli
+            $paytrId = (string) config('services.paytr.merchant_id', '');
+            $paytrKey = (string) config('services.paytr.merchant_key', '');
+            $paytrSalt = (string) config('services.paytr.merchant_salt', '');
+            $paytrTest = (bool) config('services.paytr.test_mode', true);
+            try {
+                $sa = \App\Models\SiteAyari::query()->first();
+                if ($sa) {
+                    if (filled($sa->paytr_merchant_id)) {
+                        $paytrId = (string) $sa->paytr_merchant_id;
+                    }
+                    if (filled($sa->paytr_merchant_key)) {
+                        $paytrKey = (string) $sa->paytr_merchant_key;
+                    }
+                    if (filled($sa->paytr_merchant_salt)) {
+                        $paytrSalt = (string) $sa->paytr_merchant_salt;
+                    }
+                    if ($sa->paytr_test_mode !== null) {
+                        $paytrTest = (bool) $sa->paytr_test_mode;
+                    }
+                }
+            } catch (\Throwable) {
+                // boot sırasında DB yoksa env ile devam
+            }
+            if ($paytrId === '' || $paytrKey === '' || $paytrSalt === '') {
                 \Illuminate\Support\Facades\Log::critical('PAYTR merchant bilgileri production ortamında eksik.');
             }
             if (config('sms.driver') === 'log') {
@@ -115,7 +139,7 @@ class AppServiceProvider extends ServiceProvider
             if ((bool) config('services.iyzico.enabled', false)) {
                 \Illuminate\Support\Facades\Log::warning('IYZICO_ENABLED=true — platform PayTR-only; iyzico kapatılmalı.');
             }
-            if ((bool) config('services.paytr.test_mode', true)) {
+            if ($paytrTest) {
                 \Illuminate\Support\Facades\Log::critical('PAYTR_TEST_MODE=true production’da kapalı olmalı.');
             }
         }
