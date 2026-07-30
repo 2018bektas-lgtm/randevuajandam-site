@@ -772,10 +772,41 @@
         });
     }
 
+    // PayTR hata yanitini HTML sayfaya sarip donebiliyor (analytics + Cloudflare
+    // scriptleri, govdede JSON). Bunu srcdoc'a basmak, icindeki goreli
+    // /securemetric yolunun kendi domainimize gidip 404 vermesine ve
+    // kullanicinin acilip hemen kapanan bos bir modal gormesine yol aciyordu.
+    // Once gercek bir 3DS formu olup olmadigini dogrula.
     function show3DModal(html) {
         const modal = document.getElementById('paytr3dModal');
         const frame = document.getElementById('paytr3dFrame');
         if (!modal || !frame) return;
+
+        const gercek3ds = /<form[^>]+action\s*=/i.test(html);
+        if (!gercek3ds) {
+            const m = html.match(/\{\s*"status"\s*:[\s\S]*?\}/);
+            let mesaj = 'PayTR 3D Secure formu dondurmedi.';
+            if (m) {
+                try {
+                    const j = JSON.parse(m[0]);
+                    mesaj = j.reason || j.err_msg || mesaj;
+                } catch (e) { /* ham mesaj kalsin */ }
+            }
+            const errDiv = document.getElementById('paytrError');
+            if (errDiv) {
+                errDiv.textContent = mesaj;
+                errDiv.classList.remove('hidden');
+                errDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            const btn = document.getElementById('paytrSubmitBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Odemeyi tamamla — ₺{{ number_format($toplam, 2, ",", ".") }}';
+            }
+            console.error('PayTR 3DS beklenirken hata yaniti geldi:', mesaj);
+            return;
+        }
+
         frame.srcdoc = html;
         modal.style.display = 'flex';
     }
