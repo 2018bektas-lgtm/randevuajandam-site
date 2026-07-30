@@ -44,6 +44,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'recaptcha' => \App\Http\Middleware\VerifyRecaptcha::class,
         ]);
 
+        // Hostinger / reverse proxy arkasında gerçek istemci IP (PayTR user_ip)
+        $middleware->trustProxies(at: '*');
+
         $middleware->append(\App\Http\Middleware\ForceHttps::class);
         // Misafir public GET sayfaları (kısa HTML cache)
         $middleware->appendToGroup('web', \App\Http\Middleware\CachePublicGet::class);

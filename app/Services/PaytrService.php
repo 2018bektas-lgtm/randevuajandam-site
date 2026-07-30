@@ -218,6 +218,14 @@ class PaytrService
      * }  $payload
      * @return array{status: string, token?: string, errorMessage?: string}
      */
+    /**
+     * iFrame API 1. Adım — get-token
+     *
+     * @see https://dev.paytr.com/iframe-api/iframe-api-1-adim
+     * payment_amount: kuruş integer (9.99 TL → 999)
+     * user_basket: base64(json([[ad, "18.00", adet], ...]))
+     * Token: merchant_id + user_ip + merchant_oid + email + payment_amount + user_basket + no_installment + max_installment + currency + test_mode
+     */
     public function createIframeToken(array $payload): array
     {
         if (! $this->isConfigured()) {
@@ -235,27 +243,25 @@ class PaytrService
             ];
         }
 
-        // PayTR: tutar kuruş cinsinden integer (9.99 → 999)
-        $paymentAmount = (int) round($amountTl * 100);
+        // Resmi örnek: tutarı 100 ile çarp (kuruş). Hash ve POST aynı değer.
+        $paymentAmount = (string) (int) round($amountTl * 100);
         $merchantOid = (string) $payload['merchant_oid'];
         $email = $this->asciiEmail((string) ($payload['email'] ?? ''));
-        $userName = Str::limit((string) ($payload['user_name'] ?? 'Musteri'), 60, '');
-        $userAddress = Str::limit((string) ($payload['user_address'] ?? 'Turkiye'), 400, '');
+        $userName = Str::limit($this->asciiSafe((string) ($payload['user_name'] ?? 'Musteri')), 60, '');
+        $userAddress = Str::limit($this->asciiSafe((string) ($payload['user_address'] ?? 'Turkiye')), 400, '');
         $userPhone = Str::limit(preg_replace('/\D+/', '', (string) ($payload['user_phone'] ?? '05000000000')) ?: '05000000000', 20, '');
-        $userIp = (string) ($payload['user_ip'] ?? request()->ip() ?? '127.0.0.1');
-        // Localhost IP PayTR'de reddedilir; testte dış IP kullanılmalı
-        if (in_array($userIp, ['127.0.0.1', '::1'], true) && app()->environment('local', 'testing')) {
-            $userIp = (string) config('services.paytr.fallback_ip', '85.34.78.112');
-        }
+        $userIp = $this->resolveClientIp((string) ($payload['user_ip'] ?? ''));
 
-        $basketName = (string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik');
+        $basketName = $this->asciiSafe((string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik'));
         $unitPrice = number_format($amountTl, 2, '.', '');
+        // Resmi örnek: base64_encode(json_encode([[ürün, birim_fiyat, adet]]))
         $userBasket = base64_encode(json_encode([
             [$basketName, $unitPrice, 1],
         ], JSON_UNESCAPED_UNICODE));
 
-        $noInstallment = (int) ($payload['no_installment'] ?? 1);
-        $maxInstallment = (int) ($payload['max_installment'] ?? 0);
+        // Abonelik: tek çekim (taksit kapalı)
+        $noInstallment = (string) (int) ($payload['no_installment'] ?? 1);
+        $maxInstallment = (string) (int) ($payload['max_installment'] ?? 0);
         $currency = (string) ($payload['currency'] ?? 'TL');
         $testMode = $this->testMode ? '1' : '0';
         $debugOn = $this->debugOn ? '1' : '0';
@@ -265,6 +271,7 @@ class PaytrService
         $merchantOkUrl = (string) ($payload['merchant_ok_url'] ?? route('frontend.odeme.paytr.ok'));
         $merchantFailUrl = (string) ($payload['merchant_fail_url'] ?? route('frontend.odeme.paytr.fail'));
 
+        // Resmi hash sırası (değiştirme)
         $hashStr = $this->merchantId
             .$userIp
             .$merchantOid
@@ -283,29 +290,27 @@ class PaytrService
             true
         ));
 
-        $recurringPayment = (bool) ($payload['recurring'] ?? false) ? '1' : '0';
-
+        // Resmi PHP örneğindeki alanlar (+ lang opsiyonel)
         $post = [
-            'merchant_id'        => $this->merchantId,
-            'user_ip'            => $userIp,
-            'merchant_oid'       => $merchantOid,
-            'email'              => $email,
-            'payment_amount'     => $paymentAmount,
-            'paytr_token'        => $paytrToken,
-            'user_basket'        => $userBasket,
-            'debug_on'           => $debugOn,
-            'no_installment'     => $noInstallment,
-            'max_installment'    => $maxInstallment,
-            'user_name'          => $userName,
-            'user_address'       => $userAddress,
-            'user_phone'         => $userPhone,
-            'merchant_ok_url'    => $merchantOkUrl,
-            'merchant_fail_url'  => $merchantFailUrl,
-            'timeout_limit'      => $timeoutLimit,
-            'currency'           => $currency,
-            'test_mode'          => $testMode,
-            'lang'               => $lang,
-            'recurring_payment'  => $recurringPayment,
+            'merchant_id' => $this->merchantId,
+            'user_ip' => $userIp,
+            'merchant_oid' => $merchantOid,
+            'email' => $email,
+            'payment_amount' => $paymentAmount,
+            'paytr_token' => $paytrToken,
+            'user_basket' => $userBasket,
+            'debug_on' => $debugOn,
+            'no_installment' => $noInstallment,
+            'max_installment' => $maxInstallment,
+            'user_name' => $userName,
+            'user_address' => $userAddress,
+            'user_phone' => $userPhone,
+            'merchant_ok_url' => $merchantOkUrl,
+            'merchant_fail_url' => $merchantFailUrl,
+            'timeout_limit' => $timeoutLimit,
+            'currency' => $currency,
+            'test_mode' => $testMode,
+            'lang' => $lang,
         ];
 
         try {
@@ -315,11 +320,17 @@ class PaytrService
 
             $body = $response->json() ?? [];
             if (($body['status'] ?? '') === 'success' && ! empty($body['token'])) {
+                Log::info('PayTR get-token ok', [
+                    'merchant_oid' => $merchantOid,
+                    'payment_amount' => $paymentAmount,
+                    'test_mode' => $testMode,
+                ]);
+
                 return [
                     'status' => 'success',
                     'token' => (string) $body['token'],
                     'merchant_oid' => $merchantOid,
-                    'payment_amount' => $paymentAmount,
+                    'payment_amount' => (int) $paymentAmount,
                 ];
             }
 
@@ -327,6 +338,8 @@ class PaytrService
             Log::error('PayTR get-token failed', [
                 'reason' => $reason,
                 'merchant_oid' => $merchantOid,
+                'payment_amount' => $paymentAmount,
+                'test_mode' => $testMode,
                 'http' => $response->status(),
             ]);
 
@@ -342,6 +355,37 @@ class PaytrService
                 'errorMessage' => 'PayTR bağlantı hatası: '.$e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * PayTR user_ip: gerçek müşteri IP (proxy arkasında X-Forwarded-For).
+     * Localhost / private IP token hatasına yol açar → fallback.
+     */
+    protected function resolveClientIp(string $preferred = ''): string
+    {
+        $candidates = array_filter([
+            $preferred,
+            request()?->header('CF-Connecting-IP'),
+            request()?->header('X-Real-IP'),
+            // X-Forwarded-For: ilk public IP
+            collect(explode(',', (string) request()?->header('X-Forwarded-For', '')))
+                ->map(fn ($ip) => trim($ip))
+                ->first(),
+            request()?->ip(),
+        ]);
+
+        foreach ($candidates as $ip) {
+            $ip = trim((string) $ip);
+            if ($ip === '' || ! filter_var($ip, FILTER_VALIDATE_IP)) {
+                continue;
+            }
+            // Private / loopback PayTR'de "geçersiz token" üretebilir
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return $ip;
+            }
+        }
+
+        return (string) config('services.paytr.fallback_ip', '85.34.78.112');
     }
 
     /**

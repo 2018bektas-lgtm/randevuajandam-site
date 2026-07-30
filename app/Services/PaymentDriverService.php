@@ -195,17 +195,21 @@ class PaymentDriverService
             'fatura_durumu' => 'bekliyor',
         ]);
 
+        // iFrame API (dev.paytr.com): get-token → /odeme/guvenli/{token}
+        // Tutar TL float; servis kuruşa çevirir. no_installment=1 abonelik için.
         $tokenResult = $paytr->createIframeToken([
-            'merchant_oid'  => $merchantOid,
-            'email'         => (string) (($faturaSnap['email'] ?? null) ?: $doktor->e_posta),
-            'payment_amount'=> $tutar,
-            'user_name'     => (string) (($faturaSnap['unvan'] ?? null) ?: $doktor->ad_soyad),
-            'user_address'  => (string) (($faturaSnap['adres'] ?? null) ?: ($doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye'))),
-            'user_phone'    => (string) (($faturaSnap['telefon'] ?? null) ?: $doktor->telefon),
-            'user_ip'       => $request->ip(),
-            'basket_name'   => 'Randevu Ajandam - ' . $paket->ad . ' (' . $periyot . ')',
-            // Risksiz model: tek seferlik iFrame; otomatik recurring yok
-            'recurring'     => false,
+            'merchant_oid'   => $merchantOid,
+            'email'          => (string) (($faturaSnap['email'] ?? null) ?: $doktor->e_posta),
+            'payment_amount' => $tutar,
+            'user_name'      => (string) (($faturaSnap['unvan'] ?? null) ?: $doktor->ad_soyad),
+            'user_address'   => (string) (($faturaSnap['adres'] ?? null) ?: ($doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye'))),
+            'user_phone'     => (string) (($faturaSnap['telefon'] ?? null) ?: $doktor->telefon),
+            'user_ip'        => $request->ip(),
+            'basket_name'    => 'Randevu Ajandam - '.$paket->ad.' ('.$periyot.')',
+            'no_installment' => 1,
+            'max_installment'=> 0,
+            'merchant_ok_url'=> route('frontend.odeme.paytr.ok'),
+            'merchant_fail_url'=> route('frontend.odeme.paytr.fail'),
         ]);
 
         if (($tokenResult['status'] ?? '') !== 'success') {

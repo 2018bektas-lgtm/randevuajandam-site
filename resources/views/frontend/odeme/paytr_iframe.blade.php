@@ -22,6 +22,7 @@
         </div>
 
         <div class="bg-white border border-[#E5E7EB] rounded-3xl p-3 sm:p-5 shadow-sm">
+            {{-- Resmi iFrame API HTML: https://dev.paytr.com/iframe-api/iframe-api-1-adim --}}
             <script src="https://www.paytr.com/js/iframeResizer.min.js"></script>
             <iframe
                 src="https://www.paytr.com/odeme/guvenli/{{ $token }}"
@@ -33,13 +34,14 @@
             ></iframe>
             <script>
                 if (window.iFrameResize) {
-                    iFrameResize({ checkOrigin: false }, '#paytriframe');
+                    iFrameResize({}, '#paytriframe');
                 }
             </script>
         </div>
 
         <p class="mt-4 text-[11px] text-center text-[#9CA3AF] leading-relaxed">
             Ödeme PayTR altyapısı ile 3D Secure üzerinden alınır. Kart verileri Randevu Ajandam sunucularında saklanmaz.
+            Başarılı yönlendirme bilgilendirme amaçlıdır; kesin onay Bildirim URL ile işlenir.
         </p>
     </div>
 </section>

@@ -479,17 +479,14 @@
                             </div>
                         @endif
 
-                        {{-- Kart alanları: PayTR Direct veya iyzico --}}
-                        <div id="card-payment-fields" class="{{ in_array($oldMethod, ['paytr', 'iyzico'], true) && $cardOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 space-y-4 shadow-sm">
+                        {{-- PayTR iFrame API: kart bilgisi PayTR sayfasında alınır (PCI yok) --}}
+                        <div id="paytr-payment-fields" class="{{ $oldMethod === 'paytr' && $paytrOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 space-y-4 shadow-sm">
                             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                 <div>
-                                    <h3 class="text-sm font-bold text-[#111827] font-display tracking-tight">Kart bilgileri</h3>
-                                    <p class="mt-1.5 text-xs text-[#6B7280] leading-relaxed max-w-lg" id="card-help-paytr" style="{{ $oldMethod === 'iyzico' ? 'display:none' : '' }}">
-                                        İlk ödeme <strong>3D Secure</strong> ile alınır. Kartınız PayTR'de saklanır;
-                                        dönem sonunda otomatik yenileme için kullanılır. Kart numarası sunucumuzda tutulmaz.
-                                    </p>
-                                    <p class="mt-1.5 text-xs text-[#6B7280] leading-relaxed max-w-lg" id="card-help-iyzico" style="{{ $oldMethod === 'iyzico' ? '' : 'display:none' }}">
-                                        iyzico abonelik API ile kartınız kaydedilir; dönem yenilemeleri otomatik yapılır.
+                                    <h3 class="text-sm font-bold text-[#111827] font-display tracking-tight">Güvenli kart ödeme (PayTR)</h3>
+                                    <p class="mt-1.5 text-xs text-[#6B7280] leading-relaxed max-w-lg">
+                                        &ldquo;Ödemeye devam et&rdquo; ile PayTR&rsquo;in barındırılan 3D Secure formu açılır.
+                                        Kart numaranız bu sitede girilmez ve sunucularımızda saklanmaz.
                                     </p>
                                 </div>
                                 <div class="shrink-0 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
@@ -497,15 +494,34 @@
                                 </div>
                             </div>
 
-                            <div id="paytrError" class="hidden rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs text-red-700 leading-relaxed"></div>
-
-                            {{-- PayTR: kart bilgileri PayTR'in guvenli 3D Secure sayfasinda alinir --}}
-                            <div id="paytr-hosted-notice" class="hidden rounded-xl bg-[#FFF7ED] border border-[#FED7AA] px-3.5 py-3 text-xs text-[#9A3412] leading-relaxed">
-                                <strong class="block text-[#7C2D12]">Kart bilgileriniz PayTR'de girilir</strong>
+                            <div class="rounded-xl bg-[#FFF7ED] border border-[#FED7AA] px-3.5 py-3 text-xs text-[#9A3412] leading-relaxed">
+                                <strong class="block text-[#7C2D12]">Sonraki adım: PayTR ödeme ekranı</strong>
                                 <span class="block mt-1 text-[11px]">
-                                    &ldquo;Ödemeye devam et&rdquo; dediğinizde PayTR'in 3D Secure ödeme sayfası açılır.
-                                    Kart verileri Randevu Ajandam sunucularında saklanmaz.
+                                    Sipariş kaydı oluşturulur, ardından PayTR iframe&rsquo;inde kart ve 3D doğrulaması yapılır.
+                                    Ödeme onayı Bildirim URL üzerinden sisteme işlenir.
                                 </span>
+                            </div>
+
+                            <button type="submit" id="paytrSubmitBtn"
+                                    class="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm hover:shadow-md cursor-pointer font-display disabled:opacity-60">
+                                <svg class="w-4 h-4 opacity-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+                                Ödemeye devam et — ₺{{ number_format($toplam, 2, ',', '.') }}
+                            </button>
+                            <p class="text-center text-[10px] text-slate-400">PCI-DSS: kart verisi yalnızca PayTR altyapısında işlenir.</p>
+                        </div>
+
+                        {{-- iyzico: kart bu formda --}}
+                        <div id="card-payment-fields" class="{{ $oldMethod === 'iyzico' && $iyzicoOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 space-y-4 shadow-sm">
+                            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                <div>
+                                    <h3 class="text-sm font-bold text-[#111827] font-display tracking-tight">Kart bilgileri (iyzico)</h3>
+                                    <p class="mt-1.5 text-xs text-[#6B7280] leading-relaxed max-w-lg">
+                                        iyzico abonelik API ile kartınız kaydedilir; dönem yenilemeleri otomatik yapılır.
+                                    </p>
+                                </div>
+                                <div class="shrink-0 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                                    @include('frontend.layouts.partials.payment-methods', ['compact' => true])
+                                </div>
                             </div>
 
                             <div class="space-y-4">
@@ -542,22 +558,13 @@
                                                class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
                                     </div>
                                 </div>
-                                <label id="store-card-label" class="flex items-start gap-2.5 text-xs text-slate-600 cursor-pointer rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3.5 py-3" style="{{ $oldMethod === 'iyzico' ? 'display:none' : '' }}">
-                                    <input type="checkbox" name="store_card" id="store_card" value="1" checked
-                                           class="mt-0.5 rounded border-slate-300 text-[#C96A2B] focus:ring-[#C96A2B]">
-                                    <span>
-                                        <strong class="text-[#111827]">Kartımı kaydet ve otomatik yenile</strong>
-                                        <span class="block mt-0.5 text-[11px] text-slate-500">Dönem sonunda üyelik, kayıtlı karttan (3D'siz) yenilenir. İptal paneldendir.</span>
-                                    </span>
-                                </label>
                             </div>
 
-                            <button type="submit" id="paytrSubmitBtn"
+                            <button type="submit" id="iyzicoSubmitBtn"
                                     class="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm hover:shadow-md cursor-pointer font-display disabled:opacity-60">
-                                <svg class="w-4 h-4 opacity-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
                                 Ödemeyi tamamla — ₺{{ number_format($toplam, 2, ',', '.') }}
                             </button>
-                            <p class="text-center text-[10px] text-slate-400" id="card-footer-hint">3D Secure banka doğrulaması açılabilir. Onay Bildirim URL ile tamamlanır.</p>
+                            <p class="text-center text-[10px] text-slate-400">Kart bilgileri iyzico üzerinden işlenir.</p>
                         </div>
 
                         <div id="bank-transfer-fields" class="{{ $oldMethod === 'havale' || (! $cardOk && $bankAvailable) ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5 sm:p-6 space-y-4">
@@ -612,19 +619,6 @@
     </div>
 </section>
 
-{{-- PayTR 3D Secure modal --}}
-<div id="paytr3dModal" class="fixed inset-0 z-50 items-center justify-center bg-black/70 p-4" style="display:none">
-    <div class="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-            <span class="text-xs font-bold text-slate-800">3D Guvenli Odeme Dogrulama</span>
-            <button type="button" onclick="close3DModal()" class="text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
-        </div>
-        {{-- Banka 3D sayfaları için sandbox gevşek; aksi halde SMS/3D formu kırılır --}}
-        <iframe id="paytr3dFrame" class="w-full border-0" style="height:520px"
-                sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-top-navigation-by-user-activation allow-popups allow-popups-to-escape-sandbox allow-modals"></iframe>
-    </div>
-</div>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const telefonInput = document.getElementById('telefon');
@@ -667,31 +661,23 @@
         }
 
         const paymentMethods = document.querySelectorAll('input[name="odeme_yontemi"]');
+        const paytrFields = document.getElementById('paytr-payment-fields');
         const cardFields = document.getElementById('card-payment-fields');
         const bankFields = document.getElementById('bank-transfer-fields');
         const bankReference = document.getElementById('havale_referans');
-        const helpPaytr = document.getElementById('card-help-paytr');
-        const helpIyzico = document.getElementById('card-help-iyzico');
-        const storeCardLabel = document.getElementById('store-card-label');
-        const paytrNotice = document.getElementById('paytr-hosted-notice');
-        const submitBtn = document.getElementById('paytrSubmitBtn');
+        const paytrBtn = document.getElementById('paytrSubmitBtn');
+
         function updatePaymentMethod() {
             const method = document.querySelector('input[name="odeme_yontemi"]:checked')?.value
                 || document.querySelector('input[name="odeme_yontemi"]')?.value;
-            // PayTR barindirilan 3D Secure sayfasini kullanir; kart alanlari
-            // bizde gosterilmez. iyzico ise kart bilgisini bu formda alir.
-            const isCard = method === 'iyzico';
-            cardFields?.classList.toggle('hidden', !isCard);
-            bankFields?.classList.toggle('hidden', isCard || method !== 'havale');
-            if (paytrNotice) paytrNotice.classList.toggle('hidden', method !== 'paytr');
+            // PayTR: iFrame API (kart sitede yok). iyzico: kart formu. havale: banka.
+            paytrFields?.classList.toggle('hidden', method !== 'paytr');
+            cardFields?.classList.toggle('hidden', method !== 'iyzico');
+            bankFields?.classList.toggle('hidden', method !== 'havale');
             if (bankReference) bankReference.required = method === 'havale';
-            if (helpPaytr) helpPaytr.style.display = method === 'paytr' ? '' : 'none';
-            if (helpIyzico) helpIyzico.style.display = method === 'iyzico' ? '' : 'none';
-            if (storeCardLabel) storeCardLabel.style.display = 'none';
-            if (submitBtn) {
-                submitBtn.textContent = method === 'paytr'
-                    ? 'Ödemeye devam et — ₺{{ number_format($toplam, 2, ",", ".") }}'
-                    : 'Ödemeyi tamamla — ₺{{ number_format($toplam, 2, ",", ".") }}';
+            if (paytrBtn) {
+                paytrBtn.disabled = false;
+                paytrBtn.innerHTML = '<svg class="w-4 h-4 opacity-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg> Ödemeye devam et — ₺{{ number_format($toplam, 2, ",", ".") }}';
             }
             document.querySelectorAll('.payment-method-card').forEach(function (lab) {
                 const on = !!lab.querySelector('input')?.checked;
@@ -705,6 +691,16 @@
         }
         paymentMethods.forEach(function (input) { input.addEventListener('change', updatePaymentMethod); });
         updatePaymentMethod();
+
+        // Form submit: PayTR butonunda çift tıklamayı engelle (normal POST -> iframe)
+        document.getElementById('checkoutForm')?.addEventListener('submit', function () {
+            const method = document.querySelector('input[name="odeme_yontemi"]:checked')?.value
+                || document.querySelector('input[name="odeme_yontemi"]')?.value;
+            if (method === 'paytr' && paytrBtn) {
+                paytrBtn.disabled = true;
+                paytrBtn.textContent = 'PayTR oturumu açılıyor…';
+            }
+        });
 
         const kartNoInput = document.getElementById('kart_no');
         if (kartNoInput) {
@@ -721,137 +717,6 @@
                 this.value = this.value.replace(/\D/g, '').substring(0, max);
             });
         });
-
-        // PayTR: form normal POST edilir -> PaketController@paketOde ->
-        // PaymentDriverService -> createIframeToken -> barindirilan 3D Secure
-        // iframe'i (frontend.odeme.paytr.iframe).
-        //
-        // Direkt API (submitPaytrDirect) devre disi: PayTR /odeme ucu bu hesap
-        // icin istegi iFrame ("odeme spp") kuraliyla dogruluyor ve dokumandaki
-        // bicimi reddediyor ("paytr_token gonderilmedi veya gecersiz").
-        // Hesap Direkt API'ye aktiflesince asagidaki submitPaytrDirect()
-        // yeniden baglanarak kart saklama + 3D'siz tekrar cekim acilabilir.
-    });
-
-    function submitPaytrDirect(form) {
-        const btn = document.getElementById('paytrSubmitBtn');
-        const errDiv = document.getElementById('paytrError');
-        if (btn) { btn.disabled = true; btn.textContent = 'Isleniyor...'; }
-        if (errDiv) errDiv.classList.add('hidden');
-
-        const kartNoInput = document.getElementById('kart_no');
-        if (kartNoInput) kartNoInput.value = kartNoInput.value.replace(/\s+/g, '');
-
-        const fd = new FormData(form);
-        if (!fd.has('store_card') && document.getElementById('store_card')?.checked) {
-            fd.set('store_card', '1');
-        }
-
-        fetch('{{ route("frontend.odeme.paytr.direct") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-            },
-            body: fd,
-        })
-        .then(function (res) {
-            return res.json().then(function (data) { return { ok: res.ok, data: data }; });
-        })
-        .then(function (result) {
-            if (!result.ok) throw result.data;
-            const data = result.data;
-            if (data.html) {
-                show3DModal(data.html);
-            } else if (data.redirect) {
-                window.location.href = data.redirect;
-            }
-        })
-        .catch(function (err) {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = 'Odemeyi tamamla — ₺{{ number_format($toplam, 2, ",", ".") }}';
-            }
-            if (kartNoInput) {
-                let digits = kartNoInput.value.replace(/\D/g, '').substring(0, 16);
-                kartNoInput.value = digits.replace(/(.{4})/g, '$1 ').trim();
-            }
-            if (errDiv) {
-                let msg = (err && err.error) || (err && err.message) || 'Odeme baslatilamadi.';
-                if (err && err.errors) {
-                    msg = Object.values(err.errors).flat().join(' ');
-                }
-                errDiv.textContent = msg;
-                errDiv.classList.remove('hidden');
-                errDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        });
-    }
-
-    // PayTR hata yanitini HTML sayfaya sarip donebiliyor (analytics + Cloudflare
-    // scriptleri, govdede JSON). Bunu srcdoc'a basmak, icindeki goreli
-    // /securemetric yolunun kendi domainimize gidip 404 vermesine ve
-    // kullanicinin acilip hemen kapanan bos bir modal gormesine yol aciyordu.
-    // Once gercek bir 3DS formu olup olmadigini dogrula.
-    function show3DModal(html) {
-        const modal = document.getElementById('paytr3dModal');
-        const frame = document.getElementById('paytr3dFrame');
-        if (!modal || !frame) return;
-
-        const gercek3ds = /<form[^>]+action\s*=/i.test(html);
-        if (!gercek3ds) {
-            const m = html.match(/\{\s*"status"\s*:[\s\S]*?\}/);
-            let mesaj = 'PayTR 3D Secure formu dondurmedi.';
-            if (m) {
-                try {
-                    const j = JSON.parse(m[0]);
-                    mesaj = j.reason || j.err_msg || mesaj;
-                } catch (e) { /* ham mesaj kalsin */ }
-            }
-            const errDiv = document.getElementById('paytrError');
-            if (errDiv) {
-                errDiv.textContent = mesaj;
-                errDiv.classList.remove('hidden');
-                errDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-            const btn = document.getElementById('paytrSubmitBtn');
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = 'Odemeyi tamamla — ₺{{ number_format($toplam, 2, ",", ".") }}';
-            }
-            console.error('PayTR 3DS beklenirken hata yaniti geldi:', mesaj);
-            return;
-        }
-
-        frame.srcdoc = html;
-        modal.style.display = 'flex';
-    }
-    function close3DModal() {
-        const modal = document.getElementById('paytr3dModal');
-        const frame = document.getElementById('paytr3dFrame');
-        if (modal) modal.style.display = 'none';
-        if (frame) frame.srcdoc = '';
-        const btn = document.getElementById('paytrSubmitBtn');
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = 'Odemeyi tamamla — ₺{{ number_format($toplam, 2, ",", ".") }}';
-        }
-    }
-    window.addEventListener('message', function (e) {
-        if (!e.data || typeof e.data !== 'object') return;
-        if (e.data.paytr3d === 'ok') {
-            close3DModal();
-            window.location.href = '{{ route("frontend.odeme.paytr.ok") }}';
-        } else if (e.data.paytr3d === 'fail') {
-            close3DModal();
-            const errDiv = document.getElementById('paytrError');
-            if (errDiv) {
-                errDiv.textContent = e.data.message
-                    || '3D doğrulama başarısız. Kart bilgilerinizi veya banka SMS onayını kontrol edin.';
-                errDiv.classList.remove('hidden');
-                errDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        }
     });
 </script>
 @endsection
