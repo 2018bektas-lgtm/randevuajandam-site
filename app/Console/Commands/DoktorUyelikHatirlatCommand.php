@@ -11,7 +11,7 @@ class DoktorUyelikHatirlatCommand extends Command
 {
     protected $signature = 'doktor:uyelik-hatirlat';
 
-    protected $description = 'Bireysel hekim üyelik bitişine 7/3/1 gün kala e-posta hatırlatır.';
+    protected $description = 'Bireysel hekim üyelik bitişine 7/3/1 gün kala e-posta + panel bildirimi (otomatik yenileme metni dahil).';
 
     public function handle(): int
     {
@@ -24,6 +24,10 @@ class DoktorUyelikHatirlatCommand extends Command
             ->whereNotNull('paket_id')
             ->where(function ($q) {
                 $q->whereNull('odeme_periyodu')->orWhere('odeme_periyodu', '!=', 'deneme');
+            })
+            // Klinik sahibi: klinik komutu bildirim atar
+            ->where(function ($q) {
+                $q->whereNull('klinik_rolu')->orWhere('klinik_rolu', '!=', 'sahip');
             })
             ->get();
 
@@ -41,11 +45,19 @@ class DoktorUyelikHatirlatCommand extends Command
             }
             $col = $map[$diff];
             if ($doktor->{$col}) {
-                continue; // bu dönem için gönderilmiş
+                continue;
             }
 
+            $auto = $doktor->willAutoRenew();
+            $periyotLabel = ($doktor->odeme_periyodu ?? '') === 'yillik' ? 'yıllık' : 'aylık';
+
             try {
-                $doktor->notify(new DoktorUyelikBitisBildirimi($diff));
+                $doktor->notify(new DoktorUyelikBitisBildirimi(
+                    $diff,
+                    $auto,
+                    $doktor->estimatedRenewalAmount(),
+                    $periyotLabel
+                ));
                 $doktor->forceFill([$col => now()])->save();
                 $count++;
             } catch (\Throwable $e) {
@@ -53,7 +65,7 @@ class DoktorUyelikHatirlatCommand extends Command
             }
         }
 
-        $this->info("{$count} hekime üyelik bitiş hatırlatması gönderildi.");
+        $this->info("{$count} hekime üyelik bitiş / otomatik yenileme hatırlatması gönderildi.");
 
         return self::SUCCESS;
     }

@@ -4,54 +4,69 @@ namespace App\Console\Commands;
 
 use App\Models\Klinik;
 use App\Notifications\KlinikUyelikBitisBildirimi;
-use Illuminate\Console\Command;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
 
 class KlinikUyelikHatirlatCommand extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'klinik:uyelik-hatirlat';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Üyelik bitiş tarihi yaklaşan klinik sahiplerine bildirim gönderir.';
+    protected $description = 'Klinik üyelik bitişine 7/3/1 gün kala sahip hekime e-posta + bildirim (otomatik yenileme metni dahil).';
 
-    /**
-     * Execute the console command.
-     */
-    public function handle()
+    public function handle(): int
     {
         $today = Carbon::today();
         $count = 0;
 
-        // Klinikler ve sahip hekimlerini çek
-        $klinikler = Klinik::where('aktif_mi', true)
+        $klinikler = Klinik::query()
+            ->where('aktif_mi', true)
             ->whereNotNull('uyelik_bitis')
             ->with('sahipDoktor')
             ->get();
 
         foreach ($klinikler as $klinik) {
-            if (!$klinik->sahipDoktor) {
+            $sahip = $klinik->sahipDoktor;
+            if (! $sahip) {
                 continue;
             }
 
             $bitisTarihi = Carbon::parse($klinik->uyelik_bitis)->startOfDay();
-            $diffInDays = $today->diffInDays($bitisTarihi, false);
+            $diffInDays = (int) $today->diffInDays($bitisTarihi, false);
 
-            // Bitişe tam 7 gün, 1 gün kalmışsa veya bugün bitmişse (0 gün)
-            if ($diffInDays === 7 || $diffInDays === 1 || $diffInDays === 0) {
-                $klinik->sahipDoktor->notify(new KlinikUyelikBitisBildirimi($klinik, $diffInDays));
+            // Sahip hekimin hatırlatma kolonlarını klinik için de kullan (tek sefer / dönem)
+            $map = [
+                7 => 'uyelik_hatirlat_7_at',
+                3 => 'uyelik_hatirlat_3_at',
+                1 => 'uyelik_hatirlat_1_at',
+            ];
+            if (! isset($map[$diffInDays])) {
+                continue;
+            }
+            $col = $map[$diffInDays];
+            if ($sahip->{$col}) {
+                continue;
+            }
+
+            $auto = $klinik->willAutoRenew();
+            $periyotLabel = ($klinik->odeme_periyodu ?? '') === 'yillik' ? 'yıllık' : 'aylık';
+
+            try {
+                $sahip->notify(new KlinikUyelikBitisBildirimi(
+                    $klinik,
+                    $diffInDays,
+                    $auto,
+                    $klinik->estimatedRenewalAmount(),
+                    $periyotLabel
+                ));
+                $sahip->forceFill([$col => now()])->save();
                 $count++;
+            } catch (\Throwable $e) {
+                $this->warn('Klinik mail hata #'.$klinik->id.': '.$e->getMessage());
             }
         }
 
-        $this->info("{$count} adet klinik sahibine üyelik bitiş bildirimi gönderildi.");
+        $this->info("{$count} klinik sahibine üyelik / otomatik yenileme bildirimi gönderildi.");
+
+        return self::SUCCESS;
     }
 }

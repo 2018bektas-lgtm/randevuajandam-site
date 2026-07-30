@@ -495,10 +495,20 @@
                             </div>
 
                             <div class="rounded-xl bg-[#FFF7ED] border border-[#FED7AA] px-3.5 py-3 text-xs text-[#9A3412] leading-relaxed">
-                                <strong class="block text-[#7C2D12]">Sonraki adım: PayTR ödeme ekranı</strong>
+                                <strong class="block text-[#7C2D12]">Sonraki adım: PayTR 3D Secure ödeme</strong>
                                 <span class="block mt-1 text-[11px]">
-                                    Sipariş kaydı oluşturulur, ardından PayTR iframe&rsquo;inde kart ve 3D doğrulaması yapılır.
-                                    Ödeme onayı Bildirim URL üzerinden sisteme işlenir.
+                                    Sipariş kaydı oluşturulur; kart ve 3D doğrulaması PayTR güvenli sayfasında yapılır.
+                                    Kart sunucularımızda saklanmaz.
+                                </span>
+                            </div>
+
+                            <div class="rounded-xl bg-sky-50 border border-sky-200 px-3.5 py-3 text-xs text-sky-950 leading-relaxed">
+                                <strong class="block text-sky-900">Otomatik yenileme</strong>
+                                <span class="block mt-1 text-[11px]">
+                                    PayTR mağazanızda kart saklama yetkisi açıksa, ödeme sonrası kart PayTR’de token ile saklanır.
+                                    Dönem sonunda (aylık/yıllık) sistem <strong>3D’siz</strong> paket ücretini otomatik çeker.
+                                    Süre dolmadan 7 / 3 / 1 gün kala panel ve e-posta ile bilgilendirilirsiniz.
+                                    İstemezseniz panelden aboneliği iptal ederek yenilemeyi kapatabilirsiniz.
                                 </span>
                             </div>
 

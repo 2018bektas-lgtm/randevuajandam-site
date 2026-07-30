@@ -84,6 +84,55 @@ class Klinik extends Model
         return $this->platformda_gorunur !== false;
     }
 
+    public function hasPaytrSavedCard(): bool
+    {
+        return filled($this->paytr_utoken) && filled($this->paytr_ctoken);
+    }
+
+    public function willAutoRenew(): bool
+    {
+        if ($this->abonelik_yenileme_kapali ?? false) {
+            return false;
+        }
+        if (! $this->aktif_mi || ! $this->uyelik_bitis) {
+            return false;
+        }
+        if ($this->uyelik_bitis->isPast()) {
+            return false;
+        }
+        if (! (bool) config('services.paytr.recurring_enabled', true)) {
+            return false;
+        }
+
+        return $this->hasPaytrSavedCard();
+    }
+
+    public function estimatedRenewalAmount(): ?float
+    {
+        $paket = $this->paket;
+        if (! $paket) {
+            return null;
+        }
+        $periyot = $this->odeme_periyodu === 'yillik' ? 'yillik' : 'aylik';
+        if ($periyot === 'yillik') {
+            $t = (float) ($paket->yillik_indirimli_fiyat ?: $paket->yillik_fiyat);
+
+            return $t > 0 ? $t : null;
+        }
+        $t = (float) ($paket->aylik_indirimli_fiyat ?: $paket->aylik_fiyat);
+
+        return $t > 0 ? $t : null;
+    }
+
+    public function membershipDaysLeft(): ?int
+    {
+        if (! $this->uyelik_bitis) {
+            return null;
+        }
+
+        return (int) now()->startOfDay()->diffInDays($this->uyelik_bitis->copy()->startOfDay(), false);
+    }
+
     public function scopePlatformdaListelenen($query)
     {
         return $query

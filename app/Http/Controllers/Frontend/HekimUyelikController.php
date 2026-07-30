@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Hekim abonelik / paket yönetimi — iptal (dönem sonuna kadar erişim).
- * PayTR tek seferlik ödemedir; iptal yerelde yenileme kapatır (otomatik çekim yok).
+ * PayTR: kayıtlı kart (utoken/ctoken) varsa abonelik:yenile ile 3D'siz otomatik çekim.
+ * İptal: yenilemeyi kapatır; dönem sonuna kadar erişim devam eder.
  */
 class HekimUyelikController extends Controller
 {

@@ -27,6 +27,7 @@
     @endif
 
     @include('frontend.hekim.partials.havale_bildirim_durumu')
+    @include('hekim.partials.uyelik_yenileme_uyari', ['doktor' => $doktor])
 
     @if($deneme && $doktor->uyelik_bitis)
         @php
@@ -104,6 +105,26 @@
                 <dt class="text-slate-500">Kalan</dt>
                 <dd class="font-semibold text-slate-900">{{ $doktor->membershipDaysLeft() }} gün</dd>
             </div>
+            @endif
+            @if(! $deneme && ! $iptalBekliyor && $aktif)
+            <div class="flex justify-between gap-4">
+                <dt class="text-slate-500">Otomatik yenileme</dt>
+                <dd class="font-semibold text-right">
+                    @if($doktor->willAutoRenew())
+                        <span class="text-emerald-700">Açık — süre dolunca 3D’siz kart çekimi</span>
+                    @elseif($doktor->hasPaytrSavedCard() || (isset($klinik) && $klinik && $klinik->hasPaytrSavedCard()))
+                        <span class="text-amber-700">Kart kayıtlı; yenileme kapalı veya yapılandırma eksik</span>
+                    @else
+                        <span class="text-slate-600">Kapalı / kayıtlı kart yok (manuel ödeme)</span>
+                    @endif
+                </dd>
+            </div>
+            @if($doktor->willAutoRenew() && ($t = $doktor->estimatedRenewalAmount()))
+            <div class="flex justify-between gap-4">
+                <dt class="text-slate-500">Tahmini çekim</dt>
+                <dd class="font-semibold text-slate-900">₺{{ number_format($t, 2, ',', '.') }}</dd>
+            </div>
+            @endif
             @endif
             @if($doktor->abonelik_iptal_at)
             <div class="flex justify-between gap-4">

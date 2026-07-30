@@ -61,6 +61,8 @@ return [
         'fallback_ip' => env('PAYTR_FALLBACK_IP', '85.34.78.112'),
         // Kayıtlı kart + Non3D otomatik yenileme (PayTR yetkisi + utoken/ctoken gerekir)
         'recurring_enabled' => filter_var(env('PAYTR_RECURRING_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        // iFrame get-token'a recurring_payment=1 ekle (mağaza / API destekliyorsa). Desteklenmiyorsa false bırakın.
+        'iframe_recurring' => filter_var(env('PAYTR_IFRAME_RECURRING', false), FILTER_VALIDATE_BOOLEAN),
     ],
 
     /*

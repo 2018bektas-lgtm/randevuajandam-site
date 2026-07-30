@@ -197,6 +197,7 @@ class PaymentDriverService
 
         // iFrame API (dev.paytr.com): get-token → /odeme/guvenli/{token}
         // Tutar TL float; servis kuruşa çevirir. no_installment=1 abonelik için.
+        // recurring: true → get-token'a recurring_payment=1 (kart saklama yetkisi mağazaya bağlı)
         $tokenResult = $paytr->createIframeToken([
             'merchant_oid'   => $merchantOid,
             'email'          => (string) (($faturaSnap['email'] ?? null) ?: $doktor->e_posta),
@@ -208,6 +209,8 @@ class PaymentDriverService
             'basket_name'    => 'Randevu Ajandam - '.$paket->ad.' ('.$periyot.')',
             'no_installment' => 1,
             'max_installment'=> 0,
+            'recurring'      => (bool) config('services.paytr.iframe_recurring', false)
+                && (bool) config('services.paytr.recurring_enabled', true),
             'merchant_ok_url'=> route('frontend.odeme.paytr.ok'),
             'merchant_fail_url'=> route('frontend.odeme.paytr.fail'),
         ]);

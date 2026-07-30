@@ -401,17 +401,34 @@ class PaytrCallbackController extends Controller
                 'paytr_ctoken' => $ctoken !== '' ? $ctoken : null,
             ]);
 
+            $hasCardTokens = $utoken !== '' && $ctoken !== '';
             $odeme->forceFill(array_merge($odemeFill, [
                 'durum' => 'onaylandi',
                 'onaylandi_at' => now(),
                 'provider' => 'paytr',
                 'fatura_durumu' => 'bekliyor',
+                // Kayıtlı kart varsa dönem sonu 3D'siz yenileme hedeflenir
+                'otomatik_yenileme' => $hasCardTokens && (bool) config('services.paytr.recurring_enabled', true),
             ]))->save();
 
+            // Hatırlatma sayaçlarını yeni dönem için sıfırla
             $doktor->forceFill([
                 'kayit_paket_id' => null,
                 'kayit_periyot' => null,
+                'abonelik_yenileme_kapali' => false,
+                'abonelik_iptal_at' => null,
+                'abonelik_iptal_nedeni' => null,
+                'uyelik_hatirlat_7_at' => null,
+                'uyelik_hatirlat_3_at' => null,
+                'uyelik_hatirlat_1_at' => null,
             ])->save();
+
+            if (! $hasCardTokens) {
+                Log::info('PayTR ödeme onaylandı ancak utoken/ctoken yok — otomatik yenileme yapılamaz', [
+                    'merchant_oid' => $odeme->merchant_oid,
+                    'doktor_id' => $doktor->id,
+                ]);
+            }
         });
 
         // Referans ödülü (transaction dışında idempotent)

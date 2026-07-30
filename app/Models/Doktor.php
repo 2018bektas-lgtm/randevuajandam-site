@@ -657,6 +657,57 @@ class Doktor extends Authenticatable
         return true;
     }
 
+    /** PayTR kayıtlı kart (utoken+ctoken) var mı? */
+    public function hasPaytrSavedCard(): bool
+    {
+        return filled($this->paytr_utoken) && filled($this->paytr_ctoken);
+    }
+
+    /**
+     * Dönem sonunda 3D'siz otomatik çekim yapılacak mı?
+     * Cron: abonelik:yenile (PAYTR_RECURRING_ENABLED).
+     */
+    public function willAutoRenew(): bool
+    {
+        if ($this->isOnTrial() || ($this->odeme_periyodu ?? '') === 'deneme') {
+            return false;
+        }
+        if ($this->abonelik_yenileme_kapali ?? false) {
+            return false;
+        }
+        if (! $this->hasActiveMembership()) {
+            return false;
+        }
+        if (! (bool) config('services.paytr.recurring_enabled', true)) {
+            return false;
+        }
+
+        // Klinik sahibi: klinik token'ı
+        if ($this->klinikSahibiMi() && $this->klinik) {
+            return $this->klinik->willAutoRenew();
+        }
+
+        return $this->hasPaytrSavedCard();
+    }
+
+    /** Tahmini yenileme tutarı (KDV dahil paket fiyatı). */
+    public function estimatedRenewalAmount(): ?float
+    {
+        $paket = $this->aktifPaket() ?? $this->paket;
+        if (! $paket) {
+            return null;
+        }
+        $periyot = $this->odeme_periyodu === 'yillik' ? 'yillik' : 'aylik';
+        if ($periyot === 'yillik') {
+            $t = (float) ($paket->yillik_indirimli_fiyat ?: $paket->yillik_fiyat);
+
+            return $t > 0 ? $t : null;
+        }
+        $t = (float) ($paket->aylik_indirimli_fiyat ?: $paket->aylik_fiyat);
+
+        return $t > 0 ? $t : null;
+    }
+
     /**
      * Bireysel hekim: web_sitesi paketi var ama site/domain kurulmamış.
      */

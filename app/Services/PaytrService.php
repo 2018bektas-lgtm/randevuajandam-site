@@ -313,6 +313,11 @@ class PaytrService
             'lang' => $lang,
         ];
 
+        // Tekrarlayan abonelik işareti (mağaza yetkisine bağlı; utoken/ctoken notify'da gelebilir)
+        if ((bool) ($payload['recurring'] ?? false)) {
+            $post['recurring_payment'] = '1';
+        }
+
         try {
             $response = Http::asForm()
                 ->timeout(25)

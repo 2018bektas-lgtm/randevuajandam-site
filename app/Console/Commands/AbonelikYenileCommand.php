@@ -51,8 +51,9 @@ class AbonelikYenileCommand extends Command
                 ->whereNotNull('paytr_ctoken')
                 ->where('abonelik_yenileme_kapali', false)
                 ->whereNotNull('uyelik_bitis')
+                // Bitiş günü ve 1 gün tolerans (cron kaçırırsa)
                 ->where('uyelik_bitis', '<=', now()->endOfDay())
-                ->where('uyelik_bitis', '>=', now()->subDay())
+                ->where('uyelik_bitis', '>=', now()->subDays(2)->startOfDay())
                 ->get();
 
             foreach ($doktorlar as $doktor) {
@@ -118,7 +119,7 @@ class AbonelikYenileCommand extends Command
                 ->where('abonelik_yenileme_kapali', false)
                 ->whereNotNull('uyelik_bitis')
                 ->where('uyelik_bitis', '<=', now()->endOfDay())
-                ->where('uyelik_bitis', '>=', now()->subDay())
+                ->where('uyelik_bitis', '>=', now()->subDays(2)->startOfDay())
                 ->with(['paket', 'sahipDoktor'])
                 ->get();
 
@@ -190,6 +191,9 @@ class AbonelikYenileCommand extends Command
                 $doktor->forceFill([
                     'uyelik_bitis' => $bitis,
                     'iyzico_subscription_status' => 'ACTIVE',
+                    'uyelik_hatirlat_7_at' => null,
+                    'uyelik_hatirlat_3_at' => null,
+                    'uyelik_hatirlat_1_at' => null,
                 ])->save();
             }
 
@@ -227,7 +231,12 @@ class AbonelikYenileCommand extends Command
                     'uyelik_bitis' => $bitis,
                     'iyzico_subscription_status' => 'ACTIVE',
                 ])->save();
-                $sahip->forceFill(['uyelik_bitis' => $bitis])->save();
+                $sahip->forceFill([
+                    'uyelik_bitis' => $bitis,
+                    'uyelik_hatirlat_7_at' => null,
+                    'uyelik_hatirlat_3_at' => null,
+                    'uyelik_hatirlat_1_at' => null,
+                ])->save();
             }
 
             UyelikOdeme::create([
