@@ -103,13 +103,12 @@ class HekimUyelikController extends Controller
         ])->save();
 
         $bitis = $doktor->uyelik_bitis?->format('d.m.Y H:i') ?? 'dönem sonu';
-        $note = ' PayTR tek seferlik ödeme; otomatik yenileme yoktur. Dönem sonu: erişim biter.';
 
         return redirect()
             ->route('hekim.uyelik')
             ->with(
                 'basarili',
-                "Aboneliğiniz iptal edildi.{$note} "
+                "Aboneliğiniz iptal edildi. Otomatik yenileme kapatıldı. "
                 ."Mevcut paketinizi {$bitis} tarihine kadar kullanmaya devam edebilirsiniz."
             );
     }
@@ -178,13 +177,12 @@ class HekimUyelikController extends Controller
         ])->save();
 
         $bitis = $klinik->uyelik_bitis->format('d.m.Y H:i');
-        $note = $isPaytr ? ' PayTR otomatik yenileme yapmaz.' : '';
 
         return redirect()
             ->route('hekim.uyelik')
             ->with(
                 'basarili',
-                "Klinik aboneliği iptal edildi.{$note} Erişim {$bitis} tarihine kadar devam eder."
+                "Klinik aboneliği iptal edildi. Otomatik yenileme kapatıldı. Erişim {$bitis} tarihine kadar devam eder."
             );
     }
 }

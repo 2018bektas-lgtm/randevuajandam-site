@@ -1139,7 +1139,27 @@ class MobileDoctorController extends Controller
         if ($paket && ! in_array('yorum', $features, true)) {
             $features[] = 'yorum';
         }
-        $demoMu = $paket === null;
+        $demoMu = $paket === null
+            || (method_exists($doktor, 'isOnTrial') && $doktor->isOnTrial())
+            || ($doktor->odeme_periyodu ?? '') === 'deneme';
+
+        $willAuto = method_exists($doktor, 'willAutoRenew') ? (bool) $doktor->willAutoRenew() : false;
+        $hasCard = method_exists($doktor, 'hasPaytrSavedCard') ? (bool) $doktor->hasPaytrSavedCard() : false;
+        if ($kaynak === 'klinik' && $doktor->klinik) {
+            $willAuto = method_exists($doktor->klinik, 'willAutoRenew')
+                ? (bool) $doktor->klinik->willAutoRenew()
+                : $willAuto;
+            $hasCard = method_exists($doktor->klinik, 'hasPaytrSavedCard')
+                ? (bool) $doktor->klinik->hasPaytrSavedCard()
+                : $hasCard;
+        }
+        $tahmini = method_exists($doktor, 'estimatedRenewalAmount')
+            ? $doktor->estimatedRenewalAmount()
+            : null;
+        $periyot = $kaynak === 'klinik' && $doktor->klinik
+            ? ($doktor->klinik->odeme_periyodu ?? $doktor->odeme_periyodu)
+            : $doktor->odeme_periyodu;
+        $periyotLabel = $periyot === 'yillik' ? 'yıllık' : ($periyot === 'aylik' ? 'aylık' : ($periyot === 'deneme' ? 'deneme' : ($periyot ?? null)));
 
         return [
             'uyelik_baslangic' => $baslangicStr,
@@ -1148,6 +1168,12 @@ class MobileDoctorController extends Controller
             'uyelik_aktif_mi' => $aktifMi,
             'demo_mu' => $demoMu,
             'kaynak' => $kaynak,
+            'odeme_periyodu' => $periyot,
+            'odeme_periyodu_label' => $periyotLabel,
+            'will_auto_renew' => $willAuto,
+            'has_saved_card' => $hasCard,
+            'estimated_renewal_amount' => $tahmini,
+            'yenileme_kapali' => (bool) ($doktor->abonelik_yenileme_kapali ?? false),
             'paket' => $paket ? [
                 'id' => $paket->id,
                 'ad' => $paket->ad ?? $paket->name ?? null,
@@ -1304,8 +1330,8 @@ class MobileDoctorController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Aboneliğiniz iptal edildi. PayTR tek seferlik ödemedir; otomatik yenileme yoktur. '
-                ."Mevcut paketinizi {$bitis} tarihine kadar kullanmaya devam edebilirsiniz.",
+            'message' => 'Aboneliğiniz iptal edildi. Otomatik yenileme kapatıldı; '
+                ."mevcut paketinizi {$bitis} tarihine kadar kullanmaya devam edebilirsiniz.",
             'data' => $this->membershipPayload($doktor->fresh()),
         ]);
     }
@@ -1380,11 +1406,10 @@ class MobileDoctorController extends Controller
         $doktor->forceFill($attrs)->save();
 
         $bitis = $klinik->uyelik_bitis->format('d.m.Y H:i');
-        $note = $isPaytr ? ' PayTR otomatik yenileme yapmaz.' : '';
 
         return response()->json([
             'success' => true,
-            'message' => "Klinik aboneliği iptal edildi.{$note} Erişim {$bitis} tarihine kadar devam eder.",
+            'message' => "Klinik aboneliği iptal edildi. Otomatik yenileme kapatıldı; erişim {$bitis} tarihine kadar devam eder.",
             'data' => $this->membershipPayload($doktor->fresh()),
         ]);
     }
@@ -1396,15 +1421,20 @@ class MobileDoctorController extends Controller
         $current = method_exists($doktor, 'aktifPaket') ? $doktor->aktifPaket() : $doktor->paket;
         $membership = $this->membershipPayload($doktor);
 
+        // Klinik sahibi: klinik paketleri. Klinik üyesi (sahip değil): salt okunur üyelik.
+        // Solo hekim: bireysel paketler.
+        $katalogTur = 'bireysel';
+        if (method_exists($doktor, 'klinikSahibiMi') && $doktor->klinikSahibiMi()) {
+            $katalogTur = 'klinik';
+        } elseif (method_exists($doktor, 'klinikteMi') && $doktor->klinikteMi()) {
+            // Üye: kendi bireysel yükseltme listesini görmesin; boş/klinik-only değil,
+            // aktif klinik paket özeti membership'te; katalog bireysel kapalı.
+            $katalogTur = 'klinik';
+        }
+
         $items = \App\Models\Paket::query()
             ->where('aktif_mi', true)
-            ->where(function ($q) use ($doktor) {
-                if (method_exists($doktor, 'klinik_id') && $doktor->klinik_id) {
-                    $q->where('tur', 'klinik');
-                } else {
-                    $q->where('tur', 'bireysel');
-                }
-            })
+            ->where('tur', $katalogTur)
             ->orderBy('sira')
             ->orderBy('id')
             ->get()
