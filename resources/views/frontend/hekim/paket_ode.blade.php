@@ -499,6 +499,15 @@
 
                             <div id="paytrError" class="hidden rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs text-red-700 leading-relaxed"></div>
 
+                            {{-- PayTR: kart bilgileri PayTR'in guvenli 3D Secure sayfasinda alinir --}}
+                            <div id="paytr-hosted-notice" class="hidden rounded-xl bg-[#FFF7ED] border border-[#FED7AA] px-3.5 py-3 text-xs text-[#9A3412] leading-relaxed">
+                                <strong class="block text-[#7C2D12]">Kart bilgileriniz PayTR'de girilir</strong>
+                                <span class="block mt-1 text-[11px]">
+                                    &ldquo;Ödemeye devam et&rdquo; dediğinizde PayTR'in 3D Secure ödeme sayfası açılır.
+                                    Kart verileri Randevu Ajandam sunucularında saklanmaz.
+                                </span>
+                            </div>
+
                             <div class="space-y-4">
                                 <div>
                                     <label for="kart_sahibi" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Kart üzerindeki isim</label>
@@ -664,16 +673,26 @@
         const helpPaytr = document.getElementById('card-help-paytr');
         const helpIyzico = document.getElementById('card-help-iyzico');
         const storeCardLabel = document.getElementById('store-card-label');
+        const paytrNotice = document.getElementById('paytr-hosted-notice');
+        const submitBtn = document.getElementById('paytrSubmitBtn');
         function updatePaymentMethod() {
             const method = document.querySelector('input[name="odeme_yontemi"]:checked')?.value
                 || document.querySelector('input[name="odeme_yontemi"]')?.value;
-            const isCard = method === 'paytr' || method === 'iyzico';
+            // PayTR barindirilan 3D Secure sayfasini kullanir; kart alanlari
+            // bizde gosterilmez. iyzico ise kart bilgisini bu formda alir.
+            const isCard = method === 'iyzico';
             cardFields?.classList.toggle('hidden', !isCard);
             bankFields?.classList.toggle('hidden', isCard || method !== 'havale');
+            if (paytrNotice) paytrNotice.classList.toggle('hidden', method !== 'paytr');
             if (bankReference) bankReference.required = method === 'havale';
             if (helpPaytr) helpPaytr.style.display = method === 'paytr' ? '' : 'none';
             if (helpIyzico) helpIyzico.style.display = method === 'iyzico' ? '' : 'none';
-            if (storeCardLabel) storeCardLabel.style.display = method === 'paytr' ? '' : 'none';
+            if (storeCardLabel) storeCardLabel.style.display = 'none';
+            if (submitBtn) {
+                submitBtn.textContent = method === 'paytr'
+                    ? 'Ödemeye devam et — ₺{{ number_format($toplam, 2, ",", ".") }}'
+                    : 'Ödemeyi tamamla — ₺{{ number_format($toplam, 2, ",", ".") }}';
+            }
             document.querySelectorAll('.payment-method-card').forEach(function (lab) {
                 const on = !!lab.querySelector('input')?.checked;
                 lab.classList.toggle('is-active', on);
@@ -703,18 +722,15 @@
             });
         });
 
-        // PayTR Direct (3D + store_card)
-        const checkoutForm = document.getElementById('checkoutForm');
-        if (checkoutForm) {
-            checkoutForm.addEventListener('submit', function (e) {
-                const method = (document.querySelector('input[name="odeme_yontemi"]:checked')
-                    || document.querySelector('input[name="odeme_yontemi"]'))?.value;
-                if (method === 'paytr') {
-                    e.preventDefault();
-                    submitPaytrDirect(this);
-                }
-            });
-        }
+        // PayTR: form normal POST edilir -> PaketController@paketOde ->
+        // PaymentDriverService -> createIframeToken -> barindirilan 3D Secure
+        // iframe'i (frontend.odeme.paytr.iframe).
+        //
+        // Direkt API (submitPaytrDirect) devre disi: PayTR /odeme ucu bu hesap
+        // icin istegi iFrame ("odeme spp") kuraliyla dogruluyor ve dokumandaki
+        // bicimi reddediyor ("paytr_token gonderilmedi veya gecersiz").
+        // Hesap Direkt API'ye aktiflesince asagidaki submitPaytrDirect()
+        // yeniden baglanarak kart saklama + 3D'siz tekrar cekim acilabilir.
     });
 
     function submitPaytrDirect(form) {
