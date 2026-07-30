@@ -380,11 +380,12 @@ class PaytrService
             return ['status' => 'failure', 'errorMessage' => 'Geçersiz ödeme tutarı.'];
         }
 
-        // Direkt API resmi doküman: payment_amount = TL, ondalık nokta, 2 hane (örn. "100.99" veya "1500.00")
-        // iFrame API kuruş (×100) kullanır — buraya karıştırma!
-        // @see https://dev.paytr.com/direkt-api/direkt-api-1-adim  POST: payment_amount (double)
-        // @see https://dev.paytr.com/direkt-api/kart-saklama-api/yeni-kart-ekleme
-        $paymentAmount = number_format($amountTl, 2, '.', '');
+        // PayTR /odeme ucu payment_amount'u KURUS INTEGER bekliyor (19.90 -> 1990).
+        // Ondalik TL string gonderildiginde "payment_amount degeri integer olmalidir"
+        // hatasi doner. Hash de ayni degeri kullanmali (asagida $paymentAmount).
+        // Sepetteki birim fiyat ise TL ondalik kalir ($basketUnitPrice).
+        $paymentAmount = (string) ((int) round($amountTl * 100));
+        $basketUnitPrice = number_format($amountTl, 2, '.', '');
         $merchantOid = (string) $payload['merchant_oid'];
         $email = $this->asciiEmail((string) ($payload['email'] ?? ''));
         $userIp = (string) ($payload['user_ip'] ?? request()->ip() ?? '127.0.0.1');
@@ -398,7 +399,8 @@ class PaytrService
         $basketName = $this->asciiSafe((string) ($payload['basket_name'] ?? 'Randevu Ajandam Uyelik'));
         // Direkt API resmi örnek: json_encode sepet (base64 YOK — base64 iFrame'e özel)
         // @see https://dev.paytr.com/direkt-api/direkt-api-1-adim PHP örneği
-        $userBasket = json_encode([[$basketName, $paymentAmount, 1]], JSON_UNESCAPED_UNICODE);
+        // Sepette birim fiyat TL ondalik; payment_amount ise kurus integer.
+        $userBasket = json_encode([[$basketName, $basketUnitPrice, 1]], JSON_UNESCAPED_UNICODE);
 
         $currency = 'TL';
         $testMode = $this->testMode ? '1' : '0';
@@ -450,6 +452,12 @@ class PaytrService
             // Resmi örnek: "100.99" — string, 2 ondalık (integer kuruş DEĞİL)
             'payment_amount' => $paymentAmount,
             'installment_count' => $installmentCount,
+            // PayTR /odeme ucu (odeme spp) bu iki alani da ZORUNLU istiyor.
+            // Hash'e GIRMEZLER (hash yalnizca installment_count kullanir); eksik
+            // olduklarinda "Zorunlu alan degeri gecersiz veya gonderilmedi
+            // (odeme spp): no_installment" hatasi doner.
+            'no_installment' => (string) ($payload['no_installment'] ?? '1'),
+            'max_installment' => (string) ($payload['max_installment'] ?? '0'),
             'currency' => $currency,
             'test_mode' => $testMode,
             'non_3d' => $non3d,
@@ -460,7 +468,9 @@ class PaytrService
             'user_phone' => $userPhone,
             'user_basket' => $userBasket,
             'debug_on' => $this->debugOn ? '1' : '0',
+            // Bu uc "lang" bekliyor; "client_lang" tek basina yeterli degil.
             'client_lang' => 'tr',
+            'lang' => 'tr',
             'paytr_token' => $paytrToken,
             'cc_owner' => $ccOwner,
             'card_number' => $cardNumber,
@@ -508,14 +518,47 @@ class PaytrService
                 return ['status' => 'failure', 'errorMessage' => $reason];
             }
 
-            // HTML = 3D Secure formu
-            if (str_contains($body, '<') && (str_contains($body, '<form') || str_contains($body, '<!DOCTYPE') || str_contains($body, '<html'))) {
+            // PayTR hata yanitini HTML sayfaya sarabiliyor (analytics/Cloudflare
+            // scriptleri + govdede JSON). Bunu 3DS formu sanip iframe'e basmak,
+            // kullaniciya bos acilip kapanan bir modal gosteriyor ve gercek
+            // sebebi gizliyordu. Once govdedeki JSON'u ara.
+            if (preg_match('/\{\s*"status"\s*:.*?\}/s', $body, $jm)) {
+                $inner = json_decode($jm[0], true);
+                if (is_array($inner)) {
+                    $st = (string) ($inner['status'] ?? '');
+                    if (in_array($st, ['success', 'wait_callback'], true)) {
+                        return [
+                            'status' => $st === 'wait_callback' ? 'wait_callback' : 'success',
+                            'utoken' => (string) ($inner['utoken'] ?? ''),
+                            'ctoken' => (string) ($inner['ctoken'] ?? ''),
+                        ];
+                    }
+                    $reason = (string) ($inner['reason'] ?? $inner['err_msg'] ?? 'PayTR odeme reddedildi.');
+                    Log::error('PayTR direct payment failed (HTML sarili JSON)', [
+                        'reason' => $reason,
+                        'merchant_oid' => $merchantOid,
+                        'amount' => $paymentAmount,
+                        'test_mode' => $testMode,
+                    ]);
+
+                    return ['status' => 'failure', 'errorMessage' => $reason];
+                }
+            }
+
+            // Gercek 3D Secure formu: icinde <form ve ACS'ye giden bir action olmali.
+            if (str_contains($body, '<form') && preg_match('/<form[^>]+action\s*=/i', $body)) {
                 return ['status' => '3d', 'html' => $body];
             }
 
-            Log::warning('PayTR direct unexpected response', ['merchant_oid' => $merchantOid, 'body' => substr($body, 0, 300)]);
+            Log::warning('PayTR direct: 3DS formu bekleniyordu, tanimlanamayan HTML geldi', [
+                'merchant_oid' => $merchantOid,
+                'body' => substr($body, 0, 500),
+            ]);
 
-            return ['status' => 'failure', 'errorMessage' => 'PayTR beklenmeyen yanıt döndürdü.'];
+            return [
+                'status' => 'failure',
+                'errorMessage' => 'PayTR 3D Secure formu dondurmedi. Yanit beklenmeyen bicimde.',
+            ];
         } catch (\Throwable $e) {
             Log::error('PayTR direct payment exception: '.$e->getMessage());
 
