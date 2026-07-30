@@ -8,6 +8,7 @@ use App\Models\Doktor;
 use App\Models\DoktorApiToken;
 use App\Models\DoktorDeviceToken;
 use App\Models\Hasta;
+use App\Notifications\MeslekBelgesiAdminBildirimi;
 use App\Services\AppointmentBookingService;
 use App\Services\TwoFactorService;
 use Carbon\Carbon;
@@ -308,6 +309,10 @@ class MobileDoctorController extends Controller
 
             return $doktor;
         });
+
+        if ($belgeRel && ($meslekDurum ?? '') === 'beklemede') {
+            MeslekBelgesiAdminBildirimi::notifyAdmin($doktor, 'mobil_kayit');
+        }
 
         $response = $this->authenticatedResponse($doktor, $data['device'] ?? 'mobile-register', $request->ip());
         $payload = $response->getData(true);

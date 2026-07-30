@@ -19,6 +19,7 @@ use App\Models\Unvan;
 use App\Rules\TcKimlikNo;
 use App\Services\Edevlet\BelgeDogrulamaService;
 use App\Services\Meslek\MeslekEslesmeService;
+use App\Notifications\MeslekBelgesiAdminBildirimi;
 use App\Services\PaymentDriverService;
 use App\Services\PaytrService;
 use App\Services\ReferansService;
@@ -730,6 +731,10 @@ class PaketController extends Controller
 
         session()->forget(['kayit_paket_id', 'kayit_periyot', 'mezuniyet_dogrulama', 'mezuniyet_dogrulama_list']);
 
+        if ($belgeRel && ($meslekDurum ?? '') === 'beklemede') {
+            MeslekBelgesiAdminBildirimi::notifyAdmin($doktor, 'kayit');
+        }
+
         MetaPixel::queueOnce(
             'complete_reg_hekim_'.$doktor->id,
             'CompleteRegistration',
@@ -875,6 +880,8 @@ class PaketController extends Controller
             'meslek_dogrulandi_at' => null,
             'meslek_dogrulayan_yonetici_id' => null,
         ])->save();
+
+        MeslekBelgesiAdminBildirimi::notifyAdmin($doktor->fresh() ?? $doktor, 'yenile');
 
         return back()->with('basarili', 'Belgeleriniz yeniden gönderildi. İnceleme sonrası bilgilendirileceksiniz.');
     }

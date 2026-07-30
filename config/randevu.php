@@ -30,4 +30,11 @@ return [
     */
     'manage_token_max_attempts' => (int) env('RANDEVU_MANAGE_TOKEN_MAX', 20),
     'manage_token_decay_seconds' => (int) env('RANDEVU_MANAGE_TOKEN_DECAY', 60),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Meslek belgesi yüklendiğinde bilgilendirilecek admin (yalnızca bu adres)
+    |--------------------------------------------------------------------------
+    */
+    'meslek_admin_email' => env('MESLEK_ADMIN_EMAIL', 'ozcetinbektas@gmail.com'),
 ];
