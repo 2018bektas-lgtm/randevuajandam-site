@@ -1,7 +1,7 @@
-﻿@extends('hekim.layout')
+@extends('hekim.layout')
 
-@section('baslik', 'Hizmet DÃ¼zenle - Hekim Paneli')
-@section('sayfa_baslik', 'Hizmet DÃ¼zenle')
+@section('baslik', 'Hizmet Düzenle - Hekim Paneli')
+@section('sayfa_baslik', 'Hizmet Düzenle')
 
 @section('icerik')
 <div class="mb-6">
@@ -9,7 +9,7 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"></path>
         </svg>
-        Hizmetlere Geri DÃ¶n
+        Hizmetlere Geri Dön
     </a>
 </div>
 
@@ -23,26 +23,26 @@
             <div class="md:col-span-2 space-y-6">
                 <!-- Service Name -->
                 <div class="space-y-1.5">
-                    <label for="ad" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet / Tedavi AdÄ±</label>
-                    <input type="text" name="ad" id="ad" value="{{ old('ad', $hizmet->ad) }}" required placeholder="Ã–rn: DetaylÄ± Kardiyoloji Muayenesi..."
+                    <label for="ad" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet / Tedavi Adı</label>
+                    <input type="text" name="ad" id="ad" value="{{ old('ad', $hizmet->ad) }}" required placeholder="Örn: Detaylı Kardiyoloji Muayenesi..."
                            class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                 </div>
 
                 <!-- Description -->
                 <div class="space-y-1.5">
-                    <label for="aciklama" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet AÃ§Ä±klamasÄ± / Detaylar</label>
-                    <textarea name="aciklama" id="aciklama" rows="10" placeholder="Hizmetin kapsamÄ±, aÅŸamalarÄ± ve hazÄ±rlÄ±k sÃ¼reci hakkÄ±nda bilgi girin..."
+                    <label for="aciklama" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet Açıklaması / Detaylar</label>
+                    <textarea name="aciklama" id="aciklama" rows="10" placeholder="Hizmetin kapsamı, aşamaları ve hazırlık süreci hakkında bilgi girin..."
                               class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">{{ old('aciklama', $hizmet->aciklama) }}</textarea>
                 </div>
             </div>
 
             <!-- Right Column: Settings & SEO -->
             <div class="space-y-6">
-                <!-- YayÄ±n Durumu (iOS style toggle) -->
+                <!-- Yayın Durumu (iOS style toggle) -->
                 <div class="space-y-1.5 flex items-center justify-between p-4.5 rounded-xl bg-slate-50 border border-slate-100">
                     <div class="max-w-[150px]">
                         <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet Durumu</label>
-                        <span class="text-[9px] text-[#6B7280]">Hastalar bu hizmet iÃ§in randevu alabilsin mi?</span>
+                        <span class="text-[9px] text-[#6B7280]">Hastalar bu hizmet için randevu alabilsin mi?</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer select-none">
                         <input type="checkbox" name="aktif_mi" id="aktif_mi" value="1" class="sr-only peer" {{ old('aktif_mi', $hizmet->aktif_mi) ? 'checked' : '' }}>
@@ -52,16 +52,16 @@
 
                 <!-- Kapak Resmi -->
                 <div class="space-y-1.5">
-                    <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet GÃ¶rseli</label>
+                    <label class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet Görseli</label>
                     <div class="flex flex-col items-center gap-4">
                         <!-- Image Preview Frame -->
                         <div class="w-full h-44 bg-slate-50 rounded-2xl border border-dashed border-[#E5E7EB] flex items-center justify-center overflow-hidden relative group">
-                            <img id="previewBlogImage" src="{{ $hizmet->resim_url ?? '' }}" alt="Ã–nizleme" class="w-full h-full object-cover {{ $hizmet->resim_url ? '' : 'hidden' }}">
+                            <img id="previewBlogImage" src="{{ $hizmet->resim_url ?? '' }}" alt="Önizleme" class="w-full h-full object-cover {{ $hizmet->resim_url ? '' : 'hidden' }}">
                             <div id="uploadPlaceholder" class="text-center p-6 flex flex-col items-center gap-1.5 cursor-pointer {{ $hizmet->resim_url ? 'hidden' : '' }}" onclick="document.getElementById('resim').click()">
                                 <svg class="w-8 h-8 text-slate-400 group-hover:text-[#C96A2B] transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span class="block text-xs font-semibold text-slate-500 font-display">Resim SeÃ§in</span>
+                                <span class="block text-xs font-semibold text-slate-500 font-display">Resim Seçin</span>
                                 <span class="block text-[9px] text-slate-400">JPG, PNG, WEBP veya GIF (Maks. 10MB)</span>
                             </div>
                             <button type="button" class="absolute right-3 top-3 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-lg text-xs {{ $hizmet->resim_url ? '' : 'hidden' }}" id="removeImageBtn" onclick="clearSelectedImage()">
@@ -72,13 +72,13 @@
                         </div>
                         <input type="file" name="resim" id="resim" accept="image/*" class="hidden" onchange="previewBlogImageHandler(this)">
                         <input type="hidden" name="resim_sil" id="resim_sil" value="0">
-                        <p class="text-[9px] text-slate-400 text-center">KaldÄ±rmak iÃ§in Ã— â€” ardÄ±ndan kaydet.</p>
+                        <p class="text-[9px] text-slate-400 text-center">Kaldırmak için × — ardından kaydet.</p>
                     </div>
                 </div>
 
-                <!-- SÃ¼re -->
+                <!-- Süre -->
                 <div class="space-y-1.5">
-                    <label for="sure" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet SÃ¼resi (Dakika)</label>
+                    <label for="sure" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet Süresi (Dakika)</label>
                     <div class="relative rounded-xl shadow-sm">
                         <input type="number" name="sure" id="sure" value="{{ old('sure', $hizmet->sure) }}" required min="1" max="1440" placeholder="30"
                                class="w-full pl-3.5 pr-12 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
@@ -90,7 +90,7 @@
 
                 <!-- Fiyat -->
                 <div class="space-y-1.5">
-                    <label for="fiyat" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet Ãœcreti (Gizli tutulacaktÄ±r)</label>
+                    <label for="fiyat" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hizmet Ücreti (Gizli tutulacaktır)</label>
                     <div class="relative rounded-xl shadow-sm">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span class="text-xs text-gray-400 font-semibold">â‚º</span>
@@ -98,7 +98,7 @@
                         <input type="number" name="fiyat" id="fiyat" value="{{ old('fiyat', $hizmet->fiyat) }}" step="0.01" min="0" placeholder="0.00"
                                class="w-full pl-8 pr-3 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                     </div>
-                    <span class="text-[9px] text-gray-400">Bu fiyat sadece sizin panelinizde gÃ¶rÃ¼necektir. ZiyaretÃ§ilere gÃ¶sterilmez.</span>
+                    <span class="text-[9px] text-gray-400">Bu fiyat sadece sizin panelinizde görünecektir. Ziyaretçilere gösterilmez.</span>
                 </div>
 
                 <!-- SEO Section -->
@@ -107,20 +107,20 @@
                         <svg class="w-4 h-4 shrink-0 text-[#C96A2B]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        <span class="text-xs font-bold font-display text-[#111827] uppercase tracking-wider">SEO AyarlarÄ±</span>
+                        <span class="text-xs font-bold font-display text-[#111827] uppercase tracking-wider">SEO Ayarları</span>
                     </div>
                     
-                    <!-- Meta BaÅŸlÄ±k -->
+                    <!-- Meta Başlık -->
                     <div class="space-y-1.5">
-                        <label for="meta_baslik" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Meta BaÅŸlÄ±k (Title)</label>
-                        <input type="text" name="meta_baslik" id="meta_baslik" value="{{ old('meta_baslik', $hizmet->meta_baslik) }}" placeholder="Arama motoru baÅŸlÄ±ÄŸÄ±..."
+                        <label for="meta_baslik" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Meta Başlık (Title)</label>
+                        <input type="text" name="meta_baslik" id="meta_baslik" value="{{ old('meta_baslik', $hizmet->meta_baslik) }}" placeholder="Arama motoru başlığı..."
                                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
                     </div>
 
-                    <!-- Meta AÃ§Ä±klama -->
+                    <!-- Meta Açıklama -->
                     <div class="space-y-1.5">
-                        <label for="meta_aciklama" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Meta AÃ§Ä±klama (Description)</label>
-                        <textarea name="meta_aciklama" id="meta_aciklama" rows="3" placeholder="Hizmetin kÄ±sa arama sonucu Ã¶zeti..."
+                        <label for="meta_aciklama" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Meta Açıklama (Description)</label>
+                        <textarea name="meta_aciklama" id="meta_aciklama" rows="3" placeholder="Hizmetin kısa arama sonucu özeti..."
                                   class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all resize-none">{{ old('meta_aciklama', $hizmet->meta_aciklama) }}</textarea>
                     </div>
 
@@ -138,7 +138,7 @@
                             <input type="text" id="tagInput" placeholder="Kelime ekleyin..." 
                                    class="flex-grow bg-transparent border-0 focus:border-0 focus:ring-0 focus:ring-offset-0 focus:outline-none outline-none ring-0 text-xs py-0.5 placeholder-gray-400 min-w-[120px] shadow-none focus:shadow-none">
                         </div>
-                        <span class="text-[9px] text-gray-400">Kelime yazÄ±p <strong>Enter</strong> veya <strong>VirgÃ¼l (,)</strong> tuÅŸuna basarak ekleyin.</span>
+                        <span class="text-[9px] text-gray-400">Kelime yazıp <strong>Enter</strong> veya <strong>Virgül (,)</strong> tuşuna basarak ekleyin.</span>
                     </div>
                 </div>
             </div>
@@ -148,11 +148,11 @@
         <div class="flex justify-end gap-3.5 pt-4 border-t border-[#E5E7EB]">
             <a href="{{ route('hekim.hizmetler.index') }}" 
                class="px-6 py-3 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#6B7280] font-bold text-xs uppercase tracking-wider transition-all font-display text-center select-none shadow-sm cursor-pointer">
-                VazgeÃ§
+                Vazgeç
             </a>
             <button type="submit" 
                     class="px-8 py-3 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
-                DeÄŸiÅŸiklikleri Kaydet
+                Değişiklikleri Kaydet
             </button>
         </div>
     </form>
