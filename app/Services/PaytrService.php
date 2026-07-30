@@ -380,12 +380,11 @@ class PaytrService
             return ['status' => 'failure', 'errorMessage' => 'Geçersiz ödeme tutarı.'];
         }
 
-        // PayTR /odeme ucu payment_amount'u KURUS INTEGER bekliyor (19.90 -> 1990).
-        // Ondalik TL string gonderildiginde "payment_amount degeri integer olmalidir"
-        // hatasi doner. Hash de ayni degeri kullanmali (asagida $paymentAmount).
-        // Sepetteki birim fiyat ise TL ondalik kalir ($basketUnitPrice).
-        $paymentAmount = (string) ((int) round($amountTl * 100));
-        $basketUnitPrice = number_format($amountTl, 2, '.', '');
+        // Direkt API resmi doküman: payment_amount = TL, ondalık nokta, 2 hane
+        // (örn. "100.99"). iFrame API kuruş (×100) kullanır — karıştırma.
+        // @see https://dev.paytr.com/direkt-api/direkt-api-1-adim
+        $paymentAmount = number_format($amountTl, 2, '.', '');
+        $basketUnitPrice = $paymentAmount;
         $merchantOid = (string) $payload['merchant_oid'];
         $email = $this->asciiEmail((string) ($payload['email'] ?? ''));
         $userIp = (string) ($payload['user_ip'] ?? request()->ip() ?? '127.0.0.1');
@@ -452,12 +451,6 @@ class PaytrService
             // Resmi örnek: "100.99" — string, 2 ondalık (integer kuruş DEĞİL)
             'payment_amount' => $paymentAmount,
             'installment_count' => $installmentCount,
-            // PayTR /odeme ucu (odeme spp) bu iki alani da ZORUNLU istiyor.
-            // Hash'e GIRMEZLER (hash yalnizca installment_count kullanir); eksik
-            // olduklarinda "Zorunlu alan degeri gecersiz veya gonderilmedi
-            // (odeme spp): no_installment" hatasi doner.
-            'no_installment' => (string) ($payload['no_installment'] ?? '1'),
-            'max_installment' => (string) ($payload['max_installment'] ?? '0'),
             'currency' => $currency,
             'test_mode' => $testMode,
             'non_3d' => $non3d,
@@ -468,9 +461,7 @@ class PaytrService
             'user_phone' => $userPhone,
             'user_basket' => $userBasket,
             'debug_on' => $this->debugOn ? '1' : '0',
-            // Bu uc "lang" bekliyor; "client_lang" tek basina yeterli degil.
             'client_lang' => 'tr',
-            'lang' => 'tr',
             'paytr_token' => $paytrToken,
             'cc_owner' => $ccOwner,
             'card_number' => $cardNumber,
