@@ -62,7 +62,7 @@
         <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
             <p class="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">Toplam Borç</p>
             <p class="text-2xl font-bold text-[#111827] mt-1.5">{{ number_format($toplamBorc, 2, ',', '.') }} ₺</p>
-            <p class="text-[10px] text-[#9CA3AF] mt-1">Açık faturalar toplamı</p>
+            <p class="text-[10px] text-[#9CA3AF] mt-1">Tüm faturalar toplamı</p>
         </div>
         <div class="p-5 rounded-2xl bg-white border border-emerald-100 shadow-sm bg-emerald-50/30">
             <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-500">Ödenen</p>

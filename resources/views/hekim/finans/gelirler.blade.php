@@ -236,6 +236,18 @@
                                     </select>
                                 </div>
                             </div>
+                            {{-- Seçilen hastanın açık faturası varsa: tahsilat mı, yeni borç mu? --}}
+                            <div id="add_tahsilat_wrap" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
+                                <p class="text-xs font-bold text-amber-800 uppercase tracking-wider">Bu hastanın açık borcu var</p>
+                                <label class="block text-xs font-semibold text-[#4B5563] mb-1.5">Kayıt tipi</label>
+                                <select name="tahsilat_odeme_id" id="add_tahsilat_odeme_id" class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-white">
+                                    <option value="">Yeni borç / hizmet kaydı oluştur</option>
+                                </select>
+                                <p class="text-[11px] text-amber-700">
+                                    Tahsilat seçerseniz yeni borç açılmaz; tutar seçtiğiniz faturanın kalanından düşer.
+                                </p>
+                            </div>
+
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Hizmet (Opsiyonel)</label>
                                 <select name="hizmet_id" id="add_hizmet_id" class="select2-modal w-full">
@@ -524,6 +536,33 @@
             document.getElementById('kalemler-' + odemeId).classList.toggle('hidden');
         }
 
+        // Gelir formu: seçilen hastanın açık faturaları varsa tahsilat seçeneği sun.
+        // Böylece tahsilatlar yeni borç satırı olarak yazılmaz.
+        const ACIK_FATURALAR = @json($acikFaturalar ?? []);
+
+        function tahsilatSecenekleriniGuncelle(hastaId) {
+            const wrap = document.getElementById('add_tahsilat_wrap');
+            const sel = document.getElementById('add_tahsilat_odeme_id');
+            if (!wrap || !sel) return;
+
+            const liste = ACIK_FATURALAR[hastaId] || [];
+            sel.innerHTML = '<option value="">Yeni borç / hizmet kaydı oluştur</option>';
+
+            if (!hastaId || liste.length === 0) {
+                wrap.classList.add('hidden');
+                return;
+            }
+
+            liste.forEach(function (f) {
+                const kalan = Number(f.kalan).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+                const opt = document.createElement('option');
+                opt.value = f.id;
+                opt.textContent = 'Tahsilat: ' + f.etiket + ' — kalan ' + kalan + ' ₺';
+                sel.appendChild(opt);
+            });
+            wrap.classList.remove('hidden');
+        }
+
         $(document).ready(function () {
             $('.select2-filter').select2({
                 placeholder: 'Seçiniz...',
@@ -535,6 +574,17 @@
                 placeholder: 'Hasta ara veya seçin...',
                 allowClear: true,
                 language: { noResults: function() { return 'Hasta bulunamadı'; } }
+            });
+
+            // Gelir ekleme formunda hasta değişince tahsilat seçeneklerini yenile.
+            $(document).on('change', '#add_hasta_id', function () {
+                tahsilatSecenekleriniGuncelle($(this).val());
+            });
+
+            // Tahsilat seçildiğinde "ilk ödeme" alanı anlamsız — kilitle.
+            $(document).on('change', '#add_tahsilat_odeme_id', function () {
+                const tahsilatMi = !!$(this).val();
+                $('input[name="ilk_odeme_tutar"]').prop('disabled', tahsilatMi).val('');
             });
         });
     </script>

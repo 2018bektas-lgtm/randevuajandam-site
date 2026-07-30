@@ -199,7 +199,26 @@ class HekimFinansController extends Controller
         $hizmetler = $doktor->hizmetler;
         $gelirKategorileri = $doktor->finansKategoriler()->gelir()->aktif()->orderBy('ad')->get();
 
-        return view('hekim.finans.gelirler', compact('doktor', 'odemeler', 'hastalar', 'hizmetler', 'gelirKategorileri'));
+        // Gelir formunda "mevcut borçtan tahsilat" seçeneği için: hasta başına açık faturalar.
+        $acikFaturalar = $doktor->odemeler()
+            ->whereIn('durum', ['beklemede', 'kismi_odeme'])
+            ->whereNotNull('hasta_id')
+            ->with('hizmet:id,ad')
+            ->orderBy('odeme_tarihi')
+            ->get()
+            ->groupBy('hasta_id')
+            ->map(fn ($grup) => $grup->map(fn ($o) => [
+                'id' => $o->id,
+                'kalan' => round((float) $o->tutar - (float) $o->odenen_tutar, 2),
+                'etiket' => trim(
+                    ($o->hizmet->ad ?? ($o->aciklama ?: 'Fatura'))
+                    .' · '.($o->odeme_tarihi?->format('d.m.Y') ?? '')
+                ),
+            ])->values());
+
+        return view('hekim.finans.gelirler', compact(
+            'doktor', 'odemeler', 'hastalar', 'hizmetler', 'gelirKategorileri', 'acikFaturalar'
+        ));
     }
 
     /**
@@ -220,10 +239,43 @@ class HekimFinansController extends Controller
             // İlk ödeme kalemi
             'ilk_odeme_tutar' => 'nullable|numeric|min:0',
             'ilk_odeme_yontemi' => 'required|in:nakit,kredi_karti,havale,online',
+            // Doluysa: yeni borç açma, mevcut açık faturaya tahsilat işle.
+            'tahsilat_odeme_id' => 'nullable|integer',
         ], [
             'tutar.required' => 'Toplam tutar zorunludur.',
             'odeme_tarihi.required' => 'Tarih zorunludur.',
         ]);
+
+        // Mevcut borçtan tahsilat — yeni borç satırı AÇMAZ.
+        // (Bu yol olmadığında tahsilatlar ayrı "gelir" satırı olarak yazılıyor
+        //  ve hastanın toplam borcunu şişiriyordu.)
+        if (! empty($validated['tahsilat_odeme_id'])) {
+            $odeme = $doktor->odemeler()->findOrFail($validated['tahsilat_odeme_id']);
+
+            if (in_array($odeme->durum, ['iptal', 'odendi'], true)) {
+                throw ValidationException::withMessages([
+                    'tahsilat_odeme_id' => 'Bu fatura tahsilata kapalı (ödendi veya iptal).',
+                ]);
+            }
+
+            $kalan = max(0, (float) $odeme->tutar - (float) $odeme->odenen_tutar);
+            if ((float) $validated['tutar'] > $kalan + 0.001) {
+                throw ValidationException::withMessages([
+                    'tutar' => 'Tahsilat tutarı kalan bakiyeden ('.number_format($kalan, 2, ',', '.').' ₺) büyük olamaz.',
+                ]);
+            }
+
+            $odeme->kalemler()->create([
+                'tutar' => $validated['tutar'],
+                'tarih' => $validated['odeme_tarihi'],
+                'odeme_yontemi' => $validated['ilk_odeme_yontemi'],
+                'not' => $validated['aciklama'] ?? 'Tahsilat',
+            ]);
+            $odeme->odenenTutariGuncelle();
+
+            return redirect()->route('hekim.finans.gelirler')
+                ->with('basarili', 'Tahsilat mevcut faturaya işlendi. Kalan bakiye güncellendi.');
+        }
 
         $ilkOdemeTutar = (float) ($request->ilk_odeme_tutar ?? 0);
         $durum = 'beklemede';
@@ -468,9 +520,10 @@ class HekimFinansController extends Controller
         $hastalar = $hastalarQuery->get()
             ->map(function ($hasta) use ($doktor) {
                 $odemeler = $hasta->odemeler()->where('doktor_id', $doktor->id)->get();
-                $aciklar  = $odemeler->whereIn('durum', ['beklemede', 'kismi_odeme']);
-                $hasta->toplam_borc   = (float) $aciklar->sum('tutar');
-                $hasta->toplam_odenen = (float) $odemeler->where('durum', '!=', 'iptal')->sum('odenen_tutar');
+                // hastaHesap() ile aynı kapsam — aksi halde liste ve detay farklı bakiye gösterir.
+                $aktif = $odemeler->where('durum', '!=', 'iptal');
+                $hasta->toplam_borc   = (float) $aktif->sum('tutar');
+                $hasta->toplam_odenen = (float) $aktif->sum('odenen_tutar');
                 $hasta->kalan_bakiye  = $hasta->toplam_borc - $hasta->toplam_odenen;
 
                 return $hasta;
@@ -510,9 +563,13 @@ class HekimFinansController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $aciklar      = $odemeler->whereIn('durum', ['beklemede', 'kismi_odeme']);
-        $toplamBorc   = (float) $aciklar->sum('tutar');
-        $toplamOdenen = (float) $odemeler->where('durum', '!=', 'iptal')->sum('odenen_tutar');
+        // Cari hesap: tüm aktif faturaların borcu ve tahsilatı aynı kapsamda olmalı.
+        // (Önceden toplamBorc yalnızca açık faturaları, toplamOdenen ise tüm
+        // ödemeleri sayıyordu; farklı kapsamların çıkarılması negatif bakiye
+        // üretiyor ve borçlu hasta "Borcu yok" görünüyordu.)
+        $aktif        = $odemeler->where('durum', '!=', 'iptal');
+        $toplamBorc   = (float) $aktif->sum('tutar');
+        $toplamOdenen = (float) $aktif->sum('odenen_tutar');
         $kalanBakiye  = $toplamBorc - $toplamOdenen;
 
         $acikFaturalar = $odemeler
