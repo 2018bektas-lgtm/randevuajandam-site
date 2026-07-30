@@ -496,7 +496,9 @@ class YonetimController extends Controller
         $data['paytr_aktif']  = $paytrAktif;
         $data['iyzico_aktif'] = $iyzicoAktif;
         $data['havale_aktif'] = $havaleAktif;
-        // Geriye dönük alanlar
+        // Geriye dönük (legacy) alanlar — bazı kurulumlarda bu kolonlar yok.
+        // Aşağıda şemaya göre süzülür; koşulsuz yazmak "Unknown column" hatasıyla
+        // ödeme ayarlarının hiç kaydedilememesine yol açıyordu.
         $data['iyzico_enabled']  = $iyzicoAktif;
         $data['odeme_saglayici'] = $iyzicoAktif && ! $paytrAktif ? 'iyzico' : 'paytr';
 
@@ -517,6 +519,14 @@ class YonetimController extends Controller
                 $data[$field] = $value;
             }
         }
+
+        // Şemada olmayan alanları düş (legacy kurulum farkları).
+        $tablo = $ayarlar->getTable();
+        $data = array_filter(
+            $data,
+            fn ($_, $kolon) => Schema::hasColumn($tablo, $kolon),
+            ARRAY_FILTER_USE_BOTH
+        );
 
         $ayarlar->update($data);
 
