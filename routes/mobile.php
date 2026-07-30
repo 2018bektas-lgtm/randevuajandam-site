@@ -53,6 +53,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/calendar/ical', [MobileDoctorController::class, 'ical']);
             Route::get('/package-features', [MobileDoctorController::class, 'packageFeatures']);
             Route::get('/packages', [MobileDoctorController::class, 'packages']);
+            Route::get('/subscription', [MobileDoctorController::class, 'subscription']);
+            Route::post('/subscription/cancel', [MobileDoctorController::class, 'cancelSubscription']);
             Route::get('/referral', [MobileDoctorPortalController::class, 'referral']);
             Route::put('/password', [MobileDoctorPortalController::class, 'updatePassword']);
             Route::get('/about', [MobileDoctorPortalController::class, 'about']);
@@ -60,6 +62,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/website', [MobileDoctorPortalController::class, 'website']);
             Route::post('/website/setup', [MobileDoctorPortalController::class, 'websiteSetup']);
             Route::post('/website/api-key', [MobileDoctorPortalController::class, 'websiteRegenerateApiKey']);
+            Route::post('/website/domain/check', [MobileDoctorPortalController::class, 'websiteDomainCheck']);
+            Route::post('/website/domain/claim', [MobileDoctorPortalController::class, 'websiteDomainClaim']);
+            Route::post('/website/dns-verify', [MobileDoctorPortalController::class, 'websiteDnsVerify']);
             Route::put('/website/platform-visibility', [MobileDoctorPortalController::class, 'websitePlatformVisibility']);
             Route::get('/dashboard', [MobileDoctorPortalController::class, 'dashboard']);
 
@@ -119,12 +124,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/clinic/appointments/{id}/status', [MobileDoctorClinicController::class, 'updateAppointmentStatus'])->whereNumber('id');
             Route::post('/clinic/appointments/{id}/reschedule', [MobileDoctorClinicController::class, 'rescheduleAppointment'])->whereNumber('id');
             Route::post('/clinic/staff/{id}/reset-password', [MobileDoctorClinicController::class, 'resetStaffPassword'])->whereNumber('id');
+            Route::get('/clinic/doctors/{id}', [MobileDoctorClinicController::class, 'showDoctor'])->whereNumber('id');
             Route::put('/clinic/doctors/{id}', [MobileDoctorClinicController::class, 'updateDoctor'])->whereNumber('id');
+            Route::post('/clinic/doctors/{id}/appointment-settings', [MobileDoctorClinicController::class, 'updateDoctorAppointmentSettings'])->whereNumber('id');
             Route::put('/clinic/patients/{id}/note', [MobileDoctorClinicController::class, 'updateClinicPatientNote'])->whereNumber('id');
             Route::get('/clinic/patients/{id}', [MobileDoctorClinicController::class, 'showPatient'])->whereNumber('id');
             Route::get('/clinic/finance/overview', [MobileDoctorClinicController::class, 'financeOverview']);
             Route::post('/clinic/settings/logo', [MobileDoctorClinicController::class, 'uploadLogo']);
             Route::get('/clinic/doctors/working-hours', [MobileDoctorClinicController::class, 'doctorsWorkingHours']);
+            Route::get('/clinic/seats', [MobileDoctorClinicController::class, 'seats']);
 
             // Appointments & calendar
             Route::get('/appointments', [MobileDoctorController::class, 'appointments']);

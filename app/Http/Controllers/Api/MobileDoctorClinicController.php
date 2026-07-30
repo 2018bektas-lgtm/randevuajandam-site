@@ -87,7 +87,7 @@ class MobileDoctorClinicController extends Controller
         $doktor = $this->doktor($request);
         $klinik = $this->klinikOrFail($doktor);
 
-        $doctors = $klinik->doktorlar()->with(['branslar:id,ad', 'calismaSaatleri'])->get()->map(fn ($d) => [
+        $doctors = $klinik->doktorlar()->with(['branslar:id,ad', 'calismaSaatleri', 'randevuAyari'])->get()->map(fn ($d) => [
             'id' => $d->id,
             'ad_soyad' => $d->ad_soyad,
             'unvan' => $d->unvan,
@@ -97,6 +97,11 @@ class MobileDoctorClinicController extends Controller
             'komisyon_orani' => $d->komisyon_orani ?? null,
             'aktif_mi' => (bool) $d->aktif_mi,
             'klinik_aktif_mi' => (bool) ($d->klinik_aktif_mi ?? true),
+            'randevu_ayari' => $d->randevuAyari ? [
+                'aktif_mi' => (bool) $d->randevuAyari->aktif_mi,
+                'online_randevu_aktif' => (bool) ($d->randevuAyari->online_randevu_aktif ?? true),
+                'yuzyuze_randevu_aktif' => (bool) ($d->randevuAyari->yuzyuze_randevu_aktif ?? true),
+            ] : null,
             'branslar' => $d->branslar->pluck('ad')->values(),
             'calisma_saatleri' => $d->calismaSaatleri
                 ->sortBy('gun')
@@ -1399,6 +1404,186 @@ class MobileDoctorClinicController extends Controller
                 'id' => $doc->id,
                 'klinik_rolu' => $doc->klinik_rolu,
                 'komisyon_orani' => $doc->komisyon_orani,
+            ],
+        ]);
+    }
+
+    /**
+     * Ek hekim koltuğu durumu ve birim fiyat.
+     * Web paneli karşılığı: hekim.klinik.ek-koltuk (form).
+     *
+     * Satın alma PayTR kartlı ödeme akışıdır ve web panelinde tamamlanır;
+     * mobil yalnızca durumu gösterir ve web akışına yönlendirir.
+     */
+    public function seats(Request $request): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $this->requireOwner($doktor);
+        $klinik = $this->klinikOrFail($doktor);
+
+        $paket = $klinik->paket;
+        if (! $paket) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Klinik paket bilgisi bulunamadı.',
+            ], 422);
+        }
+
+        $periyot = $klinik->odeme_periyodu ?? 'aylik';
+        $birimFiyat = $periyot === 'yillik'
+            ? (float) ($paket->ek_doktor_yillik_fiyat ?? 10000)
+            : (float) ($paket->ek_doktor_aylik_fiyat ?? 1000);
+
+        $kullanilan = $klinik->doktorlar()->count();
+        $dahil = method_exists($klinik, 'dahilDoktorLimiti') ? (int) $klinik->dahilDoktorLimiti() : null;
+        $toplam = method_exists($klinik, 'efektifDoktorLimiti') ? (int) $klinik->efektifDoktorLimiti() : null;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'paket_ad' => $paket->ad,
+                'periyot' => $periyot,
+                'periyot_label' => $periyot === 'yillik' ? 'Yıllık' : 'Aylık',
+                'birim_fiyat' => $birimFiyat,
+                'kullanilan_koltuk' => $kullanilan,
+                'pakete_dahil_koltuk' => $dahil,
+                'ek_koltuk' => (int) ($klinik->ek_doktor_koltuk_sayisi ?? 0),
+                'toplam_koltuk' => $toplam,
+                'bos_koltuk' => $toplam !== null ? max(0, $toplam - $kullanilan) : null,
+                'limit_doldu_mu' => method_exists($klinik, 'doktorLimitiDolduMu')
+                    ? (bool) $klinik->doktorLimitiDolduMu()
+                    : false,
+                'uyelik_bitis' => $klinik->uyelik_bitis?->toDateString(),
+                'kalan_gun' => $klinik->uyelik_bitis
+                    ? (int) max(0, now()->diffInDays($klinik->uyelik_bitis, false))
+                    : 0,
+                // Satın alma web panelinde tamamlanır (PayTR kartlı ödeme).
+                'satin_alma_url' => url('/hekim/klinik/ek-koltuk'),
+            ],
+        ]);
+    }
+
+    /**
+     * Klinik hekim detayı: bu ay randevu/gelir, son randevular, 6 aylık gelir serisi.
+     * Web paneli karşılığı: hekim.klinik.doktorlar.detay
+     */
+    public function showDoctor(Request $request, int $id): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        // Hekim başına gelir içerir; web panelinde klinik.yetki:hekim_yonetimi arkasında.
+        $this->requireOwner($doktor);
+        $klinik = $this->klinikOrFail($doktor);
+        $doc = $klinik->doktorlar()->with(['branslar:id,ad', 'randevuAyari'])->findOrFail($id);
+
+        $buAyRandevuSayisi = $doc->randevular()
+            ->whereMonth('tarih', now()->month)
+            ->whereYear('tarih', now()->year)
+            ->where('durum', '!=', 'iptal')
+            ->count();
+
+        $buAyGelir = (float) $doc->odemeler()
+            ->whereMonth('odeme_tarihi', now()->month)
+            ->whereYear('odeme_tarihi', now()->year)
+            ->where('durum', '!=', 'iptal')
+            ->sum('odenen_tutar');
+
+        $sonRandevular = $doc->randevular()
+            ->with(['hasta:id,ad,soyad,telefon', 'hizmet:id,ad'])
+            ->orderBy('tarih', 'desc')
+            ->orderBy('saat', 'desc')
+            ->take(10)
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'tarih' => $r->tarih instanceof \DateTimeInterface ? $r->tarih->format('Y-m-d') : (string) $r->tarih,
+                'saat' => substr((string) $r->saat, 0, 5),
+                'durum' => $r->durum,
+                'hasta_adi' => trim(($r->hasta->ad ?? $r->ad).' '.($r->hasta->soyad ?? $r->soyad)),
+                'telefon' => $r->hasta->telefon ?? $r->telefon,
+                'hizmet' => $r->hizmet?->ad,
+            ]);
+
+        $gelirSerisi = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $gelirSerisi[] = [
+                'ay' => $date->translatedFormat('F Y'),
+                'tutar' => (float) $doc->odemeler()
+                    ->whereMonth('odeme_tarihi', $date->month)
+                    ->whereYear('odeme_tarihi', $date->year)
+                    ->where('durum', '!=', 'iptal')
+                    ->sum('odenen_tutar'),
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $doc->id,
+                'ad_soyad' => $doc->ad_soyad,
+                'unvan' => $doc->unvan,
+                'e_posta' => $doc->e_posta,
+                'telefon' => $doc->telefon,
+                'rol' => $doc->klinik_rolu,
+                'komisyon_orani' => $doc->komisyon_orani ?? null,
+                'klinik_aktif_mi' => (bool) ($doc->klinik_aktif_mi ?? true),
+                'branslar' => $doc->branslar->pluck('ad')->values(),
+                'randevu_ayari' => $doc->randevuAyari ? [
+                    'aktif_mi' => (bool) $doc->randevuAyari->aktif_mi,
+                    'online_randevu_aktif' => (bool) ($doc->randevuAyari->online_randevu_aktif ?? true),
+                    'yuzyuze_randevu_aktif' => (bool) ($doc->randevuAyari->yuzyuze_randevu_aktif ?? true),
+                ] : null,
+                'stats' => [
+                    'bu_ay_randevu' => $buAyRandevuSayisi,
+                    'bu_ay_gelir' => $buAyGelir,
+                ],
+                'son_randevular' => $sonRandevular,
+                'gelir_serisi' => $gelirSerisi,
+            ],
+        ]);
+    }
+
+    /**
+     * Klinik sahibi: üye hekimin randevu kabul bayraklarını günceller.
+     * Web paneli karşılığı: hekim.klinik.doktorlar.randevu-ayarlar
+     */
+    public function updateDoctorAppointmentSettings(Request $request, int $id): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $this->requireOwner($doktor);
+        $klinik = $this->klinikOrFail($doktor);
+        $doc = $klinik->doktorlar()->findOrFail($id);
+
+        $ayarlar = $doc->randevuAyari;
+        if (! $ayarlar) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu hekime ait randevu ayarı bulunamadı.',
+            ], 404);
+        }
+
+        $data = $request->validate([
+            'aktif_mi' => ['required', 'boolean'],
+            'online_randevu_aktif' => ['required', 'boolean'],
+            'yuzyuze_randevu_aktif' => ['required', 'boolean'],
+        ]);
+
+        $ayarlar->update([
+            'aktif_mi' => (bool) $data['aktif_mi'],
+            'online_randevu_aktif' => (bool) $data['online_randevu_aktif'],
+            'yuzyuze_randevu_aktif' => (bool) $data['yuzyuze_randevu_aktif'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Randevu ayarları güncellendi.',
+            'data' => [
+                'id' => $doc->id,
+                'randevu_ayari' => [
+                    'aktif_mi' => (bool) $ayarlar->aktif_mi,
+                    'online_randevu_aktif' => (bool) $ayarlar->online_randevu_aktif,
+                    'yuzyuze_randevu_aktif' => (bool) $ayarlar->yuzyuze_randevu_aktif,
+                ],
             ],
         ]);
     }

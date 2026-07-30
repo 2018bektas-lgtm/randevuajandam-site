@@ -907,6 +907,7 @@ class MobileDoctorController extends Controller
             'data' => [
                 ...$this->doktorPayload($doktor),
                 'telefon' => $doktor->telefon,
+                'tc_kimlik_no' => $doktor->tc_kimlik_no,
                 'adres' => $doktor->adres,
                 'unvan' => $doktor->unvan,
                 'il_id' => $doktor->il_id,
@@ -937,6 +938,7 @@ class MobileDoctorController extends Controller
             'ad_soyad' => ['sometimes', 'required', 'string', 'max:255'],
             'unvan' => ['sometimes', 'nullable', 'string', 'max:100'],
             'telefon' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'tc_kimlik_no' => ['sometimes', 'nullable', 'string', 'size:11', 'regex:/^[1-9][0-9]{10}$/'],
             'adres' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'uzmanlik_alani' => ['sometimes', 'nullable', 'string', 'max:255'],
             'biyografi' => ['sometimes', 'nullable', 'string', 'max:5000'],
@@ -959,6 +961,11 @@ class MobileDoctorController extends Controller
             'il_id', 'ilce_id', 'enlem', 'boylam',
             'instagram', 'facebook', 'twitter', 'linkedin', 'youtube', 'web_sitesi',
         ]);
+
+        // Web panelindeki gibi: boş gönderim mevcut T.C. kimliği silmez.
+        if ($request->filled('tc_kimlik_no')) {
+            $update['tc_kimlik_no'] = $request->input('tc_kimlik_no');
+        }
 
         if ($request->hasFile('profil_resmi')) {
             \App\Support\PublicMedia::delete($doktor->profil_resmi);
@@ -1173,6 +1180,212 @@ class MobileDoctorController extends Controller
                 'feature_mode' => 'allowlist',
                 'uyelik' => $membership,
             ],
+        ]);
+    }
+
+    /**
+     * Abonelik durumu + iptal edilebilirlik.
+     * Web paneli karşılığı: hekim.uyelik
+     */
+    public function subscription(Request $request): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $doktor->loadMissing(['paket', 'klinik.paket']);
+
+        $klinikSahibi = method_exists($doktor, 'klinikSahibiMi') && $doktor->klinikSahibiMi();
+        $klinik = $klinikSahibi ? $doktor->klinik : null;
+
+        $klinikIptalEdilebilir = false;
+        if ($klinik) {
+            $klinikIptalEdilebilir = (bool) $klinik->uyelik_bitis
+                && ! $klinik->uyelik_bitis->isPast()
+                && ! ($klinik->abonelik_yenileme_kapali ?? false);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'uyelik' => $this->membershipPayload($doktor),
+                'bireysel' => [
+                    'iptal_edilebilir' => method_exists($doktor, 'canCancelSubscription')
+                        ? (bool) $doktor->canCancelSubscription()
+                        : false,
+                    'yenileme_kapali' => (bool) $doktor->abonelik_yenileme_kapali,
+                    'iptal_at' => $doktor->abonelik_iptal_at?->toIso8601String(),
+                    'iptal_nedeni' => $doktor->abonelik_iptal_nedeni,
+                ],
+                'klinik' => $klinik ? [
+                    'id' => $klinik->id,
+                    'ad' => $klinik->ad,
+                    'sahip_mi' => true,
+                    'uyelik_bitis' => $klinik->uyelik_bitis?->toDateString(),
+                    'iptal_edilebilir' => $klinikIptalEdilebilir,
+                    'yenileme_kapali' => (bool) ($klinik->abonelik_yenileme_kapali ?? false),
+                ] : null,
+                // Klinik üyesi (sahip değil) kendi aboneliğini yönetemez.
+                'salt_okunur' => method_exists($doktor, 'klinikteMi')
+                    && $doktor->klinikteMi()
+                    && ! $klinikSahibi,
+            ],
+        ]);
+    }
+
+    /**
+     * Aboneliği iptal et (dönem sonuna kadar erişim sürer).
+     * Web paneli karşılığı: hekim.uyelik.iptal
+     *
+     * NOT: Mağaza (App Store / Google Play) üzerinden alınmış abonelikler
+     * sunucudan iptal edilemez; uygulama kullanıcıyı mağaza yönetim ekranına yönlendirir.
+     */
+    public function cancelSubscription(
+        Request $request,
+        \App\Services\IyzicoSubscriptionService $iyzico,
+        \App\Services\PaytrService $paytr
+    ): JsonResponse {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+
+        $data = $request->validate([
+            'onay' => ['required', 'accepted'],
+            'neden' => ['nullable', 'string', 'max:255'],
+            'hedef' => ['nullable', 'in:bireysel,klinik'],
+        ], [
+            'onay.accepted' => 'İptal için onay vermelisiniz.',
+        ]);
+
+        $hedef = $data['hedef'] ?? 'bireysel';
+        $neden = $data['neden'] ?? null;
+
+        if ($hedef === 'klinik') {
+            return $this->cancelClinicSubscription($doktor, $neden, $iyzico, $paytr);
+        }
+
+        if (method_exists($doktor, 'klinikteMi') && $doktor->klinikteMi()
+            && ! (method_exists($doktor, 'klinikSahibiMi') && $doktor->klinikSahibiMi())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Klinik aboneliğini yalnızca klinik sahibi yönetebilir.',
+            ], 403);
+        }
+
+        if (method_exists($doktor, 'canCancelSubscription') && ! $doktor->canCancelSubscription()) {
+            return response()->json([
+                'success' => false,
+                'message' => $doktor->abonelik_yenileme_kapali
+                    ? 'Aboneliğiniz zaten iptal sürecinde. Erişim '
+                        .($doktor->uyelik_bitis?->format('d.m.Y') ?? 'dönem sonu')
+                        .' tarihine kadar sürer.'
+                    : 'İptal edilecek aktif abonelik bulunamadı.',
+            ], 422);
+        }
+
+        $ref = (string) ($doktor->iyzico_subscription_reference_code ?? '');
+        $isPaytr = $paytr->isPaytrReference($ref);
+        $isRealIyzico = $iyzico->isRealSubscriptionReference($ref);
+        if ($isRealIyzico && ! $isPaytr && $iyzico->isConfigured()) {
+            $cancelResult = $iyzico->cancelSubscription($ref);
+            if (($cancelResult['status'] ?? '') !== 'success') {
+                \Illuminate\Support\Facades\Log::warning(
+                    'Legacy iyzico cancel skipped/failed (mobile) — local cancel continues',
+                    ['doktor_id' => $doktor->id, 'ref' => $ref]
+                );
+            }
+        }
+
+        $doktor->forceFill([
+            'abonelik_yenileme_kapali' => true,
+            'abonelik_iptal_at' => now(),
+            'abonelik_iptal_nedeni' => $neden,
+            'iyzico_subscription_status' => 'CANCELED',
+        ])->save();
+
+        $bitis = $doktor->uyelik_bitis?->format('d.m.Y H:i') ?? 'dönem sonu';
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Aboneliğiniz iptal edildi. PayTR tek seferlik ödemedir; otomatik yenileme yoktur. '
+                ."Mevcut paketinizi {$bitis} tarihine kadar kullanmaya devam edebilirsiniz.",
+            'data' => $this->membershipPayload($doktor->fresh()),
+        ]);
+    }
+
+    private function cancelClinicSubscription(
+        Doktor $doktor,
+        ?string $neden,
+        \App\Services\IyzicoSubscriptionService $iyzico,
+        \App\Services\PaytrService $paytr
+    ): JsonResponse {
+        $klinik = $doktor->klinik;
+        if (! (method_exists($doktor, 'klinikSahibiMi') && $doktor->klinikSahibiMi()) || ! $klinik) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Klinik aboneliğini yalnızca sahip iptal edebilir.',
+            ], 403);
+        }
+
+        if (! $klinik->uyelik_bitis || $klinik->uyelik_bitis->isPast()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aktif klinik aboneliği bulunamadı.',
+            ], 422);
+        }
+
+        if ($klinik->abonelik_yenileme_kapali ?? false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Klinik aboneliği zaten iptal sürecinde. Erişim '
+                    .$klinik->uyelik_bitis->format('d.m.Y').' tarihine kadar sürer.',
+            ], 422);
+        }
+
+        $ref = (string) (
+            $klinik->iyzico_subscription_reference_code
+            ?: $doktor->iyzico_subscription_reference_code
+            ?: ''
+        );
+        $isPaytr = $paytr->isPaytrReference($ref);
+        $isRealIyzico = $iyzico->isRealSubscriptionReference($ref);
+
+        // Web panelindeki gibi: eski iyzico iptali başarısızsa yerel iptal YAPILMAZ.
+        if ($isRealIyzico && ! $isPaytr && $iyzico->isConfigured()) {
+            $cancelResult = $iyzico->cancelSubscription($ref);
+            if (($cancelResult['status'] ?? '') !== 'success') {
+                \Illuminate\Support\Facades\Log::error('BLOCKED clinic local cancel (mobile) — iyzico failed', [
+                    'klinik_id' => $klinik->id,
+                    'ref' => $ref,
+                    'result' => $cancelResult,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => ($cancelResult['errorMessage'] ?? 'Eski iyzico klinik iptali başarısız.')
+                        .' Yerel iptal yapılmadı.',
+                ], 422);
+            }
+        }
+
+        $attrs = [
+            'abonelik_yenileme_kapali' => true,
+            'abonelik_iptal_at' => now(),
+            'abonelik_iptal_nedeni' => $neden,
+            'iyzico_subscription_status' => 'CANCELED',
+        ];
+        $klinik->forceFill(array_filter(
+            $attrs,
+            fn ($_, $k) => \Illuminate\Support\Facades\Schema::hasColumn($klinik->getTable(), $k),
+            ARRAY_FILTER_USE_BOTH
+        ))->save();
+
+        $doktor->forceFill($attrs)->save();
+
+        $bitis = $klinik->uyelik_bitis->format('d.m.Y H:i');
+        $note = $isPaytr ? ' PayTR otomatik yenileme yapmaz.' : '';
+
+        return response()->json([
+            'success' => true,
+            'message' => "Klinik aboneliği iptal edildi.{$note} Erişim {$bitis} tarihine kadar devam eder.",
+            'data' => $this->membershipPayload($doktor->fresh()),
         ]);
     }
 

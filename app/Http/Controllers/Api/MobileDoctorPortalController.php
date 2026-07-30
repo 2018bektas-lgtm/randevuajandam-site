@@ -1120,7 +1120,23 @@ class MobileDoctorPortalController extends Controller
             'odeme_tarihi' => ['required', 'date'],
             'ilk_odeme_tutar' => ['nullable', 'numeric', 'min:0'],
             'ilk_odeme_yontemi' => ['required', 'in:nakit,kredi_karti,havale,online'],
+            // Doluysa: yeni borç açma, mevcut açık faturaya tahsilat işle.
+            'tahsilat_odeme_id' => ['nullable', 'integer'],
         ]);
+
+        // Mevcut borçtan tahsilat — yeni bir borç satırı AÇMAZ.
+        // (Bu yol olmadığında tahsilatlar "gelir" olarak yeni fatura satırı
+        //  açıyor ve hastanın toplam borcunu şişiriyordu.)
+        if (! empty($validated['tahsilat_odeme_id'])) {
+            return $this->collectAgainstInvoice(
+                $doktor,
+                (int) $validated['tahsilat_odeme_id'],
+                (float) $validated['tutar'],
+                $validated['odeme_tarihi'],
+                $validated['ilk_odeme_yontemi'],
+                $validated['aciklama'] ?? null,
+            );
+        }
 
         $ilk = (float) ($validated['ilk_odeme_tutar'] ?? 0);
         // Tam tahsilat: ilk tutar verilmemişse tutarın tamamı ödenmiş sayılır
@@ -1161,6 +1177,49 @@ class MobileDoctorPortalController extends Controller
             'message' => 'Gelir kaydı oluşturuldu.',
             'data' => $this->paymentPayload($odeme->load(['hasta', 'hizmet', 'kalemler'])),
         ], 201);
+    }
+
+    /**
+     * Mevcut açık faturaya tahsilat işler (yeni borç satırı açmaz).
+     * Gelir formundan "mevcut borçtan tahsilat" seçildiğinde kullanılır.
+     */
+    private function collectAgainstInvoice(
+        $doktor,
+        int $odemeId,
+        float $tutar,
+        string $tarih,
+        string $yontem,
+        ?string $not
+    ): JsonResponse {
+        $odeme = $doktor->odemeler()->find($odemeId);
+        if (! $odeme) {
+            return response()->json(['success' => false, 'message' => 'Fatura bulunamadı.'], 404);
+        }
+        if (in_array($odeme->durum, ['iptal', 'odendi'], true)) {
+            return response()->json(['success' => false, 'message' => 'Bu fatura tahsilata kapalı.'], 422);
+        }
+
+        $kalan = max(0, (float) $odeme->tutar - (float) $odeme->odenen_tutar);
+        if ($tutar > $kalan + 0.001) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tahsilat kalan bakiyeden büyük olamaz ('.number_format($kalan, 2, ',', '.').' ₺).',
+            ], 422);
+        }
+
+        $odeme->kalemler()->create([
+            'tutar' => $tutar,
+            'tarih' => $tarih,
+            'odeme_yontemi' => $yontem,
+            'not' => $not ?: 'Tahsilat',
+        ]);
+        $odeme->odenenTutariGuncelle();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tahsilat kaydedildi. Kalan bakiye güncellendi.',
+            'data' => $this->paymentPayload($odeme->fresh()->load(['hasta', 'hizmet', 'kalemler'])),
+        ]);
     }
 
     public function destroyIncome(Request $request, int $id): JsonResponse
@@ -1804,16 +1863,33 @@ class MobileDoctorPortalController extends Controller
         ];
     }
 
-    public function website(Request $request): JsonResponse
+    public function website(Request $request, \App\Services\DomainInclusionService $domains): JsonResponse
     {
         $doktor = $this->doktor($request);
         $webSite = $doktor->webSite;
         $apiKey = ApiKey::query()->where('doktor_id', $doktor->id)->first();
         $domain = $webSite?->domain;
 
+        $order = $webSite
+            ? \App\Models\DomainOrder::query()
+                ->where('owner_type', $doktor::class)
+                ->where('owner_id', $doktor->id)
+                ->where('domain', $webSite->domain)
+                ->latest('id')
+                ->first()
+            : null;
+
         return response()->json([
             'success' => true,
             'data' => [
+                'domain_eligibility' => $this->domainEligibility($doktor, $domains),
+                'domain_order' => $order ? [
+                    'durum' => $order->durum,
+                    'kaynak' => $order->kaynak,
+                    'dns_verified_at' => $order->dns_verified_at?->toIso8601String(),
+                    'dns_last_check_at' => $order->dns_last_check_at?->toIso8601String(),
+                    'dns_check_message' => $order->dns_check_message,
+                ] : null,
                 'web_sitesi' => $doktor->web_sitesi,
                 'platformda_listeleniyor_mu' => (bool) ($doktor->platformda_gorunur ?? true),
                 'can_hide_from_platform' => method_exists($doktor, 'canHideFromPlatform') ? (bool) $doktor->canHideFromPlatform() : false,
@@ -1919,6 +1995,153 @@ class MobileDoctorPortalController extends Controller
                 'plain_api_secret' => $secretKey,
             ],
         ]);
+    }
+
+    /**
+     * Pakete dahil domain arama (registrar sorgusu).
+     * Web paneli karşılığı: hekim.web-sitesi.domain.check
+     */
+    public function websiteDomainCheck(
+        Request $request,
+        \App\Services\DomainInclusionService $domains
+    ): JsonResponse {
+        $doktor = $this->doktor($request);
+        $data = $request->validate([
+            'sld' => ['required', 'string', 'min:2', 'max:63'],
+            'tld' => ['nullable', 'string', 'max:20'],
+            'tlds' => ['nullable', 'array'],
+            'tlds.*' => ['string', 'max:20'],
+        ]);
+
+        $tlds = $data['tlds'] ?? null;
+        if (! empty($data['tld'])) {
+            $tlds = [strtolower(ltrim($data['tld'], '.'))];
+        }
+
+        try {
+            $results = $domains->check($doktor, $data['sld'], $tlds);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'results' => $results,
+                'eligibility' => $this->domainEligibility($doktor, $domains),
+            ],
+        ]);
+    }
+
+    /**
+     * Domain + web sitesi + API key tek adımda (pakete dahil / BYOD).
+     * Web paneli karşılığı: hekim.web-sitesi.domain.claim
+     */
+    public function websiteDomainClaim(
+        Request $request,
+        \App\Services\WebsiteProvisioningService $provisioning
+    ): JsonResponse {
+        $doktor = $this->doktor($request);
+        $data = $request->validate([
+            'domain' => ['required', 'string', 'max:150'],
+            'mode' => ['nullable', 'in:included,byod'],
+        ]);
+
+        $mode = $data['mode'] ?? 'included';
+
+        try {
+            $result = $provisioning->provisionDoktor($doktor, $data['domain'], $mode);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        $msg = $mode === 'byod'
+            ? 'Web siteniz bağlandı (kendi domaininiz). DNS kurulumunu tamamlayın. Secret key bir kez gösterilir.'
+            : 'Domain pakete dahil kaydedildi ve web sitesi otomatik açıldı (1 yıl, ek ücret yok). Secret key bir kez gösterilir.';
+
+        return response()->json([
+            'success' => true,
+            'message' => $msg,
+            'data' => [
+                'domain' => $result['domain'],
+                'created_site' => $result['created_site'],
+                'plain_api_secret' => $result['plain_secret'] ?? null,
+                'dns_adimlari' => $this->dnsSteps($result['domain']),
+            ],
+        ], 201);
+    }
+
+    /**
+     * DNS yönlendirmesini doğrula ve site durumunu güncelle.
+     * Web paneli karşılığı: hekim.web-sitesi.dns.verify
+     */
+    public function websiteDnsVerify(
+        Request $request,
+        \App\Services\DnsVerificationService $dns
+    ): JsonResponse {
+        $doktor = $this->doktor($request);
+        $webSite = $doktor->webSite;
+        if (! $webSite) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Önce domain kaydı yapın.',
+            ], 422);
+        }
+
+        $result = $dns->check($webSite->domain);
+
+        $order = \App\Models\DomainOrder::query()
+            ->where('owner_type', $doktor::class)
+            ->where('owner_id', $doktor->id)
+            ->where('domain', $webSite->domain)
+            ->latest('id')
+            ->first();
+
+        if ($order) {
+            $order->forceFill([
+                'dns_last_check_at' => now(),
+                'dns_check_message' => $result['message'],
+                'dns_verified_at' => $result['ok'] ? now() : $order->dns_verified_at,
+                'durum' => $result['ok'] ? \App\Models\DomainOrder::DURUM_ACTIVE : (
+                    $order->kaynak === \App\Models\DomainOrder::KAYNAK_BYOD
+                        ? \App\Models\DomainOrder::DURUM_DNS_PENDING
+                        : $order->durum
+                ),
+            ])->save();
+        }
+
+        $webSite->forceFill(
+            $result['ok']
+                ? ['durum' => 'aktif', 'hata_mesaji' => null]
+                : ['durum' => 'dns_bekliyor', 'hata_mesaji' => $result['message']]
+        )->save();
+
+        return response()->json([
+            'success' => $result['ok'],
+            'message' => $result['message'],
+            'data' => [
+                'ok' => (bool) $result['ok'],
+                'domain' => $webSite->domain,
+                'durum' => $webSite->durum,
+                'detay' => $result,
+            ],
+        ]);
+    }
+
+    private function domainEligibility($doktor, \App\Services\DomainInclusionService $domains): array
+    {
+        $e = $domains->eligibility($doktor);
+
+        return [
+            'eligible' => $e['eligible'],
+            'reason' => $e['reason'],
+            'tlds' => $e['tlds'],
+            'yil' => $e['yil'],
+            'already_claimed' => $e['already_claimed'],
+            'active_domain' => $e['active_domain'],
+            'hostinger_ready' => $e['hostinger_ready'],
+            'paket_ad' => $e['paket']?->ad,
+        ];
     }
 
     public function websitePlatformVisibility(Request $request): JsonResponse
