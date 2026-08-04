@@ -169,6 +169,19 @@ class SeoMeta
         return self::title('Hakkımızda', 'Online Randevu Platformu');
     }
 
+    public static function hekimLandingTitle(): string
+    {
+        return self::title('Hekim Randevu Yazılımı', 'Online Takvim ve Hasta Yönetimi');
+    }
+
+    public static function hekimLandingDescription(): string
+    {
+        return self::description(
+            'Hekimler için online randevu, takvim, hasta kartı, SMS hatırlatma ve kişisel web sitesi. '
+            .'Randevu Ajandam ile ücretsiz profil oluşturun, deneme ile başlayın.'
+        );
+    }
+
     protected static function limit(string $text, int $max): string
     {
         if (mb_strlen($text) <= $max) {

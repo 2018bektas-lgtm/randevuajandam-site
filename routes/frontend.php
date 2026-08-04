@@ -20,6 +20,7 @@ use App\Http\Controllers\Frontend\KlinikHastaController;
 use App\Http\Controllers\Frontend\KlinikProfilController;
 use App\Http\Controllers\Frontend\KlinikRandevuController;
 use App\Http\Controllers\Frontend\LegalController;
+use App\Http\Controllers\Frontend\LandingController;
 use App\Http\Controllers\Frontend\PaketController;
 use App\Http\Controllers\Frontend\PersonelAuthController;
 use App\Http\Controllers\Frontend\PersonelHastaController;
@@ -56,6 +57,11 @@ Route::post('/2fa', [\App\Http\Controllers\TwoFactorController::class, 'challeng
 Route::post('/2fa/iptal', [\App\Http\Controllers\TwoFactorController::class, 'challengeCancel'])->name('two-factor.challenge.cancel');
 
 Route::get('/paketler', [PaketController::class, 'index'])->name('frontend.paketler');
+
+// Reklam / SEO landing (Instagram, Google Ads) — catch-all'dan ÖNCE
+Route::get('/hekim-randevu-yazilimi', [LandingController::class, 'hekim'])->name('frontend.landing.hekim');
+Route::get('/hekimler-icin', fn () => redirect()->route('frontend.landing.hekim', request()->query(), 301))
+    ->name('frontend.landing.hekim.alias');
 
 // Gelişmiş SEO hub (catch-all slug rotalarından ÖNCE)
 Route::get('/randevu', [\App\Http\Controllers\Frontend\PublicSeoController::class, 'hub'])->name('frontend.seo.hub');
@@ -651,7 +657,7 @@ Route::get('/{il_slug}/{ilce_slug}/klinik/{klinik_slug}/iletisim', [KlinikProfil
 
 // Hiyerarşik Dizin Rotaları (Nested SEO Directory)
 // Constraint: il_slug must not match reserved route prefixes
-$reservedSlugs = '^(?!yonetim|hekim|giris|kayit-ol|profil|cikis|paketler|doktorlar|egitimler|blog|iller|up|api|personel|klinik)[\w-]+$';
+$reservedSlugs = '^(?!yonetim|hekim|giris|kayit-ol|profil|cikis|paketler|doktorlar|egitimler|blog|iller|up|api|personel|klinik|hekim-randevu-yazilimi|hekimler-icin)[\w-]+$';
 
 Route::get('/{il_slug}', [HekimController::class, 'doktorlarListesi'])->name('frontend.il.liste')->where('il_slug', $reservedSlugs);
 Route::get('/{il_slug}/{ilce_slug}', [HekimController::class, 'doktorlarListesi'])->name('frontend.ilce.liste')->where('il_slug', $reservedSlugs);
