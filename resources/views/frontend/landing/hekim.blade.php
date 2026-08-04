@@ -140,117 +140,237 @@
         .lp-hekim .step-num { width: 44px; height: 44px; font-size: 15px; }
     }
 
-    /* Masaüstü panel mock */
+    /* —— Hero grid: mobil / tablet / masaüstü —— */
+    .lp-hero-grid {
+        display: grid;
+        gap: 2rem;
+        align-items: center;
+    }
+    @@media (min-width: 768px) and (max-width: 1023px) {
+        /* Tablet: metin üstte, mock altta ortalı, dengeli */
+        .lp-hero-grid {
+            gap: 2.25rem;
+            max-width: 40rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .lp-hero-copy { text-align: center; }
+        .lp-hero-copy .lp-badge { margin-left: auto; margin-right: auto; }
+        .lp-hero-copy p.lp-lead { margin-left: auto; margin-right: auto; }
+        .lp-hero-actions { justify-content: center; }
+        .lp-hero-checks { justify-content: center; }
+        .lp-hero-visual { max-width: 32rem; margin-left: auto; margin-right: auto; width: 100%; }
+    }
+    @@media (min-width: 1024px) {
+        .lp-hero-grid {
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            gap: 3rem;
+            align-items: center;
+        }
+        .lp-hero-copy { text-align: left; }
+        .lp-hero-visual { max-width: none; width: 100%; }
+    }
+    @@media (min-width: 1280px) {
+        .lp-hero-grid { gap: 3.75rem; }
+    }
+
+    /* Panel mock — düz, gölgeli; tablet/desktop’ta perspective yok (bozuyordu) */
     .lp-mock {
         position: relative;
-        border-radius: 24px;
+        border-radius: 20px;
         background: #fff;
         border: 1px solid #E2E8F0;
         box-shadow:
-            0 0 0 1px rgba(15,23,42,.03),
-            0 28px 70px -24px rgba(15,23,42,.28),
-            0 12px 28px -12px rgba(201,106,43,.12);
+            0 1px 2px rgba(15,23,42,.04),
+            0 24px 48px -20px rgba(15,23,42,.22);
         overflow: hidden;
+        width: 100%;
     }
-    @@media (min-width: 1024px) {
+    @@media (min-width: 768px) {
         .lp-mock {
-            border-radius: 28px;
-            transform: perspective(1200px) rotateY(-4deg) rotateX(2deg);
-            transform-origin: center right;
+            border-radius: 24px;
+            box-shadow:
+                0 1px 2px rgba(15,23,42,.04),
+                0 32px 64px -24px rgba(15,23,42,.2),
+                0 0 0 1px rgba(15,23,42,.03);
         }
-        .lp-mock:hover { transform: perspective(1200px) rotateY(-1deg) rotateX(0deg); transition: transform .4s ease; }
     }
     .lp-mock-bar {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 12px 16px;
-        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        gap: 7px;
+        padding: 11px 14px;
+        background: #0f172a;
         color: #94a3b8;
         font-size: 11px;
         font-weight: 600;
     }
-    .lp-mock-dot { width: 9px; height: 9px; border-radius: 50%; }
-    .lp-mock-body { display: grid; grid-template-columns: 72px 1fr; min-height: 280px; }
+    @@media (min-width: 768px) {
+        .lp-mock-bar { padding: 12px 16px; font-size: 12px; }
+    }
+    .lp-mock-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .lp-mock-url {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-left: 6px;
+        color: #64748b;
+        font-size: 10.5px;
+    }
+    @@media (min-width: 768px) {
+        .lp-mock-url { font-size: 11.5px; }
+    }
+    .lp-mock-badge {
+        flex-shrink: 0;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #E7B58A;
+        background: rgba(201,106,43,.15);
+        border: 1px solid rgba(201,106,43,.3);
+        padding: 3px 8px;
+        border-radius: 999px;
+    }
+    .lp-mock-body {
+        display: grid;
+        grid-template-columns: 56px 1fr;
+        min-height: 0;
+    }
+    @@media (min-width: 768px) {
+        .lp-mock-body { grid-template-columns: 72px 1fr; }
+    }
     @@media (min-width: 1024px) {
-        .lp-mock-body { grid-template-columns: 88px 1fr; min-height: 340px; }
+        .lp-mock-body { grid-template-columns: 80px 1fr; }
     }
     .lp-mock-side {
         background: #0f172a;
-        padding: 12px 8px;
+        padding: 10px 6px;
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        align-items: center;
+        gap: 7px;
+        align-items: stretch;
+    }
+    @@media (min-width: 768px) {
+        .lp-mock-side { padding: 12px 8px; gap: 8px; }
     }
     .lp-mock-side span {
-        width: 100%;
-        height: 32px;
-        border-radius: 10px;
+        display: block;
+        height: 28px;
+        border-radius: 9px;
         background: rgba(255,255,255,.06);
     }
-    .lp-mock-side span.on { background: rgba(201,106,43,.35); border: 1px solid rgba(201,106,43,.5); }
-    .lp-mock-main { padding: 14px 16px 16px; background: #f8fafc; }
+    @@media (min-width: 768px) {
+        .lp-mock-side span { height: 32px; border-radius: 10px; }
+    }
+    .lp-mock-side span.on {
+        background: rgba(201,106,43,.4);
+        box-shadow: inset 0 0 0 1px rgba(231,181,138,.45);
+    }
+    .lp-mock-main {
+        padding: 12px 12px 14px;
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    @@media (min-width: 768px) {
+        .lp-mock-main { padding: 16px 16px 18px; }
+    }
     @@media (min-width: 1024px) {
-        .lp-mock-main { padding: 18px 20px 20px; }
+        .lp-mock-main { padding: 18px 18px 20px; }
     }
     .lp-mock-stat {
         background: #fff;
         border: 1px solid #E2E8F0;
-        border-radius: 14px;
-        padding: 12px;
+        border-radius: 12px;
+        padding: 10px 10px;
+        text-align: left;
+    }
+    @@media (min-width: 768px) {
+        .lp-mock-stat { border-radius: 14px; padding: 12px; }
     }
     .lp-mock-cal {
-        margin-top: 12px;
+        margin-top: 10px;
         background: #fff;
         border: 1px solid #E2E8F0;
-        border-radius: 14px;
-        padding: 12px;
+        border-radius: 12px;
+        padding: 10px 12px;
+    }
+    @@media (min-width: 768px) {
+        .lp-mock-cal { margin-top: 12px; border-radius: 14px; padding: 12px 14px; }
     }
     .lp-mock-slot {
-        height: 28px;
+        min-height: 30px;
         border-radius: 8px;
         background: #FFF7ED;
-        border: 1px solid rgba(231,181,138,.45);
-        font-size: 10px;
+        border: 1px solid rgba(231,181,138,.5);
+        font-size: 11px;
         font-weight: 700;
         color: #C96A2B;
         display: flex;
         align-items: center;
-        padding: 0 10px;
+        padding: 6px 10px;
+        line-height: 1.25;
+    }
+    @@media (min-width: 768px) {
+        .lp-mock-slot { font-size: 12px; min-height: 32px; padding: 7px 12px; }
     }
     .lp-mock-slot.busy {
         background: #f1f5f9;
         border-color: #e2e8f0;
         color: #64748b;
+        font-weight: 600;
+    }
+    .lp-mock-caption {
+        text-align: center;
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 600;
+        margin-top: 12px;
+    }
+    @@media (min-width: 768px) {
+        .lp-mock-caption { font-size: 12px; margin-top: 14px; }
     }
 
+    /* Stats: mobil 2x2 · tablet 4 yan yana · desktop 4 + gölge */
     .lp-stats {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 2rem;
+    }
+    @@media (min-width: 768px) {
+        .lp-stats {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 2.25rem;
+        }
     }
     @@media (min-width: 1024px) {
         .lp-stats {
-            grid-template-columns: repeat(4, 1fr);
             gap: 16px;
-            margin-top: -2rem;
-            position: relative;
-            z-index: 20;
-        }
-        .lp-stats .stat-card {
-            background: #fff;
-            border: 1px solid #E2E8F0;
-            border-radius: 20px;
-            padding: 1.25rem 1.35rem;
-            box-shadow: 0 16px 40px -20px rgba(15,23,42,.15);
+            margin-top: 2.75rem;
         }
     }
     .lp-stats .stat-card {
         background: #fff;
         border: 1px solid #E2E8F0;
-        border-radius: 18px;
-        padding: 1rem 1.1rem;
+        border-radius: 16px;
+        padding: 0.95rem 1rem;
+    }
+    @@media (min-width: 768px) {
+        .lp-stats .stat-card {
+            border-radius: 18px;
+            padding: 1.1rem 1.15rem;
+            text-align: center;
+        }
+    }
+    @@media (min-width: 1024px) {
+        .lp-stats .stat-card {
+            border-radius: 20px;
+            padding: 1.25rem 1.2rem;
+            box-shadow: 0 12px 32px -18px rgba(15,23,42,.12);
+        }
     }
 
     .lp-steps-line { display: none; }
@@ -329,28 +449,28 @@
         <div class="absolute bottom-[-22%] left-[-8%] w-[480px] h-[480px] rounded-full bg-[#C96A2B]/10 blur-[110px] pointer-events-none"></div>
         <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#E7B58A]/50 to-transparent"></div>
 
-        <div class="lp-wrap pt-12 sm:pt-16 lg:pt-20 xl:pt-24 pb-12 sm:pb-16 lg:pb-24 relative z-10">
-            <div class="grid lg:grid-cols-12 gap-10 lg:gap-14 xl:gap-16 items-center">
-                <div class="lg:col-span-6 xl:col-span-6">
-                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FFF7ED] border border-[#E7B58A]/40 text-[11px] font-bold uppercase tracking-[0.14em] text-[#C96A2B] font-display mb-5 lg:mb-6">
+        <div class="lp-wrap pt-12 sm:pt-14 md:pt-16 lg:pt-20 xl:pt-22 pb-12 sm:pb-14 md:pb-16 lg:pb-20 relative z-10">
+            <div class="lp-hero-grid">
+                <div class="lp-hero-copy">
+                    <span class="lp-badge inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FFF7ED] border border-[#E7B58A]/40 text-[11px] font-bold uppercase tracking-[0.14em] text-[#C96A2B] font-display mb-4 md:mb-5 lg:mb-6">
                         <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] animate-pulse"></span>
                         Hekimler için randevu yazılımı
                     </span>
 
-                    <h1 class="text-3xl sm:text-4xl lg:text-5xl xl:text-[3.35rem] font-extrabold font-display text-[#0F172A] leading-[1.08] tracking-tight">
+                    <h1 class="text-[1.85rem] sm:text-4xl md:text-[2.35rem] lg:text-[2.75rem] xl:text-[3.15rem] font-extrabold font-display text-[#0F172A] leading-[1.1] tracking-tight">
                         Randevu, hasta ve takvim
-                        <span class="block mt-1.5 lg:mt-2 bg-gradient-to-r from-[#C96A2B] via-[#D4894A] to-[#B55A20] bg-clip-text text-transparent">
+                        <span class="block mt-1 md:mt-1.5 bg-gradient-to-r from-[#C96A2B] via-[#D4894A] to-[#B55A20] bg-clip-text text-transparent">
                             tek panelde.
                         </span>
                     </h1>
 
-                    <p class="mt-5 lg:mt-6 text-[15px] sm:text-base lg:text-lg text-slate-600 leading-relaxed max-w-xl lg:max-w-lg">
+                    <p class="lp-lead mt-4 md:mt-5 lg:mt-6 text-[15px] sm:text-base md:text-[16px] lg:text-[17px] text-slate-600 leading-relaxed max-w-xl">
                         Online randevu talepleri, ajanda, SMS hatırlatma, hasta kartları ve isteğe bağlı kişisel web siteniz.
                         <strong class="text-slate-800">Randevu Ajandam</strong> ile muayenehanenizi dijitalleştirin —
                         {{ $deneme }} gün deneme ile başlayın.
                     </p>
 
-                    <div class="mt-7 lg:mt-8 flex flex-col sm:flex-row gap-3 lg:gap-4">
+                    <div class="lp-hero-actions mt-6 md:mt-7 lg:mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
                         <a href="{{ $kayitUrl }}" class="btn-cta btn-cta-primary" data-lp-cta="hero_kayit">
                             Ücretsiz profil oluştur
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -360,40 +480,39 @@
                         </a>
                     </div>
 
-                    <ul class="mt-6 lg:mt-8 flex flex-wrap gap-x-5 gap-y-2.5 text-[12.5px] lg:text-[13px] font-semibold text-slate-500">
+                    <ul class="lp-hero-checks mt-5 md:mt-6 lg:mt-7 flex flex-wrap gap-x-4 gap-y-2 text-[12.5px] md:text-[13px] font-semibold text-slate-500">
                         <li class="inline-flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             Kart zorunlu değil
                         </li>
                         <li class="inline-flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             {{ $deneme }} gün deneme
                         </li>
                         <li class="inline-flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             PayTR güvenli ödeme
                         </li>
                         @if($fiyat && $fiyat > 0)
                         <li class="inline-flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             {{ number_format($fiyat, 0, ',', '.') }} ₺/ay’dan
                         </li>
                         @endif
                     </ul>
                 </div>
 
-                {{-- Desktop product mock --}}
-                <div class="lg:col-span-6 xl:col-span-6">
-                    <div class="lp-mock">
+                <div class="lp-hero-visual">
+                    <div class="lp-mock" aria-hidden="true">
                         <div class="lp-mock-bar">
                             <span class="lp-mock-dot" style="background:#f87171"></span>
                             <span class="lp-mock-dot" style="background:#fbbf24"></span>
                             <span class="lp-mock-dot" style="background:#34d399"></span>
-                            <span class="ml-2 text-slate-400">panel.randevuajandam.com</span>
-                            <span class="ml-auto text-[10px] font-bold text-[#E7B58A] uppercase tracking-wider">Hekim paneli</span>
+                            <span class="lp-mock-url">panel.randevuajandam.com</span>
+                            <span class="lp-mock-badge">Hekim paneli</span>
                         </div>
                         <div class="lp-mock-body">
-                            <div class="lp-mock-side">
+                            <div class="lp-mock-side" aria-hidden="true">
                                 <span class="on"></span>
                                 <span></span>
                                 <span></span>
@@ -401,30 +520,30 @@
                                 <span></span>
                             </div>
                             <div class="lp-mock-main">
-                                <div class="flex items-center justify-between mb-3">
-                                    <div>
-                                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bugün</p>
-                                        <p class="text-sm font-extrabold font-display text-slate-800">Takvim özeti</p>
+                                <div class="flex items-center justify-between gap-3 mb-3">
+                                    <div class="min-w-0">
+                                        <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bugün</p>
+                                        <p class="text-sm md:text-[15px] font-extrabold font-display text-slate-800 truncate">Takvim özeti</p>
                                     </div>
-                                    <span class="px-2.5 py-1 rounded-full bg-[#FFF7ED] text-[10px] font-bold text-[#C96A2B] border border-[#E7B58A]/40">8 randevu</span>
+                                    <span class="shrink-0 px-2.5 py-1 rounded-full bg-[#FFF7ED] text-[10px] md:text-[11px] font-bold text-[#C96A2B] border border-[#E7B58A]/40">8 randevu</span>
                                 </div>
-                                <div class="grid grid-cols-3 gap-2">
+                                <div class="grid grid-cols-3 gap-2 md:gap-2.5">
                                     <div class="lp-mock-stat">
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Bekleyen</p>
-                                        <p class="text-xl font-extrabold font-display text-slate-800 mt-0.5">3</p>
+                                        <p class="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wide">Bekleyen</p>
+                                        <p class="text-lg md:text-xl font-extrabold font-display text-slate-800 mt-0.5 tabular-nums">3</p>
                                     </div>
                                     <div class="lp-mock-stat">
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Onaylı</p>
-                                        <p class="text-xl font-extrabold font-display text-emerald-600 mt-0.5">5</p>
+                                        <p class="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wide">Onaylı</p>
+                                        <p class="text-lg md:text-xl font-extrabold font-display text-emerald-600 mt-0.5 tabular-nums">5</p>
                                     </div>
                                     <div class="lp-mock-stat">
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase">SMS</p>
-                                        <p class="text-xl font-extrabold font-display text-[#C96A2B] mt-0.5">12</p>
+                                        <p class="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wide">SMS</p>
+                                        <p class="text-lg md:text-xl font-extrabold font-display text-[#C96A2B] mt-0.5 tabular-nums">12</p>
                                     </div>
                                 </div>
                                 <div class="lp-mock-cal">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Öğleden sonra</p>
-                                    <div class="space-y-1.5">
+                                    <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Öğleden sonra</p>
+                                    <div class="space-y-1.5 md:space-y-2">
                                         <div class="lp-mock-slot">14:00 · Kontrol · Ayşe Y.</div>
                                         <div class="lp-mock-slot busy">14:30 · Dolu</div>
                                         <div class="lp-mock-slot">15:00 · İlk muayene · M. Kaya</div>
@@ -434,14 +553,11 @@
                             </div>
                         </div>
                     </div>
-                    <p class="hidden lg:block text-center text-[11px] text-slate-400 mt-4 font-medium">
-                        Takvim · talepler · hasta · SMS — tek panel
-                    </p>
+                    <p class="lp-mock-caption">Takvim · talepler · hasta · SMS — tek panel</p>
                 </div>
             </div>
 
-            {{-- Desktop stats strip --}}
-            <div class="lp-stats mt-10 lg:mt-0">
+            <div class="lp-stats">
                 @foreach([
                     ['7/24', 'Online randevu talebi'],
                     ['SMS', 'Otomatik hatırlatma'],
@@ -449,8 +565,8 @@
                     [$deneme.' gün', 'Deneme ile başlayın'],
                 ] as $s)
                     <div class="stat-card">
-                        <p class="text-lg lg:text-xl font-extrabold font-display text-[#0F172A]">{{ $s[0] }}</p>
-                        <p class="text-[12px] lg:text-[13px] text-slate-500 mt-0.5 font-medium">{{ $s[1] }}</p>
+                        <p class="text-base sm:text-lg md:text-xl font-extrabold font-display text-[#0F172A]">{{ $s[0] }}</p>
+                        <p class="text-[11px] sm:text-[12px] md:text-[13px] text-slate-500 mt-0.5 font-medium leading-snug">{{ $s[1] }}</p>
                     </div>
                 @endforeach
             </div>
