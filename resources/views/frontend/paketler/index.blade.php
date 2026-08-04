@@ -789,38 +789,50 @@
             @endforelse
         </div>
 
-        {{-- Özellik karşılaştırma: açık sekmeye (bireysel/klinik) göre panel --}}
+        {{-- Özellik karşılaştırma: bireysel / klinik ayrı satır seti --}}
         @php
             $matrixPanels = [
-                'bireysel' => $bireyselPaketler,
-                'klinik' => $klinikPaketler,
+                'bireysel' => [
+                    'paketler' => $bireyselPaketler,
+                    'matris' => $matrisBireysel ?? collect(),
+                    'label' => 'Bireysel paketler',
+                ],
+                'klinik' => [
+                    'paketler' => $klinikPaketler,
+                    'matris' => $matrisKlinik ?? collect(),
+                    'label' => 'Klinik paketler',
+                ],
             ];
             $hasAnyMatrix = $bireyselPaketler->isNotEmpty() || $klinikPaketler->isNotEmpty();
         @endphp
-        @if(isset($matrisOzellikler) && $hasAnyMatrix)
+        @if($hasAnyMatrix)
         <div class="mt-16 max-w-6xl mx-auto" id="ozellik-matrisi" style="scroll-margin-top: 7.5rem;">
             <h2 class="text-xl font-extrabold font-display text-slate-900 text-center mb-2">Özellik karşılaştırması</h2>
             <p class="text-xs text-slate-500 text-center mb-1 max-w-xl mx-auto">
-                Kartlarda yalnızca öne çıkanlar gösterilir. Tüm farklar burada gruplara ayrılarak incelenir.
+                Bireysel ve klinik paketlerin özellikleri ayrıdır. Üstteki sekmeye göre tablo değişir.
             </p>
             <p class="text-xs font-bold text-[#C96A2B] text-center mb-4" id="matrixTypeLabel">Bireysel paketler</p>
 
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                <input type="search" id="matrixSearch" class="matrix-search" placeholder="Özellik ara… (ör. SMS, blog)" autocomplete="off">
-                <p class="text-[11px] text-slate-400">Üstteki Bireysel / Klinik sekmesine göre tablo değişir</p>
+                <input type="search" id="matrixSearch" class="matrix-search" placeholder="Özellik ara… (ör. SMS, havuz, blog)" autocomplete="off">
+                <p class="text-[11px] text-slate-400">Yalnızca bu paket türünde olan özellikler listelenir</p>
             </div>
 
-            @foreach($matrixPanels as $tur => $paketler)
+            @foreach($matrixPanels as $tur => $panel)
+                @php
+                    $paketler = $panel['paketler'];
+                    $matris = $panel['matris'];
+                @endphp
                 @if($paketler->isEmpty())
                     @continue
                 @endif
                 <div class="matrix-wrap matrix-panel {{ $tur === 'bireysel' ? '' : 'is-hidden' }}"
                      id="matrix-{{ $tur }}"
                      data-matrix-type="{{ $tur }}"
-                     data-label="{{ $tur === 'klinik' ? 'Klinik paketler' : 'Bireysel paketler' }}">
+                     data-label="{{ $panel['label'] }}">
                     <div class="matrix-tabs" role="tablist">
                         <button type="button" class="matrix-tab active" data-group="__all" role="tab" aria-selected="true">Tümü</button>
-                        @foreach($matrisOzellikler as $grup => $ozList)
+                        @foreach($matris as $grup => $ozList)
                             <button type="button" class="matrix-tab" data-group="{{ \Illuminate\Support\Str::slug($grup) }}" role="tab" aria-selected="false">
                                 {{ $grup }}
                                 <span class="opacity-70 font-semibold">({{ $ozList->count() }})</span>
@@ -840,7 +852,7 @@
                                 </tr>
                             </thead>
 
-                            @foreach($matrisOzellikler as $grup => $ozList)
+                            @forelse($matris as $grup => $ozList)
                                 @php $gSlug = \Illuminate\Support\Str::slug($grup); @endphp
                                 <tbody class="matrix-group active" data-group="{{ $gSlug }}">
                                     <tr class="bg-orange-50/60 matrix-group-head">
@@ -849,7 +861,7 @@
                                         </td>
                                     </tr>
                                     @foreach($ozList as $oz)
-                                        <tr class="border-t border-slate-100 matrix-feature-row" data-label="{{ mb_strtolower($oz->ad.' '.$grup) }}">
+                                        <tr class="border-t border-slate-100 matrix-feature-row" data-label="{{ mb_strtolower(($oz->ad ?? '').' '.$grup) }}">
                                             <td class="p-3 text-slate-600 sticky-col">
                                                 <span class="font-medium text-slate-700">{{ $oz->ad }}</span>
                                                 @if(!empty($oz->aciklama))
@@ -857,13 +869,21 @@
                                                 @endif
                                             </td>
                                             @foreach($paketler as $bp)
-                                                @php $var = $bp->sistemOzellikleri->contains('kod', $oz->kod); @endphp
+                                                @php $var = \App\Support\PaketOzellikKatalogu::paketMatrisVar($bp, $oz); @endphp
                                                 <td class="p-3 text-center {{ $var ? 'text-emerald-600 font-bold' : 'text-slate-300' }}">{{ $var ? '✓' : '—' }}</td>
                                             @endforeach
                                         </tr>
                                     @endforeach
                                 </tbody>
-                            @endforeach
+                            @empty
+                                <tbody class="matrix-group active" data-group="__empty">
+                                    <tr>
+                                        <td colspan="{{ 1 + $paketler->count() }}" class="p-6 text-center text-slate-400">
+                                            Bu paket türü için özellik satırı bulunamadı.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            @endforelse
 
                             <tbody class="matrix-group active" data-group="__limits">
                                 <tr class="bg-orange-50/60 matrix-group-head">
@@ -882,6 +902,12 @@
                                             <td class="p-3 text-center">{{ $bp->max_randevu_sayisi ?? '∞' }}</td>
                                         @endforeach
                                     </tr>
+                                    <tr class="border-t border-slate-100 matrix-feature-row" data-label="max personel limitler bireysel">
+                                        <td class="p-3 font-bold sticky-col">Personel koltuğu</td>
+                                        @foreach($paketler as $bp)
+                                            <td class="p-3 text-center">{{ $bp->max_personel_sayisi ? $bp->max_personel_sayisi : '—' }}</td>
+                                        @endforeach
+                                    </tr>
                                 @else
                                     <tr class="border-t border-slate-100 matrix-feature-row" data-label="max hekim limitler">
                                         <td class="p-3 font-bold sticky-col">Max hekim</td>
@@ -893,6 +919,12 @@
                                         <td class="p-3 font-bold sticky-col">Max personel</td>
                                         @foreach($paketler as $bp)
                                             <td class="p-3 text-center">{{ $bp->max_personel_sayisi ?? '∞' }}</td>
+                                        @endforeach
+                                    </tr>
+                                    <tr class="border-t border-slate-100 matrix-feature-row" data-label="max ek hekim limitler">
+                                        <td class="p-3 font-bold sticky-col">Ek hekim koltuğu (üst sınır)</td>
+                                        @foreach($paketler as $bp)
+                                            <td class="p-3 text-center">{{ $bp->max_ek_doktor ?? '—' }}</td>
                                         @endforeach
                                     </tr>
                                 @endif

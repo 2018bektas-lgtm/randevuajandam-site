@@ -68,13 +68,9 @@ class PaketController extends Controller
             $bireyselPaketler->concat($klinikPaketler)
         );
 
-        // Karşılaştırma matrisi (vitrinde görünen özellikler)
-        $matrisOzellikler = \App\Models\PaketOzelligi::query()
-            ->where('vitrin_mi', true)
-            ->orderBy('grup')
-            ->orderBy('sira')
-            ->get()
-            ->groupBy(fn ($o) => $o->grup ?: 'Genel');
+        // Bireysel / klinik ayrı matris: yalnızca o türde gerçekten olan özellikler + klinik bayrakları
+        $matrisBireysel = \App\Support\PaketOzellikKatalogu::matrisIcinGruplu($bireyselPaketler, 'bireysel');
+        $matrisKlinik = \App\Support\PaketOzellikKatalogu::matrisIcinGruplu($klinikPaketler, 'klinik');
 
         MetaPixel::queue('ViewContent', MetaPixel::content(
             'Paketler',
@@ -89,7 +85,8 @@ class PaketController extends Controller
             'bireyselPaketler',
             'klinikPaketler',
             'maxYillikTasarrufYuzde',
-            'matrisOzellikler'
+            'matrisBireysel',
+            'matrisKlinik'
         ));
     }
 
