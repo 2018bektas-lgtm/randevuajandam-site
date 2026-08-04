@@ -202,4 +202,94 @@ class Paket extends Model
 
         return $aylik <= 0;
     }
+
+    /**
+     * Paket kartı için kısa özellik özeti (çok uzun listeleri UI'da kısaltır).
+     *
+     * @return array{items: list<string>, daha_fazla: int, toplam: int}
+     */
+    public function kartVitrinOzeti(int $limit = 7): array
+    {
+        $limit = max(3, min(12, $limit));
+        $items = [];
+
+        if (($this->max_doktor_sayisi ?? null) !== null && (int) $this->max_doktor_sayisi > 0) {
+            $items[] = (int) $this->max_doktor_sayisi.' hekime kadar';
+        }
+        if (($this->max_personel_sayisi ?? null) !== null && (int) $this->max_personel_sayisi > 0) {
+            $items[] = (int) $this->max_personel_sayisi.' sekreter / personel';
+        }
+        if (! empty($this->merkezi_finans_mi)) {
+            $items[] = 'Merkezi finans + muhasebeci';
+        }
+        if (($this->sms_aylik_kontor ?? 0) > 0) {
+            $items[] = 'SMS: aylık '.number_format((int) $this->sms_aylik_kontor, 0, ',', '.').' kontör';
+        }
+        if (($this->max_randevu_sayisi ?? null) !== null && (int) $this->max_randevu_sayisi > 0) {
+            $items[] = 'En fazla '.(int) $this->max_randevu_sayisi.' randevu';
+        }
+
+        // Satış odaklı öncelik sırası (kartta önce bunlar)
+        $priority = [
+            'online_takvim', 'randevu_talepleri', 'bekleme_listesi', 'hasta_kartlari',
+            'email_bildirim', 'sms_hatirlatma', 'finans', 'hasta_bakiyeleri',
+            'web_sitesi', 'klinik_web_sitesi', 'online_gorusme', 'blog',
+            'galeri', 'egitimler', 'onam_formu', 'finans_rapor', 'destek_oncelikli',
+        ];
+
+        $byKod = collect();
+        if ($this->relationLoaded('sistemOzellikleri')) {
+            $byKod = $this->sistemOzellikleri->keyBy('kod');
+        } elseif (method_exists($this, 'sistemOzellikleri')) {
+            $byKod = $this->sistemOzellikleri()->get()->keyBy('kod');
+        }
+
+        if ($byKod->isNotEmpty()) {
+            $seen = [];
+            foreach ($priority as $kod) {
+                if (! isset($byKod[$kod])) {
+                    continue;
+                }
+                $ad = (string) ($byKod[$kod]->ad ?? '');
+                if ($ad === '' || isset($seen[$ad])) {
+                    continue;
+                }
+                // Limit satırlarıyla çakışan metinleri atla
+                $lower = mb_strtolower($ad);
+                if (str_contains($lower, 'hekim') && str_contains($lower, 'kadar')) {
+                    continue;
+                }
+                $items[] = $ad;
+                $seen[$ad] = true;
+            }
+            foreach ($byKod->sortBy([['sira', 'asc'], ['ad', 'asc']]) as $oz) {
+                $ad = (string) ($oz->ad ?? '');
+                if ($ad === '' || isset($seen[$ad])) {
+                    continue;
+                }
+                if (! ($oz->vitrin_mi ?? true)) {
+                    continue;
+                }
+                $items[] = $ad;
+                $seen[$ad] = true;
+            }
+        } elseif (is_array($this->ozellikler)) {
+            foreach ($this->ozellikler as $oz) {
+                $ad = is_string($oz) ? trim($oz) : '';
+                if ($ad !== '') {
+                    $items[] = $ad;
+                }
+            }
+        }
+
+        $items = array_values(array_unique($items));
+        $toplam = count($items);
+        $goster = array_slice($items, 0, $limit);
+
+        return [
+            'items' => $goster,
+            'daha_fazla' => max(0, $toplam - count($goster)),
+            'toplam' => $toplam,
+        ];
+    }
 }

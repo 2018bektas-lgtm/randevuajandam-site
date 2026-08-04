@@ -201,6 +201,85 @@
         line-height: 1.45;
         color: #475569;
     }
+    .pricing-page .feature-more {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 0.65rem;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #C96A2B;
+        text-decoration: none;
+    }
+    .pricing-page .feature-more:hover { text-decoration: underline; }
+    .pricing-page .feature-count {
+        display: inline-flex;
+        align-items: center;
+        margin-top: 0.5rem;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #64748B;
+    }
+    .pricing-page .matrix-wrap {
+        border: 1px solid #E2E8F0;
+        border-radius: 1.25rem;
+        background: #fff;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+        overflow: hidden;
+    }
+    .pricing-page .matrix-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 12px 14px;
+        border-bottom: 1px solid #E2E8F0;
+        background: #F8FAFC;
+    }
+    .pricing-page .matrix-tab {
+        border: 1px solid #E2E8F0;
+        background: #fff;
+        color: #64748B;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 7px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all .15s ease;
+    }
+    .pricing-page .matrix-tab.active {
+        background: #C96A2B;
+        border-color: #C96A2B;
+        color: #fff;
+    }
+    .pricing-page .matrix-group { display: none; }
+    .pricing-page .matrix-group.active { display: table-row-group; }
+    .pricing-page .matrix-table th.sticky-col,
+    .pricing-page .matrix-table td.sticky-col {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: #fff;
+        box-shadow: 4px 0 8px -6px rgba(15, 23, 42, 0.18);
+    }
+    .pricing-page .matrix-table thead th.sticky-col { background: #F8FAFC; z-index: 2; }
+    .pricing-page .matrix-search {
+        width: 100%;
+        max-width: 280px;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 9px 12px;
+        font-size: 12.5px;
+        outline: none;
+    }
+    .pricing-page .matrix-search:focus {
+        border-color: #E7B58A;
+        box-shadow: 0 0 0 3px rgba(201, 106, 43, 0.12);
+    }
+    .pricing-page .matrix-row-hidden { display: none !important; }
     .pricing-page .feature-check {
         width: 18px;
         height: 18px;
@@ -464,19 +543,32 @@
                         </div>
 
                         <div class="flex-1 mb-7">
-                            <p class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate-400 font-display mb-3">Dahil olanlar</p>
-                            <ul class="space-y-2.5">
-                                @if(is_array($p->ozellikler))
-                                    @foreach($p->ozellikler as $ozellik)
-                                        <li class="feature-row">
-                                            <span class="feature-check {{ $isFeatured || $isWebsite ? 'brand' : '' }}">
-                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                            </span>
-                                            <span>{{ $ozellik }}</span>
-                                        </li>
-                                    @endforeach
+                            @php $ozet = $p->kartVitrinOzeti(7); @endphp
+                            <p class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate-400 font-display mb-3">
+                                Öne çıkanlar
+                                @if($ozet['toplam'] > 0)
+                                    <span class="normal-case tracking-normal font-semibold text-slate-400">· {{ $ozet['toplam'] }} özellik</span>
                                 @endif
+                            </p>
+                            <ul class="space-y-2.5">
+                                @foreach($ozet['items'] as $ozellik)
+                                    <li class="feature-row">
+                                        <span class="feature-check {{ $isFeatured || $isWebsite ? 'brand' : '' }}">
+                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        </span>
+                                        <span>{{ $ozellik }}</span>
+                                    </li>
+                                @endforeach
                             </ul>
+                            @if($ozet['daha_fazla'] > 0)
+                                <span class="feature-count">+{{ $ozet['daha_fazla'] }} özellik daha</span>
+                                <a href="#ozellik-matrisi" class="feature-more">
+                                    Tümünü karşılaştır
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                </a>
+                            @elseif($ozet['toplam'] > 0)
+                                <a href="#ozellik-matrisi" class="feature-more">Karşılaştırma tablosu</a>
+                            @endif
                         </div>
 
                         <div class="mt-auto">
@@ -588,54 +680,32 @@
                         </div>
 
                         <div class="flex-1 mb-7">
-                            <p class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate-400 font-display mb-3">Dahil olanlar</p>
+                            @php $ozet = $p->kartVitrinOzeti(7); @endphp
+                            <p class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate-400 font-display mb-3">
+                                Öne çıkanlar
+                                @if($ozet['toplam'] > 0)
+                                    <span class="normal-case tracking-normal font-semibold text-slate-400">· {{ $ozet['toplam'] }} özellik</span>
+                                @endif
+                            </p>
                             <ul class="space-y-2.5">
-                                @if($p->max_doktor_sayisi)
+                                @foreach($ozet['items'] as $ozellik)
                                     <li class="feature-row">
-                                        <span class="feature-check brand">
+                                        <span class="feature-check {{ $isFeatured || $isWebsite ? 'brand' : '' }}">
                                             <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                         </span>
-                                        <span class="font-semibold text-slate-700">
-                                            {{ $p->max_doktor_sayisi }} hekime kadar
-                                        </span>
+                                        <span>{{ $ozellik }}</span>
                                     </li>
-                                @endif
-                                @if($p->max_personel_sayisi)
-                                    <li class="feature-row">
-                                        <span class="feature-check brand">
-                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                        </span>
-                                        <span class="font-semibold text-slate-700">
-                                            {{ $p->max_personel_sayisi }} sekreter / personel
-                                        </span>
-                                    </li>
-                                @endif
-                                @if($p->merkezi_finans_mi)
-                                    <li class="feature-row">
-                                        <span class="feature-check brand">
-                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                        </span>
-                                        <span class="font-semibold text-slate-700">Muhasebeci girişi + merkezi finans</span>
-                                    </li>
-                                @endif
-                                @if(is_array($p->ozellikler))
-                                    @foreach($p->ozellikler as $ozellik)
-                                        @php
-                                            $fLower = mb_strtolower((string) $ozellik);
-                                            $skipDup = str_contains($fLower, 'muhasebeci')
-                                                || str_contains($fLower, 'merkezi finans')
-                                                || str_contains($fLower, 'maksimum');
-                                        @endphp
-                                        @if($skipDup) @continue @endif
-                                        <li class="feature-row">
-                                            <span class="feature-check {{ $isFeatured || $isWebsite ? 'brand' : '' }}">
-                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                            </span>
-                                            <span>{{ $ozellik }}</span>
-                                        </li>
-                                    @endforeach
-                                @endif
+                                @endforeach
                             </ul>
+                            @if($ozet['daha_fazla'] > 0)
+                                <span class="feature-count">+{{ $ozet['daha_fazla'] }} özellik daha</span>
+                                <a href="#ozellik-matrisi" class="feature-more">
+                                    Tümünü karşılaştır
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                </a>
+                            @elseif($ozet['toplam'] > 0)
+                                <a href="#ozellik-matrisi" class="feature-more">Karşılaştırma tablosu</a>
+                            @endif
                         </div>
 
                         <div class="mt-auto">
@@ -656,50 +726,86 @@
             @endforelse
         </div>
 
-        {{-- Özellik karşılaştırma matrisi (Excel) --}}
+        {{-- Özellik karşılaştırma: grup sekmeleri + arama --}}
         @if(isset($matrisOzellikler) && $bireyselPaketler->isNotEmpty())
-        <div class="mt-16 max-w-6xl mx-auto" id="ozellik-matrisi">
+        <div class="mt-16 max-w-6xl mx-auto scroll-mt-24" id="ozellik-matrisi">
             <h2 class="text-xl font-extrabold font-display text-slate-900 text-center mb-2">Özellik karşılaştırması</h2>
-            <p class="text-xs text-slate-500 text-center mb-6">Bireysel paketler · WhatsApp hariç · SMS kontör paket kotasına bağlı</p>
-            <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <table class="w-full text-left text-xs min-w-[720px]">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200">
-                            <th class="p-3 font-bold text-slate-600 sticky left-0 bg-slate-50">Özellik</th>
-                            @foreach($bireyselPaketler as $bp)
-                                <th class="p-3 font-bold text-slate-800 text-center whitespace-nowrap">{{ $bp->ad }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($matrisOzellikler as $grup => $ozList)
-                            <tr class="bg-orange-50/50">
-                                <td colspan="{{ 1 + $bireyselPaketler->count() }}" class="px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-[#C96A2B]">{{ $grup }}</td>
+            <p class="text-xs text-slate-500 text-center mb-4 max-w-xl mx-auto">
+                Kartlarda yalnızca öne çıkanlar gösterilir. Tüm farklar burada gruplara ayrılarak incelenir.
+            </p>
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                <input type="search" id="matrixSearch" class="matrix-search" placeholder="Özellik ara… (ör. SMS, blog)" autocomplete="off">
+                <p class="text-[11px] text-slate-400">SMS kontör paket kotasına bağlı</p>
+            </div>
+
+            <div class="matrix-wrap" id="matrixRoot">
+                <div class="matrix-tabs" id="matrixTabs" role="tablist">
+                    <button type="button" class="matrix-tab active" data-group="__all" role="tab" aria-selected="true">Tümü</button>
+                    @foreach($matrisOzellikler as $grup => $ozList)
+                        <button type="button" class="matrix-tab" data-group="{{ \Illuminate\Support\Str::slug($grup) }}" role="tab" aria-selected="false">
+                            {{ $grup }}
+                            <span class="opacity-70 font-semibold">({{ $ozList->count() }})</span>
+                        </button>
+                    @endforeach
+                    <button type="button" class="matrix-tab" data-group="__limits" role="tab" aria-selected="false">Limitler</button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="matrix-table w-full text-left text-xs min-w-[720px]">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="p-3 font-bold text-slate-600 sticky-col min-w-[200px]">Özellik</th>
+                                @foreach($bireyselPaketler as $bp)
+                                    <th class="p-3 font-bold text-slate-800 text-center whitespace-nowrap">{{ $bp->ad }}</th>
+                                @endforeach
                             </tr>
-                            @foreach($ozList as $oz)
-                                <tr class="border-t border-slate-100">
-                                    <td class="p-3 text-slate-600 sticky left-0 bg-white">{{ $oz->ad }}</td>
-                                    @foreach($bireyselPaketler as $bp)
-                                        @php $var = $bp->sistemOzellikleri->contains('kod', $oz->kod); @endphp
-                                        <td class="p-3 text-center {{ $var ? 'text-emerald-600 font-bold' : 'text-slate-300' }}">{{ $var ? '✓' : '—' }}</td>
-                                    @endforeach
+                        </thead>
+
+                        @foreach($matrisOzellikler as $grup => $ozList)
+                            @php $gSlug = \Illuminate\Support\Str::slug($grup); @endphp
+                            <tbody class="matrix-group active" data-group="{{ $gSlug }}">
+                                <tr class="bg-orange-50/60 matrix-group-head">
+                                    <td colspan="{{ 1 + $bireyselPaketler->count() }}" class="px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-[#C96A2B]">
+                                        {{ $grup }}
+                                    </td>
                                 </tr>
-                            @endforeach
+                                @foreach($ozList as $oz)
+                                    <tr class="border-t border-slate-100 matrix-feature-row" data-label="{{ mb_strtolower($oz->ad.' '.$grup) }}">
+                                        <td class="p-3 text-slate-600 sticky-col">
+                                            <span class="font-medium text-slate-700">{{ $oz->ad }}</span>
+                                            @if(!empty($oz->aciklama))
+                                                <span class="block text-[10px] text-slate-400 mt-0.5 leading-snug">{{ \Illuminate\Support\Str::limit($oz->aciklama, 72) }}</span>
+                                            @endif
+                                        </td>
+                                        @foreach($bireyselPaketler as $bp)
+                                            @php $var = $bp->sistemOzellikleri->contains('kod', $oz->kod); @endphp
+                                            <td class="p-3 text-center {{ $var ? 'text-emerald-600 font-bold' : 'text-slate-300' }}">{{ $var ? '✓' : '—' }}</td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
                         @endforeach
-                        <tr class="border-t border-slate-200 bg-slate-50">
-                            <td class="p-3 font-bold">SMS aylık kontör</td>
-                            @foreach($bireyselPaketler as $bp)
-                                <td class="p-3 text-center font-semibold">{{ $bp->sms_aylik_kontor ? number_format($bp->sms_aylik_kontor,0,',','.') : '—' }}</td>
-                            @endforeach
-                        </tr>
-                        <tr class="border-t border-slate-100">
-                            <td class="p-3 font-bold">Max randevu</td>
-                            @foreach($bireyselPaketler as $bp)
-                                <td class="p-3 text-center">{{ $bp->max_randevu_sayisi ?? '∞' }}</td>
-                            @endforeach
-                        </tr>
-                    </tbody>
-                </table>
+
+                        <tbody class="matrix-group active" data-group="__limits">
+                            <tr class="bg-orange-50/60 matrix-group-head">
+                                <td colspan="{{ 1 + $bireyselPaketler->count() }}" class="px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-[#C96A2B]">Limitler</td>
+                            </tr>
+                            <tr class="border-t border-slate-100 matrix-feature-row" data-label="sms aylık kontör limitler">
+                                <td class="p-3 font-bold sticky-col">SMS aylık kontör</td>
+                                @foreach($bireyselPaketler as $bp)
+                                    <td class="p-3 text-center font-semibold">{{ $bp->sms_aylik_kontor ? number_format($bp->sms_aylik_kontor,0,',','.') : '—' }}</td>
+                                @endforeach
+                            </tr>
+                            <tr class="border-t border-slate-100 matrix-feature-row" data-label="max randevu limitler">
+                                <td class="p-3 font-bold sticky-col">Max randevu</td>
+                                @foreach($bireyselPaketler as $bp)
+                                    <td class="p-3 text-center">{{ $bp->max_randevu_sayisi ?? '∞' }}</td>
+                                @endforeach
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <p class="text-[11px] text-slate-400 text-center mt-3">Ek SMS: 1.000 adet ₺450 · 5.000 adet ₺1.950 (panelden satın alınır)</p>
         </div>
@@ -849,5 +955,62 @@
         adjustSliderPosition('billingToggle', currentBilling === 'aylik' ? 'btnMonthly' : 'btnYearly', 'billingSlider');
         adjustSliderPosition('typeToggle', currentType === 'bireysel' ? 'btnBireysel' : 'btnKlinik', 'typeSlider');
     });
+
+    // Özellik matrisi: grup sekmeleri + arama
+    (function initFeatureMatrix() {
+        const root = document.getElementById('matrixRoot');
+        const tabs = document.getElementById('matrixTabs');
+        const search = document.getElementById('matrixSearch');
+        if (!root || !tabs) return;
+
+        let activeGroup = '__all';
+
+        function applyFilters() {
+            const q = (search?.value || '').trim().toLowerCase();
+            const groups = root.querySelectorAll('.matrix-group');
+
+            groups.forEach((group) => {
+                const g = group.getAttribute('data-group');
+                const groupMatch = activeGroup === '__all' || activeGroup === g;
+                let visibleRows = 0;
+
+                group.querySelectorAll('.matrix-feature-row').forEach((row) => {
+                    const label = (row.getAttribute('data-label') || '').toLowerCase();
+                    const textMatch = !q || label.includes(q);
+                    const show = groupMatch && textMatch;
+                    row.classList.toggle('matrix-row-hidden', !show);
+                    if (show) visibleRows++;
+                });
+
+                // Grup başlığı: arama/sekme sonucu en az 1 satır varsa
+                const showGroup = groupMatch && (q === '' || visibleRows > 0);
+                group.classList.toggle('active', showGroup);
+                // display: table-row-group only when active (CSS)
+                if (showGroup) {
+                    group.classList.add('active');
+                } else {
+                    group.classList.remove('active');
+                }
+            });
+        }
+
+        tabs.addEventListener('click', function (e) {
+            const btn = e.target.closest('.matrix-tab');
+            if (!btn) return;
+            activeGroup = btn.getAttribute('data-group') || '__all';
+            tabs.querySelectorAll('.matrix-tab').forEach((t) => {
+                const on = t === btn;
+                t.classList.toggle('active', on);
+                t.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            applyFilters();
+        });
+
+        if (search) {
+            search.addEventListener('input', applyFilters);
+        }
+
+        applyFilters();
+    })();
 </script>
 @endsection
