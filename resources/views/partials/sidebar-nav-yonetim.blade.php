@@ -78,6 +78,7 @@
                 ['href' => route('yonetim.branslar.index'), 'match' => 'yonetim.branslar.*', 'label' => 'Branşlar'],
                 ['href' => route('yonetim.unvanlar.index'), 'match' => 'yonetim.unvanlar.*', 'label' => 'Unvanlar'],
                 ['href' => route('yonetim.paketler.index'), 'match' => 'yonetim.paketler.*', 'label' => 'Paketler'],
+                ['href' => route('yonetim.raporlar.paket-donusum'), 'match' => 'yonetim.raporlar.*', 'label' => 'Paket dönüşüm'],
             ],
         ],
         [

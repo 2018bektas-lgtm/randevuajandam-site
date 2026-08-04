@@ -498,12 +498,33 @@ class MobileDoctorController extends Controller
         $randevu = $doktor->randevular()->findOrFail($id);
 
         $data = $request->validate([
-            'durum' => ['required', 'in:onaylandi,iptal,tamamlandi,beklemede'],
+            'durum' => ['required', 'in:onaylandi,iptal,tamamlandi,beklemede,gelmedi'],
             'hekim_notu' => ['nullable', 'string', 'max:1000'],
         ], [
             'durum.required' => 'Durum alanı zorunludur.',
             'durum.in' => 'Geçersiz randevu durumu.',
         ]);
+
+        // Vitrin: onay/red için randevu_talepleri gerekir
+        $yonetimGereken = in_array($data['durum'], ['onaylandi', 'iptal'], true)
+            && $randevu->durum === 'beklemede';
+        if ($yonetimGereken && ! $doktor->hasPaketFeature('randevu_talepleri')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Randevu taleplerini onaylamak veya reddetmek için ücretli bir pakete geçmelisiniz.',
+                'feature' => 'randevu_talepleri',
+            ], 403);
+        }
+
+        if (array_key_exists('hekim_notu', $data) && filled($data['hekim_notu'])
+            && ! $doktor->hasPaketFeature('hasta_not_dosya')
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hasta notu mevcut paketinizde yok.',
+                'feature' => 'hasta_not_dosya',
+            ], 403);
+        }
 
         $eskiDurum = $randevu->durum;
         $randevu->update([
@@ -513,6 +534,25 @@ class MobileDoctorController extends Controller
 
         if ($eskiDurum !== $data['durum']) {
             RandevuDurumuDegisti::dispatch($randevu, $eskiDurum, $data['durum']);
+        }
+
+        // No-show SMS
+        if ($data['durum'] === 'gelmedi' && $eskiDurum !== 'gelmedi' && $doktor->hasPaketFeature('no_show_mesaj')) {
+            try {
+                $hasta = $randevu->hasta;
+                if ($hasta && ! empty($hasta->telefon)) {
+                    $kontor = app(\App\Services\SmsKontorService::class);
+                    if ($kontor->doktorGonderebilir($doktor)) {
+                        $ad = $hasta->ad_soyad ?? trim(($hasta->ad ?? '').' '.($hasta->soyad ?? '')) ?: 'Hasta';
+                        $msg = "Sayin {$ad}, randevunuza ulasilamadi. Yeni slot icin hekim profilinden randevu alabilirsiniz. ".config('app.url');
+                        if (app(\App\Services\SmsService::class)->send($hasta->telefon, $msg, $doktor->resolveSmsHeader())) {
+                            $kontor->tuket($doktor, 1);
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Mobile no-show SMS: '.$e->getMessage());
+            }
         }
 
         return response()->json([
@@ -668,6 +708,16 @@ class MobileDoctorController extends Controller
             $randevu->hizmet_id = $hizmet->id;
         }
 
+        $needsNote = (array_key_exists('aciklama', $data) && filled($data['aciklama']))
+            || (array_key_exists('hekim_notu', $data) && filled($data['hekim_notu']));
+        if ($needsNote && ! $doktor->hasPaketFeature('hasta_not_dosya')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Randevu / hasta notu mevcut paketinizde yok.',
+                'feature' => 'hasta_not_dosya',
+            ], 403);
+        }
+
         if (array_key_exists('aciklama', $data)) {
             $randevu->not = $data['aciklama'];
         }
@@ -675,6 +725,13 @@ class MobileDoctorController extends Controller
             $randevu->hekim_notu = $data['hekim_notu'];
         }
         if (! empty($data['gorusme_tipi'])) {
+            if ($data['gorusme_tipi'] === 'online' && ! $doktor->hasPaketFeature('online_gorusme')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Online görüşme mevcut paketinizde yok.',
+                    'feature' => 'online_gorusme',
+                ], 403);
+            }
             $randevu->gorusme_tipi = $data['gorusme_tipi'];
         }
         $randevu->save();
@@ -822,7 +879,28 @@ class MobileDoctorController extends Controller
             'saat' => ['required', 'date_format:H:i'],
             'aciklama' => ['nullable', 'string', 'max:1000'],
             'gorusme_tipi' => ['nullable', 'in:yuz_yuze,online'],
+            'seri' => ['nullable', 'boolean'],
+            'seri_adet' => ['nullable', 'integer', 'min:2', 'max:52'],
+            'seri_aralik_gun' => ['nullable', 'integer', 'min:1', 'max:90'],
         ]);
+
+        $not = $data['aciklama'] ?? null;
+        if (filled($not) && ! $doktor->hasPaketFeature('hasta_not_dosya')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Randevu notu mevcut paketinizde yok. Paketinizi yükseltin.',
+                'feature' => 'hasta_not_dosya',
+            ], 403);
+        }
+
+        $seri = (bool) ($data['seri'] ?? false) || (int) ($data['seri_adet'] ?? 0) > 1;
+        if ($seri && ! $doktor->hasPaketFeature('seri_randevu')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seri randevu mevcut paketinizde yok. Paketinizi yükseltin.',
+                'feature' => 'seri_randevu',
+            ], 403);
+        }
 
         $newDateTime = Carbon::parse($data['tarih'].' '.$data['saat']);
         if ($newDateTime->isPast()) {
@@ -833,33 +911,45 @@ class MobileDoctorController extends Controller
         }
 
         $hasta = Hasta::findOrFail($data['danisan_id']);
+        $adet = $seri ? max(2, min(52, (int) ($data['seri_adet'] ?? 2))) : 1;
+        $aralik = max(1, min(90, (int) ($data['seri_aralik_gun'] ?? 7)));
+        $baslangic = Carbon::parse($data['tarih']);
+        $last = null;
+        $created = 0;
 
         try {
-            $randevu = $bookingService->create([
-                'doktor' => $doktor,
-                'hasta' => $hasta,
-                'hizmet_id' => (int) $data['hizmet_id'],
-                'tarih' => Carbon::parse($data['tarih'])->toDateString(),
-                'saat' => $data['saat'],
-                'not' => $data['aciklama'] ?? null,
-                'ad' => $hasta->ad,
-                'soyad' => $hasta->soyad,
-                'telefon' => $hasta->telefon,
-                'e_posta' => $hasta->e_posta,
-                'durum' => 'onaylandi',
-                'gorusme_tipi' => ($data['gorusme_tipi'] ?? null) === 'online' ? 'online' : 'yuz_yuze',
-            ]);
+            for ($i = 0; $i < $adet; $i++) {
+                $tarih = $baslangic->copy()->addDays($i * $aralik)->toDateString();
+                $last = $bookingService->create([
+                    'doktor' => $doktor,
+                    'hasta' => $hasta,
+                    'hizmet_id' => (int) $data['hizmet_id'],
+                    'tarih' => $tarih,
+                    'saat' => $data['saat'],
+                    'not' => $not,
+                    'ad' => $hasta->ad,
+                    'soyad' => $hasta->soyad,
+                    'telefon' => $hasta->telefon,
+                    'e_posta' => $hasta->e_posta,
+                    'durum' => 'onaylandi',
+                    'gorusme_tipi' => ($data['gorusme_tipi'] ?? null) === 'online' ? 'online' : 'yuz_yuze',
+                ]);
+                $created++;
+            }
         } catch (InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => $e->getMessage().($created > 0 ? " ({$created} randevu oluşturuldu.)" : ''),
             ], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Randevu başarıyla oluşturuldu.',
-            'data' => $this->appointmentPayload($randevu->load(['hasta', 'hizmet'])),
+            'message' => $created > 1
+                ? "{$created} seri randevu başarıyla oluşturuldu."
+                : 'Randevu başarıyla oluşturuldu.',
+            'adet' => $created,
+            'data' => $last ? $this->appointmentPayload($last->load(['hasta', 'hizmet'])) : null,
         ], 201);
     }
 
@@ -966,6 +1056,15 @@ class MobileDoctorController extends Controller
             'il_id', 'ilce_id', 'enlem', 'boylam',
             'instagram', 'facebook', 'twitter', 'linkedin', 'youtube', 'web_sitesi',
         ]);
+
+        // Dış bağlantılar paketsiz kaydedilmez
+        if (! $doktor->hasPaketFeature('dis_baglanti')) {
+            foreach (['instagram', 'facebook', 'twitter', 'linkedin', 'youtube', 'web_sitesi'] as $sosyal) {
+                if (array_key_exists($sosyal, $update)) {
+                    unset($update[$sosyal]);
+                }
+            }
+        }
 
         // Web panelindeki gibi: boş gönderim mevcut T.C. kimliği silmez.
         if ($request->filled('tc_kimlik_no')) {
@@ -1929,27 +2028,48 @@ class MobileDoctorController extends Controller
         abort_unless($allowedIds->contains($id), 404);
 
         $hasta = Hasta::query()->findOrFail($id);
-        $randevular = $doktor->randevular()
-            ->where('hasta_id', $id)
-            ->with('hizmet:id,ad,sure')
-            ->orderByDesc('tarih')
-            ->orderByDesc('saat')
-            ->limit(50)
-            ->get()
-            ->map(fn ($r) => $this->appointmentPayload($r));
 
-        $odemeler = $doktor->odemeler()
-            ->where('hasta_id', $id)
-            ->whereNotIn('durum', ['iptal'])
-            ->orderByDesc('odeme_tarihi')
-            ->orderByDesc('id')
-            ->limit(40)
-            ->get(['id', 'tutar', 'odenen_tutar', 'durum', 'odeme_yontemi', 'odeme_tarihi', 'aciklama']);
+        $canTedavi = $doktor->hasPaketFeature('tedavi_gecmisi');
+        $canNot = $doktor->hasPaketFeature('hasta_not_dosya');
+        $canFinans = $doktor->hasPaketFeature('hasta_bakiyeleri') || $doktor->hasPaketFeature('finans');
 
-        $aciklar      = $odemeler->whereIn('durum', ['beklemede', 'kismi_odeme']);
-        $toplamBorc   = (float) $aciklar->sum('tutar');
-        $toplamOdenen = (float) $odemeler->sum('odenen_tutar');
-        $kalanBakiye  = max(0, $toplamBorc - $toplamOdenen);
+        $randevular = $canTedavi
+            ? $doktor->randevular()
+                ->where('hasta_id', $id)
+                ->with('hizmet:id,ad,sure')
+                ->orderByDesc('tarih')
+                ->orderByDesc('saat')
+                ->limit(50)
+                ->get()
+                ->map(function ($r) use ($canNot) {
+                    $payload = $this->appointmentPayload($r);
+                    if (! $canNot) {
+                        $payload['not'] = null;
+                        $payload['hekim_notu'] = null;
+                        $payload['aciklama'] = null;
+                    }
+
+                    return $payload;
+                })
+            : [];
+
+        $odemeler = collect();
+        $toplamBorc = 0.0;
+        $toplamOdenen = 0.0;
+        $kalanBakiye = 0.0;
+        if ($canFinans) {
+            $odemeler = $doktor->odemeler()
+                ->where('hasta_id', $id)
+                ->whereNotIn('durum', ['iptal'])
+                ->orderByDesc('odeme_tarihi')
+                ->orderByDesc('id')
+                ->limit(40)
+                ->get(['id', 'tutar', 'odenen_tutar', 'durum', 'odeme_yontemi', 'odeme_tarihi', 'aciklama']);
+            $aciklar = $odemeler->whereIn('durum', ['beklemede', 'kismi_odeme']);
+            $toplamBorc = (float) $aciklar->sum('tutar');
+            $toplamOdenen = (float) $odemeler->sum('odenen_tutar');
+            $kalanBakiye = max(0, $toplamBorc - $toplamOdenen);
+        }
 
         return response()->json([
             'success' => true,
@@ -1960,10 +2080,12 @@ class MobileDoctorController extends Controller
                 'telefon' => $hasta->telefon,
                 'e_posta' => $hasta->e_posta,
                 'randevular' => $randevular,
-                'finans' => [
-                    'toplam_borc'   => $toplamBorc,
+                'tedavi_gecmisi_acik' => $canTedavi,
+                'hasta_not_acik' => $canNot,
+                'finans' => $canFinans ? [
+                    'toplam_borc' => $toplamBorc,
                     'toplam_odenen' => $toplamOdenen,
-                    'kalan_bakiye'  => $kalanBakiye,
+                    'kalan_bakiye' => $kalanBakiye,
                     'odemeler' => $odemeler->map(fn ($o) => [
                         'id' => $o->id,
                         'tutar' => (float) $o->tutar,
@@ -1973,7 +2095,7 @@ class MobileDoctorController extends Controller
                         'odeme_tarihi' => optional($o->odeme_tarihi)?->format('Y-m-d'),
                         'aciklama' => $o->aciklama,
                     ])->values(),
-                ],
+                ] : null,
             ],
         ]);
     }
@@ -2291,9 +2413,31 @@ class MobileDoctorController extends Controller
             'gunluk_maksimum_randevu' => ['required', 'integer', 'min:0'],
             'email_bildirimleri' => ['required', 'boolean'],
             'sms_bildirimleri' => ['required', 'boolean'],
+            'sms_gonderici_baslik' => ['nullable', 'string', 'max:11'],
         ]);
+        // Paket yetkisi olmayan bildirim bayraklarını zorla kapat
+        if (! $doktor->hasPaketFeature('email_bildirim')) {
+            $data['email_bildirimleri'] = false;
+        }
+        if (! $doktor->hasPaketFeature('sms_hatirlatma')) {
+            $data['sms_bildirimleri'] = false;
+        }
+        $smsBaslik = $data['sms_gonderici_baslik'] ?? null;
+        unset($data['sms_gonderici_baslik']);
+
         $ayarlar = $this->ensureAppointmentSettings($doktor);
         $ayarlar->update($data);
+
+        if ($doktor->hasPaketFeature('sms_baslik') && filled($smsBaslik)
+            && \Illuminate\Support\Facades\Schema::hasColumn('doktorlar', 'sms_gonderici_baslik')
+        ) {
+            $baslik = mb_strtoupper(preg_replace('/[^A-Za-z0-9 ]/', '', (string) $smsBaslik) ?? '');
+            $doktor->update(['sms_gonderici_baslik' => mb_substr(trim($baslik), 0, 11) ?: null]);
+        } elseif (! $doktor->hasPaketFeature('sms_baslik')
+            && \Illuminate\Support\Facades\Schema::hasColumn('doktorlar', 'sms_gonderici_baslik')
+        ) {
+            $doktor->update(['sms_gonderici_baslik' => null]);
+        }
 
         return response()->json(['success' => true, 'message' => 'Randevu ayarları güncellendi.', 'data' => $ayarlar->fresh()]);
     }
@@ -2452,6 +2596,11 @@ class MobileDoctorController extends Controller
 
     private function authenticatedResponse(Doktor $doktor, ?string $device, ?string $ip): JsonResponse
     {
+        $doktor->forceFill(['son_giris_at' => now()])->save();
+        if ($doktor->platformda_gorunur === false && method_exists($doktor, 'aktifPaket') && $doktor->aktifPaket()?->ucretsizMi()) {
+            $doktor->forceFill(['platformda_gorunur' => true])->save();
+        }
+
         $token = DoktorApiToken::issue($doktor, $device ?: 'doctor-mobile', $ip);
 
         return response()->json([

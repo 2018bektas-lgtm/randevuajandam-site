@@ -79,6 +79,8 @@ Route::prefix('yonetim')->name('yonetim.')->group(function () {
         });
 
         // Paket Yönetimi
+        Route::get('/raporlar/paket-donusum', [\App\Http\Controllers\YonetimRaporController::class, 'paketDonusum'])->name('raporlar.paket-donusum');
+
         Route::prefix('paketler')->name('paketler.')->group(function () {
             Route::get('/', [PaketController::class, 'index'])->name('index');
             Route::get('/ekle', [PaketController::class, 'create'])->name('ekle');

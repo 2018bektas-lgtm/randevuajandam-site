@@ -7,133 +7,86 @@ use App\Models\Doktor;
 use App\Models\DomainOrder;
 use App\Models\Klinik;
 use App\Models\Paket;
+use App\Models\PaketOzelligi;
 use App\Models\UyelikOdeme;
 use App\Models\Yonetici;
+use App\Support\PaketOzellikKatalogu;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
 class PaketController extends Controller
 {
-    /**
-     * Display a listing of the subscription packages.
-     */
     public function index()
     {
         /** @var Yonetici $yonetici */
         $yonetici = Auth::guard('yonetici')->user();
-        $paketler = Paket::orderBy('id', 'desc')->get();
+        $paketler = Paket::with('sistemOzellikleri')->orderBy('tur')->orderBy('sira')->orderBy('id')->get();
 
         return view('yonetim.paketler.index', compact('yonetici', 'paketler'));
     }
 
-    /**
-     * Show the form for creating a new subscription package.
-     */
     public function create()
     {
         /** @var Yonetici $yonetici */
         $yonetici = Auth::guard('yonetici')->user();
+        $ozellikGruplari = PaketOzellikKatalogu::gruplu();
+        $seciliOzellikler = old('sistem_ozellikleri', []);
 
-        return view('yonetim.paketler.ekle', compact('yonetici'));
+        return view('yonetim.paketler.ekle', compact('yonetici', 'ozellikGruplari', 'seciliOzellikler'));
     }
 
-    /**
-     * Store a newly created subscription package in storage.
-     */
     public function store(PaketStoreRequest $request)
     {
-        $ozellikler = array_values(array_filter($request->input('ozellikler', [])));
+        $payload = $this->payloadFromRequest($request);
+        $kodlar = $request->input('sistem_ozellikleri', []) ?: [];
 
-        Paket::create([
-            'ad' => $request->ad,
-            'tur' => $request->tur,
-            'aciklama' => $request->aciklama,
-            'aylik_fiyat' => $request->aylik_fiyat,
-            'aylik_indirimli_fiyat' => $request->aylik_indirimli_fiyat,
-            'yillik_fiyat' => $request->yillik_fiyat,
-            'yillik_indirimli_fiyat' => $request->yillik_indirimli_fiyat,
-            'ek_doktor_aylik_fiyat' => $request->tur === 'klinik' ? $request->ek_doktor_aylik_fiyat : null,
-            'ek_doktor_yillik_fiyat' => $request->tur === 'klinik' ? $request->ek_doktor_yillik_fiyat : null,
-            'ozellikler' => $ozellikler,
-            'aktif_mi' => $request->has('aktif_mi'),
-            'max_doktor_sayisi' => $request->tur === 'klinik' ? $request->max_doktor_sayisi : null,
-            'max_personel_sayisi' => $request->tur === 'klinik' ? $request->max_personel_sayisi : null,
-            'merkezi_finans_mi' => $request->tur === 'klinik' && $request->has('merkezi_finans_mi'),
-            'toplu_randevu_mi' => $request->tur === 'klinik' && $request->has('toplu_randevu_mi'),
-            'raporlama_mi' => $request->tur === 'klinik' && $request->has('raporlama_mi'),
-            'hasta_havuzu_mi' => $request->tur === 'klinik' && $request->has('hasta_havuzu_mi'),
-            'sira' => $request->sira ?? 0,
-            'one_cikan_mi' => $request->boolean('one_cikan_mi'),
-            'etiket' => $request->filled('etiket') ? trim((string) $request->etiket) : null,
-            'etiket_stil' => $request->input('etiket_stil') ?: null,
-        ]);
+        $payload['ozellikler'] = PaketOzellikKatalogu::vitrinMetinleri(
+            $kodlar,
+            $payload['sms_aylik_kontor'] ?? null,
+            $payload['max_randevu_sayisi'] ?? null,
+            $payload['max_hasta_sayisi'] ?? null
+        );
+
+        $paket = Paket::create($payload);
+        $this->syncOzellikler($paket, $kodlar);
 
         return redirect()->route('yonetim.paketler.index')->with('basarili', 'Paket başarıyla oluşturuldu.');
     }
 
-    /**
-     * Show the form for editing the specified subscription package.
-     */
     public function edit($id)
     {
         /** @var Yonetici $yonetici */
         $yonetici = Auth::guard('yonetici')->user();
-        $paket = Paket::findOrFail($id);
+        $paket = Paket::with('sistemOzellikleri')->findOrFail($id);
+        $ozellikGruplari = PaketOzellikKatalogu::gruplu();
+        $seciliOzellikler = old(
+            'sistem_ozellikleri',
+            $paket->sistemOzellikleri->pluck('kod')->all()
+        );
 
-        return view('yonetim.paketler.duzenle', compact('yonetici', 'paket'));
+        return view('yonetim.paketler.duzenle', compact('yonetici', 'paket', 'ozellikGruplari', 'seciliOzellikler'));
     }
 
-    /**
-     * Update the specified subscription package in storage.
-     */
     public function update(PaketStoreRequest $request, $id)
     {
         $paket = Paket::findOrFail($id);
+        $payload = $this->payloadFromRequest($request);
+        $kodlar = $request->input('sistem_ozellikleri', []) ?: [];
 
-        $ozellikler = array_values(array_filter($request->input('ozellikler', [])));
+        $payload['ozellikler'] = PaketOzellikKatalogu::vitrinMetinleri(
+            $kodlar,
+            $payload['sms_aylik_kontor'] ?? null,
+            $payload['max_randevu_sayisi'] ?? null,
+            $payload['max_hasta_sayisi'] ?? null
+        );
 
-        $paket->update([
-            'ad' => $request->ad,
-            'tur' => $request->tur,
-            'aciklama' => $request->aciklama,
-            'aylik_fiyat' => $request->aylik_fiyat,
-            'aylik_indirimli_fiyat' => $request->aylik_indirimli_fiyat,
-            'yillik_fiyat' => $request->yillik_fiyat,
-            'yillik_indirimli_fiyat' => $request->yillik_indirimli_fiyat,
-            'ek_doktor_aylik_fiyat' => $request->tur === 'klinik' ? $request->ek_doktor_aylik_fiyat : null,
-            'ek_doktor_yillik_fiyat' => $request->tur === 'klinik' ? $request->ek_doktor_yillik_fiyat : null,
-            'ozellikler' => $ozellikler,
-            'aktif_mi' => $request->has('aktif_mi'),
-            'max_doktor_sayisi' => $request->tur === 'klinik' ? $request->max_doktor_sayisi : null,
-            'max_personel_sayisi' => $request->tur === 'klinik' ? $request->max_personel_sayisi : null,
-            'merkezi_finans_mi' => $request->tur === 'klinik' && $request->has('merkezi_finans_mi'),
-            'toplu_randevu_mi' => $request->tur === 'klinik' && $request->has('toplu_randevu_mi'),
-            'raporlama_mi' => $request->tur === 'klinik' && $request->has('raporlama_mi'),
-            'hasta_havuzu_mi' => $request->tur === 'klinik' && $request->has('hasta_havuzu_mi'),
-            'sira' => $request->sira ?? 0,
-            'iyzico_plan_aylik' => $request->input('iyzico_plan_aylik') ?: null,
-            'iyzico_plan_yillik' => $request->input('iyzico_plan_yillik') ?: null,
-            'deneme_gun' => $request->filled('deneme_gun') ? (int) $request->deneme_gun : null,
-            'domain_dahil_mi' => $request->boolean('domain_dahil_mi'),
-            'domain_dahil_yil' => (int) ($request->input('domain_dahil_yil') ?: 1),
-            'domain_dahil_tlds' => $request->filled('domain_dahil_tlds')
-                ? array_values(array_filter(array_map('trim', explode(',', (string) $request->domain_dahil_tlds))))
-                : null,
-            'one_cikan_mi' => $request->boolean('one_cikan_mi'),
-            'etiket' => $request->filled('etiket') ? trim((string) $request->etiket) : null,
-            'etiket_stil' => $request->input('etiket_stil') ?: null,
-        ]);
+        $paket->update($payload);
+        $this->syncOzellikler($paket, $kodlar);
 
         return redirect()->route('yonetim.paketler.index')->with('basarili', 'Paket başarıyla güncellendi.');
     }
 
-    /**
-     * Remove the specified subscription package from storage.
-     *
-     * Ödeme geçmişi (uyelik_odemeleri) pakete FK ile bağlıdır; kayıt varken silinemez.
-     * Bu durumda 500 yerine anlaşılır uyarı + pasife alma önerisi gösterilir.
-     */
     public function destroy($id)
     {
         $paket = Paket::findOrFail($id);
@@ -187,9 +140,6 @@ class PaketController extends Controller
         return redirect()->route('yonetim.paketler.index')->with('basarili', 'Paket başarıyla silindi.');
     }
 
-    /**
-     * Toggle the subscription package status.
-     */
     public function toggleDurum($id)
     {
         $paket = Paket::findOrFail($id);
@@ -198,5 +148,73 @@ class PaketController extends Controller
         ]);
 
         return redirect()->route('yonetim.paketler.index')->with('basarili', 'Paket durumu güncellendi.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payloadFromRequest(PaketStoreRequest $request): array
+    {
+        $tur = $request->input('tur');
+        $isKlinik = $tur === 'klinik';
+
+        $nullableInt = function (string $key) use ($request): ?int {
+            if (! $request->filled($key)) {
+                return null;
+            }
+            $v = (int) $request->input($key);
+
+            return $v > 0 ? $v : null;
+        };
+
+        return [
+            'ad' => $request->ad,
+            'tur' => $tur,
+            'aciklama' => $request->aciklama,
+            'aylik_fiyat' => $request->aylik_fiyat,
+            'aylik_indirimli_fiyat' => $request->aylik_indirimli_fiyat,
+            'yillik_fiyat' => $request->yillik_fiyat,
+            'yillik_indirimli_fiyat' => $request->yillik_indirimli_fiyat,
+            'ek_doktor_aylik_fiyat' => $isKlinik ? $request->ek_doktor_aylik_fiyat : null,
+            'ek_doktor_yillik_fiyat' => $isKlinik ? $request->ek_doktor_yillik_fiyat : null,
+            'ek_personel_aylik_fiyat' => $request->ek_personel_aylik_fiyat,
+            'ek_personel_yillik_fiyat' => $request->ek_personel_yillik_fiyat,
+            'aktif_mi' => $request->boolean('aktif_mi'),
+            'max_doktor_sayisi' => $isKlinik ? $nullableInt('max_doktor_sayisi') : null,
+            'max_ek_doktor' => $isKlinik ? $nullableInt('max_ek_doktor') : null,
+            'max_personel_sayisi' => $nullableInt('max_personel_sayisi'),
+            'max_hasta_sayisi' => $nullableInt('max_hasta_sayisi'),
+            'max_randevu_sayisi' => $nullableInt('max_randevu_sayisi'),
+            'max_hizmet_sayisi' => $nullableInt('max_hizmet_sayisi'),
+            'max_biyografi_karakter' => $nullableInt('max_biyografi_karakter'),
+            'max_profil_foto' => $nullableInt('max_profil_foto'),
+            'sms_aylik_kontor' => $nullableInt('sms_aylik_kontor'),
+            'listeleme_oncelik' => (int) ($request->input('listeleme_oncelik') ?? 1),
+            'merkezi_finans_mi' => $isKlinik && $request->boolean('merkezi_finans_mi'),
+            'toplu_randevu_mi' => $isKlinik && $request->boolean('toplu_randevu_mi'),
+            'raporlama_mi' => $isKlinik && $request->boolean('raporlama_mi'),
+            'hasta_havuzu_mi' => $isKlinik && $request->boolean('hasta_havuzu_mi'),
+            'sira' => (int) ($request->sira ?? 0),
+            'one_cikan_mi' => $request->boolean('one_cikan_mi'),
+            'etiket' => $request->filled('etiket') ? trim((string) $request->etiket) : null,
+            'etiket_stil' => $request->input('etiket_stil') ?: null,
+            'deneme_gun' => $request->filled('deneme_gun') ? (int) $request->deneme_gun : null,
+            'domain_dahil_mi' => $request->boolean('domain_dahil_mi'),
+            'domain_dahil_yil' => (int) ($request->input('domain_dahil_yil') ?: 1),
+            'domain_dahil_tlds' => $request->filled('domain_dahil_tlds')
+                ? array_values(array_filter(array_map('trim', explode(',', (string) $request->domain_dahil_tlds))))
+                : null,
+            'iyzico_plan_aylik' => $request->input('iyzico_plan_aylik') ?: null,
+            'iyzico_plan_yillik' => $request->input('iyzico_plan_yillik') ?: null,
+        ];
+    }
+
+    /**
+     * @param  list<string>  $kodlar
+     */
+    private function syncOzellikler(Paket $paket, array $kodlar): void
+    {
+        $ids = PaketOzelligi::query()->whereIn('kod', $kodlar)->pluck('id')->all();
+        $paket->sistemOzellikleri()->sync($ids);
     }
 }

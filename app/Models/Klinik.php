@@ -48,8 +48,15 @@ class Klinik extends Model
         'abonelik_iptal_nedeni',
         'max_doktor_sayisi',
         'ek_doktor_koltuk_sayisi',
+        'ek_personel_koltuk_sayisi',
         'aktif_mi',
         'platformda_gorunur',
+        'sms_kullanim_donem',
+        'sms_kullanim_adet',
+        'sms_ek_kontor',
+        'garanti_aylik_fiyat',
+        'garanti_yillik_fiyat',
+        'garanti_bitis',
         'meta_baslik',
         'meta_aciklama',
     ];
@@ -65,6 +72,12 @@ class Klinik extends Model
             'abonelik_iptal_at' => 'datetime',
             'max_doktor_sayisi' => 'integer',
             'ek_doktor_koltuk_sayisi' => 'integer',
+            'ek_personel_koltuk_sayisi' => 'integer',
+            'sms_kullanim_adet' => 'integer',
+            'sms_ek_kontor' => 'integer',
+            'garanti_aylik_fiyat' => 'decimal:2',
+            'garanti_yillik_fiyat' => 'decimal:2',
+            'garanti_bitis' => 'datetime',
             'aktif_mi' => 'boolean',
             'platformda_gorunur' => 'boolean',
             'enlem' => 'float',
@@ -368,10 +381,22 @@ class Klinik extends Model
         $maxPersonel = $this->paket?->max_personel_sayisi;
 
         if ($maxPersonel === null) {
-            return false;
+            return false; // limitsiz
         }
 
-        return $this->personeller()->count() >= $maxPersonel;
+        $efektif = (int) $maxPersonel + (int) ($this->ek_personel_koltuk_sayisi ?? 0);
+
+        return $this->personeller()->count() >= $efektif;
+    }
+
+    public function efektifPersonelLimiti(): ?int
+    {
+        $max = $this->paket?->max_personel_sayisi;
+        if ($max === null) {
+            return null;
+        }
+
+        return (int) $max + (int) ($this->ek_personel_koltuk_sayisi ?? 0);
     }
 
     /**

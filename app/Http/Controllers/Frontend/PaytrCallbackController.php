@@ -10,6 +10,8 @@ use App\Models\Klinik;
 use App\Models\PaytrCallbackLog;
 use App\Models\UyelikOdeme;
 use App\Models\KlinikEkKoltukOdeme;
+use App\Models\EkUrunOdeme;
+use App\Support\GarantiFiyat;
 use App\Services\PaytrService;
 use App\Support\MetaPixel;
 use Illuminate\Http\Request;
@@ -65,6 +67,40 @@ class PaytrCallbackController extends Controller
     }
 
     /**
+     * Direkt API 3D Secure formu (abonelik + ek ödemeler).
+     * Session'daki ACS HTML'i gösterir; sonuç merchant_ok/fail + notify ile gelir.
+     */
+    public function threeDFrame(string $merchantOid)
+    {
+        $html = session('paytr_direct_3d_html_'.$merchantOid);
+        if (! $html) {
+            return redirect()
+                ->route('frontend.hekim.paket_sec')
+                ->with('hata', '3D oturumu süresi doldu. Lütfen ödemeyi tekrar başlatın.');
+        }
+
+        return response(
+            '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">'
+            .'<meta name="viewport" content="width=device-width,initial-scale=1">'
+            .'<title>3D Secure — PayTR</title>'
+            .'<style>html,body{margin:0;height:100%;background:#0f172a}iframe{border:0;width:100%;height:100%}</style>'
+            .'</head><body>'
+            .'<iframe id="acs" title="3D Secure" sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-popups"></iframe>'
+            .'<script>(function(){var h='.json_encode($html, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE).';'
+            .'var d=document.getElementById("acs").contentDocument||document.getElementById("acs").contentWindow.document;'
+            .'d.open();d.write(h);d.close();})();</script>'
+            .'<script>window.addEventListener("message",function(e){'
+            .'if(!e.data||!e.data.paytr3d)return;'
+            .'if(e.data.paytr3d==="ok"){location.href='.json_encode(route('frontend.odeme.paytr.ok')).';}'
+            .'if(e.data.paytr3d==="fail"){location.href='.json_encode(route('frontend.odeme.paytr.fail')).'+ (e.data.message?("?msg="+encodeURIComponent(e.data.message)):"") ;}'
+            .'});</script>'
+            .'</body></html>',
+            200,
+            ['Content-Type' => 'text/html; charset=utf-8']
+        );
+    }
+
+    /**
      * PayTR bildirim URL (server-to-server). CSRF kapalı. Yanıt: OK
      */
     public function notify(Request $request, PaytrService $paytr)
@@ -97,12 +133,40 @@ class PaytrCallbackController extends Controller
             return response('PAYTR notification failed: bad hash', 400)->header('Content-Type', 'text/plain');
         }
 
-        // Ek koltuk ödemesi mi?
+        // Ek ürünler: EK hekim koltuk | EP personel | SM sms
         $isEkKoltuk = str_starts_with($merchantOid, 'EK');
+        $isEkUrun = str_starts_with($merchantOid, 'EP') || str_starts_with($merchantOid, 'SM');
 
         $odeme = UyelikOdeme::query()
             ->where('merchant_oid', $merchantOid)
             ->first();
+
+        if (! $odeme && $isEkUrun) {
+            $ekUrun = EkUrunOdeme::where('merchant_oid', $merchantOid)->first();
+            if ($ekUrun) {
+                if ($ekUrun->durum === 'odendi') {
+                    $this->logCallback($merchantOid, $ekUrun->id, $status, $totalAmount, true, true, 'ek_urun already approved', $raw);
+
+                    return response('OK', 200)->header('Content-Type', 'text/plain');
+                }
+                if ($status === 'success') {
+                    try {
+                        $this->activateEkUrun($ekUrun);
+                        $this->logCallback($merchantOid, $ekUrun->id, $status, $totalAmount, true, true, null, $raw);
+                    } catch (\Throwable $e) {
+                        Log::error('Ek ürün activate failed', ['merchant_oid' => $merchantOid, 'message' => $e->getMessage()]);
+                        $this->logCallback($merchantOid, $ekUrun->id, $status, $totalAmount, true, false, $e->getMessage(), $raw);
+
+                        return response('FAIL', 500)->header('Content-Type', 'text/plain');
+                    }
+                } else {
+                    $ekUrun->update(['durum' => 'reddedildi', 'callback_payload' => $raw]);
+                    $this->logCallback($merchantOid, $ekUrun->id, $status, $totalAmount, true, true, 'ek_urun payment failed', $raw);
+                }
+
+                return response('OK', 200)->header('Content-Type', 'text/plain');
+            }
+        }
 
         if (! $odeme && $isEkKoltuk) {
             $ekKoltukOdeme = KlinikEkKoltukOdeme::where('merchant_oid', $merchantOid)->first();
@@ -411,6 +475,19 @@ class PaytrCallbackController extends Controller
                 'otomatik_yenileme' => $hasCardTokens && (bool) config('services.paytr.recurring_enabled', true),
             ]))->save();
 
+            // Excel: 1 dönem fiyat garantisi kilidi
+            try {
+                GarantiFiyat::kilitle($doktor->fresh(), $paket, (string) $odeme->odeme_periyodu, $bitis);
+                if ($paket->klinikPaketiMi() && $doktor->fresh()->klinik_id) {
+                    $k = Klinik::find($doktor->fresh()->klinik_id);
+                    if ($k) {
+                        GarantiFiyat::kilitle($k, $paket, (string) $odeme->odeme_periyodu, $bitis);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Garanti fiyat kilidi: '.$e->getMessage());
+            }
+
             // Hatırlatma sayaçlarını yeni dönem için sıfırla
             $doktor->forceFill([
                 'kayit_paket_id' => null,
@@ -459,6 +536,41 @@ class PaytrCallbackController extends Controller
             // max_doktor_sayisi senkronize et
             $klinik->refresh();
             $klinik->syncMaxDoktorSayisi();
+
+            $odeme->update([
+                'durum' => 'odendi',
+                'onaylandi_at' => now(),
+                'callback_payload' => request()->except(['merchant_key', 'merchant_salt']),
+            ]);
+        });
+    }
+
+    protected function activateEkUrun(EkUrunOdeme $odeme): void
+    {
+        DB::transaction(function () use ($odeme) {
+            $odeme->refresh();
+            if ($odeme->durum === 'odendi') {
+                return;
+            }
+
+            if ($odeme->tip === 'sms_kontor') {
+                if ($odeme->klinik_id) {
+                    $klinik = Klinik::query()->lockForUpdate()->find($odeme->klinik_id);
+                    if ($klinik) {
+                        app(\App\Services\SmsKontorService::class)->ekKontorEkle($klinik, (int) $odeme->adet);
+                    }
+                } elseif ($odeme->doktor_id) {
+                    $doktor = Doktor::query()->lockForUpdate()->find($odeme->doktor_id);
+                    if ($doktor) {
+                        app(\App\Services\SmsKontorService::class)->ekKontorEkle($doktor, (int) $odeme->adet);
+                    }
+                }
+            } elseif ($odeme->tip === 'personel_koltuk' && $odeme->klinik_id) {
+                $klinik = Klinik::query()->lockForUpdate()->find($odeme->klinik_id);
+                if ($klinik) {
+                    $klinik->increment('ek_personel_koltuk_sayisi', (int) $odeme->adet);
+                }
+            }
 
             $odeme->update([
                 'durum' => 'odendi',

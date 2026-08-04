@@ -50,22 +50,25 @@ Route::prefix('v1')->group(function () {
             Route::get('/profile', [MobileDoctorController::class, 'profile']);
             Route::put('/profile', [MobileDoctorController::class, 'updateProfile']);
             Route::get('/meta', [MobileDoctorController::class, 'meta']);
-            Route::get('/calendar/ical', [MobileDoctorController::class, 'ical']);
             Route::get('/package-features', [MobileDoctorController::class, 'packageFeatures']);
             Route::get('/packages', [MobileDoctorController::class, 'packages']);
             Route::get('/subscription', [MobileDoctorController::class, 'subscription']);
             Route::post('/subscription/cancel', [MobileDoctorController::class, 'cancelSubscription']);
             Route::get('/referral', [MobileDoctorPortalController::class, 'referral']);
             Route::put('/password', [MobileDoctorPortalController::class, 'updatePassword']);
-            Route::get('/about', [MobileDoctorPortalController::class, 'about']);
-            Route::put('/about', [MobileDoctorPortalController::class, 'updateAbout']);
-            Route::get('/website', [MobileDoctorPortalController::class, 'website']);
-            Route::post('/website/setup', [MobileDoctorPortalController::class, 'websiteSetup']);
-            Route::post('/website/api-key', [MobileDoctorPortalController::class, 'websiteRegenerateApiKey']);
-            Route::post('/website/domain/check', [MobileDoctorPortalController::class, 'websiteDomainCheck']);
-            Route::post('/website/domain/claim', [MobileDoctorPortalController::class, 'websiteDomainClaim']);
-            Route::post('/website/dns-verify', [MobileDoctorPortalController::class, 'websiteDnsVerify']);
-            Route::put('/website/platform-visibility', [MobileDoctorPortalController::class, 'websitePlatformVisibility']);
+            Route::middleware('paket.yetki:hakkimda')->group(function () {
+                Route::get('/about', [MobileDoctorPortalController::class, 'about']);
+                Route::put('/about', [MobileDoctorPortalController::class, 'updateAbout']);
+            });
+            Route::middleware('paket.yetki:web_sitesi')->group(function () {
+                Route::get('/website', [MobileDoctorPortalController::class, 'website']);
+                Route::post('/website/setup', [MobileDoctorPortalController::class, 'websiteSetup']);
+                Route::post('/website/api-key', [MobileDoctorPortalController::class, 'websiteRegenerateApiKey']);
+                Route::post('/website/domain/check', [MobileDoctorPortalController::class, 'websiteDomainCheck']);
+                Route::post('/website/domain/claim', [MobileDoctorPortalController::class, 'websiteDomainClaim']);
+                Route::post('/website/dns-verify', [MobileDoctorPortalController::class, 'websiteDnsVerify']);
+                Route::put('/website/platform-visibility', [MobileDoctorPortalController::class, 'websitePlatformVisibility']);
+            });
             Route::get('/dashboard', [MobileDoctorPortalController::class, 'dashboard']);
 
             // 2FA
@@ -134,26 +137,57 @@ Route::prefix('v1')->group(function () {
             Route::get('/clinic/doctors/working-hours', [MobileDoctorClinicController::class, 'doctorsWorkingHours']);
             Route::get('/clinic/seats', [MobileDoctorClinicController::class, 'seats']);
 
-            // Appointments & calendar
-            Route::get('/appointments', [MobileDoctorController::class, 'appointments']);
-            Route::get('/calendar', [MobileDoctorController::class, 'calendar']);
-            Route::get('/slots', [MobileDoctorController::class, 'daySlots']);
-            Route::post('/appointments', [MobileDoctorController::class, 'storeAppointment']);
-            Route::get('/appointments/{id}', [MobileDoctorController::class, 'showAppointment'])->whereNumber('id');
-            Route::put('/appointments/{id}', [MobileDoctorController::class, 'updateAppointment'])->whereNumber('id');
-            Route::delete('/appointments/{id}', [MobileDoctorController::class, 'destroyAppointment'])->whereNumber('id');
-            Route::post('/appointments/{id}/reschedule', [MobileDoctorController::class, 'rescheduleAppointment'])->whereNumber('id');
+            // Appointments & calendar (online_takvim)
+            Route::middleware('paket.yetki:online_takvim')->group(function () {
+                Route::get('/appointments', [MobileDoctorController::class, 'appointments']);
+                Route::get('/calendar', [MobileDoctorController::class, 'calendar']);
+                Route::get('/slots', [MobileDoctorController::class, 'daySlots']);
+                Route::post('/appointments', [MobileDoctorController::class, 'storeAppointment']);
+                Route::get('/appointments/{id}', [MobileDoctorController::class, 'showAppointment'])->whereNumber('id');
+                Route::put('/appointments/{id}', [MobileDoctorController::class, 'updateAppointment'])->whereNumber('id');
+                Route::delete('/appointments/{id}', [MobileDoctorController::class, 'destroyAppointment'])->whereNumber('id');
+                Route::post('/appointments/{id}/reschedule', [MobileDoctorController::class, 'rescheduleAppointment'])->whereNumber('id');
+                Route::get('/appointment-settings', [MobileDoctorController::class, 'appointmentSettings']);
+                Route::put('/appointment-settings', [MobileDoctorController::class, 'updateAppointmentSettings']);
+                Route::get('/working-hours', [MobileDoctorController::class, 'workingHours']);
+                Route::put('/working-hours', [MobileDoctorController::class, 'updateWorkingHours']);
+                Route::get('/leaves', [MobileDoctorPortalController::class, 'leaves']);
+                Route::post('/leaves', [MobileDoctorPortalController::class, 'storeLeave']);
+                Route::delete('/leaves/{id}', [MobileDoctorPortalController::class, 'destroyLeave'])->whereNumber('id');
+            });
+            // Durum: talepler onayı controller'da da kontrol edilir
             Route::post('/appointments/{id}/status', [MobileDoctorController::class, 'updateAppointmentStatus'])->whereNumber('id');
             Route::get('/appointments/{id}/meeting', [MobileDoctorController::class, 'meetingSession'])->whereNumber('id');
             Route::match(['get', 'post'], '/appointments/{id}/meeting/signal', [MobileDoctorController::class, 'meetingSignal'])->whereNumber('id');
-            Route::get('/requests', [MobileDoctorPortalController::class, 'requests']);
+            Route::middleware('paket.yetki:ical_export')->get('/calendar/ical', [MobileDoctorController::class, 'ical']);
+            Route::middleware('paket.yetki:randevu_talepleri,randevu_talebi_goruntule')->get('/requests', [MobileDoctorPortalController::class, 'requests']);
+            Route::middleware('paket.yetki:hizli_slot')->group(function () {
+                Route::get('/quick-close/slots', [MobileDoctorPortalController::class, 'quickCloseSlots']);
+                Route::post('/quick-close', [MobileDoctorPortalController::class, 'quickCloseSave']);
+            });
 
             // Patients
-            Route::get('/patients', [MobileDoctorController::class, 'patients']);
-            Route::get('/patients/{id}', [MobileDoctorController::class, 'showPatient'])->whereNumber('id');
-            Route::put('/patients/{id}', [MobileDoctorController::class, 'updatePatient'])->whereNumber('id');
-            Route::delete('/patients/{id}', [MobileDoctorController::class, 'destroyPatient'])->whereNumber('id');
-            Route::post('/patients', [MobileDoctorController::class, 'storePatient']);
+            Route::middleware('paket.yetki:hasta_kartlari')->group(function () {
+                Route::get('/patients', [MobileDoctorController::class, 'patients']);
+                Route::get('/patients/{id}', [MobileDoctorController::class, 'showPatient'])->whereNumber('id');
+                Route::put('/patients/{id}', [MobileDoctorController::class, 'updatePatient'])->whereNumber('id');
+                Route::delete('/patients/{id}', [MobileDoctorController::class, 'destroyPatient'])->whereNumber('id');
+                Route::post('/patients', [MobileDoctorController::class, 'storePatient']);
+                Route::middleware('paket.yetki:hasta_not_dosya')->group(function () {
+                    Route::get('/patients/{id}/files', [MobileDoctorPortalController::class, 'patientFiles'])->whereNumber('id');
+                    Route::post('/patients/{id}/files', [MobileDoctorPortalController::class, 'storePatientFile'])->whereNumber('id');
+                    Route::delete('/patients/files/{id}', [MobileDoctorPortalController::class, 'destroyPatientFile'])->whereNumber('id');
+                });
+            });
+
+            // Onam formları
+            Route::middleware('paket.yetki:onam_formu')->group(function () {
+                Route::get('/consent-forms', [MobileDoctorPortalController::class, 'consentForms']);
+                Route::post('/consent-forms', [MobileDoctorPortalController::class, 'storeConsentForm']);
+                Route::put('/consent-forms/{id}', [MobileDoctorPortalController::class, 'updateConsentForm'])->whereNumber('id');
+                Route::delete('/consent-forms/{id}', [MobileDoctorPortalController::class, 'destroyConsentForm'])->whereNumber('id');
+                Route::post('/consent-forms/sign', [MobileDoctorPortalController::class, 'signConsentForm']);
+            });
 
             // Services
             Route::get('/services', [MobileDoctorController::class, 'services']);
@@ -161,84 +195,89 @@ Route::prefix('v1')->group(function () {
             Route::put('/services/{id}', [MobileDoctorController::class, 'updateService'])->whereNumber('id');
             Route::delete('/services/{id}', [MobileDoctorController::class, 'destroyService'])->whereNumber('id');
 
-            // Settings & working hours & leaves
-            Route::get('/appointment-settings', [MobileDoctorController::class, 'appointmentSettings']);
-            Route::put('/appointment-settings', [MobileDoctorController::class, 'updateAppointmentSettings']);
-            Route::get('/working-hours', [MobileDoctorController::class, 'workingHours']);
-            Route::put('/working-hours', [MobileDoctorController::class, 'updateWorkingHours']);
-            Route::get('/leaves', [MobileDoctorPortalController::class, 'leaves']);
-            Route::post('/leaves', [MobileDoctorPortalController::class, 'storeLeave']);
-            Route::delete('/leaves/{id}', [MobileDoctorPortalController::class, 'destroyLeave'])->whereNumber('id');
-            Route::get('/quick-close/slots', [MobileDoctorPortalController::class, 'quickCloseSlots']);
-            Route::post('/quick-close', [MobileDoctorPortalController::class, 'quickCloseSave']);
-
             // Waiting list
-            Route::get('/waitlist', [MobileDoctorPortalController::class, 'waitlist']);
-            Route::post('/waitlist/{id}/status', [MobileDoctorPortalController::class, 'updateWaitlistStatus'])->whereNumber('id');
-            Route::post('/waitlist/{id}/notify', [MobileDoctorPortalController::class, 'notifyWaitlist'])->whereNumber('id');
-            Route::delete('/waitlist/{id}', [MobileDoctorPortalController::class, 'destroyWaitlist'])->whereNumber('id');
+            Route::middleware('paket.yetki:bekleme_listesi')->group(function () {
+                Route::get('/waitlist', [MobileDoctorPortalController::class, 'waitlist']);
+                Route::post('/waitlist/{id}/status', [MobileDoctorPortalController::class, 'updateWaitlistStatus'])->whereNumber('id');
+                Route::post('/waitlist/{id}/notify', [MobileDoctorPortalController::class, 'notifyWaitlist'])->whereNumber('id');
+                Route::delete('/waitlist/{id}', [MobileDoctorPortalController::class, 'destroyWaitlist'])->whereNumber('id');
+            });
 
             // Blog
-            Route::get('/blogs', [MobileDoctorPortalController::class, 'blogs']);
-            Route::post('/blogs', [MobileDoctorPortalController::class, 'storeBlog']);
-            Route::put('/blogs/{id}', [MobileDoctorPortalController::class, 'updateBlog'])->whereNumber('id');
-            Route::delete('/blogs/{id}', [MobileDoctorPortalController::class, 'destroyBlog'])->whereNumber('id');
+            Route::middleware('paket.yetki:blog')->group(function () {
+                Route::get('/blogs', [MobileDoctorPortalController::class, 'blogs']);
+                Route::post('/blogs', [MobileDoctorPortalController::class, 'storeBlog']);
+                Route::put('/blogs/{id}', [MobileDoctorPortalController::class, 'updateBlog'])->whereNumber('id');
+                Route::delete('/blogs/{id}', [MobileDoctorPortalController::class, 'destroyBlog'])->whereNumber('id');
+            });
 
-            // Reviews
+            // Reviews — liste çekirdek; yanıt yetki
             Route::get('/reviews', [MobileDoctorPortalController::class, 'reviews']);
-            Route::post('/reviews/{id}/reply', [MobileDoctorPortalController::class, 'replyReview'])->whereNumber('id');
+            Route::middleware('paket.yetki:yorum_yanit')->post('/reviews/{id}/reply', [MobileDoctorPortalController::class, 'replyReview'])->whereNumber('id');
             Route::post('/reviews/{id}/status', [MobileDoctorPortalController::class, 'moderateReview'])->whereNumber('id');
             Route::delete('/reviews/{id}', [MobileDoctorPortalController::class, 'destroyReview'])->whereNumber('id');
 
             // Gallery
-            Route::get('/gallery', [MobileDoctorPortalController::class, 'gallery']);
-            Route::post('/gallery', [MobileDoctorPortalController::class, 'storeGallery']);
-            Route::post('/gallery/reorder', [MobileDoctorPortalController::class, 'reorderGallery']);
-            Route::put('/gallery/{id}', [MobileDoctorPortalController::class, 'updateGallery'])->whereNumber('id');
-            Route::delete('/gallery/{id}', [MobileDoctorPortalController::class, 'destroyGallery'])->whereNumber('id');
+            Route::middleware('paket.yetki:galeri')->group(function () {
+                Route::get('/gallery', [MobileDoctorPortalController::class, 'gallery']);
+                Route::post('/gallery', [MobileDoctorPortalController::class, 'storeGallery']);
+                Route::post('/gallery/reorder', [MobileDoctorPortalController::class, 'reorderGallery']);
+                Route::put('/gallery/{id}', [MobileDoctorPortalController::class, 'updateGallery'])->whereNumber('id');
+                Route::delete('/gallery/{id}', [MobileDoctorPortalController::class, 'destroyGallery'])->whereNumber('id');
+            });
 
             // FAQ
-            Route::get('/faqs', [MobileDoctorPortalController::class, 'faqs']);
-            Route::post('/faqs', [MobileDoctorPortalController::class, 'storeFaq']);
-            Route::put('/faqs/{id}', [MobileDoctorPortalController::class, 'updateFaq'])->whereNumber('id');
-            Route::post('/faqs/{id}/toggle', [MobileDoctorPortalController::class, 'toggleFaq'])->whereNumber('id');
-            Route::delete('/faqs/{id}', [MobileDoctorPortalController::class, 'destroyFaq'])->whereNumber('id');
+            Route::middleware('paket.yetki:faq')->group(function () {
+                Route::get('/faqs', [MobileDoctorPortalController::class, 'faqs']);
+                Route::post('/faqs', [MobileDoctorPortalController::class, 'storeFaq']);
+                Route::put('/faqs/{id}', [MobileDoctorPortalController::class, 'updateFaq'])->whereNumber('id');
+                Route::post('/faqs/{id}/toggle', [MobileDoctorPortalController::class, 'toggleFaq'])->whereNumber('id');
+                Route::delete('/faqs/{id}', [MobileDoctorPortalController::class, 'destroyFaq'])->whereNumber('id');
+            });
 
             // Education
-            Route::get('/educations', [MobileDoctorPortalController::class, 'educations']);
-            Route::post('/educations', [MobileDoctorPortalController::class, 'storeEducation']);
-            Route::put('/educations/{id}', [MobileDoctorPortalController::class, 'updateEducation'])->whereNumber('id');
-            Route::delete('/educations/{id}', [MobileDoctorPortalController::class, 'destroyEducation'])->whereNumber('id');
-            Route::get('/educations/{id}/form-fields', [MobileDoctorPortalController::class, 'educationFormFields'])->whereNumber('id');
-            Route::put('/educations/{id}/form-fields', [MobileDoctorPortalController::class, 'syncEducationFormFields'])->whereNumber('id');
-            Route::get('/education-applications', [MobileDoctorPortalController::class, 'educationApplications']);
-            Route::post('/education-applications/{id}/status', [MobileDoctorPortalController::class, 'updateEducationApplication'])->whereNumber('id');
-            Route::post('/education-applications/{id}/payment', [MobileDoctorPortalController::class, 'markEducationApplicationPaid'])->whereNumber('id');
+            Route::middleware('paket.yetki:egitimler')->group(function () {
+                Route::get('/educations', [MobileDoctorPortalController::class, 'educations']);
+                Route::post('/educations', [MobileDoctorPortalController::class, 'storeEducation']);
+                Route::put('/educations/{id}', [MobileDoctorPortalController::class, 'updateEducation'])->whereNumber('id');
+                Route::delete('/educations/{id}', [MobileDoctorPortalController::class, 'destroyEducation'])->whereNumber('id');
+                Route::get('/educations/{id}/form-fields', [MobileDoctorPortalController::class, 'educationFormFields'])->whereNumber('id');
+                Route::put('/educations/{id}/form-fields', [MobileDoctorPortalController::class, 'syncEducationFormFields'])->whereNumber('id');
+                Route::get('/education-applications', [MobileDoctorPortalController::class, 'educationApplications']);
+                Route::post('/education-applications/{id}/status', [MobileDoctorPortalController::class, 'updateEducationApplication'])->whereNumber('id');
+                Route::post('/education-applications/{id}/payment', [MobileDoctorPortalController::class, 'markEducationApplicationPaid'])->whereNumber('id');
+            });
 
             // Finance
-            Route::get('/finance/overview', [MobileDoctorPortalController::class, 'financeOverview']);
-            Route::get('/finance/report', [MobileDoctorPortalController::class, 'financeReport']);
-            Route::get('/finance/report.pdf', [MobileDoctorPortalController::class, 'financeReportPdf']);
-            Route::get('/finance/incomes', [MobileDoctorPortalController::class, 'incomes']);
-            Route::post('/finance/incomes', [MobileDoctorPortalController::class, 'storeIncome']);
-            Route::get('/finance/incomes/{id}', [MobileDoctorPortalController::class, 'showIncome'])->whereNumber('id');
-            Route::put('/finance/incomes/{id}', [MobileDoctorPortalController::class, 'updateIncome'])->whereNumber('id');
-            Route::post('/finance/incomes/{id}/items', [MobileDoctorPortalController::class, 'storeIncomeItem'])->whereNumber('id');
-            Route::delete('/finance/incomes/{odemeId}/items/{kalemId}', [MobileDoctorPortalController::class, 'destroyIncomeItem'])->whereNumber('odemeId')->whereNumber('kalemId');
-            Route::delete('/finance/incomes/{id}', [MobileDoctorPortalController::class, 'destroyIncome'])->whereNumber('id');
-            Route::get('/finance/expenses', [MobileDoctorPortalController::class, 'expenses']);
-            Route::post('/finance/expenses', [MobileDoctorPortalController::class, 'storeExpense']);
-            Route::put('/finance/expenses/{id}', [MobileDoctorPortalController::class, 'updateExpense'])->whereNumber('id');
-            Route::delete('/finance/expenses/{id}', [MobileDoctorPortalController::class, 'destroyExpense'])->whereNumber('id');
-            Route::get('/finance/categories', [MobileDoctorPortalController::class, 'financeCategories']);
-            Route::post('/finance/categories', [MobileDoctorPortalController::class, 'storeFinanceCategory']);
-            Route::put('/finance/categories/{id}', [MobileDoctorPortalController::class, 'updateFinanceCategory'])->whereNumber('id');
-            Route::post('/finance/categories/{id}/toggle', [MobileDoctorPortalController::class, 'toggleFinanceCategory'])->whereNumber('id');
-            Route::delete('/finance/categories/{id}', [MobileDoctorPortalController::class, 'destroyFinanceCategory'])->whereNumber('id');
-            Route::get('/finance/balances', [MobileDoctorPortalController::class, 'patientBalances']);
-            Route::get('/finance/patients/{hastaId}', [MobileDoctorPortalController::class, 'patientAccount'])->whereNumber('hastaId');
-            Route::post('/finance/patients/{hastaId}/collect', [MobileDoctorPortalController::class, 'patientCollect'])->whereNumber('hastaId');
-            Route::post('/finance/patients/{hastaId}/debt', [MobileDoctorPortalController::class, 'patientAddDebt'])->whereNumber('hastaId');
+            Route::middleware('paket.yetki:finans')->group(function () {
+                Route::get('/finance/overview', [MobileDoctorPortalController::class, 'financeOverview']);
+                Route::get('/finance/incomes', [MobileDoctorPortalController::class, 'incomes']);
+                Route::post('/finance/incomes', [MobileDoctorPortalController::class, 'storeIncome']);
+                Route::get('/finance/incomes/{id}', [MobileDoctorPortalController::class, 'showIncome'])->whereNumber('id');
+                Route::put('/finance/incomes/{id}', [MobileDoctorPortalController::class, 'updateIncome'])->whereNumber('id');
+                Route::post('/finance/incomes/{id}/items', [MobileDoctorPortalController::class, 'storeIncomeItem'])->whereNumber('id');
+                Route::delete('/finance/incomes/{odemeId}/items/{kalemId}', [MobileDoctorPortalController::class, 'destroyIncomeItem'])->whereNumber('odemeId')->whereNumber('kalemId');
+                Route::delete('/finance/incomes/{id}', [MobileDoctorPortalController::class, 'destroyIncome'])->whereNumber('id');
+                Route::get('/finance/expenses', [MobileDoctorPortalController::class, 'expenses']);
+                Route::post('/finance/expenses', [MobileDoctorPortalController::class, 'storeExpense']);
+                Route::put('/finance/expenses/{id}', [MobileDoctorPortalController::class, 'updateExpense'])->whereNumber('id');
+                Route::delete('/finance/expenses/{id}', [MobileDoctorPortalController::class, 'destroyExpense'])->whereNumber('id');
+                Route::get('/finance/categories', [MobileDoctorPortalController::class, 'financeCategories']);
+                Route::post('/finance/categories', [MobileDoctorPortalController::class, 'storeFinanceCategory']);
+                Route::put('/finance/categories/{id}', [MobileDoctorPortalController::class, 'updateFinanceCategory'])->whereNumber('id');
+                Route::post('/finance/categories/{id}/toggle', [MobileDoctorPortalController::class, 'toggleFinanceCategory'])->whereNumber('id');
+                Route::delete('/finance/categories/{id}', [MobileDoctorPortalController::class, 'destroyFinanceCategory'])->whereNumber('id');
+            });
+            Route::middleware('paket.yetki:finans_rapor')->group(function () {
+                Route::get('/finance/report', [MobileDoctorPortalController::class, 'financeReport']);
+                Route::get('/finance/report.pdf', [MobileDoctorPortalController::class, 'financeReportPdf']);
+            });
+            Route::middleware('paket.yetki:hasta_bakiyeleri')->group(function () {
+                Route::get('/finance/balances', [MobileDoctorPortalController::class, 'patientBalances']);
+                Route::get('/finance/patients/{hastaId}', [MobileDoctorPortalController::class, 'patientAccount'])->whereNumber('hastaId');
+                Route::post('/finance/patients/{hastaId}/collect', [MobileDoctorPortalController::class, 'patientCollect'])->whereNumber('hastaId');
+                Route::post('/finance/patients/{hastaId}/debt', [MobileDoctorPortalController::class, 'patientAddDebt'])->whereNumber('hastaId');
+            });
         });
     });
 

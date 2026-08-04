@@ -68,9 +68,7 @@ class AbonelikYenileCommand extends Command
                 }
 
                 $periyot = $doktor->odeme_periyodu ?? 'aylik';
-                $tutar = $periyot === 'aylik'
-                    ? (float) ($paket->aylik_indirimli_fiyat ?: $paket->aylik_fiyat)
-                    : (float) ($paket->yillik_indirimli_fiyat ?: $paket->yillik_fiyat);
+                $tutar = \App\Support\GarantiFiyat::yenilemeTutari($doktor, $paket, $periyot);
 
                 $merchantOid = $paytr->makeMerchantOid('REN');
                 $this->line("Doktor #{$doktor->id} — {$doktor->ad_soyad} — {$tutar} TL");
@@ -131,9 +129,7 @@ class AbonelikYenileCommand extends Command
                 }
 
                 $periyot = $klinik->odeme_periyodu ?? 'aylik';
-                $tutar = $periyot === 'aylik'
-                    ? (float) ($paket->aylik_indirimli_fiyat ?: $paket->aylik_fiyat)
-                    : (float) ($paket->yillik_indirimli_fiyat ?: $paket->yillik_fiyat);
+                $tutar = \App\Support\GarantiFiyat::yenilemeTutari($klinik, $paket, $periyot);
                 $merchantOid = $paytr->makeMerchantOid('RKL');
 
                 $this->line("Klinik #{$klinik->id} — {$klinik->ad} — {$tutar} TL");

@@ -139,12 +139,12 @@ class PaymentDriverService
         }
 
         if ($method === 'paytr' && $this->isPaytrActive()) {
-            return $this->startPaytrCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $request);
+            return $this->startPaytrCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $request, $kartBilgileri);
         }
 
         // Tercih geçersizse diğer aktif POS'a düş
         if ($this->isPaytrActive()) {
-            return $this->startPaytrCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $request);
+            return $this->startPaytrCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $request, $kartBilgileri);
         }
         if ($this->isIyzicoActive()) {
             return $this->startIyzicoCheckout($doktor, $paket, $periyot, $tutar, $kurulum, $kartBilgileri);
@@ -157,13 +157,21 @@ class PaymentDriverService
 
     // ─── PayTR ────────────────────────────────────────────────────────────────
 
+    /**
+     * PayTR Direkt API — ilk abonelik: 3D (non_3d=0) + store_card=1.
+     * Otomatik yenileme: AbonelikYenileCommand → Non3D + recurring_payment.
+     *
+     * @see https://dev.paytr.com/direkt-api/direkt-api-1-adim
+     * @see https://dev.paytr.com/direkt-api/kart-saklama-api/yeni-kart-ekleme
+     */
     protected function startPaytrCheckout(
         Doktor $doktor,
         \App\Models\Paket $paket,
         string $periyot,
         float $tutar,
         array $kurulum,
-        Request $request
+        Request $request,
+        array $kartBilgileri = []
     ) {
         $paytr = app(PaytrService::class);
         if (! $paytr->isConfigured()) {
@@ -172,65 +180,110 @@ class PaymentDriverService
             ]);
         }
 
+        $kartNo = preg_replace('/\D+/', '', (string) ($kartBilgileri['kart_no'] ?? $request->input('kart_no', '')));
+        $kartSahibi = trim((string) ($kartBilgileri['kart_sahibi'] ?? $request->input('kart_sahibi', '')));
+        $kartAy = preg_replace('/\D+/', '', (string) ($kartBilgileri['kart_ay'] ?? $request->input('kart_ay', '')));
+        $kartYil = preg_replace('/\D+/', '', (string) ($kartBilgileri['kart_yil'] ?? $request->input('kart_yil', '')));
+        $kartCvv = preg_replace('/\D+/', '', (string) ($kartBilgileri['kart_cvv'] ?? $request->input('kart_cvv', '')));
+
+        // iyzico formatı kart_skt: MM/YY
+        if (($kartAy === '' || $kartYil === '') && ! empty($kartBilgileri['kart_skt'])) {
+            $parts = explode('/', (string) $kartBilgileri['kart_skt']);
+            $kartAy = $kartAy !== '' ? $kartAy : preg_replace('/\D+/', '', $parts[0] ?? '');
+            $kartYil = $kartYil !== '' ? $kartYil : preg_replace('/\D+/', '', $parts[1] ?? '');
+        }
+
+        if (strlen($kartNo) < 15 || $kartSahibi === '' || $kartAy === '' || $kartYil === '' || strlen($kartCvv) < 3) {
+            return back()->withInput()->withErrors([
+                'kart_no' => 'PayTR 3D ödeme için kart sahibi, numara, son kullanma ve CVV zorunludur.',
+            ]);
+        }
+
         $refFiyat = app(ReferansService::class)->indirimliTutar($doktor, $tutar);
-        $tutar    = $refFiyat['tutar'];
-        $kurulum  = array_merge($kurulum, [
-            'tutar_brut'               => $refFiyat['brut'],
-            'referans_indirim_yuzde'   => $refFiyat['indirim_yuzde'],
+        $tutar = $refFiyat['tutar'];
+        $kurulum = array_merge($kurulum, [
+            'tutar_brut' => $refFiyat['brut'],
+            'referans_indirim_yuzde' => $refFiyat['indirim_yuzde'],
+            'paytr_mode' => 'direct_3d_store_card',
         ]);
 
-        $merchantOid = $paytr->makeMerchantOid();
+        $merchantOid = $paytr->makeMerchantOid('RA');
         $faturaSnap = is_array($kurulum['fatura'] ?? null) ? $kurulum['fatura'] : ($doktor->faturaBilgisiArray());
+        $storeCard = (bool) config('services.paytr.recurring_enabled', true);
+
         UyelikOdeme::create([
-            'doktor_id'    => $doktor->id,
-            'paket_id'     => $paket->id,
-            'odeme_yontemi'=> 'paytr',
-            'provider'     => 'paytr',
+            'doktor_id' => $doktor->id,
+            'paket_id' => $paket->id,
+            'odeme_yontemi' => 'paytr',
+            'provider' => 'paytr',
             'odeme_periyodu' => $periyot,
-            'tutar'        => $tutar,
-            'durum'        => 'beklemede',
+            'tutar' => $tutar,
+            'durum' => 'beklemede',
             'merchant_oid' => $merchantOid,
             'kurulum_verisi' => $kurulum,
             'fatura_bilgisi' => $faturaSnap,
             'fatura_durumu' => 'bekliyor',
+            'otomatik_yenileme' => $storeCard,
         ]);
 
-        // iFrame API (dev.paytr.com): get-token → /odeme/guvenli/{token}
-        // Tutar TL float; servis kuruşa çevirir. no_installment=1 abonelik için.
-        // recurring: true → get-token'a recurring_payment=1 (kart saklama yetkisi mağazaya bağlı)
-        $tokenResult = $paytr->createIframeToken([
-            'merchant_oid'   => $merchantOid,
-            'email'          => (string) (($faturaSnap['email'] ?? null) ?: $doktor->e_posta),
+        $result = $paytr->createDirectPayment([
+            'merchant_oid' => $merchantOid,
+            'email' => (string) (($faturaSnap['email'] ?? null) ?: $doktor->e_posta),
             'payment_amount' => $tutar,
-            'user_name'      => (string) (($faturaSnap['unvan'] ?? null) ?: $doktor->ad_soyad),
-            'user_address'   => (string) (($faturaSnap['adres'] ?? null) ?: ($doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye'))),
-            'user_phone'     => (string) (($faturaSnap['telefon'] ?? null) ?: $doktor->telefon),
-            'user_ip'        => $request->ip(),
-            'basket_name'    => 'Randevu Ajandam - '.$paket->ad.' ('.$periyot.')',
-            'no_installment' => 1,
-            'max_installment'=> 0,
-            'recurring'      => (bool) config('services.paytr.iframe_recurring', false)
-                && (bool) config('services.paytr.recurring_enabled', true),
-            'merchant_ok_url'=> route('frontend.odeme.paytr.ok'),
-            'merchant_fail_url'=> route('frontend.odeme.paytr.fail'),
+            'user_name' => (string) (($faturaSnap['unvan'] ?? null) ?: $doktor->ad_soyad),
+            'user_address' => (string) (($faturaSnap['adres'] ?? null) ?: ($doktor->adres ?: ($doktor->il?->ad ?? 'Turkiye'))),
+            'user_phone' => (string) (($faturaSnap['telefon'] ?? null) ?: $doktor->telefon),
+            'user_ip' => $request->ip(),
+            'basket_name' => 'Randevu Ajandam - '.$paket->ad.' ('.$periyot.')',
+            'card_owner' => $kartSahibi,
+            'card_number' => $kartNo,
+            'expiry_month' => $kartAy,
+            'expiry_year' => $kartYil,
+            'card_cvv' => $kartCvv,
+            'store_card' => $storeCard,
+            'utoken' => (string) ($doktor->paytr_utoken ?? ''),
+            'non_3d' => '0', // İlk abonelik: 3D zorunlu
+            'merchant_ok_url' => route('frontend.odeme.paytr.3d.ok'),
+            'merchant_fail_url' => route('frontend.odeme.paytr.3d.fail'),
         ]);
-
-        if (($tokenResult['status'] ?? '') !== 'success') {
-            UyelikOdeme::where('merchant_oid', $merchantOid)->update(['durum' => 'reddedildi']);
-
-            return back()->withInput()->withErrors([
-                'paket_id' => $tokenResult['errorMessage'] ?? 'PayTR ödeme oturumu açılamadı.',
-            ]);
-        }
-
-        session(['paytr_iframe_token_' . $merchantOid => $tokenResult['token']]);
 
         MetaPixel::queue('InitiateCheckout', array_merge(
             MetaPixel::money((float) $tutar),
             ['content_name' => $paket->ad, 'content_ids' => [(string) $paket->id], 'content_type' => 'product', 'num_items' => 1]
         ));
 
-        return redirect()->route('frontend.odeme.paytr.iframe', ['merchantOid' => $merchantOid]);
+        if (($result['status'] ?? '') === '3d') {
+            session([
+                'paytr_direct_3d_html_'.$merchantOid => $result['html'],
+                'paytr_direct_3d_oid' => $merchantOid,
+            ]);
+
+            return redirect()->route('frontend.odeme.paytr.3d.frame', ['merchantOid' => $merchantOid]);
+        }
+
+        if (in_array($result['status'] ?? '', ['success', 'wait_callback'], true)) {
+            $u = trim((string) ($result['utoken'] ?? ''));
+            $c = trim((string) ($result['ctoken'] ?? ''));
+            if ($u !== '' || $c !== '') {
+                try {
+                    $doktor->forceFill(array_filter([
+                        'paytr_utoken' => $u !== '' ? $u : null,
+                        'paytr_ctoken' => $c !== '' ? $c : null,
+                        'paytr_recurring_id' => $c !== '' ? $c : null,
+                    ]))->save();
+                } catch (\Throwable $e) {
+                    Log::warning('PayTR token kaydı: '.$e->getMessage());
+                }
+            }
+
+            return redirect()->route('frontend.odeme.paytr.ok');
+        }
+
+        UyelikOdeme::where('merchant_oid', $merchantOid)->update(['durum' => 'reddedildi']);
+
+        return back()->withInput()->withErrors([
+            'kart_no' => $result['errorMessage'] ?? 'PayTR 3D ödeme başlatılamadı.',
+        ]);
     }
 
     // ─── iyzico ───────────────────────────────────────────────────────────────

@@ -75,6 +75,11 @@ class HekimController extends Controller
 
             /** @var Doktor $user */
             $user = Auth::guard('doktor')->user();
+            $user->forceFill(['son_giris_at' => now()])->save();
+            // Vitrin 90 gün kuralı: giriş yapanı yeniden listelenebilir yap (ücretsiz gizliyse)
+            if ($user->platformda_gorunur === false && $user->aktifPaket()?->ucretsizMi()) {
+                $user->forceFill(['platformda_gorunur' => true])->save();
+            }
             if ($user->hasTwoFactorEnabled()) {
                 $remember = $request->has('remember');
                 Auth::guard('doktor')->logout();
@@ -941,8 +946,9 @@ class HekimController extends Controller
         $doktor = Auth::guard('doktor')->user();
         $doktor->load('il', 'ilce');
         $unvanlar = Unvan::orderBy('ad')->get();
+        $canDisBaglanti = $doktor->hasPaketFeature('dis_baglanti');
 
-        return view('hekim.profil', compact('doktor', 'unvanlar'));
+        return view('hekim.profil', compact('doktor', 'unvanlar', 'canDisBaglanti'));
     }
 
     /**
@@ -987,6 +993,8 @@ class HekimController extends Controller
         $ilModel = Il::where('ad', $request->il)->first();
         $ilceModel = Ilce::where('il_id', $ilModel?->id)->where('ad', $request->ilce)->first();
 
+        $canDisBaglanti = $doktor->hasPaketFeature('dis_baglanti');
+
         $data = [
             'ad_soyad' => $request->ad_soyad,
             'telefon' => $request->telefon,
@@ -995,15 +1003,22 @@ class HekimController extends Controller
             'il_id' => $ilModel?->id,
             'ilce_id' => $ilceModel?->id,
             'adres' => $request->adres,
-            'instagram' => $request->instagram,
-            'facebook' => $request->facebook,
-            'twitter' => $request->twitter,
-            'linkedin' => $request->linkedin,
-            'youtube' => $request->youtube,
-            'web_sitesi' => $request->web_sitesi,
+            'instagram' => $canDisBaglanti ? $request->instagram : null,
+            'facebook' => $canDisBaglanti ? $request->facebook : null,
+            'twitter' => $canDisBaglanti ? $request->twitter : null,
+            'linkedin' => $canDisBaglanti ? $request->linkedin : null,
+            'youtube' => $canDisBaglanti ? $request->youtube : null,
+            'web_sitesi' => $canDisBaglanti ? $request->web_sitesi : null,
             'enlem' => $request->enlem,
             'boylam' => $request->boylam,
         ];
+
+        if (! $canDisBaglanti && (
+            filled($request->instagram) || filled($request->facebook) || filled($request->twitter)
+            || filled($request->linkedin) || filled($request->youtube) || filled($request->web_sitesi)
+        )) {
+            session()->flash('uyari', 'Dış bağlantılar (sosyal medya) mevcut paketinizde yok; alanlar kaydedilmedi. Paketinizi yükselterek açabilirsiniz.');
+        }
 
         // Handle Profile Image Upload / Remove
         if ($request->hasFile('profil_resmi')) {
@@ -1099,10 +1114,27 @@ class HekimController extends Controller
             return ! is_null($val) && trim($val) !== '';
         }));
 
+        $bio = \App\Services\HtmlSanitizer::clean($request->biyografi);
+        $paket = $doktor->aktifPaket();
+        $maxBio = $paket?->max_biyografi_karakter;
+        if ($maxBio !== null && mb_strlen(strip_tags((string) $bio)) > (int) $maxBio) {
+            return back()->withInput()->withErrors([
+                'biyografi' => "Paketinizde biyografi en fazla {$maxBio} karakter olabilir.",
+            ]);
+        }
+        // Vitrin: iletişim sızıntısı engeli
+        if ($paket?->ucretsizMi()) {
+            $f = \App\Services\IletisimSizintiFiltresi::filtrele(strip_tags((string) $bio), true);
+            $bio = $f['temiz'];
+            if ($f['engellendi']) {
+                session()->flash('uyari', 'Ücretsiz pakette telefon / sosyal medya / e-posta biyografiye yazılamaz; ilgili kısımlar temizlendi.');
+            }
+        }
+
         $data = [
             'uzmanlik_alani' => $uzmanlikAlaniString,
             'mezuniyet' => $mezuniyetDizisi,
-            'biyografi' => \App\Services\HtmlSanitizer::clean($request->biyografi),
+            'biyografi' => $bio,
             'klinik_adi' => $request->klinik_adi,
         ];
 

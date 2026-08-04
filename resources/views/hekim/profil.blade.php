@@ -274,8 +274,19 @@
             </div>
 
             <!-- Card 2: Social Media Accounts -->
-            <div class="p-8 rounded-3xl bg-white border border-[#E5E7EB] shadow-sm relative overflow-hidden">
-                <h3 class="text-lg font-bold font-display text-[#111827] mb-6 pb-3 border-b border-slate-100">Sosyal Medya Hesapları</h3>
+            <div class="p-8 rounded-3xl bg-white border border-[#E5E7EB] shadow-sm relative overflow-hidden {{ empty($canDisBaglanti) ? 'opacity-80' : '' }}">
+                <h3 class="text-lg font-bold font-display text-[#111827] mb-2 pb-3 border-b border-slate-100">
+                    Sosyal Medya Hesapları
+                    @if(empty($canDisBaglanti))
+                        <span class="ml-2 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full align-middle">Paket özelliği</span>
+                    @endif
+                </h3>
+                @if(empty($canDisBaglanti))
+                    <p class="text-xs text-[#92400e] mb-4">
+                        Dış bağlantılar paketinizde yok.
+                        <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}" class="font-bold underline text-[#C96A2B]">Paketinizi yükseltin</a>.
+                    </p>
+                @endif
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <!-- Instagram -->
@@ -284,7 +295,8 @@
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-xs">@</span>
                             <input type="text" name="instagram" id="instagram" value="{{ old('instagram', $doktor->instagram) }}" placeholder="kullanıcı_adı"
-                                   class="w-full pl-7 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                                   @if(empty($canDisBaglanti)) disabled @endif
+                                   class="w-full pl-7 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all disabled:bg-slate-50 disabled:text-slate-400">
                         </div>
                     </div>
 
@@ -292,7 +304,8 @@
                     <div class="space-y-1.5">
                         <label for="facebook" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Facebook Linki</label>
                         <input type="text" name="facebook" id="facebook" value="{{ old('facebook', $doktor->facebook) }}" placeholder="kullanıcı_adı veya link"
-                               class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                               @if(empty($canDisBaglanti)) disabled @endif
+                               class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all disabled:bg-slate-50 disabled:text-slate-400">
                     </div>
 
                     <!-- Twitter (X) -->
@@ -301,7 +314,8 @@
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-xs">@</span>
                             <input type="text" name="twitter" id="twitter" value="{{ old('twitter', $doktor->twitter) }}" placeholder="kullanıcı_adı"
-                                   class="w-full pl-7 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                                   @if(empty($canDisBaglanti)) disabled @endif
+                                   class="w-full pl-7 pr-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all disabled:bg-slate-50 disabled:text-slate-400">
                         </div>
                     </div>
 
@@ -309,14 +323,16 @@
                     <div class="space-y-1.5">
                         <label for="linkedin" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">LinkedIn Linki</label>
                         <input type="text" name="linkedin" id="linkedin" value="{{ old('linkedin', $doktor->linkedin) }}" placeholder="kullanıcı_adı veya link"
-                               class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                               @if(empty($canDisBaglanti)) disabled @endif
+                               class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all disabled:bg-slate-50 disabled:text-slate-400">
                     </div>
 
                     <!-- Youtube -->
                     <div class="space-y-1.5">
                         <label for="youtube" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">YouTube Kanalı</label>
                         <input type="text" name="youtube" id="youtube" value="{{ old('youtube', $doktor->youtube) }}" placeholder="kullanıcı_adı veya link"
-                               class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                               @if(empty($canDisBaglanti)) disabled @endif
+                               class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all disabled:bg-slate-50 disabled:text-slate-400">
                     </div>
 
                 </div>

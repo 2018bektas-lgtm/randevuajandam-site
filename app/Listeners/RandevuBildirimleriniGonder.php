@@ -7,7 +7,9 @@ use App\Events\RandevuOlusturuldu;
 use App\Notifications\RandevuIptalEdildi;
 use App\Notifications\RandevuOnaylandi;
 use App\Notifications\YeniRandevuTalebi;
+use App\Notifications\YorumDavetBildirimi;
 use App\Services\BeklemeListesiService;
+use App\Support\PaketYetki;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -67,6 +69,17 @@ class RandevuBildirimleriniGonder
                 app(BeklemeListesiService::class)->notifyOnSlotOpened($randevu);
             } catch (\Throwable $e) {
                 Log::warning('Bekleme listesi bildirim hatası: '.$e->getMessage(), [
+                    'randevu_id' => $randevu->id,
+                ]);
+            }
+        }
+
+        // 4. Tamamlandı → yorum daveti (yorum_davet paketi)
+        if ($event->yeniDurum === 'tamamlandi' && $hasta && $doktor && PaketYetki::has($doktor, 'yorum_davet')) {
+            try {
+                $hasta->notify(new YorumDavetBildirimi($randevu));
+            } catch (\Throwable $e) {
+                Log::warning('Yorum daveti gönderilemedi: '.$e->getMessage(), [
                     'randevu_id' => $randevu->id,
                 ]);
             }

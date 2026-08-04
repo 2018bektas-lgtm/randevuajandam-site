@@ -148,37 +148,64 @@
                             </div>
                         </div>
 
-                        <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col justify-between gap-4 hover:border-[#E7B58A]/30 transition-all duration-300">
+                        <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col justify-between gap-4 hover:border-[#E7B58A]/30 transition-all duration-300 {{ empty($canEmailBildirim) ? 'opacity-70' : '' }}">
                             <div class="space-y-1">
-                                <span class="block text-xs font-bold text-[#111827] font-display">E-Posta Bildirimleri</span>
-                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">Yeni randevu ve iptal taleplerinde bilgilendirme e-postası alırsınız.</span>
+                                <span class="block text-xs font-bold text-[#111827] font-display">E-Posta Bildirimleri @if(empty($canEmailBildirim))🔒@endif</span>
+                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">
+                                    @if(!empty($canEmailBildirim))
+                                        Yeni randevu ve iptal taleplerinde bilgilendirme e-postası alırsınız.
+                                    @else
+                                        Paketinizde e-posta bildirimi yok. <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}" class="text-[#C96A2B] font-bold underline">Yükseltin</a>.
+                                    @endif
+                                </span>
                             </div>
                             
                             <div class="flex justify-end pt-2">
-                                <label class="relative inline-flex items-center cursor-pointer select-none">
+                                <label class="relative inline-flex items-center {{ !empty($canEmailBildirim) ? 'cursor-pointer' : 'cursor-not-allowed' }} select-none">
                                     <input type="checkbox" name="email_bildirimleri" value="1" 
-                                           {{ $ayarlar->email_bildirimleri ? 'checked' : '' }} 
+                                           {{ !empty($canEmailBildirim) && $ayarlar->email_bildirimleri ? 'checked' : '' }}
+                                           @if(empty($canEmailBildirim)) disabled @endif
                                            class="sr-only peer">
                                     <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C96A2B]"></div>
                                 </label>
                             </div>
                         </div>
 
-                        <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col justify-between gap-4 hover:border-[#E7B58A]/30 transition-all duration-300">
+                        <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col justify-between gap-4 hover:border-[#E7B58A]/30 transition-all duration-300 {{ empty($canSmsHatirlatma) ? 'opacity-70' : '' }}">
                             <div class="space-y-1">
-                                <span class="block text-xs font-bold text-[#111827] font-display">SMS Bildirimleri</span>
-                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">Yeni randevu ve onay/iptal durumlarında SMS ile bildirim alırsınız.</span>
+                                <span class="block text-xs font-bold text-[#111827] font-display">SMS Bildirimleri @if(empty($canSmsHatirlatma))🔒@endif</span>
+                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">
+                                    @if(!empty($canSmsHatirlatma))
+                                        Yeni randevu ve onay/iptal durumlarında SMS ile bildirim alırsınız (kontörden düşer).
+                                    @else
+                                        Paketinizde SMS hatırlatma yok. <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}" class="text-[#C96A2B] font-bold underline">Yükseltin</a>.
+                                    @endif
+                                </span>
                             </div>
                             
                             <div class="flex justify-end pt-2">
-                                <label class="relative inline-flex items-center cursor-pointer select-none">
+                                <label class="relative inline-flex items-center {{ !empty($canSmsHatirlatma) ? 'cursor-pointer' : 'cursor-not-allowed' }} select-none">
                                     <input type="checkbox" name="sms_bildirimleri" value="1" 
-                                           {{ $ayarlar->sms_bildirimleri ? 'checked' : '' }} 
+                                           {{ !empty($canSmsHatirlatma) && $ayarlar->sms_bildirimleri ? 'checked' : '' }}
+                                           @if(empty($canSmsHatirlatma)) disabled @endif
                                            class="sr-only peer">
                                     <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C96A2B]"></div>
                                 </label>
                             </div>
                         </div>
+
+                        @if(!empty($canSmsBaslik))
+                        <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col justify-between gap-4 sm:col-span-2">
+                            <div class="space-y-1">
+                                <span class="block text-xs font-bold text-[#111827] font-display">SMS Gönderici Başlığı</span>
+                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">Kendi firma adınızla SMS (en fazla 11 karakter, harf/rakam). Operatör onaylı başlık olmalıdır.</span>
+                            </div>
+                            <input type="text" name="sms_gonderici_baslik" maxlength="11"
+                                   value="{{ old('sms_gonderici_baslik', $doktor->sms_gonderici_baslik) }}"
+                                   placeholder="ORNEKADI"
+                                   class="w-full max-w-xs px-4 py-3 rounded-xl border border-[#E5E7EB] bg-white text-xs text-[#111827] uppercase focus:outline-none focus:border-[#C96A2B]">
+                        </div>
+                        @endif
                     </div>
 
                     <!-- Approval Type Selection -->

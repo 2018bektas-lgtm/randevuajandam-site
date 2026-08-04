@@ -667,6 +667,15 @@ class MobileDoctorPortalController extends Controller
             'baslik' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $paket = $doktor->aktifPaket();
+        $maxFoto = $paket?->max_profil_foto;
+        if ($maxFoto !== null && $doktor->galeriler()->count() >= (int) $maxFoto) {
+            return response()->json([
+                'success' => false,
+                'message' => "Paketinizde en fazla {$maxFoto} galeri fotoğrafı yükleyebilirsiniz.",
+            ], 422);
+        }
+
         $file = $request->file('resim');
         $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
         $fileName = 'doktor_'.$doktor->id.'_'.Str::uuid().'.'.$ext;
@@ -1815,6 +1824,160 @@ class MobileDoctorPortalController extends Controller
         $doktor->branslar()->sync($data['branslar']);
 
         return $this->about($request);
+    }
+
+    // ── Hasta dosyaları (hasta_not_dosya) ──────────────────────
+
+    public function patientFiles(Request $request, int $id): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $this->assertPatientOwned($doktor, $id);
+        $files = \App\Models\HastaDosya::where('doktor_id', $doktor->id)
+            ->where('hasta_id', $id)
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn ($f) => [
+                'id' => $f->id,
+                'baslik' => $f->baslik,
+                'dosya_yolu' => $f->dosya_yolu,
+                'url' => asset($f->dosya_yolu),
+                'orijinal_ad' => $f->orijinal_ad,
+                'mime' => $f->mime,
+                'boyut' => $f->boyut,
+                'not' => $f->not,
+                'created_at' => $f->created_at?->toIso8601String(),
+            ]);
+
+        return response()->json(['success' => true, 'data' => $files]);
+    }
+
+    public function storePatientFile(Request $request, int $id): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $this->assertPatientOwned($doktor, $id);
+        $data = $request->validate([
+            'dosya' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx'],
+            'baslik' => ['nullable', 'string', 'max:255'],
+            'not' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $file = $request->file('dosya');
+        $path = \App\Support\PublicMedia::store($file, 'uploads/hasta-dosya');
+        $row = \App\Models\HastaDosya::create([
+            'doktor_id' => $doktor->id,
+            'hasta_id' => $id,
+            'baslik' => $data['baslik'] ?? $file->getClientOriginalName(),
+            'dosya_yolu' => $path,
+            'orijinal_ad' => $file->getClientOriginalName(),
+            'mime' => $file->getClientMimeType(),
+            'boyut' => $file->getSize(),
+            'not' => $data['not'] ?? null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dosya yüklendi.',
+            'data' => ['id' => $row->id, 'url' => asset($row->dosya_yolu)],
+        ], 201);
+    }
+
+    public function destroyPatientFile(Request $request, int $id): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $row = \App\Models\HastaDosya::where('doktor_id', $doktor->id)->findOrFail($id);
+        \App\Support\PublicMedia::delete($row->dosya_yolu);
+        $row->delete();
+
+        return response()->json(['success' => true, 'message' => 'Dosya silindi.']);
+    }
+
+    // ── Onam formları ─────────────────────────────────────────
+
+    public function consentForms(Request $request): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $forms = $doktor->onamFormlari()->orderBy('sira')->orderByDesc('id')->get()->map(fn ($f) => [
+            'id' => $f->id,
+            'baslik' => $f->baslik,
+            'icerik' => $f->icerik,
+            'aktif_mi' => (bool) $f->aktif_mi,
+            'sira' => $f->sira,
+        ]);
+
+        return response()->json(['success' => true, 'data' => $forms]);
+    }
+
+    public function storeConsentForm(Request $request): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $data = $request->validate([
+            'baslik' => ['required', 'string', 'max:255'],
+            'icerik' => ['required', 'string', 'max:50000'],
+            'aktif_mi' => ['nullable', 'boolean'],
+        ]);
+        $form = $doktor->onamFormlari()->create([
+            'baslik' => $data['baslik'],
+            'icerik' => HtmlSanitizer::clean($data['icerik']),
+            'aktif_mi' => $data['aktif_mi'] ?? true,
+            'sira' => (int) ($doktor->onamFormlari()->max('sira') ?? 0) + 1,
+        ]);
+
+        return response()->json(['success' => true, 'data' => ['id' => $form->id]], 201);
+    }
+
+    public function updateConsentForm(Request $request, int $id): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $form = $doktor->onamFormlari()->findOrFail($id);
+        $data = $request->validate([
+            'baslik' => ['required', 'string', 'max:255'],
+            'icerik' => ['required', 'string', 'max:50000'],
+            'aktif_mi' => ['nullable', 'boolean'],
+        ]);
+        $form->update([
+            'baslik' => $data['baslik'],
+            'icerik' => HtmlSanitizer::clean($data['icerik']),
+            'aktif_mi' => $data['aktif_mi'] ?? $form->aktif_mi,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Güncellendi.']);
+    }
+
+    public function destroyConsentForm(Request $request, int $id): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $doktor->onamFormlari()->whereKey($id)->delete();
+
+        return response()->json(['success' => true, 'message' => 'Silindi.']);
+    }
+
+    public function signConsentForm(Request $request): JsonResponse
+    {
+        $doktor = $this->doktor($request);
+        $data = $request->validate([
+            'onam_form_id' => ['required', 'integer'],
+            'hasta_id' => ['required', 'integer'],
+            'not' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $form = $doktor->onamFormlari()->where('aktif_mi', true)->findOrFail($data['onam_form_id']);
+        $this->assertPatientOwned($doktor, (int) $data['hasta_id']);
+        $hasta = \App\Models\Hasta::findOrFail($data['hasta_id']);
+        $imza = \App\Models\OnamImza::create([
+            'onam_form_id' => $form->id,
+            'doktor_id' => $doktor->id,
+            'hasta_id' => $hasta->id,
+            'hasta_ad_soyad' => trim($hasta->ad.' '.$hasta->soyad),
+            'ip' => $request->ip(),
+            'imzalandi_at' => now(),
+            'not' => $data['not'] ?? null,
+        ]);
+
+        return response()->json(['success' => true, 'data' => ['id' => $imza->id]], 201);
+    }
+
+    private function assertPatientOwned(\App\Models\Doktor $doktor, int $hastaId): void
+    {
+        $ids = $doktor->randevular()->whereNotNull('hasta_id')->distinct()->pluck('hasta_id');
+        abort_unless($ids->contains($hastaId), 404);
     }
 
     /**

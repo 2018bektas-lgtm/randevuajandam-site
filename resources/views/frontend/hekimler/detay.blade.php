@@ -258,6 +258,12 @@
                     <span class="inline-block self-center md:self-auto px-2.5 py-1 text-[9px] uppercase font-bold tracking-wider rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                         Online Randevuya Açık
                     </span>
+                    @if($doktor->canShowVerifiedBadge())
+                        <span class="inline-flex items-center gap-1 self-center md:self-auto px-2.5 py-1 text-[9px] uppercase font-bold tracking-wider rounded-full bg-sky-50 text-sky-800 border border-sky-200" title="Meslek belgesi doğrulandı">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            Doğrulanmış hekim
+                        </span>
+                    @endif
                     @if($doktor->hasWebSitesiPaketi())
                         @php
                             $webUrl = $doktor->publicWebsiteUrl();
@@ -281,7 +287,7 @@
                     <p class="text-sm font-semibold text-[#C96A2B] font-display uppercase tracking-wider mt-1">
                         {{ $doktor->uzmanlik_alani ?? 'Genel Branş Hekimi' }}
                     </p>
-                    @if($doktor->ortalama_puan)
+                    @if($doktor->canShowReviews() && $doktor->ortalama_puan)
                         <div class="flex items-center gap-2 mt-2">
                             <div class="flex items-center gap-0.5">
                                 @for($i = 1; $i <= 5; $i++)
@@ -306,19 +312,21 @@
                             <span>{{ $doktor->il?->ad }}{{ $doktor->ilce?->ad ? ' / ' . $doktor->ilce->ad : '' }}</span>
                         </span>
                     @endif
-                    @if($doktor->telefon)
+                    @if($doktor->canShowContactOnProfile() && $doktor->telefon)
                         <span class="text-slate-300 hidden md:inline">|</span>
                         <span class="flex items-center gap-1.5">
                             <strong>Tel:</strong> {{ $doktor->telefon }}
                         </span>
                     @endif
-                    <span class="text-slate-300 hidden md:inline">|</span>
-                    <span class="flex items-center gap-1.5">
-                        <strong>E-Posta:</strong> {{ $doktor->e_posta }}
-                    </span>
+                    @if($doktor->canShowContactOnProfile() && $doktor->e_posta)
+                        <span class="text-slate-300 hidden md:inline">|</span>
+                        <span class="flex items-center gap-1.5">
+                            <strong>E-Posta:</strong> {{ $doktor->e_posta }}
+                        </span>
+                    @endif
                 </div>
 
-                @if($doktor->instagram || $doktor->facebook || $doktor->twitter || $doktor->linkedin || $doktor->youtube)
+                @if($doktor->canShowSocialLinks() && ($doktor->instagram || $doktor->facebook || $doktor->twitter || $doktor->linkedin || $doktor->youtube))
                     <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
                         @if($doktor->instagram)
                             <a href="https://instagram.com/{{ ltrim($doktor->instagram, '@') }}" target="_blank" rel="noopener noreferrer" class="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 hover:border-[#C96A2B] hover:text-[#C96A2B] flex items-center justify-center transition-all duration-300 text-slate-500 shadow-sm" title="Instagram">
@@ -354,11 +362,22 @@
         </div>
 
         @php
-            $aktifFaqs = $doktor->faqs()->aktif()->orderBy('sira')->get();
+            $canHakkimda = $doktor->hasPaketFeature('hakkimda');
+            $canGaleri = $doktor->hasPaketFeature('galeri');
+            $canBlog = $doktor->hasPaketFeature('blog');
+            $canFaq = $doktor->hasPaketFeature('faq');
+            $canEgitim = $doktor->hasPaketFeature('egitimler');
+            $aktifFaqs = $canFaq ? $doktor->faqs()->aktif()->orderBy('sira')->get() : collect();
             $faqCount = $aktifFaqs->count();
-            $onayliYorumlar = $doktor->yorumlar()->onaylandi()->with('hasta')->latest()->take(12)->get();
+            $onayliYorumlar = $doktor->canShowReviews()
+                ? $doktor->yorumlar()->onaylandi()->with('hasta')->latest()->take(12)->get()
+                : collect();
             $yorumCount = $onayliYorumlar->count();
-            $yayinEgitimler = $doktor->egitimler()->yayinda()->orderBy('sira')->orderByDesc('baslangic_at')->take(6)->get();
+            $yayinEgitimler = $canEgitim
+                ? $doktor->egitimler()->yayinda()->orderBy('sira')->orderByDesc('baslangic_at')->take(6)->get()
+                : collect();
+            $publicGaleriler = $canGaleri ? $doktor->galeriler : collect();
+            $publicBloglar = $canBlog ? $doktor->bloglar->where('aktif_mi', true) : collect();
             $egitimListeUrl = route('frontend.hekim.egitimler', [
                 'il_slug' => $doktor->il?->slug ?? 'il',
                 'ilce_slug' => $doktor->ilce?->slug ?? 'ilce',
@@ -447,12 +466,12 @@
                             Eğitimler
                         </button>
                     @endif
-                    @if($doktor->galeriler->isNotEmpty())
+                    @if($publicGaleriler->isNotEmpty())
                         <button type="button" onclick="switchProfileTab('galeri', event)" id="tab-btn-galeri" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
                             Klinik Galeri
                         </button>
                     @endif
-                    @if($doktor->bloglar->isNotEmpty())
+                    @if($publicBloglar->isNotEmpty())
                         <button type="button" onclick="switchProfileTab('bloglar', event)" id="tab-btn-bloglar" class="profile-tab-btn whitespace-nowrap px-4 py-3.5 border-b-2 font-display text-xs font-bold transition-all duration-200 border-transparent text-[#4B5563] hover:text-[#111827] hover:border-slate-300">
                             Blog Yazıları
                         </button>
@@ -471,10 +490,12 @@
                     <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 md:p-8 shadow-sm space-y-4">
                         <h3 class="text-lg font-bold font-display text-[#111827] border-b border-slate-100 pb-3">Hekim Hakkında</h3>
                         <div class="text-xs text-[#4B5563] leading-relaxed space-y-3">
-                            @if($doktor->biyografi)
+                            @if($canHakkimda && $doktor->biyografi)
                                 {!! $doktor->biyografi !!}
-                            @else
+                            @elseif($canHakkimda)
                                 <p>Uzman hekim hakkında detaylı biyografi bilgisi henüz eklenmemiştir.</p>
+                            @else
+                                <p class="text-[#6B7280]">Detaylı özgeçmiş bu pakette vitrinde gösterilmiyor.</p>
                             @endif
                         </div>
                     </div>
@@ -670,18 +691,18 @@
                 @endif
 
                 <!-- Tab 3: Galeri -->
-                @if($doktor->galeriler->isNotEmpty())
+                @if($publicGaleriler->isNotEmpty())
                     <div id="tab-content-galeri" class="profile-tab-content space-y-8 hidden">
                         <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
                             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                                 <h3 class="text-lg font-bold font-display text-[#111827]">Klinik / Muayenehane Fotoğrafları</h3>
                                 <span class="text-xs text-[#C96A2B] font-bold font-display uppercase tracking-wider bg-[#FFF7ED] px-2.5 py-1 rounded-full">
-                                    {{ $doktor->galeriler->count() }} Fotoğraf
+                                    {{ $publicGaleriler->count() }} Fotoğraf
                                 </span>
                             </div>
 
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                @foreach($doktor->galeriler as $index => $galeri)
+                                @foreach($publicGaleriler as $index => $galeri)
                                     <div class="group relative aspect-[4/3] rounded-2xl overflow-hidden border border-slate-100 shadow-sm cursor-pointer bg-slate-50"
                                          onclick="openLightbox({{ $index }})">
                                         <img src="{{ asset($galeri->resim_yolu) }}" alt="{{ $galeri->baslik ?? 'Hekim Fotoğrafı' }}"
@@ -709,7 +730,7 @@
                             <!-- Header -->
                             <div class="relative z-10 flex justify-between items-center">
                                 <span class="text-xs font-bold text-slate-400 font-display uppercase tracking-widest bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
-                                    <span id="lightboxIndex">1</span> / {{ $doktor->galeriler->count() }}
+                                    <span id="lightboxIndex">1</span> / {{ $publicGaleriler->count() }}
                                 </span>
                                 <button type="button"
                                         onclick="closeLightbox()"
@@ -782,7 +803,7 @@
                         <!-- Lightbox Script -->
                         <script>
                             const galleryImages = [
-                                @foreach($doktor->galeriler as $galeri)
+                                @foreach($publicGaleriler as $galeri)
                                     {
                                         src: @json(asset($galeri->resim_yolu)),
                                         caption: @json($galeri->baslik)
@@ -865,17 +886,17 @@
                 @endif
 
                 <!-- Tab 4: Bloglar -->
-                @if($doktor->bloglar->isNotEmpty())
+                @if($publicBloglar->isNotEmpty())
                     <div id="tab-content-bloglar" class="profile-tab-content space-y-8 hidden">
                         <div class="bg-white border border-[#E5E7EB] rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
                             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                                 <h3 class="text-lg font-bold font-display text-[#111827]">Yayınladığı Blog Yazıları</h3>
                                 <span class="text-xs text-[#C96A2B] font-bold font-display uppercase tracking-wider bg-[#FFF7ED] px-2.5 py-1 rounded-full">
-                                    {{ $doktor->bloglar->count() }} Yazı
+                                    {{ $publicBloglar->count() }} Yazı
                                 </span>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                @foreach($doktor->bloglar as $blog)
+                                @foreach($publicBloglar as $blog)
                                     <div class="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden hover:shadow-[0_4px_24px_rgba(31,41,55,0.06)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col group">
                                         @if($blog->resim)
                                             <div class="w-full h-36 overflow-hidden relative shrink-0">

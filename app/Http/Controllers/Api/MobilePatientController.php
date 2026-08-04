@@ -326,33 +326,51 @@ class MobilePatientController extends Controller
             ->findOrFail($id);
 
         $online = (bool) ($d->aktifPaket()?->hasFeature('online_gorusme'));
-        $avg = $d->yorumlar->avg('puan');
+        $showReviews = $d->canShowReviews();
+        $showContact = $d->canShowContactOnProfile();
+        $showSocial = $d->canShowSocialLinks();
+        $avg = $showReviews ? $d->yorumlar->avg('puan') : null;
 
         return response()->json([
             'success' => true,
             'data' => array_merge($this->doktorCard($d), [
-                'biyografi' => $d->biyografi,
-                'adres' => $d->adres,
-                'telefon' => $d->telefon ?? null,
+                'biyografi' => $d->hasPaketFeature('hakkimda') ? $d->biyografi : null,
+                'adres' => $showContact ? $d->adres : null,
+                'telefon' => $showContact ? ($d->telefon ?? null) : null,
+                'dogrulanmis_rozet' => $d->canShowVerifiedBadge(),
                 'randevuya_acik_mi' => (bool) $d->randevuya_acik_mi,
                 'online_gorusme' => $online,
                 'puan_ortalama' => $avg ? round((float) $avg, 1) : null,
-                'yorum_sayisi' => $d->yorumlar->count(),
+                'yorum_sayisi' => $showReviews ? $d->yorumlar->count() : 0,
                 'hizmetler' => $d->hizmetler->map(fn (Hizmet $h) => $this->hizmetCard($h, $d))->values(),
-                'bloglar' => $d->bloglar->map(fn (Blog $b) => $this->blogCard($b, false))->values(),
-                'galeri' => $d->galeriler->map(fn (DoktorGaleri $g) => [
-                    'id' => $g->id,
-                    'baslik' => $g->baslik,
-                    'resim' => $this->mediaUrl($g->resim_yolu),
-                ])->values(),
-                'yorumlar' => $d->yorumlar->map(fn (Yorum $y) => [
-                    'id' => $y->id,
-                    'puan' => $y->puan,
-                    'yorum' => $y->yorum,
-                    'doktor_yaniti' => $y->doktor_yaniti,
-                    'hasta' => $y->hasta?->maskeli_ad ?? 'Hasta',
-                    'tarih' => optional($y->created_at)?->format('Y-m-d'),
-                ])->values(),
+                'bloglar' => $d->hasPaketFeature('blog')
+                    ? $d->bloglar->map(fn (Blog $b) => $this->blogCard($b, false))->values()
+                    : [],
+                'galeri' => $d->hasPaketFeature('galeri')
+                    ? $d->galeriler->map(fn (DoktorGaleri $g) => [
+                        'id' => $g->id,
+                        'baslik' => $g->baslik,
+                        'resim' => $this->mediaUrl($g->resim_yolu),
+                    ])->values()
+                    : [],
+                'yorumlar' => $showReviews
+                    ? $d->yorumlar->map(fn (Yorum $y) => [
+                        'id' => $y->id,
+                        'puan' => $y->puan,
+                        'yorum' => $y->yorum,
+                        'doktor_yaniti' => $y->doktor_yaniti,
+                        'hasta' => $y->hasta?->maskeli_ad ?? 'Hasta',
+                        'tarih' => optional($y->created_at)?->format('Y-m-d'),
+                    ])->values()
+                    : [],
+                'sosyal' => $showSocial ? [
+                    'instagram' => $d->instagram,
+                    'facebook' => $d->facebook,
+                    'twitter' => $d->twitter,
+                    'linkedin' => $d->linkedin,
+                    'youtube' => $d->youtube,
+                    'web_sitesi' => $d->web_sitesi,
+                ] : null,
             ]),
         ]);
     }

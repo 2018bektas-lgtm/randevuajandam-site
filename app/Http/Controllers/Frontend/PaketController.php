@@ -50,12 +50,14 @@ class PaketController extends Controller
         }
 
         $bireyselPaketler = Paket::query()
+            ->with('sistemOzellikleri')
             ->where('tur', 'bireysel')
             ->where('aktif_mi', true)
             ->orderBy('aylik_fiyat')
             ->get();
 
         $klinikPaketler = Paket::query()
+            ->with('sistemOzellikleri')
             ->where('tur', 'klinik')
             ->where('aktif_mi', true)
             ->orderBy('sira')
@@ -65,6 +67,14 @@ class PaketController extends Controller
         $maxYillikTasarrufYuzde = $this->maxYillikTasarrufYuzde(
             $bireyselPaketler->concat($klinikPaketler)
         );
+
+        // Karşılaştırma matrisi (vitrinde görünen özellikler)
+        $matrisOzellikler = \App\Models\PaketOzelligi::query()
+            ->where('vitrin_mi', true)
+            ->orderBy('grup')
+            ->orderBy('sira')
+            ->get()
+            ->groupBy(fn ($o) => $o->grup ?: 'Genel');
 
         MetaPixel::queue('ViewContent', MetaPixel::content(
             'Paketler',
@@ -78,7 +88,8 @@ class PaketController extends Controller
         return view('frontend.paketler.index', compact(
             'bireyselPaketler',
             'klinikPaketler',
-            'maxYillikTasarrufYuzde'
+            'maxYillikTasarrufYuzde',
+            'matrisOzellikler'
         ));
     }
 
@@ -572,6 +583,10 @@ class PaketController extends Controller
         ]);
 
         $kayitPaket = Paket::where('aktif_mi', true)->findOrFail($request->input('paket_id'));
+        // Excel: klinik ücretsiz Vitrin alamaz
+        if ($kayitPaket->klinikPaketiMi() && $kayitPaket->ucretsizMi()) {
+            return back()->withInput()->withErrors(['paket_id' => 'Klinikler ücretsiz Vitrin paketi kullanamaz. Lütfen ücretli bir klinik paketi seçin.']);
+        }
         $kayitPeriyot = $request->input('odeme_periyodu', 'aylik');
 
         $ilModel = Il::where('ad', $request->il)->first();
@@ -1018,8 +1033,8 @@ class PaketController extends Controller
     public function klinikKayitOl(KlinikKayitRequest $request)
     {
         $paket = Paket::findOrFail($request->paket_id);
-        if (! $paket->klinikPaketiMi()) {
-            return back()->withInput()->withErrors(['paket_id' => 'Geçerli bir klinik paketi seçin.']);
+        if (! $paket->klinikPaketiMi() || $paket->ucretsizMi()) {
+            return back()->withInput()->withErrors(['paket_id' => 'Geçerli bir ücretli klinik paketi seçin. Ücretsiz Vitrin klinik için kullanılamaz.']);
         }
 
         $ilModel = Il::find($request->il_id);
@@ -1691,6 +1706,21 @@ class PaketController extends Controller
                 ]);
             }
             $rules['odeme_yontemi'] = 'required|in:'.implode(',', $allowedMethods);
+            // PayTR Direkt API 3D — kart alanları
+            if ($request->input('odeme_yontemi', 'paytr') === 'paytr' && in_array('paytr', $allowedMethods, true)) {
+                $rules['kart_sahibi'] = 'required|string|max:100';
+                $rules['kart_no'] = 'required|string|min:15|max:19';
+                $rules['kart_ay'] = 'required|string|min:1|max:2';
+                $rules['kart_yil'] = 'required|string|min:2|max:4';
+                $rules['kart_cvv'] = 'required|string|min:3|max:4';
+            }
+            if ($request->input('odeme_yontemi') === 'iyzico' && in_array('iyzico', $allowedMethods, true)) {
+                $rules['kart_sahibi'] = 'required|string|max:100';
+                $rules['kart_no'] = 'required|string|min:15|max:19';
+                $rules['kart_ay'] = 'required|string|min:1|max:2';
+                $rules['kart_yil'] = 'required|string|min:2|max:4';
+                $rules['kart_cvv'] = 'required|string|min:3|max:4';
+            }
         }
 
         $request->validate($rules, [
@@ -1813,8 +1843,9 @@ class PaketController extends Controller
                 $kurulumKart['fatura'] = $faturaBilgisi;
             }
 
+            // PayTR Direkt API ve iyzico için kart alanları (3D / abonelik)
             $kartBilgileri = [];
-            if ($odemeYontemi === 'iyzico') {
+            if (in_array($odemeYontemi, ['iyzico', 'paytr'], true)) {
                 $ay = str_pad(preg_replace('/\D/', '', (string) $request->input('kart_ay', '')), 2, '0', STR_PAD_LEFT);
                 $yil = preg_replace('/\D/', '', (string) $request->input('kart_yil', ''));
                 if (strlen($yil) === 4) {
@@ -1824,6 +1855,8 @@ class PaketController extends Controller
                     'kart_sahibi' => trim((string) $request->input('kart_sahibi', '')),
                     'kart_no' => preg_replace('/\D/', '', (string) $request->input('kart_no', '')),
                     'kart_cvv' => preg_replace('/\D/', '', (string) $request->input('kart_cvv', '')),
+                    'kart_ay' => $ay,
+                    'kart_yil' => $yil,
                     'kart_skt' => $ay.'/'.$yil,
                 ];
             }

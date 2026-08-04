@@ -1,14 +1,24 @@
 @php
     $doktorUser = auth('doktor')->user();
     $aktifPaket = $doktorUser ? $doktorUser->aktifPaket() : null;
-    $hasHakkimda = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('hakkimda');
-    $hasBlog = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('blog');
-    $hasTalepler = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('randevu_talepleri');
-    $hasFaq = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('faq');
-    $hasFinans = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('finans');
-    $hasGaleri = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('galeri');
-    $hasWebSitesi = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('web_sitesi');
-    $hasEgitimler = $doktorUser && $aktifPaket && $aktifPaket->hasFeature('egitimler');
+    $has = fn (string $kod) => $doktorUser && $aktifPaket && $aktifPaket->hasFeature($kod);
+    $hasAny = fn (array $kodlar) => $doktorUser && $aktifPaket && $aktifPaket->hasAnyFeature($kodlar);
+    $hasHakkimda = $has('hakkimda');
+    $hasBlog = $has('blog');
+    $hasTalepler = $hasAny(['randevu_talepleri', 'randevu_talebi_goruntule']);
+    $hasTaleplerYonet = $has('randevu_talepleri');
+    $hasTakvim = $has('online_takvim');
+    $hasBekleme = $has('bekleme_listesi');
+    $hasHastalar = $has('hasta_kartlari');
+    $hasFaq = $has('faq');
+    $hasFinans = $has('finans');
+    $hasHastaBakiyeleri = $has('hasta_bakiyeleri');
+    $hasFinansRapor = $has('finans_rapor');
+    $hasGaleri = $has('galeri');
+    $hasWebSitesi = $has('web_sitesi');
+    $hasEgitimler = $has('egitimler');
+    $hasSmsHatirlatma = $has('sms_hatirlatma');
+    $hasOnam = $has('onam_formu');
     $paketYukseltUrl = route('frontend.hekim.paket_sec', ['degistir' => 1]);
 
     $ysbDash = [
@@ -24,11 +34,12 @@
             'label' => 'Randevu & Hastalar',
             'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
             'items' => [
-                ['href' => route('hekim.randevu.takvim'), 'match' => 'hekim.randevu.takvim', 'label' => 'Takvimim'],
-                ['href' => route('hekim.randevu.talepler'), 'match' => 'hekim.randevu.talepler', 'label' => 'Randevu Talepleri', 'locked' => ! $hasTalepler],
-                ['href' => route('hekim.randevu.bekleme-listesi'), 'match' => 'hekim.randevu.bekleme-listesi*', 'label' => 'Bekleme Listesi'],
-                ['href' => route('hekim.randevu.hastalar'), 'match' => 'hekim.randevu.hastalar', 'label' => 'Hasta Kayitlari'],
-                ['href' => route('hekim.randevu.ayarlar'), 'match' => 'hekim.randevu.ayarlar', 'label' => 'Randevu Ayarlari'],
+                ['href' => $hasTakvim ? route('hekim.randevu.takvim') : $paketYukseltUrl, 'match' => 'hekim.randevu.takvim', 'label' => 'Takvimim', 'locked' => ! $hasTakvim],
+                ['href' => $hasTalepler ? route('hekim.randevu.talepler') : $paketYukseltUrl, 'match' => 'hekim.randevu.talepler', 'label' => $hasTaleplerYonet ? 'Randevu Talepleri' : 'Randevu Talepleri (salt görüntüle)', 'locked' => ! $hasTalepler],
+                ['href' => $hasBekleme ? route('hekim.randevu.bekleme-listesi') : $paketYukseltUrl, 'match' => 'hekim.randevu.bekleme-listesi*', 'label' => 'Bekleme Listesi', 'locked' => ! $hasBekleme],
+                ['href' => $hasHastalar ? route('hekim.randevu.hastalar') : $paketYukseltUrl, 'match' => 'hekim.randevu.hastalar*', 'label' => 'Hasta Kayitlari', 'locked' => ! $hasHastalar],
+                ['href' => $hasOnam ? route('hekim.onam.index') : $paketYukseltUrl, 'match' => 'hekim.onam.*', 'label' => 'Onam Formlari', 'locked' => ! $hasOnam],
+                ['href' => $hasTakvim ? route('hekim.randevu.ayarlar') : $paketYukseltUrl, 'match' => 'hekim.randevu.ayarlar', 'label' => 'Randevu Ayarlari', 'locked' => ! $hasTakvim],
             ],
         ],
         [
@@ -65,7 +76,7 @@
                 ['href' => $hasFinans ? route('hekim.finans.index') : $paketYukseltUrl, 'match' => 'hekim.finans.index', 'label' => 'Genel Bakis', 'locked' => ! $hasFinans],
                 ['href' => $hasFinans ? route('hekim.finans.gelirler') : $paketYukseltUrl, 'match' => 'hekim.finans.gelirler', 'label' => 'Gelirler', 'locked' => ! $hasFinans],
                 ['href' => $hasFinans ? route('hekim.finans.giderler') : $paketYukseltUrl, 'match' => 'hekim.finans.giderler', 'label' => 'Giderler', 'locked' => ! $hasFinans],
-                ['href' => $hasFinans ? route('hekim.finans.hasta-bakiyeleri') : $paketYukseltUrl, 'match' => 'hekim.finans.hasta-bakiyeleri', 'label' => 'Hasta Bakiyeleri', 'locked' => ! $hasFinans],
+                ['href' => $hasHastaBakiyeleri ? route('hekim.finans.hasta-bakiyeleri') : $paketYukseltUrl, 'match' => 'hekim.finans.hasta-bakiyeleri', 'label' => 'Hasta Bakiyeleri', 'locked' => ! $hasHastaBakiyeleri],
                 ['href' => $hasFinans ? route('hekim.finans.kategoriler') : $paketYukseltUrl, 'match' => 'hekim.finans.kategoriler', 'label' => 'Kategoriler', 'locked' => ! $hasFinans],
             ],
         ],
@@ -77,6 +88,7 @@
                 ['href' => $hasWebSitesi ? route('hekim.web-sitesi.kurulum') : $paketYukseltUrl, 'match' => 'hekim.web-sitesi.*', 'label' => 'Kisisel Web Sitem', 'locked' => ! $hasWebSitesi],
                 // Klinik geçişi yalnızca yönetici tarafından yapılabilir — hekim sidebar'dan kaldırıldı
                 ['href' => route('hekim.uyelik'), 'match' => 'hekim.uyelik*', 'label' => 'Uyelik / Abonelik'],
+                ['href' => $hasSmsHatirlatma ? route('hekim.ek-urun.sms') : $paketYukseltUrl, 'match' => 'hekim.ek-urun.*', 'label' => 'SMS kontor', 'locked' => ! $hasSmsHatirlatma],
                 ['href' => route('hekim.referans'), 'match' => 'hekim.referans*', 'label' => 'Referans programi'],
                 ['href' => route('hekim.profil'), 'match' => 'hekim.profil', 'label' => 'Profil'],
                 ['href' => route('hekim.sifre'), 'match' => 'hekim.sifre', 'label' => 'Sifre Degistir'],

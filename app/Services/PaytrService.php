@@ -11,13 +11,14 @@ use Illuminate\Support\Str;
  * PayTR ödeme servisi.
  *
  * Model (dokümantasyon):
- * 1) İlk ödeme: Direkt API + 3D (non_3d=0) + store_card=1 → utoken/ctoken notify'da
+ * 1) Abonelik ilk ödeme: Direkt API + 3D (non_3d=0) + store_card=1 → utoken/ctoken
  *    @see https://dev.paytr.com/direkt-api/direkt-api-1-adim
  *    @see https://dev.paytr.com/direkt-api/kart-saklama-api/yeni-kart-ekleme
  * 2) Otomatik yenileme: kayıtlı kart + non_3d=1 + recurring_payment=1
  *    @see https://dev.paytr.com/direkt-api/kart-saklama-api/kayitli-kart-tekrarlayan-odeme
+ * 3) Ek ödemeler (SMS/koltuk): Direkt API + 3D (non_3d=0), store_card=0
  *
- * iFrame tek seferlik ödeme de desteklenir (ek koltuk vb.).
+ * iFrame (get-token) yalnızca geriye uyumluluk için durur; abonelik/ek ürün 3D Direkt kullanır.
  */
 class PaytrService
 {

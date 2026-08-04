@@ -23,10 +23,19 @@ class RandevuOnaylandi extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        $channels = ['mail'];
+        $channels = [];
+        $doktor = $this->randevu->doktor;
+        $paket = $doktor?->aktifPaket();
+        $ayarlar = $doktor?->randevuAyari;
 
-        $ayarlar = $this->randevu->doktor->randevuAyari;
-        if ($ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
+        if ($paket && $paket->hasFeature('email_bildirim')) {
+            $channels[] = 'mail';
+        }
+
+        if ($paket && $paket->hasFeature('sms_hatirlatma')
+            && $ayarlar && $ayarlar->sms_bildirimleri
+            && ! empty($notifiable->telefon)
+        ) {
             $channels[] = SmsChannel::class;
         }
 

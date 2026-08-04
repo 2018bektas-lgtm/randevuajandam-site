@@ -8,12 +8,14 @@ use App\Models\Doktor;
 use App\Models\Hasta;
 use App\Services\AppointmentBookingService;
 use App\Services\SlotService;
+use App\Support\PaketYetki;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HekimRandevuController extends Controller
 {
@@ -169,6 +171,7 @@ class HekimRandevuController extends Controller
      */
     public function talepler()
     {
+        // Vitrin: salt görüntüleme için de bu sayfa açılır
         /** @var Doktor $doktor */
         $doktor = Auth::guard('doktor')->user();
 
@@ -179,7 +182,9 @@ class HekimRandevuController extends Controller
             ->orderBy('saat', 'asc')
             ->paginate(15);
 
-        return view('hekim.randevu.talepler', compact('doktor', 'talepler'));
+        $canManageTalepler = (bool) ($doktor->aktifPaket()?->hasFeature('randevu_talepleri'));
+
+        return view('hekim.randevu.talepler', compact('doktor', 'talepler', 'canManageTalepler'));
     }
 
     /**
@@ -192,22 +197,77 @@ class HekimRandevuController extends Controller
         $randevu = $doktor->randevular()->findOrFail($id);
 
         $request->validate([
-            'durum' => 'required|in:onaylandi,iptal,tamamlandi,beklemede',
+            'durum' => 'required|in:onaylandi,iptal,tamamlandi,beklemede,gelmedi',
             'hekim_notu' => 'nullable|string|max:1000',
         ], [
             'durum.required' => 'Durum alanı zorunludur.',
             'durum.in' => 'Geçersiz randevu durumu.',
         ]);
 
+        // Vitrin: talebi görür, onay/reddetmez (randevu_talepleri gerekir)
+        $aktifPaket = $doktor->aktifPaket();
+        $yonetimGereken = in_array($request->durum, ['onaylandi', 'iptal'], true)
+            && in_array($randevu->durum, ['beklemede'], true);
+        if ($yonetimGereken && (! $aktifPaket || ! $aktifPaket->hasFeature('randevu_talepleri'))) {
+            $msg = 'Randevu taleplerini onaylamak veya reddetmek için ücretli bir pakete geçmelisiniz.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $msg,
+                    'upgrade_url' => route('frontend.hekim.paket_sec', ['degistir' => 1]),
+                ], 403);
+            }
+
+            return redirect()
+                ->route('frontend.hekim.paket_sec', ['degistir' => 1])
+                ->with('hata', $msg);
+        }
+
         $eskiDurum = $randevu->durum;
+
+        $hekimNotu = $request->hekim_notu;
+        if (filled($hekimNotu) && ! PaketYetki::has($doktor, 'hasta_not_dosya')) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hasta notu / takip notu mevcut paketinizde yok. Paketinizi yükseltin.',
+                    'upgrade_url' => route('frontend.hekim.paket_sec', ['degistir' => 1]),
+                    'feature' => 'hasta_not_dosya',
+                ], 403);
+            }
+
+            return redirect()
+                ->route('frontend.hekim.paket_sec', ['degistir' => 1])
+                ->with('hata', 'Hasta notu / takip notu mevcut paketinizde yok.');
+        }
 
         $randevu->update([
             'durum' => $request->durum,
-            'hekim_notu' => $request->hekim_notu,
+            'hekim_notu' => $hekimNotu,
         ]);
 
         if ($eskiDurum !== $request->durum) {
             RandevuDurumuDegisti::dispatch($randevu, $eskiDurum, $request->durum);
+        }
+
+        // Excel: no-show geri kazanım SMS
+        if ($request->durum === 'gelmedi' && $eskiDurum !== 'gelmedi' && $aktifPaket?->hasFeature('no_show_mesaj')) {
+            try {
+                $hasta = $randevu->hasta;
+                if ($hasta && ! empty($hasta->telefon)) {
+                    $kontor = app(\App\Services\SmsKontorService::class);
+                    if ($kontor->doktorGonderebilir($doktor)) {
+                        $ad = trim(($randevu->ad ?? '').' '.($randevu->soyad ?? '')) ?: ($hasta->ad_soyad ?? 'Hasta');
+                        $msg = "Sayin {$ad}, randevunuza ulasilamadi. Yeni slot icin hekim profilinden randevu alabilirsiniz. ".config('app.url');
+                        $header = $doktor->resolveSmsHeader();
+                        if (app(\App\Services\SmsService::class)->send($hasta->telefon, $msg, $header)) {
+                            $kontor->tuket($doktor, 1);
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('No-show SMS: '.$e->getMessage());
+            }
         }
 
         $mesaj = 'Randevu durumu başarıyla güncellendi.';
@@ -217,6 +277,8 @@ class HekimRandevuController extends Controller
             $mesaj = 'Randevu başarıyla iptal edildi.';
         } elseif ($request->durum === 'tamamlandi') {
             $mesaj = 'Randevu tamamlandı olarak işaretlendi.';
+        } elseif ($request->durum === 'gelmedi') {
+            $mesaj = 'Randevu «gelmedi» (no-show) olarak işaretlendi.';
         }
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -296,7 +358,92 @@ class HekimRandevuController extends Controller
             ->orderBy('soyad')
             ->paginate(15);
 
-        return view('hekim.randevu.hastalar', compact('doktor', 'hastalar'));
+        $canExport = PaketYetki::has($doktor, 'hasta_export');
+        $canTedavi = PaketYetki::has($doktor, 'tedavi_gecmisi');
+
+        return view('hekim.randevu.hastalar', compact('doktor', 'hastalar', 'canExport', 'canTedavi'));
+    }
+
+    /**
+     * Hasta listesi CSV/Excel dışa aktarma (hasta_export).
+     */
+    public function hastalarExport(): StreamedResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = Auth::guard('doktor')->user();
+        $hastaIds = $doktor->randevular()->distinct()->pluck('hasta_id');
+        $hastalar = Hasta::whereIn('id', $hastaIds)
+            ->withCount(['randevular' => function ($query) use ($doktor) {
+                $query->where('doktor_id', $doktor->id);
+            }])
+            ->orderBy('ad')
+            ->orderBy('soyad')
+            ->get();
+
+        $filename = 'hastalar-'.now()->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($hastalar) {
+            $out = fopen('php://output', 'w');
+            // Excel UTF-8 BOM
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['ID', 'Ad', 'Soyad', 'Telefon', 'E-posta', 'Randevu Sayısı', 'Durum'], ';');
+            foreach ($hastalar as $h) {
+                fputcsv($out, [
+                    $h->id,
+                    $h->ad,
+                    $h->soyad,
+                    $h->telefon,
+                    $h->e_posta,
+                    $h->randevular_count,
+                    $h->aktif_mi ? 'Aktif' : 'Pasif',
+                ], ';');
+            }
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Hasta tedavi / seans geçmişi (tedavi_gecmisi).
+     */
+    public function hastaTedaviGecmisi(int $hastaId)
+    {
+        /** @var Doktor $doktor */
+        $doktor = Auth::guard('doktor')->user();
+        $hastaIds = $doktor->randevular()->distinct()->pluck('hasta_id');
+        abort_unless($hastaIds->contains($hastaId), 404);
+
+        $hasta = Hasta::findOrFail($hastaId);
+        $randevular = $doktor->randevular()
+            ->where('hasta_id', $hastaId)
+            ->with('hizmet')
+            ->orderByDesc('tarih')
+            ->orderByDesc('saat')
+            ->paginate(30);
+
+        $canNotDosya = \App\Support\PaketYetki::has($doktor, 'hasta_not_dosya');
+        $canOnam = \App\Support\PaketYetki::has($doktor, 'onam_formu');
+        $dosyalar = $canNotDosya
+            ? \App\Models\HastaDosya::where('doktor_id', $doktor->id)->where('hasta_id', $hastaId)->orderByDesc('id')->get()
+            : collect();
+        $onamFormlar = $canOnam
+            ? $doktor->onamFormlari()->where('aktif_mi', true)->orderBy('sira')->get()
+            : collect();
+        $onamImzalar = $canOnam
+            ? \App\Models\OnamImza::where('doktor_id', $doktor->id)->where('hasta_id', $hastaId)->with('form:id,baslik')->orderByDesc('imzalandi_at')->get()
+            : collect();
+
+        return view('hekim.randevu.tedavi_gecmisi', compact(
+            'doktor',
+            'hasta',
+            'randevular',
+            'canNotDosya',
+            'canOnam',
+            'dosyalar',
+            'onamFormlar',
+            'onamImzalar'
+        ));
     }
 
     /**
@@ -342,7 +489,19 @@ class HekimRandevuController extends Controller
             $calismaSaatleri = $doktor->calismaSaatleri()->orderBy('gun')->get();
         }
 
-        return view('hekim.randevu.ayarlar', compact('doktor', 'ayarlar', 'izinler', 'calismaSaatleri'));
+        $canEmailBildirim = PaketYetki::has($doktor, 'email_bildirim');
+        $canSmsHatirlatma = PaketYetki::has($doktor, 'sms_hatirlatma');
+        $canSmsBaslik = PaketYetki::has($doktor, 'sms_baslik');
+
+        return view('hekim.randevu.ayarlar', compact(
+            'doktor',
+            'ayarlar',
+            'izinler',
+            'calismaSaatleri',
+            'canEmailBildirim',
+            'canSmsHatirlatma',
+            'canSmsBaslik'
+        ));
     }
 
     /**
@@ -363,6 +522,9 @@ class HekimRandevuController extends Controller
             'gunluk_maksimum_randevu' => 'required|integer|min:0',
         ]);
 
+        $emailAcik = $request->has('email_bildirimleri') && PaketYetki::has($doktor, 'email_bildirim');
+        $smsAcik = $request->has('sms_bildirimleri') && PaketYetki::has($doktor, 'sms_hatirlatma');
+
         $ayarlar->update([
             'aktif_mi' => $request->has('aktif_mi'),
             'online_randevu_aktif' => $request->has('online_randevu_aktif'),
@@ -374,9 +536,23 @@ class HekimRandevuController extends Controller
             'randevu_iptal_aktif_mi' => $request->has('randevu_iptal_aktif_mi'),
             'iptal_saat_limiti' => $request->iptal_saat_limiti,
             'gunluk_maksimum_randevu' => $request->gunluk_maksimum_randevu,
-            'email_bildirimleri' => $request->has('email_bildirimleri'),
-            'sms_bildirimleri' => $request->has('sms_bildirimleri'),
+            'email_bildirimleri' => $emailAcik,
+            'sms_bildirimleri' => $smsAcik,
         ]);
+
+        // SMS özel başlık (sms_baslik)
+        if (PaketYetki::has($doktor, 'sms_baslik') && $request->filled('sms_gonderici_baslik')) {
+            $baslik = mb_strtoupper(preg_replace('/[^A-Za-z0-9 ]/', '', (string) $request->input('sms_gonderici_baslik')) ?? '');
+            $baslik = mb_substr(trim($baslik), 0, 11);
+            if (\Illuminate\Support\Facades\Schema::hasColumn('doktorlar', 'sms_gonderici_baslik')) {
+                $doktor->update(['sms_gonderici_baslik' => $baslik ?: null]);
+            }
+        } elseif (! PaketYetki::has($doktor, 'sms_baslik')
+            && \Illuminate\Support\Facades\Schema::hasColumn('doktorlar', 'sms_gonderici_baslik')
+            && filled($doktor->sms_gonderici_baslik)
+        ) {
+            $doktor->update(['sms_gonderici_baslik' => null]);
+        }
 
         return redirect()->route('hekim.randevu.ayarlar')->with([
             'basarili' => 'Randevu ayarlarınız başarıyla güncellendi.',
@@ -846,31 +1022,65 @@ class HekimRandevuController extends Controller
             'saat' => 'required|date_format:H:i',
             'aciklama' => 'nullable|string|max:1000',
             'gorusme_tipi' => 'nullable|in:yuz_yuze,online',
+            'seri' => 'nullable|boolean',
+            'seri_adet' => 'nullable|integer|min:2|max:52',
+            'seri_aralik_gun' => 'nullable|integer|min:1|max:90',
         ]);
 
+        $not = $request->aciklama;
+        if (filled($not) && ! PaketYetki::has($doktor, 'hasta_not_dosya')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Randevu notu mevcut paketinizde yok. Paketinizi yükseltin.',
+                'upgrade_url' => route('frontend.hekim.paket_sec', ['degistir' => 1]),
+                'feature' => 'hasta_not_dosya',
+            ], 403);
+        }
+
+        $seri = $request->boolean('seri') || (int) $request->input('seri_adet', 0) > 1;
+        if ($seri && ! PaketYetki::has($doktor, 'seri_randevu')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seri / tekrarlayan randevu mevcut paketinizde yok. Paketinizi yükseltin.',
+                'upgrade_url' => route('frontend.hekim.paket_sec', ['degistir' => 1]),
+                'feature' => 'seri_randevu',
+            ], 403);
+        }
+
         $hasta = Hasta::findOrFail($request->danisan_id);
+        $adet = $seri ? max(2, min(52, (int) $request->input('seri_adet', 2))) : 1;
+        $aralik = max(1, min(90, (int) $request->input('seri_aralik_gun', 7)));
+        $baslangic = Carbon::parse($request->tarih);
+        $created = 0;
 
         try {
-            $bookingService->create([
-                'doktor' => $doktor,
-                'hasta' => $hasta,
-                'hizmet_id' => (int) $request->hizmet_id,
-                'tarih' => Carbon::parse($request->tarih)->toDateString(),
-                'saat' => $request->saat,
-                'not' => $request->aciklama,
-                'durum' => 'onaylandi',
-                'gorusme_tipi' => ($request->input('gorusme_tipi') === 'online') ? 'online' : 'yuz_yuze',
-            ]);
+            for ($i = 0; $i < $adet; $i++) {
+                $tarih = $baslangic->copy()->addDays($i * $aralik)->toDateString();
+                $bookingService->create([
+                    'doktor' => $doktor,
+                    'hasta' => $hasta,
+                    'hizmet_id' => (int) $request->hizmet_id,
+                    'tarih' => $tarih,
+                    'saat' => $request->saat,
+                    'not' => $not,
+                    'durum' => 'onaylandi',
+                    'gorusme_tipi' => ($request->input('gorusme_tipi') === 'online') ? 'online' : 'yuz_yuze',
+                ]);
+                $created++;
+            }
         } catch (InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => $e->getMessage().($created > 0 ? " ({$created} randevu oluşturuldu.)" : ''),
             ], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Randevu başarıyla oluşturuldu.',
+            'message' => $created > 1
+                ? "{$created} seri randevu başarıyla oluşturuldu."
+                : 'Randevu başarıyla oluşturuldu.',
+            'adet' => $created,
         ]);
     }
 
@@ -896,9 +1106,19 @@ class HekimRandevuController extends Controller
             ], 422);
         }
 
+        $not = $request->aciklama;
+        if (filled($not) && $not !== $randevu->not && ! PaketYetki::has($doktor, 'hasta_not_dosya')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Randevu notu mevcut paketinizde yok. Paketinizi yükseltin.',
+                'upgrade_url' => route('frontend.hekim.paket_sec', ['degistir' => 1]),
+                'feature' => 'hasta_not_dosya',
+            ], 403);
+        }
+
         $randevu->update([
             'hizmet_id' => $hizmet->id,
-            'not' => $request->aciklama,
+            'not' => $not,
         ]);
 
         return response()->json([

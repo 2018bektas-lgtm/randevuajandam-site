@@ -376,9 +376,15 @@
             </div>
 
             <!-- Hekim Notu Section -->
+            @php $hastaNotAcikDetail = $doktor->aktifPaket()?->hasFeature('hasta_not_dosya'); @endphp
             <div class="border-t border-[#E5E7EB] pt-4 space-y-2">
-                <label class="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider font-display">Hekim Notu / Takip Notları</label>
-                <textarea id="detailHekimNotuInput" class="w-full text-xs p-3.5 border border-[#E5E7EB] rounded-xl focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none transition-colors" rows="3" placeholder="Randevuya dair takip notlarınızı buraya yazabilirsiniz..."></textarea>
+                <label class="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider font-display">
+                    Hekim Notu / Takip Notları
+                    @if(!$hastaNotAcikDetail) <span class="text-amber-700 normal-case">(paket)</span> @endif
+                </label>
+                <textarea id="detailHekimNotuInput" @if(!$hastaNotAcikDetail) disabled @endif
+                    class="w-full text-xs p-3.5 border border-[#E5E7EB] rounded-xl focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none transition-colors disabled:bg-slate-50 disabled:text-slate-400"
+                    rows="3" placeholder="{{ $hastaNotAcikDetail ? 'Randevuya dair takip notlarınızı buraya yazabilirsiniz...' : 'Not için paket yükseltin' }}"></textarea>
             </div>
         </div>
         <!-- Modal Footer -->
@@ -476,7 +482,11 @@
                     </select>
                 </div>
 
-                @php $onlineGorusmeAcik = $doktor->aktifPaket()?->hasFeature('online_gorusme'); @endphp
+                @php
+                    $onlineGorusmeAcik = $doktor->aktifPaket()?->hasFeature('online_gorusme');
+                    $seriRandevuAcik = $doktor->aktifPaket()?->hasFeature('seri_randevu');
+                    $hastaNotAcik = $doktor->aktifPaket()?->hasFeature('hasta_not_dosya');
+                @endphp
                 @if($onlineGorusmeAcik)
                 <div>
                     <label class="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider font-display mb-1.5">Görüşme tipi</label>
@@ -496,10 +506,39 @@
                 <input type="hidden" name="gorusme_tipi" value="yuz_yuze">
                 @endif
 
+                @if($seriRandevuAcik)
+                <div class="rounded-2xl border border-[#E5E7EB] bg-[#FAFAFA] p-3.5 space-y-2">
+                    <label class="inline-flex items-center gap-2 text-xs font-bold text-[#111827] cursor-pointer">
+                        <input type="checkbox" name="seri" value="1" id="formSeriCheckbox" class="rounded border-slate-300 text-[#C96A2B]" onchange="toggleSeriFields()">
+                        Seri / tekrarlayan randevu
+                    </label>
+                    <div id="formSeriFields" class="hidden grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-[#6B7280] uppercase mb-1">Adet</label>
+                            <input type="number" name="seri_adet" id="formSeriAdet" min="2" max="52" value="4"
+                                   class="w-full text-xs p-2.5 border border-[#E5E7EB] rounded-xl">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-[#6B7280] uppercase mb-1">Aralık (gün)</label>
+                            <input type="number" name="seri_aralik_gun" id="formSeriAralik" min="1" max="90" value="7"
+                                   class="w-full text-xs p-2.5 border border-[#E5E7EB] rounded-xl">
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-[#6B7280]">Örn: 4 randevu, her 7 günde bir aynı saatte.</p>
+                </div>
+                @endif
+
                 <!-- Açıklama / Not -->
                 <div>
-                    <label class="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider font-display mb-1.5">Randevu Notu / Açıklama</label>
-                    <textarea name="aciklama" id="formAciklamaInput" class="w-full text-xs p-3.5 border border-[#E5E7EB] rounded-xl focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none" rows="3" placeholder="Randevu ile ilgili doktor notları..."></textarea>
+                    <label class="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider font-display mb-1.5">
+                        Randevu Notu / Açıklama
+                        @if(!$hastaNotAcik) <span class="text-amber-700 normal-case font-semibold">(paket özelliği)</span> @endif
+                    </label>
+                    @if($hastaNotAcik)
+                        <textarea name="aciklama" id="formAciklamaInput" class="w-full text-xs p-3.5 border border-[#E5E7EB] rounded-xl focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none" rows="3" placeholder="Randevu ile ilgili doktor notları..."></textarea>
+                    @else
+                        <textarea id="formAciklamaInput" disabled class="w-full text-xs p-3.5 border border-[#E5E7EB] rounded-xl bg-slate-50 text-slate-400" rows="2" placeholder="Not yazmak için paket yükseltin..."></textarea>
+                    @endif
                 </div>
             </div>
             <!-- Modal Footer -->
@@ -1131,9 +1170,12 @@
         $('#formHizmetSelect').val('').trigger('change');
         document.getElementById('formHizmetSuresiContainer').classList.add('hidden');
         $('#formDanisanSelect').val(null).trigger('change');
-        document.getElementById('formAciklamaInput').value = '';
+        var aciklamaEl = document.getElementById('formAciklamaInput');
+        if (aciklamaEl && !aciklamaEl.disabled) aciklamaEl.value = '';
         var gorusmeYuz = document.querySelector('input[name="gorusme_tipi"][value="yuz_yuze"]');
         if (gorusmeYuz) gorusmeYuz.checked = true;
+        var seriCb = document.getElementById('formSeriCheckbox');
+        if (seriCb) { seriCb.checked = false; toggleSeriFields(); }
 
         var modal = document.getElementById('appointmentFormModal');
         var container = document.getElementById('appointmentFormContainer');
@@ -1154,6 +1196,14 @@
         }, 300);
     }
 
+    function toggleSeriFields() {
+        var cb = document.getElementById('formSeriCheckbox');
+        var box = document.getElementById('formSeriFields');
+        if (!cb || !box) return;
+        if (cb.checked) box.classList.remove('hidden');
+        else box.classList.add('hidden');
+    }
+
     function submitAppointmentForm(e) {
         e.preventDefault();
 
@@ -1163,6 +1213,16 @@
         formData.forEach((value, key) => {
             jsonData[key] = value;
         });
+        // checkbox boolean
+        if (jsonData.seri === '1' || jsonData.seri === 'on') {
+            jsonData.seri = true;
+            jsonData.seri_adet = parseInt(jsonData.seri_adet || '2', 10);
+            jsonData.seri_aralik_gun = parseInt(jsonData.seri_aralik_gun || '7', 10);
+        } else {
+            delete jsonData.seri;
+            delete jsonData.seri_adet;
+            delete jsonData.seri_aralik_gun;
+        }
 
         fetch('{{ route("hekim.randevu.store") }}', {
             method: 'POST',

@@ -27,10 +27,20 @@ class RandevuHatirlatma extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        $channels = ['mail'];
-        $ayarlar = $this->randevu->doktor->randevuAyari;
+        $channels = [];
+        $doktor = $this->randevu->doktor;
+        $ayarlar = $doktor?->randevuAyari;
+        $paket = $doktor?->aktifPaket();
 
-        if ($ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
+        // Excel: e-posta yalnızca email_bildirim özellikli pakette
+        $emailOzellik = $paket && $paket->hasFeature('email_bildirim');
+        if ($emailOzellik) {
+            $channels[] = 'mail';
+        }
+
+        // Excel: SMS yalnızca sms_hatirlatma özellikli pakette + kontör
+        $smsOzellik = $paket && $paket->hasFeature('sms_hatirlatma');
+        if ($smsOzellik && $ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
             $channels[] = SmsChannel::class;
         }
 

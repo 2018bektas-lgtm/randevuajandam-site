@@ -30,6 +30,7 @@
     }
     if ($klinikUser->hasClinicPermission('personel_yonetimi')) {
         $ekipItems[] = ['href' => route('hekim.klinik.personeller'), 'match' => 'hekim.klinik.personeller*', 'label' => 'Personel Yonetimi'];
+        $ekipItems[] = ['href' => route('hekim.klinik.ek-personel'), 'match' => 'hekim.klinik.ek-personel*', 'label' => 'Ek personel koltugu'];
     }
     if ($pkgHastaHavuzu && $klinikUser->hasClinicPermission('ortak_hasta_havuzu')) {
         $ekipItems[] = ['href' => route('hekim.klinik.hastalar.index'), 'match' => 'hekim.klinik.hastalar*', 'label' => 'Ortak Hasta Havuzu'];

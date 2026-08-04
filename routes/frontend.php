@@ -253,6 +253,10 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     Route::post('/hekim/uyelik/iptal', [\App\Http\Controllers\Frontend\HekimUyelikController::class, 'iptal'])->name('hekim.uyelik.iptal');
     Route::get('/hekim/referans', [\App\Http\Controllers\Frontend\HekimReferansController::class, 'index'])->name('hekim.referans');
 
+    // Ek ürün: SMS kontör (PayTR)
+    Route::get('/hekim/sms-kontor', [\App\Http\Controllers\Frontend\EkUrunController::class, 'smsForm'])->name('hekim.ek-urun.sms');
+    Route::post('/hekim/sms-kontor/odeme', [\App\Http\Controllers\Frontend\EkUrunController::class, 'smsOdeme'])->name('hekim.ek-urun.sms.odeme');
+
     // Change Password
     Route::get('/hekim/sifre-degistir', [HekimController::class, 'sifreFormu'])->name('hekim.sifre');
     Route::post('/hekim/sifre-degistir', [HekimController::class, 'sifreGuncelle'])->name('hekim.sifre.post');
@@ -302,48 +306,82 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     Route::put('/hekim/hizmetler/{hizmet}', [HekimHizmetController::class, 'update'])->name('hekim.hizmetler.update');
     Route::delete('/hekim/hizmetler/{hizmet}', [HekimHizmetController::class, 'destroy'])->name('hekim.hizmetler.destroy');
 
-    // Appointment Management
-    Route::get('/hekim/takvim', [HekimRandevuController::class, 'takvim'])->name('hekim.randevu.takvim');
-    Route::get('/hekim/takvim/events', [HekimRandevuController::class, 'takvimEvents'])->name('hekim.randevu.takvim.events');
-    Route::get('/hekim/takvim/ical', [HekimRandevuController::class, 'ical'])->name('hekim.randevu.ical');
-    Route::post('/hekim/randevular/ekle', [HekimRandevuController::class, 'store'])->name('hekim.randevu.store');
-    Route::post('/hekim/randevular/{id}/reschedule', [HekimRandevuController::class, 'reschedule'])->name('hekim.randevu.reschedule');
-    Route::put('/hekim/randevular/{id}/guncelle', [HekimRandevuController::class, 'update'])->name('hekim.randevu.update');
-    Route::delete('/hekim/randevular/{id}/sil', [HekimRandevuController::class, 'destroy'])->name('hekim.randevu.destroy');
-    Route::get('/hekim/hastalar/ara', [HekimRandevuController::class, 'hastaAra'])->name('hekim.randevu.hastalar-ara');
-    Route::post('/hekim/hastalar/ekle', [HekimRandevuController::class, 'hastaEkle'])->name('hekim.randevu.hasta-ekle');
-    Route::post('/hekim/randevular/{id}/durum', [HekimRandevuController::class, 'durumGuncelle'])->name('hekim.randevu.durum-guncelle');
-    Route::post('/hekim/randevular/periyot-guncelle', [HekimRandevuController::class, 'periyotGuncelle'])->name('hekim.randevu.update-period');
+    // Takvim & randevu (online_takvim yetkisi)
+    Route::middleware(['paket.yetki:online_takvim'])->group(function () {
+        Route::get('/hekim/takvim', [HekimRandevuController::class, 'takvim'])->name('hekim.randevu.takvim');
+        Route::get('/hekim/takvim/events', [HekimRandevuController::class, 'takvimEvents'])->name('hekim.randevu.takvim.events');
+        Route::post('/hekim/randevular/ekle', [HekimRandevuController::class, 'store'])->name('hekim.randevu.store');
+        Route::post('/hekim/randevular/{id}/reschedule', [HekimRandevuController::class, 'reschedule'])->name('hekim.randevu.reschedule');
+        Route::put('/hekim/randevular/{id}/guncelle', [HekimRandevuController::class, 'update'])->name('hekim.randevu.update');
+        Route::delete('/hekim/randevular/{id}/sil', [HekimRandevuController::class, 'destroy'])->name('hekim.randevu.destroy');
+        Route::get('/hekim/hastalar/ara', [HekimRandevuController::class, 'hastaAra'])->name('hekim.randevu.hastalar-ara');
+        Route::post('/hekim/hastalar/ekle', [HekimRandevuController::class, 'hastaEkle'])->name('hekim.randevu.hasta-ekle');
+        Route::post('/hekim/randevular/periyot-guncelle', [HekimRandevuController::class, 'periyotGuncelle'])->name('hekim.randevu.update-period');
+        Route::get('/hekim/calisma-saatleri', [HekimRandevuController::class, 'calismaSaatleri'])->name('hekim.randevu.calisma-saatleri');
+        Route::post('/hekim/calisma-saatleri', [HekimRandevuController::class, 'calismaSaatleriGuncelle'])->name('hekim.randevu.calisma-saatleri.post');
+        Route::get('/hekim/randevu-ayarlari', [HekimRandevuController::class, 'ayarlar'])->name('hekim.randevu.ayarlar');
+        Route::post('/hekim/randevu-ayarlari', [HekimRandevuController::class, 'ayarlarGuncelle'])->name('hekim.randevu.ayarlar.post');
+        Route::post('/hekim/randevu-ayarlari/izin-ekle', [HekimRandevuController::class, 'izinEkle'])->name('hekim.randevu.izin-ekle');
+        Route::delete('/hekim/randevu-ayarlari/izin-sil/{id}', [HekimRandevuController::class, 'izinSil'])->name('hekim.randevu.izin-sil');
+    });
 
-    // Appointment Requests - Feature check
-    Route::middleware(['paket.yetki:randevu_talepleri'])->group(function () {
+    Route::middleware(['paket.yetki:ical_export'])->group(function () {
+        Route::get('/hekim/takvim/ical', [HekimRandevuController::class, 'ical'])->name('hekim.randevu.ical');
+    });
+
+    Route::middleware(['paket.yetki:hizli_slot'])->group(function () {
+        Route::get('/hekim/randevu-ayarlari/hizli-kapat-slotlar', [HekimRandevuController::class, 'hizliKapatSlotlar'])->name('hekim.randevu.hizli-kapat-slotlar');
+        Route::post('/hekim/randevu-ayarlari/hizli-kapat', [HekimRandevuController::class, 'hizliKapatKaydet'])->name('hekim.randevu.hizli-kapat.post');
+    });
+
+    // Durum güncelle: onay için randevu_talepleri gerekir (controller içinde de kontrol)
+    Route::post('/hekim/randevular/{id}/durum', [HekimRandevuController::class, 'durumGuncelle'])->name('hekim.randevu.durum-guncelle');
+
+    // Talepler: görme VEYA yönetme
+    Route::middleware(['paket.yetki:randevu_talepleri,randevu_talebi_goruntule'])->group(function () {
         Route::get('/hekim/talepler', [HekimRandevuController::class, 'talepler'])->name('hekim.randevu.talepler');
     });
 
-    // Bekleme listesi (hekim paneli)
-    Route::get('/hekim/bekleme-listesi', [\App\Http\Controllers\Frontend\BeklemeListesiController::class, 'index'])->name('hekim.randevu.bekleme-listesi');
-    Route::post('/hekim/bekleme-listesi/{id}/durum', [\App\Http\Controllers\Frontend\BeklemeListesiController::class, 'durumGuncelle'])->name('hekim.randevu.bekleme-listesi.durum');
-    Route::post('/hekim/bekleme-listesi/{id}/bildir', [\App\Http\Controllers\Frontend\BeklemeListesiController::class, 'bildir'])->name('hekim.randevu.bekleme-listesi.bildir');
-    Route::delete('/hekim/bekleme-listesi/{id}', [\App\Http\Controllers\Frontend\BeklemeListesiController::class, 'sil'])->name('hekim.randevu.bekleme-listesi.sil');
+    Route::middleware(['paket.yetki:bekleme_listesi'])->group(function () {
+        Route::get('/hekim/bekleme-listesi', [\App\Http\Controllers\Frontend\BeklemeListesiController::class, 'index'])->name('hekim.randevu.bekleme-listesi');
+        Route::post('/hekim/bekleme-listesi/{id}/durum', [\App\Http\Controllers\Frontend\BeklemeListesiController::class, 'durumGuncelle'])->name('hekim.randevu.bekleme-listesi.durum');
+        Route::post('/hekim/bekleme-listesi/{id}/bildir', [\App\Http\Controllers\Frontend\BeklemeListesiController::class, 'bildir'])->name('hekim.randevu.bekleme-listesi.bildir');
+        Route::delete('/hekim/bekleme-listesi/{id}', [\App\Http\Controllers\Frontend\BeklemeListesiController::class, 'sil'])->name('hekim.randevu.bekleme-listesi.sil');
+    });
 
-    // Working Hours
-    Route::get('/hekim/calisma-saatleri', [HekimRandevuController::class, 'calismaSaatleri'])->name('hekim.randevu.calisma-saatleri');
-    Route::post('/hekim/calisma-saatleri', [HekimRandevuController::class, 'calismaSaatleriGuncelle'])->name('hekim.randevu.calisma-saatleri.post');
+    Route::middleware(['paket.yetki:hasta_kartlari'])->group(function () {
+        Route::get('/hekim/hastalar', [HekimRandevuController::class, 'hastalar'])->name('hekim.randevu.hastalar');
+        Route::middleware(['paket.yetki:hasta_export'])->group(function () {
+            Route::get('/hekim/hastalar/export', [HekimRandevuController::class, 'hastalarExport'])->name('hekim.randevu.hastalar.export');
+        });
+        Route::middleware(['paket.yetki:tedavi_gecmisi'])->group(function () {
+            Route::get('/hekim/hastalar/{hastaId}/tedavi-gecmisi', [HekimRandevuController::class, 'hastaTedaviGecmisi'])
+                ->name('hekim.randevu.hastalar.tedavi-gecmisi')
+                ->whereNumber('hastaId');
+        });
+        Route::middleware(['paket.yetki:hasta_not_dosya'])->group(function () {
+            Route::post('/hekim/hastalar/{hastaId}/dosya', [\App\Http\Controllers\Frontend\HekimHastaDosyaController::class, 'store'])
+                ->name('hekim.randevu.hastalar.dosya.store')
+                ->whereNumber('hastaId');
+            Route::delete('/hekim/hastalar/dosya/{id}', [\App\Http\Controllers\Frontend\HekimHastaDosyaController::class, 'destroy'])
+                ->name('hekim.randevu.hastalar.dosya.destroy')
+                ->whereNumber('id');
+        });
+    });
 
-    // Patients
-    Route::get('/hekim/hastalar', [HekimRandevuController::class, 'hastalar'])->name('hekim.randevu.hastalar');
+    Route::middleware(['paket.yetki:onam_formu'])->group(function () {
+        Route::get('/hekim/onam-formlari', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'index'])->name('hekim.onam.index');
+        Route::post('/hekim/onam-formlari', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'store'])->name('hekim.onam.store');
+        Route::post('/hekim/onam-formlari/{id}/guncelle', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'update'])->name('hekim.onam.update')->whereNumber('id');
+        Route::delete('/hekim/onam-formlari/{id}', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'destroy'])->name('hekim.onam.destroy')->whereNumber('id');
+        Route::post('/hekim/onam-formlari/imza', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'imzaKaydet'])->name('hekim.onam.imza');
+    });
 
-    // Settings & Leaves
-    Route::get('/hekim/randevu-ayarlari', [HekimRandevuController::class, 'ayarlar'])->name('hekim.randevu.ayarlar');
-    Route::post('/hekim/randevu-ayarlari', [HekimRandevuController::class, 'ayarlarGuncelle'])->name('hekim.randevu.ayarlar.post');
-    Route::post('/hekim/randevu-ayarlari/izin-ekle', [HekimRandevuController::class, 'izinEkle'])->name('hekim.randevu.izin-ekle');
-    Route::delete('/hekim/randevu-ayarlari/izin-sil/{id}', [HekimRandevuController::class, 'izinSil'])->name('hekim.randevu.izin-sil');
-    Route::get('/hekim/randevu-ayarlari/hizli-kapat-slotlar', [HekimRandevuController::class, 'hizliKapatSlotlar'])->name('hekim.randevu.hizli-kapat-slotlar');
-    Route::post('/hekim/randevu-ayarlari/hizli-kapat', [HekimRandevuController::class, 'hizliKapatKaydet'])->name('hekim.randevu.hizli-kapat.post');
-
-    // Danışan yorumları: hekim + klinik sahibi listeler/yanıtlar (onay platform yönetiminde)
+    // Danışan yorumları listesi herkese; yanıt yetkisi özellikte
     Route::get('/hekim/yorumlar', [HekimYorumController::class, 'index'])->name('hekim.yorumlar.index');
-    Route::post('/hekim/yorumlar/{id}/yanitla', [HekimYorumController::class, 'yanitla'])->name('hekim.yorumlar.yanitla');
+    Route::middleware(['paket.yetki:yorum_yanit'])->group(function () {
+        Route::post('/hekim/yorumlar/{id}/yanitla', [HekimYorumController::class, 'yanitla'])->name('hekim.yorumlar.yanitla');
+    });
 
     // Finance Management - Feature check
     Route::middleware(['paket.yetki:finans'])->prefix('hekim/finans')->name('hekim.finans.')->group(function () {
@@ -371,11 +409,15 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
         Route::delete('/kategoriler/{id}', [HekimFinansKategoriController::class, 'destroy'])->name('kategoriler.destroy');
         Route::post('/kategoriler/{id}/toggle', [HekimFinansKategoriController::class, 'toggleAktif'])->name('kategoriler.toggle');
 
-        Route::get('/hasta-bakiyeleri', [HekimFinansController::class, 'hastaBakiyeleri'])->name('hasta-bakiyeleri');
-        Route::get('/hasta/{hastaId}', [HekimFinansController::class, 'hastaHesap'])->name('hasta-hesap')->whereNumber('hastaId');
-        Route::post('/hasta/{hastaId}/tahsilat', [HekimFinansController::class, 'hastaTahsilat'])->name('hasta-tahsilat')->whereNumber('hastaId');
-        Route::post('/hasta/{hastaId}/borc', [HekimFinansController::class, 'hastaBorcEkle'])->name('hasta-borc')->whereNumber('hastaId');
-        Route::get('/rapor/pdf', [HekimFinansController::class, 'raporPdf'])->name('rapor-pdf');
+        Route::middleware(['paket.yetki:hasta_bakiyeleri'])->group(function () {
+            Route::get('/hasta-bakiyeleri', [HekimFinansController::class, 'hastaBakiyeleri'])->name('hasta-bakiyeleri');
+            Route::get('/hasta/{hastaId}', [HekimFinansController::class, 'hastaHesap'])->name('hasta-hesap')->whereNumber('hastaId');
+            Route::post('/hasta/{hastaId}/tahsilat', [HekimFinansController::class, 'hastaTahsilat'])->name('hasta-tahsilat')->whereNumber('hastaId');
+            Route::post('/hasta/{hastaId}/borc', [HekimFinansController::class, 'hastaBorcEkle'])->name('hasta-borc')->whereNumber('hastaId');
+        });
+        Route::middleware(['paket.yetki:finans_rapor'])->group(function () {
+            Route::get('/rapor/pdf', [HekimFinansController::class, 'raporPdf'])->name('rapor-pdf');
+        });
     });
 
     // SSS (FAQ) Yönetimi - Feature check
@@ -439,6 +481,8 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
         Route::middleware(['klinik.yetki:hekim_yonetimi'])->group(function () {
             Route::get('/hekim/klinik/ek-koltuk', [EkKoltukController::class, 'formGoster'])->name('hekim.klinik.ek-koltuk');
             Route::post('/hekim/klinik/ek-koltuk/odeme', [EkKoltukController::class, 'odemeBaslat'])->name('hekim.klinik.ek-koltuk.odeme');
+            Route::get('/hekim/klinik/ek-personel', [\App\Http\Controllers\Frontend\EkUrunController::class, 'personelForm'])->name('hekim.klinik.ek-personel');
+            Route::post('/hekim/klinik/ek-personel/odeme', [\App\Http\Controllers\Frontend\EkUrunController::class, 'personelOdeme'])->name('hekim.klinik.ek-personel.odeme');
             Route::get('/hekim/klinik/doktorlar', [KlinikController::class, 'doktorlar'])->name('hekim.klinik.doktorlar');
             Route::get('/hekim/klinik/doktorlar/calisma-saatleri', [KlinikController::class, 'doktorlarCalismaSaatleri'])->name('hekim.klinik.doktorlar.calisma-saatleri');
             Route::post('/hekim/klinik/doktorlar/davet', [KlinikController::class, 'davetEt'])->name('hekim.klinik.doktorlar.davet');
@@ -577,10 +621,16 @@ Route::get('/odeme/paytr/hata', [\App\Http\Controllers\Frontend\PaytrCallbackCon
 Route::get('/odeme/paytr/iframe/{merchantOid}', [\App\Http\Controllers\Frontend\PaytrCallbackController::class, 'iframe'])
     ->name('frontend.odeme.paytr.iframe')
     ->middleware('auth:doktor');
+Route::get('/odeme/paytr/3d-frame/{merchantOid}', [\App\Http\Controllers\Frontend\PaytrCallbackController::class, 'threeDFrame'])
+    ->name('frontend.odeme.paytr.3d.frame')
+    ->middleware('auth:doktor');
 
-// PayTR Direct API — sitede kart formu + 3D Secure modal
+// PayTR Direct API — sitede kart formu + 3D Secure (abonelik + ek ödeme)
 Route::post('/odeme/paytr/direct-charge', [\App\Http\Controllers\Frontend\PaytrDirectController::class, 'charge'])
     ->name('frontend.odeme.paytr.direct')
+    ->middleware('auth:doktor');
+Route::post('/odeme/paytr/direct-ek', [\App\Http\Controllers\Frontend\PaytrDirectController::class, 'chargeEk'])
+    ->name('frontend.odeme.paytr.direct_ek')
     ->middleware('auth:doktor');
 Route::match(['get', 'post'], '/odeme/paytr/3d/ok', [\App\Http\Controllers\Frontend\PaytrDirectController::class, 'threeDOk'])
     ->name('frontend.odeme.paytr.3d.ok');

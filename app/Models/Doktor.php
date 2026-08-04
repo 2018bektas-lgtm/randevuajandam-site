@@ -23,6 +23,7 @@ class Doktor extends Authenticatable
         'e_posta',
         'sifre',
         'telefon',
+        'sms_gonderici_baslik',
         'tc_kimlik_no',
         'diploma_no',
         'edevlet_barkod',
@@ -44,6 +45,13 @@ class Doktor extends Authenticatable
         'deneme_kullanildi',
         'aktif_mi',
         'platformda_gorunur',
+        'son_giris_at',
+        'sms_kullanim_donem',
+        'sms_kullanim_adet',
+        'sms_ek_kontor',
+        'garanti_aylik_fiyat',
+        'garanti_yillik_fiyat',
+        'garanti_bitis',
         'referans_kodu',
         'davet_eden_id',
         'referans_kodu_kullanilan',
@@ -164,6 +172,12 @@ class Doktor extends Authenticatable
             'meslek_dogrulandi_at' => 'datetime',
             'aktif_mi' => 'boolean',
             'platformda_gorunur' => 'boolean',
+            'son_giris_at' => 'datetime',
+            'sms_kullanim_adet' => 'integer',
+            'sms_ek_kontor' => 'integer',
+            'garanti_aylik_fiyat' => 'decimal:2',
+            'garanti_yillik_fiyat' => 'decimal:2',
+            'garanti_bitis' => 'datetime',
             'mezuniyet' => 'array',
             'enlem' => 'float',
             'boylam' => 'float',
@@ -318,6 +332,32 @@ class Doktor extends Authenticatable
     public function galeriler(): HasMany
     {
         return $this->hasMany(DoktorGaleri::class, 'doktor_id')->orderBy('sira');
+    }
+
+    public function onamFormlari(): HasMany
+    {
+        return $this->hasMany(OnamFormu::class, 'doktor_id');
+    }
+
+    public function hastaDosyalar(): HasMany
+    {
+        return $this->hasMany(HastaDosya::class, 'doktor_id');
+    }
+
+    /** Destek SLA / satış vaadi (operasyonel bayrak). */
+    public function hasDestekEmail(): bool
+    {
+        return $this->hasPaketFeature('destek_email');
+    }
+
+    public function hasDestekOncelikli(): bool
+    {
+        return $this->hasPaketFeature('destek_oncelikli');
+    }
+
+    public function hasVeriTasima(): bool
+    {
+        return $this->hasPaketFeature('veri_tasima');
     }
 
     /**
@@ -797,10 +837,11 @@ class Doktor extends Authenticatable
                     ->orWhereNull('platformda_gorunur');
             })
             ->where(function ($q) use ($now) {
-                // Bireysel: paket var + üyelik bitmemiş + meslek onaylı (veya eski null)
+                // Bireysel: paket var + profil_sayfasi + üyelik bitmemiş + meslek onaylı
                 $q->where(function ($b) use ($now) {
                     $b->whereNull('klinik_id')
                         ->whereNotNull('paket_id')
+                        ->whereHas('paket.sistemOzellikleri', fn ($sq) => $sq->where('kod', 'profil_sayfasi'))
                         ->where(function ($u) use ($now) {
                             $u->whereNull('uyelik_bitis')
                                 ->orWhere('uyelik_bitis', '>', $now);
@@ -811,19 +852,84 @@ class Doktor extends Authenticatable
                                 ->orWhere('meslek_dogrulama_durumu', 'onaylandi');
                         });
                 })
-                // Klinik üyesi: kliniğin paketi + aktif üyelik
+                // Klinik üyesi: kliniğin paketi + profil_sayfasi + aktif üyelik
                 ->orWhere(function ($c) use ($now) {
                     $c->whereNotNull('klinik_id')
                         ->whereHas('klinik', function ($kq) use ($now) {
                             $kq->where('aktif_mi', true)
                                 ->whereNotNull('paket_id')
+                                ->whereHas('paket.sistemOzellikleri', fn ($sq) => $sq->where('kod', 'profil_sayfasi'))
                                 ->where(function ($u) use ($now) {
                                     $u->whereNull('uyelik_bitis')
                                         ->orWhere('uyelik_bitis', '>', $now);
                                 });
                         });
                 });
-            });
+            })
+            // Excel: listeleme önceliği yalnızca oncelikli_liste özelliği olan paketlerde
+            ->orderByRaw('(
+                SELECT CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM paket_ozellik_pivot pop
+                        INNER JOIN paket_ozellikleri po ON po.id = pop.ozellik_id
+                        WHERE pop.paket_id = p.id AND po.kod = \'oncelikli_liste\'
+                    ) THEN COALESCE(p.listeleme_oncelik, 0)
+                    ELSE 0
+                END
+                FROM paketler p
+                WHERE p.id = COALESCE(
+                    doktorlar.paket_id,
+                    (SELECT k.paket_id FROM klinikler k WHERE k.id = doktorlar.klinik_id LIMIT 1)
+                )
+                LIMIT 1
+            ) DESC')
+            ->orderByDesc('doktorlar.id');
+    }
+
+    /**
+     * Vitrinde iletişim (tel/e-posta) gösterilebilir mi?
+     */
+    public function canShowContactOnProfile(): bool
+    {
+        return $this->hasPaketFeature('iletisim_profilde');
+    }
+
+    /**
+     * Vitrinde sosyal / dış bağlantılar gösterilebilir mi?
+     */
+    public function canShowSocialLinks(): bool
+    {
+        return $this->hasPaketFeature('dis_baglanti');
+    }
+
+    /**
+     * Vitrinde onaylı yorumlar gösterilebilir mi?
+     */
+    public function canShowReviews(): bool
+    {
+        return $this->hasPaketFeature('yorum_gorunur');
+    }
+
+    /**
+     * Doğrulanmış rozet (meslek onayı + paket özelliği).
+     */
+    public function canShowVerifiedBadge(): bool
+    {
+        return $this->hasPaketFeature('dogrulanmis_rozet') && $this->isMeslekOnayli();
+    }
+
+    /**
+     * SMS özel gönderici başlığı (sms_baslik).
+     */
+    public function resolveSmsHeader(): ?string
+    {
+        if (! $this->hasPaketFeature('sms_baslik')) {
+            return null;
+        }
+        $h = $this->sms_gonderici_baslik ?? null;
+
+        return filled($h) ? (string) $h : null;
     }
 
     /**

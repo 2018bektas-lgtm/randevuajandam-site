@@ -211,6 +211,11 @@ class KlinikController extends Controller
             'rol' => 'required|in:sekreter,muhasebeci,resepsiyonist',
         ]);
 
+        // Excel: muhasebeci Plus+ (merkezi finans); Klinik Başlangıç'ta ücretsiz değil
+        if ($request->rol === 'muhasebeci' && ! $klinik->hasPaketFlag('merkezi_finans')) {
+            return back()->with('hata', 'Muhasebeci girişi Klinik Plus ve üzeri paketlerde dahildir. Paketinizi yükseltin veya ek hizmet için destek ile iletişime geçin.');
+        }
+
         $klinik->personeller()->create([
             'ad_soyad' => $request->ad_soyad,
             'e_posta' => $request->e_posta,

@@ -13,10 +13,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 /**
- * PayTR Direkt API — ilk abonelik ödemesi (3D) + store_card.
+ * PayTR Direkt API:
+ * - Abonelik ilk ödeme: 3D (non_3d=0) + store_card=1 → utoken/ctoken
+ * - Ek ödemeler (SMS/koltuk): 3D (non_3d=0), kart saklama opsiyonel
+ * - Tekrarlayan abonelik: AbonelikYenileCommand → Non3D + recurring_payment
  *
  * @see https://dev.paytr.com/direkt-api/direkt-api-1-adim
  * @see https://dev.paytr.com/direkt-api/kart-saklama-api/yeni-kart-ekleme
+ * @see https://dev.paytr.com/direkt-api/kart-saklama-api/kayitli-kart-tekrarlayan-odeme
  */
 class PaytrDirectController extends Controller
 {
@@ -132,6 +136,107 @@ class PaytrDirectController extends Controller
 
         return response()->json([
             'error' => $result['errorMessage'] ?? 'Ödeme başlatılamadı. Kart bilgilerinizi kontrol edin.',
+        ], 422);
+    }
+
+    /**
+     * Ek ürün 3D ödemesi (SMS kontör, ek personel, ek hekim koltuğu).
+     * non_3d=0; abonelik değil — store_card varsayılan kapalı.
+     */
+    public function chargeEk(Request $request)
+    {
+        /** @var Doktor|null $doktor */
+        $doktor = Auth::guard('doktor')->user();
+        if (! $doktor) {
+            return response()->json(['error' => 'Oturum gerekli.'], 403);
+        }
+
+        $request->validate([
+            'merchant_oid' => 'required|string|max:64',
+            'kart_sahibi' => 'required|string|max:100',
+            'kart_no' => 'required|string|min:15|max:19',
+            'kart_ay' => 'required|string|min:1|max:2',
+            'kart_yil' => 'required|string|min:2|max:4',
+            'kart_cvv' => 'required|string|min:3|max:4',
+        ]);
+
+        $merchantOid = (string) $request->input('merchant_oid');
+        $paytr = app(PaytrService::class);
+        if (! $paytr->isConfigured()) {
+            return response()->json(['error' => 'PayTR yapılandırılmamış.'], 422);
+        }
+
+        $tutar = 0.0;
+        $basket = 'Ek odeme';
+        $userEmail = $doktor->e_posta;
+        $userName = $doktor->ad_soyad;
+        $userPhone = $doktor->telefon;
+        $userAddress = $doktor->adres ?: 'Turkiye';
+
+        if (str_starts_with($merchantOid, 'SM') || str_starts_with($merchantOid, 'EP')) {
+            $odeme = \App\Models\EkUrunOdeme::where('merchant_oid', $merchantOid)
+                ->where('doktor_id', $doktor->id)
+                ->where('durum', 'beklemede')
+                ->first();
+            if (! $odeme) {
+                return response()->json(['error' => 'Ödeme kaydı bulunamadı.'], 404);
+            }
+            $tutar = (float) $odeme->tutar;
+            $basket = $odeme->tip === 'sms_kontor'
+                ? 'SMS Kontor x'.$odeme->adet
+                : 'Ek Personel Koltugu x'.$odeme->adet;
+        } elseif (str_starts_with($merchantOid, 'EK')) {
+            $odeme = \App\Models\KlinikEkKoltukOdeme::where('merchant_oid', $merchantOid)
+                ->where('doktor_id', $doktor->id)
+                ->where('durum', 'beklemede')
+                ->first();
+            if (! $odeme) {
+                return response()->json(['error' => 'Ödeme kaydı bulunamadı.'], 404);
+            }
+            $tutar = (float) $odeme->tutar;
+            $basket = 'Ek Hekim Koltugu x'.$odeme->adet;
+            $userAddress = $odeme->klinik?->adres ?: $userAddress;
+        } else {
+            return response()->json(['error' => 'Geçersiz ek ödeme siparişi.'], 422);
+        }
+
+        $result = $paytr->createDirectPayment([
+            'merchant_oid' => $merchantOid,
+            'email' => $userEmail,
+            'payment_amount' => $tutar,
+            'user_name' => $userName,
+            'user_address' => $userAddress,
+            'user_phone' => $userPhone,
+            'user_ip' => $request->ip(),
+            'basket_name' => $basket,
+            'card_owner' => $request->input('kart_sahibi'),
+            'card_number' => $request->input('kart_no'),
+            'expiry_month' => $request->input('kart_ay'),
+            'expiry_year' => $request->input('kart_yil'),
+            'card_cvv' => $request->input('kart_cvv'),
+            'store_card' => false, // ek ödeme: abonelik kartı saklama yok
+            'non_3d' => '0', // 3D zorunlu
+            'merchant_ok_url' => route('frontend.odeme.paytr.3d.ok'),
+            'merchant_fail_url' => route('frontend.odeme.paytr.3d.fail'),
+        ]);
+
+        if (($result['status'] ?? '') === '3d') {
+            session([
+                'paytr_direct_3d_html_'.$merchantOid => $result['html'],
+                'paytr_direct_3d_oid' => $merchantOid,
+            ]);
+
+            return response()->json([
+                'redirect' => route('frontend.odeme.paytr.3d.frame', ['merchantOid' => $merchantOid]),
+            ]);
+        }
+
+        if (in_array($result['status'] ?? '', ['success', 'wait_callback'], true)) {
+            return response()->json(['redirect' => route('frontend.odeme.paytr.ok')]);
+        }
+
+        return response()->json([
+            'error' => $result['errorMessage'] ?? '3D ödeme başlatılamadı.',
         ], 422);
     }
 

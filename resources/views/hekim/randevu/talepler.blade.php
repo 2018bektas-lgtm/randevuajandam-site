@@ -4,6 +4,21 @@
 @section('sayfa_baslik', 'Onay Bekleyen Randevu Talepleri')
 
 @section('icerik')
+    @php $canManageTalepler = $canManageTalepler ?? false; @endphp
+    @unless($canManageTalepler)
+        <div class="mb-6 p-5 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h4 class="text-sm font-bold text-amber-950 font-display">{{ $talepler->total() }} yeni randevu talebiniz var</h4>
+                <p class="text-xs text-amber-900/80 mt-1 max-w-xl">
+                    Vitrin paketinde talepleri görebilirsiniz; onaylamak veya reddetmek için <strong>Başlangıç</strong> veya üzeri pakete geçin.
+                </p>
+            </div>
+            <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}"
+               class="shrink-0 px-4 py-2.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-xs font-bold">
+                Paketi yükselt
+            </a>
+        </div>
+    @endunless
     <!-- Requests Card -->
     <div class="bg-white border border-[#E5E7EB] rounded-2xl shadow-[0_4px_24px_rgba(31,41,55,0.04)] overflow-hidden">
         <div class="p-6 border-b border-[#E5E7EB] flex items-center justify-between">
@@ -76,23 +91,24 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <!-- Approve Action Form -->
-                                        <form action="{{ route('hekim.randevu.durum-guncelle', $talep->id) }}" method="POST" class="inline">
-                                            @csrf
-                                            <input type="hidden" name="durum" value="onaylandi">
-                                            <button type="submit" onclick="onayModalAc(event, this.form, 'Bu randevu talebini onaylamak istediğinize emin misiniz?')"
-                                                    class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs tracking-wider transition-all duration-200 cursor-pointer font-display">
-                                                Onayla
+                                    @if($canManageTalepler)
+                                        <div class="flex items-center justify-end gap-2">
+                                            <form action="{{ route('hekim.randevu.durum-guncelle', $talep->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                <input type="hidden" name="durum" value="onaylandi">
+                                                <button type="submit" onclick="onayModalAc(event, this.form, 'Bu randevu talebini onaylamak istediğinize emin misiniz?')"
+                                                        class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs tracking-wider transition-all duration-200 cursor-pointer font-display">
+                                                    Onayla
+                                                </button>
+                                            </form>
+                                            <button type="button" onclick="talepReddetModalAc({{ json_encode($talep) }})"
+                                                    class="px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs tracking-wider transition-all duration-200 cursor-pointer font-display">
+                                                Reddet / İptal
                                             </button>
-                                        </form>
-
-                                        <!-- Cancel/Reject Action Button (Requires Note Modal) -->
-                                        <button type="button" onclick="talepReddetModalAc({{ json_encode($talep) }})"
-                                                class="px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs tracking-wider transition-all duration-200 cursor-pointer font-display">
-                                            Reddet / İptal
-                                        </button>
-                                    </div>
+                                        </div>
+                                    @else
+                                        <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">Paketi yükselt</span>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

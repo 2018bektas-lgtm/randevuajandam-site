@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Doktor;
+use App\Support\PaketYetki;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -9,65 +11,70 @@ use Symfony\Component\HttpFoundation\Response;
 
 class PaketYetkiKontrol
 {
-    /** @var array<string, string> */
-    protected array $featureLabels = [
-        'hakkimda' => 'Hakkımda / özgeçmiş',
-        'galeri' => 'Fotoğraf galerisi',
-        'randevu_talepleri' => 'Randevu talepleri',
-        'finans' => 'Finans yönetimi',
-        'blog' => 'Blog / makale',
-        'yorum' => 'Danışan yorumları',
-        'faq' => 'S.S.S. yönetimi',
-        'web_sitesi' => 'Kişisel web sitesi',
-        'klinik_web_sitesi' => 'Klinik web sitesi',
-        'egitimler' => 'Eğitimler ve başvuru formu',
-        'online_gorusme' => 'Online görüntülü görüşme',
-    ];
-
-    public function handle(Request $request, Closure $next, string $feature): Response
+    /**
+     * @param  string  ...$features  Virgülle ayrılmış veya çoklu parametre; biri yeterli (OR).
+     */
+    public function handle(Request $request, Closure $next, string ...$features): Response
     {
-        $doktor = Auth::guard('doktor')->user();
-
-        if ($doktor) {
-            $activePackage = $doktor->aktifPaket();
-
-            if (app()->environment('testing') && ! $activePackage) {
-                return $next($request);
-            }
-
-            $label = $this->featureLabels[$feature] ?? $feature;
-
-            if (! $activePackage) {
-                if ($request->expectsJson() || $request->ajax()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "«{$label}» için aktif bir paket seçmelisiniz.",
-                        'upgrade_url' => route('frontend.hekim.paket_sec'),
-                        'feature' => $feature,
-                    ], 403);
+        $codes = [];
+        foreach ($features as $f) {
+            foreach (explode(',', $f) as $part) {
+                $part = trim($part);
+                if ($part !== '') {
+                    $codes[] = $part;
                 }
-
-                return redirect()
-                    ->route('frontend.hekim.paket_sec')
-                    ->with('hata', "«{$label}» özelliğini kullanmak için bir paket seçin veya yükseltin.");
             }
+        }
+        $codes = array_values(array_unique($codes));
 
-            if (! $activePackage->hasFeature($feature)) {
-                if ($request->expectsJson() || $request->ajax()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "«{$label}» mevcut paketinizde yok. Lütfen paketinizi yükseltin.",
-                        'upgrade_url' => route('frontend.hekim.paket_sec'),
-                        'feature' => $feature,
-                    ], 403);
-                }
+        $doktor = $this->resolveDoktor($request);
 
-                return redirect()
-                    ->route('frontend.hekim.paket_sec')
-                    ->with('hata', "«{$label}» mevcut paketinizde (".$activePackage->ad.") yer almıyor. Aşağıdan uygun paketi seçerek yükseltebilirsiniz.");
-            }
+        // Personel / klinik paneli: hekim paketi yoksa geç (klinik.paket ayrı)
+        if (! $doktor) {
+            return $next($request);
+        }
+
+        $activePackage = $doktor->aktifPaket();
+
+        if (app()->environment('testing') && ! $activePackage) {
+            return $next($request);
+        }
+
+        $label = collect($codes)
+            ->map(fn ($c) => PaketYetki::label($c))
+            ->implode(' / ');
+
+        if (! $activePackage) {
+            return PaketYetki::deny(
+                $request,
+                "«{$label}» için aktif bir paket seçmelisiniz.",
+                $codes[0] ?? 'paket'
+            );
+        }
+
+        if (! $activePackage->hasAnyFeature($codes)) {
+            return PaketYetki::deny(
+                $request,
+                "«{$label}» mevcut paketinizde (".$activePackage->ad.') yer almıyor. Paketinizi yükselterek açabilirsiniz.',
+                $codes[0] ?? 'paket'
+            );
         }
 
         return $next($request);
+    }
+
+    private function resolveDoktor(Request $request): ?Doktor
+    {
+        $fromGuard = Auth::guard('doktor')->user();
+        if ($fromGuard instanceof Doktor) {
+            return $fromGuard;
+        }
+
+        $fromAttr = $request->attributes->get('auth_doktor');
+        if ($fromAttr instanceof Doktor) {
+            return $fromAttr;
+        }
+
+        return null;
     }
 }

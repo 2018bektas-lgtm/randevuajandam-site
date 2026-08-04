@@ -25,17 +25,18 @@ class YeniRandevuTalebi extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         $channels = ['database', ExpoPushChannel::class];
-        $ayarlar = $this->randevu->doktor->randevuAyari;
+        $doktor = $this->randevu->doktor;
+        $ayarlar = $doktor?->randevuAyari;
+        $paket = $doktor?->aktifPaket();
 
-        if ($ayarlar) {
-            if ($ayarlar->email_bildirimleri) {
-                $channels[] = 'mail';
-            }
-            if ($ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
-                $channels[] = SmsChannel::class;
-            }
-        } else {
+        if ($ayarlar && $ayarlar->email_bildirimleri && $paket && $paket->hasFeature('email_bildirim')) {
             $channels[] = 'mail';
+        }
+        if ($ayarlar && $ayarlar->sms_bildirimleri
+            && $paket && $paket->hasFeature('sms_hatirlatma')
+            && ! empty($notifiable->telefon)
+        ) {
+            $channels[] = SmsChannel::class;
         }
 
         return $channels;

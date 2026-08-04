@@ -12,7 +12,18 @@ class PaketOzelligi extends Model
         'kod',
         'ad',
         'aciklama',
+        'grup',
+        'sira',
+        'vitrin_mi',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'sira' => 'integer',
+            'vitrin_mi' => 'boolean',
+        ];
+    }
 
     /**
      * Packages that have this feature.

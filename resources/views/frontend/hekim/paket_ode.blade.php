@@ -479,14 +479,14 @@
                             </div>
                         @endif
 
-                        {{-- PayTR iFrame API: kart bilgisi PayTR sayfasında alınır (PCI yok) --}}
+                        {{-- PayTR Direkt API: 3D + store_card (abonelik) --}}
                         <div id="paytr-payment-fields" class="{{ $oldMethod === 'paytr' && $paytrOk ? '' : 'hidden' }} rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 space-y-4 shadow-sm">
                             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                 <div>
-                                    <h3 class="text-sm font-bold text-[#111827] font-display tracking-tight">Güvenli kart ödeme (PayTR)</h3>
+                                    <h3 class="text-sm font-bold text-[#111827] font-display tracking-tight">PayTR Direkt API — 3D Secure</h3>
                                     <p class="mt-1.5 text-xs text-[#6B7280] leading-relaxed max-w-lg">
-                                        &ldquo;Ödemeye devam et&rdquo; ile PayTR&rsquo;in barındırılan 3D Secure formu açılır.
-                                        Kart numaranız bu sitede girilmez ve sunucularımızda saklanmaz.
+                                        İlk abonelik ödemesi <strong>3D</strong> ile alınır; kart PayTR’de saklanır.
+                                        Dönem yenilemeleri <strong>Non3D recurring</strong> ile çekilir.
                                     </p>
                                 </div>
                                 <div class="shrink-0 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
@@ -494,30 +494,56 @@
                                 </div>
                             </div>
 
-                            <div class="rounded-xl bg-[#FFF7ED] border border-[#FED7AA] px-3.5 py-3 text-xs text-[#9A3412] leading-relaxed">
-                                <strong class="block text-[#7C2D12]">Sonraki adım: PayTR 3D Secure ödeme</strong>
+                            <div class="rounded-xl bg-sky-50 border border-sky-200 px-3.5 py-3 text-xs text-sky-950 leading-relaxed">
+                                <strong class="block text-sky-900">Akış</strong>
                                 <span class="block mt-1 text-[11px]">
-                                    Sipariş kaydı oluşturulur; kart ve 3D doğrulaması PayTR güvenli sayfasında yapılır.
-                                    Kart sunucularımızda saklanmaz.
+                                    1) 3D + store_card → utoken/ctoken ·
+                                    2) Cron Non3D recurring_payment ·
+                                    3) Ek SMS/koltuk ödemeleri ayrı 3D (kart saklanmaz)
                                 </span>
                             </div>
 
-                            <div class="rounded-xl bg-sky-50 border border-sky-200 px-3.5 py-3 text-xs text-sky-950 leading-relaxed">
-                                <strong class="block text-sky-900">Otomatik yenileme</strong>
-                                <span class="block mt-1 text-[11px]">
-                                    PayTR mağazanızda kart saklama yetkisi açıksa, ödeme sonrası kart PayTR’de token ile saklanır.
-                                    Dönem sonunda (aylık/yıllık) sistem <strong>3D’siz</strong> paket ücretini otomatik çeker.
-                                    Süre dolmadan 7 / 3 / 1 gün kala panel ve e-posta ile bilgilendirilirsiniz.
-                                    İstemezseniz panelden aboneliği iptal ederek yenilemeyi kapatabilirsiniz.
-                                </span>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="kart_sahibi_paytr" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Kart üzerindeki isim</label>
+                                    <input type="text" name="kart_sahibi" id="kart_sahibi_paytr" value="{{ old('kart_sahibi') }}"
+                                           autocomplete="cc-name" placeholder="AD SOYAD"
+                                           class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm uppercase tracking-wide text-[#111827] placeholder:text-slate-400">
+                                </div>
+                                <div>
+                                    <label for="kart_no_paytr" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Kart numarası</label>
+                                    <input type="text" name="kart_no" id="kart_no_paytr"
+                                           autocomplete="cc-number" inputmode="numeric"
+                                           placeholder="0000 0000 0000 0000" maxlength="19"
+                                           class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono tracking-widest text-[#111827] placeholder:text-slate-400">
+                                </div>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label for="kart_ay_paytr" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Ay</label>
+                                        <input type="text" name="kart_ay" id="kart_ay_paytr" autocomplete="cc-exp-month" inputmode="numeric"
+                                               placeholder="MM" maxlength="2"
+                                               class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
+                                    </div>
+                                    <div>
+                                        <label for="kart_yil_paytr" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Yıl</label>
+                                        <input type="text" name="kart_yil" id="kart_yil_paytr" autocomplete="cc-exp-year" inputmode="numeric"
+                                               placeholder="YY" maxlength="4"
+                                               class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
+                                    </div>
+                                    <div>
+                                        <label for="kart_cvv_paytr" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-600">CVV</label>
+                                        <input type="text" name="kart_cvv" id="kart_cvv_paytr" autocomplete="cc-csc" inputmode="numeric"
+                                               placeholder="000" maxlength="4"
+                                               class="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 text-sm font-mono text-center text-[#111827] placeholder:text-slate-400">
+                                    </div>
+                                </div>
                             </div>
 
                             <button type="submit" id="paytrSubmitBtn"
                                     class="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm hover:shadow-md cursor-pointer font-display disabled:opacity-60">
-                                <svg class="w-4 h-4 opacity-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                                Ödemeye devam et — ₺{{ number_format($toplam, 2, ',', '.') }}
+                                3D ile öde — ₺{{ number_format($toplam, 2, ',', '.') }}
                             </button>
-                            <p class="text-center text-[10px] text-slate-400">PCI-DSS: kart verisi yalnızca PayTR altyapısında işlenir.</p>
+                            <p class="text-center text-[10px] text-slate-400">Kart sunucuda saklanmaz; yalnızca PayTR Direkt API’ye iletilir.</p>
                         </div>
 
                         {{-- iyzico: kart bu formda --}}
@@ -680,14 +706,14 @@
         function updatePaymentMethod() {
             const method = document.querySelector('input[name="odeme_yontemi"]:checked')?.value
                 || document.querySelector('input[name="odeme_yontemi"]')?.value;
-            // PayTR: iFrame API (kart sitede yok). iyzico: kart formu. havale: banka.
+            // PayTR: Direkt API 3D kart formu. iyzico: kart formu. havale: banka.
             paytrFields?.classList.toggle('hidden', method !== 'paytr');
             cardFields?.classList.toggle('hidden', method !== 'iyzico');
             bankFields?.classList.toggle('hidden', method !== 'havale');
             if (bankReference) bankReference.required = method === 'havale';
             if (paytrBtn) {
                 paytrBtn.disabled = false;
-                paytrBtn.innerHTML = '<svg class="w-4 h-4 opacity-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg> Ödemeye devam et — ₺{{ number_format($toplam, 2, ",", ".") }}';
+                paytrBtn.textContent = '3D ile öde — ₺{{ number_format($toplam, 2, ",", ".") }}';
             }
             document.querySelectorAll('.payment-method-card').forEach(function (lab) {
                 const on = !!lab.querySelector('input')?.checked;
@@ -702,28 +728,29 @@
         paymentMethods.forEach(function (input) { input.addEventListener('change', updatePaymentMethod); });
         updatePaymentMethod();
 
-        // Form submit: PayTR butonunda çift tıklamayı engelle (normal POST -> iframe)
+        // Form submit: PayTR 3D — çift tıklama engeli
         document.getElementById('checkoutForm')?.addEventListener('submit', function () {
             const method = document.querySelector('input[name="odeme_yontemi"]:checked')?.value
                 || document.querySelector('input[name="odeme_yontemi"]')?.value;
             if (method === 'paytr' && paytrBtn) {
                 paytrBtn.disabled = true;
-                paytrBtn.textContent = 'PayTR oturumu açılıyor…';
+                paytrBtn.textContent = '3D Secure açılıyor…';
             }
         });
 
-        const kartNoInput = document.getElementById('kart_no');
-        if (kartNoInput) {
+        ['kart_no', 'kart_no_paytr'].forEach(function (id) {
+            const kartNoInput = document.getElementById(id);
+            if (!kartNoInput) return;
             kartNoInput.addEventListener('input', function () {
                 let digits = this.value.replace(/\D/g, '').substring(0, 16);
                 this.value = digits.replace(/(.{4})/g, '$1 ').trim();
             });
-        }
-        ['kart_ay', 'kart_yil', 'kart_cvv'].forEach(function (id) {
+        });
+        ['kart_ay', 'kart_yil', 'kart_cvv', 'kart_ay_paytr', 'kart_yil_paytr', 'kart_cvv_paytr'].forEach(function (id) {
             const el = document.getElementById(id);
             if (!el) return;
             el.addEventListener('input', function () {
-                const max = id === 'kart_cvv' ? 4 : (id === 'kart_yil' ? 4 : 2);
+                const max = id.indexOf('cvv') >= 0 ? 4 : (id.indexOf('yil') >= 0 ? 4 : 2);
                 this.value = this.value.replace(/\D/g, '').substring(0, max);
             });
         });

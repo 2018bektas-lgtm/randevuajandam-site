@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Yonetim;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class PaketStoreRequest extends FormRequest
 {
@@ -26,11 +27,21 @@ class PaketStoreRequest extends FormRequest
             'yillik_indirimli_fiyat' => ['nullable', 'numeric', 'min:0'],
             'ek_doktor_aylik_fiyat' => ['nullable', 'numeric', 'min:0'],
             'ek_doktor_yillik_fiyat' => ['nullable', 'numeric', 'min:0'],
-            'ozellikler' => ['required', 'array', 'min:1'],
-            'ozellikler.*' => ['required', 'string', 'max:255'],
+            'ek_personel_aylik_fiyat' => ['nullable', 'numeric', 'min:0'],
+            'ek_personel_yillik_fiyat' => ['nullable', 'numeric', 'min:0'],
+            'sistem_ozellikleri' => ['nullable', 'array'],
+            'sistem_ozellikleri.*' => ['string', 'max:64', Rule::exists('paket_ozellikleri', 'kod')],
             'aktif_mi' => ['nullable', 'boolean'],
             'max_doktor_sayisi' => ['nullable', 'integer', 'min:1'],
-            'max_personel_sayisi' => ['nullable', 'integer', 'min:1'],
+            'max_ek_doktor' => ['nullable', 'integer', 'min:0'],
+            'max_personel_sayisi' => ['nullable', 'integer', 'min:0'],
+            'max_hasta_sayisi' => ['nullable', 'integer', 'min:0'],
+            'max_randevu_sayisi' => ['nullable', 'integer', 'min:0'],
+            'max_hizmet_sayisi' => ['nullable', 'integer', 'min:0'],
+            'max_biyografi_karakter' => ['nullable', 'integer', 'min:0'],
+            'max_profil_foto' => ['nullable', 'integer', 'min:0'],
+            'sms_aylik_kontor' => ['nullable', 'integer', 'min:0'],
+            'listeleme_oncelik' => ['nullable', 'integer', 'min:0', 'max:3'],
             'merkezi_finans_mi' => ['nullable', 'boolean'],
             'toplu_randevu_mi' => ['nullable', 'boolean'],
             'raporlama_mi' => ['nullable', 'boolean'],
@@ -57,14 +68,8 @@ class PaketStoreRequest extends FormRequest
             'ad.required' => 'Paket adı alanı zorunludur.',
             'tur.required' => 'Paket türü seçimi zorunludur.',
             'aylik_fiyat.required' => 'Aylık fiyat alanı zorunludur.',
-            'aylik_fiyat.numeric' => 'Lütfen geçerli bir aylık fiyat girin.',
-            'aylik_indirimli_fiyat.numeric' => 'Lütfen geçerli bir aylık indirimli fiyat girin.',
             'yillik_fiyat.required' => 'Yıllık fiyat alanı zorunludur.',
-            'yillik_fiyat.numeric' => 'Lütfen geçerli bir yıllık fiyat girin.',
-            'yillik_indirimli_fiyat.numeric' => 'Lütfen geçerli bir yıllık indirimli fiyat girin.',
-            'ek_doktor_aylik_fiyat.numeric' => 'Lütfen geçerli bir ek hekim koltuğu aylık fiyatı girin.',
-            'ek_doktor_yillik_fiyat.numeric' => 'Lütfen geçerli bir ek hekim koltuğu yıllık fiyatı girin.',
-            'ozellikler.required' => 'Lütfen en az bir paket özelliği ekleyin.',
+            'sistem_ozellikleri.*.exists' => 'Geçersiz sistem özelliği seçildi.',
         ];
     }
 }

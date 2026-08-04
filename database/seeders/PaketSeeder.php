@@ -3,211 +3,227 @@
 namespace Database\Seeders;
 
 use App\Models\Paket;
-use App\Models\PaketOzelligi;
+use App\Support\PaketOzellikKatalogu;
 use Illuminate\Database\Seeder;
 
 /**
- * Bireysel paketler — içerikler projedeki gerçek yetkilere göre:
- *
- * Sistem kodları (paket.yetki / hasFeature):
- *   hakkimda, galeri, randevu_talepleri, finans, blog, faq, egitimler,
- *   online_gorusme (randevu), web_sitesi
- *
- * Her pakette (limit dışında) açık: takvim, hasta, hizmet, randevu ayarları,
- * bekleme listesi, hızlı slot kapatma, profil, yorum yanıtları.
+ * Bireysel paketler — Excel: randevu-ajandam-paket-fiyat-onerisi.xlsx
+ * Fiyatlar KDV dahil; yıllık ≈ aylık × 12 × 0.80
  */
 class PaketSeeder extends Seeder
 {
     public function run(): void
     {
-        $ozellikler = [
-            ['kod' => 'hakkimda', 'ad' => 'Hakkımda / Özgeçmiş Yönetimi', 'aciklama' => 'Detaylı özgeçmiş ve mezuniyet bilgisi ekleme yetkisi.'],
-            ['kod' => 'galeri', 'ad' => 'Fotoğraf Galerisi Modülü', 'aciklama' => 'Klinik / muayenehane resimleri yükleme yetkisi.'],
-            ['kod' => 'randevu_talepleri', 'ad' => 'Danışan Randevu Talepleri Modülü', 'aciklama' => 'Beklemedeki randevu taleplerini yönetme yetkisi.'],
-            ['kod' => 'finans', 'ad' => 'Gelir / Gider Raporlaması', 'aciklama' => 'Hekim paneli finans ve muhasebe takibi yetkisi.'],
-            ['kod' => 'blog', 'ad' => 'Blog / Makale Paneli', 'aciklama' => 'Blog ve sağlık makalesi yayınlama yetkisi.'],
-            ['kod' => 'yorum', 'ad' => 'Danışan Yorumları Modülü', 'aciklama' => 'Hasta yorumlarını yönetme (profil yorumları).'],
-            ['kod' => 'faq', 'ad' => 'Sıkça Sorulan Sorular Modülü', 'aciklama' => 'Profilde S.S.S. yayınlama yetkisi.'],
-            ['kod' => 'web_sitesi', 'ad' => 'Özel Web Sitesi Entegrasyonu', 'aciklama' => 'Kişisel hekim web sitesi + 1 yıl domain (com/net) pakete dahil.'],
-            ['kod' => 'klinik_web_sitesi', 'ad' => 'Klinik Web Sitesi', 'aciklama' => 'Klinik markalı özel web sitesi, çok hekim vitrini ve online randevu.'],
-            ['kod' => 'egitimler', 'ad' => 'Eğitimler & Başvuru Formu', 'aciklama' => 'Kurs/webinar vitrini, dinamik başvuru formu ve eğitim geliri takibi.'],
-            ['kod' => 'online_gorusme', 'ad' => 'Online Görüşme', 'aciklama' => 'Randevuda online seans; platform görüntülü oda.'],
-        ];
+        $map = PaketOzellikKatalogu::sync();
 
-        $dbOzellikler = [];
-        foreach ($ozellikler as $oVeri) {
-            $dbOzellikler[$oVeri['kod']] = PaketOzelligi::updateOrCreate(
-                ['kod' => $oVeri['kod']],
-                $oVeri
-            );
-        }
+        // Eski isim → Vitrin
+        Paket::query()
+            ->where('tur', 'bireysel')
+            ->whereIn('ad', ['Ücretsiz Deneme (Demo)', 'Ücretsiz Deneme', 'Demo'])
+            ->update(['ad' => 'Vitrin']);
 
-        $bireyselPaketler = [
-            [
-                'ad' => 'Ücretsiz Deneme (Demo)',
-                'tur' => 'bireysel',
-                'aciklama' => 'Sistemi denemek için: en fazla 10 hasta ve 20 randevu. Ücretli pakete istediğiniz zaman geçin.',
-                'aylik_fiyat' => 0.00,
-                'aylik_indirimli_fiyat' => null,
-                'yillik_fiyat' => 0.00,
-                'yillik_indirimli_fiyat' => null,
-                'ozellikler' => [
-                    'Online randevu takvimi',
-                    'Hasta kayıtları (en fazla 10)',
-                    'Randevu oluşturma (en fazla 20)',
-                    'Hizmet / tedavi tanımlama',
-                    'Çalışma saatleri ve randevu ayarları',
-                    'Platformda hekim profili',
-                    'Ücretli pakete tek tıkla yükseltme',
-                ],
-                'aktif_mi' => true,
-                'sira' => 1,
-                'one_cikan_mi' => false,
-                'etiket' => 'Ücretsiz',
-                'etiket_stil' => 'free',
-                'sistem_ozellikleri' => [],
-                'max_hasta_sayisi' => 10,
-                'max_randevu_sayisi' => 20,
-            ],
-            [
-                'ad' => 'Başlangıç (Starter) Paketi',
-                'tur' => 'bireysel',
-                'aciklama' => 'Temel randevu ve hasta yönetimi — limitsiz hasta/randevu, 14 gün deneme.',
-                'aylik_fiyat' => 1900.00,
-                'aylik_indirimli_fiyat' => 1500.00,
-                'yillik_fiyat' => 18990.00,
-                'yillik_indirimli_fiyat' => 14990.00,
-                'ozellikler' => [
-                    '14 gün ücretsiz deneme (kart gerekmez)',
-                    'Limitsiz hasta ve randevu',
-                    'Online randevu takvimi',
-                    'Hasta / danışan kartları (CRM)',
-                    'Hizmet ve tedavi tanımlama',
-                    'Çalışma saatleri, molalar, randevu ayarları',
-                    'Bekleme listesi',
-                    'Hızlı slot kapatma / bloklama',
-                    'Hekim profili (unvan, branş, biyografi)',
-                    'Danışan yorumlarını yanıtlama',
-                    'Platformda listeleme',
-                ],
-                'aktif_mi' => true,
-                'deneme_gun' => 14,
-                'sira' => 2,
-                'one_cikan_mi' => false,
-                'etiket' => null,
-                'etiket_stil' => null,
-                'sistem_ozellikleri' => [],
-                'max_hasta_sayisi' => null,
-                'max_randevu_sayisi' => null,
-            ],
-            [
-                'ad' => 'Profesyonel (Plus) Paket',
-                'tur' => 'bireysel',
-                'aciklama' => 'Profil ve talep yönetimi güçlendirilmiş paket: hakkımda, galeri, randevu talepleri.',
-                'aylik_fiyat' => 3000.00,
-                'aylik_indirimli_fiyat' => 2500.00,
-                'yillik_fiyat' => 29990.00,
-                'yillik_indirimli_fiyat' => 24990.00,
-                'ozellikler' => [
-                    'Başlangıç paketinin tümü',
-                    'Hakkımda / özgeçmiş & mezuniyet alanları',
-                    'Fotoğraf galerisi (muayenehane / klinik görselleri)',
-                    'Gelen randevu taleplerini onaylama / reddetme',
-                ],
-                'aktif_mi' => true,
-                'sira' => 3,
-                'one_cikan_mi' => true,
-                'etiket' => 'Popüler',
-                'etiket_stil' => 'popular',
-                'sistem_ozellikleri' => ['hakkimda', 'galeri', 'randevu_talepleri'],
-                'max_hasta_sayisi' => null,
-                'max_randevu_sayisi' => null,
-            ],
-            [
-                'ad' => 'VIP (Elite) Paket',
-                'tur' => 'bireysel',
-                'aciklama' => 'Finans, içerik ve online görüşme dahil tam hekim paneli (web sitesi hariç).',
-                'aylik_fiyat' => 4200.00,
-                'aylik_indirimli_fiyat' => 3500.00,
-                'yillik_fiyat' => 41990.00,
-                'yillik_indirimli_fiyat' => 34990.00,
-                'ozellikler' => [
-                    'Profesyonel paketinin tümü',
-                    'Finans: gelir / gider / hasta bakiyeleri',
-                    'Blog ve makale yayınlama',
-                    'S.S.S. (sık sorulan sorular) yönetimi',
-                    'Eğitim / kurs vitrini ve başvuru formu',
-                    'Online görüntülü görüşme (platform odası)',
-                ],
-                'aktif_mi' => true,
-                'sira' => 4,
-                'one_cikan_mi' => false,
-                'etiket' => null,
-                'etiket_stil' => null,
-                // yorum route’u pakete bağlı değil; kod katalogda kalır, zorunlu gate yok
-                'sistem_ozellikleri' => [
-                    'hakkimda', 'galeri', 'randevu_talepleri',
-                    'finans', 'blog', 'faq', 'egitimler', 'online_gorusme',
-                ],
-                'max_hasta_sayisi' => null,
-                'max_randevu_sayisi' => null,
-            ],
-            [
-                'ad' => 'Özel Web Sitesi Entegrasyon Paketi',
-                'tur' => 'bireysel',
-                'aciklama' => 'VIP panel + kişisel hekim web sitesi; 1 yıl .com/.net domain pakete dahil.',
-                'aylik_fiyat' => 6000.00,
-                'aylik_indirimli_fiyat' => 5000.00,
-                'yillik_fiyat' => 59990.00,
-                'yillik_indirimli_fiyat' => 49990.00,
-                'ozellikler' => [
-                    'VIP paketinin tümü',
-                    'Kişisel hekim web sitesi (CMS)',
-                    'Hekim tema seçimi (Hipno, Delogis)',
-                    '1 yıl domain dahil (.com / .net)',
-                    'Hosting ve SSL dahil',
-                    'Siteden online randevu alma',
-                    'Domain kurulum ve DNS yönlendirme adımları',
-                ],
-                'aktif_mi' => true,
-                'domain_dahil_mi' => true,
-                'domain_dahil_yil' => 1,
-                'domain_dahil_tlds' => ['com', 'net'],
-                'sira' => 5,
-                'one_cikan_mi' => true,
-                'etiket' => 'Web sitesi',
-                'etiket_stil' => 'web',
-                'sistem_ozellikleri' => [
-                    'hakkimda', 'galeri', 'randevu_talepleri',
-                    'finans', 'blog', 'faq', 'egitimler', 'online_gorusme',
-                    'web_sitesi',
-                ],
-                'max_hasta_sayisi' => null,
-                'max_randevu_sayisi' => null,
-            ],
-        ];
-
-        foreach ($bireyselPaketler as $paketVeri) {
-            $sistemOzellikKodlari = $paketVeri['sistem_ozellikleri'] ?? [];
-            unset($paketVeri['sistem_ozellikleri']);
-
-            $paketVeri['domain_dahil_mi'] = (bool) ($paketVeri['domain_dahil_mi'] ?? false);
-            $paketVeri['domain_dahil_yil'] = (int) ($paketVeri['domain_dahil_yil'] ?? 1);
-            $paketVeri['domain_dahil_tlds'] = $paketVeri['domain_dahil_tlds'] ?? null;
-            $paketVeri['one_cikan_mi'] = (bool) ($paketVeri['one_cikan_mi'] ?? false);
-
-            $paket = Paket::updateOrCreate(
-                ['ad' => $paketVeri['ad'], 'tur' => $paketVeri['tur']],
-                $paketVeri
-            );
-
-            $featureIds = [];
-            foreach ($sistemOzellikKodlari as $kod) {
-                if (isset($dbOzellikler[$kod])) {
-                    $featureIds[] = $dbOzellikler[$kod]->id;
+        $ids = function (array $kodlar) use ($map): array {
+            $out = [];
+            foreach ($kodlar as $k) {
+                if (isset($map[$k])) {
+                    $out[] = $map[$k]->id;
                 }
             }
-            $paket->sistemOzellikleri()->sync($featureIds);
+
+            return $out;
+        };
+
+        $yillik = fn (float $aylik): float => round($aylik * 12 * 0.80, 2);
+
+        // Ortak setler
+        $vitrinOz = [
+            'randevu_talebi_goruntule',
+            'profil_sayfasi', 'dogrulanmis_rozet', 'yorum_gorunur',
+        ];
+
+        $baslangicOz = array_merge($vitrinOz, [
+            'randevu_talepleri', 'online_takvim', 'bekleme_listesi', 'hizli_slot',
+            'email_bildirim', 'sms_hatirlatma',
+            'hasta_kartlari', 'iletisim_profilde', 'yorum_yanit', 'finans',
+            'destek_email',
+        ]);
+
+        $profesyonelOz = array_merge($baslangicOz, [
+            'seri_randevu', 'ical_export', 'sms_baslik', 'no_show_mesaj',
+            'hasta_not_dosya', 'tedavi_gecmisi', 'onam_formu', 'hasta_export',
+            'hakkimda', 'galeri', 'dis_baglanti', 'oncelikli_liste',
+            'yorum_davet', 'hasta_bakiyeleri',
+        ]);
+
+        $vipOz = array_merge($profesyonelOz, [
+            'finans_rapor', 'blog', 'faq', 'egitimler', 'online_gorusme',
+            'destek_oncelikli', 'veri_tasima',
+        ]);
+
+        $webOz = array_merge($vipOz, ['web_sitesi']);
+
+        $bireysel = [
+            [
+                'ad' => 'Vitrin',
+                'aciklama' => 'Platformda görünmek için ücretsiz vitrin. Talepleri görürsünüz; onay ve takvim ücretli pakette. En fazla 10 randevu kaydı.',
+                'aylik' => 0.0,
+                'deneme_gun' => null,
+                'sira' => 1,
+                'etiket' => 'Ücretsiz',
+                'etiket_stil' => 'free',
+                'one_cikan_mi' => false,
+                'listeleme_oncelik' => 0,
+                'max_randevu_sayisi' => 10,
+                'max_hasta_sayisi' => null,
+                'max_hizmet_sayisi' => 3,
+                'max_biyografi_karakter' => 300,
+                'max_profil_foto' => 1,
+                'sms_aylik_kontor' => null,
+                'max_personel_sayisi' => null,
+                'domain_dahil_mi' => false,
+                'ozellik_kodlari' => $vitrinOz,
+            ],
+            [
+                'ad' => 'Başlangıç',
+                'aciklama' => 'Tek hekim: takvim, hasta, talep onayı, SMS hatırlatma, temel finans. 14 gün deneme.',
+                'aylik' => 1000.0,
+                'deneme_gun' => 14,
+                'sira' => 2,
+                'etiket' => null,
+                'etiket_stil' => null,
+                'one_cikan_mi' => false,
+                'listeleme_oncelik' => 1,
+                'max_randevu_sayisi' => null,
+                'max_hasta_sayisi' => null,
+                'max_hizmet_sayisi' => null,
+                'max_biyografi_karakter' => null,
+                'max_profil_foto' => 3,
+                'sms_aylik_kontor' => 250,
+                'max_personel_sayisi' => null,
+                'domain_dahil_mi' => false,
+                'ozellik_kodlari' => $baslangicOz,
+            ],
+            [
+                'ad' => 'Profesyonel',
+                'aciklama' => 'CRM, galeri, hakkımda, hasta bakiyesi, 750 SMS, 1 personel koltuğu. En çok tercih edilen.',
+                'aylik' => 1750.0,
+                'deneme_gun' => 14,
+                'sira' => 3,
+                'etiket' => 'Popüler',
+                'etiket_stil' => 'popular',
+                'one_cikan_mi' => true,
+                'listeleme_oncelik' => 2,
+                'max_randevu_sayisi' => null,
+                'max_hasta_sayisi' => null,
+                'max_hizmet_sayisi' => null,
+                'max_biyografi_karakter' => null,
+                'max_profil_foto' => 10,
+                'sms_aylik_kontor' => 750,
+                'max_personel_sayisi' => 1,
+                'domain_dahil_mi' => false,
+                'ozellik_kodlari' => $profesyonelOz,
+            ],
+            [
+                'ad' => 'VIP',
+                'aciklama' => 'Blog, eğitim, online görüşme, 2000 SMS, öncelikli destek. Finans raporları dahil.',
+                'aylik' => 2500.0,
+                'deneme_gun' => 14,
+                'sira' => 4,
+                'etiket' => null,
+                'etiket_stil' => null,
+                'one_cikan_mi' => false,
+                'listeleme_oncelik' => 2,
+                'max_randevu_sayisi' => null,
+                'max_hasta_sayisi' => null,
+                'max_hizmet_sayisi' => null,
+                'max_biyografi_karakter' => null,
+                'max_profil_foto' => 30,
+                'sms_aylik_kontor' => 2000,
+                'max_personel_sayisi' => 1,
+                'domain_dahil_mi' => false,
+                'ozellik_kodlari' => $vipOz,
+            ],
+            [
+                'ad' => 'Özel Web',
+                'aciklama' => 'VIP + kişisel web sitesi; 1 yıl domain (.com/.net), hosting, SSL. 3000 SMS, 2 personel.',
+                'aylik' => 3750.0,
+                'deneme_gun' => 14,
+                'sira' => 5,
+                'etiket' => 'Web sitesi',
+                'etiket_stil' => 'web',
+                'one_cikan_mi' => true,
+                'listeleme_oncelik' => 3,
+                'max_randevu_sayisi' => null,
+                'max_hasta_sayisi' => null,
+                'max_hizmet_sayisi' => null,
+                'max_biyografi_karakter' => null,
+                'max_profil_foto' => null,
+                'sms_aylik_kontor' => 3000,
+                'max_personel_sayisi' => 2,
+                'domain_dahil_mi' => true,
+                'ozellik_kodlari' => $webOz,
+            ],
+        ];
+
+        // Eski uzun isimleri sadeleştir
+        $rename = [
+            'Başlangıç (Starter) Paketi' => 'Başlangıç',
+            'Profesyonel (Plus) Paket' => 'Profesyonel',
+            'VIP (Elite) Paket' => 'VIP',
+            'Özel Web Sitesi Entegrasyon Paketi' => 'Özel Web',
+        ];
+        foreach ($rename as $from => $to) {
+            Paket::query()->where('tur', 'bireysel')->where('ad', $from)->update(['ad' => $to]);
+        }
+
+        foreach ($bireysel as $row) {
+            $kodlar = $row['ozellik_kodlari'];
+            $aylik = $row['aylik'];
+            $y = $yillik($aylik);
+
+            $payload = [
+                'tur' => 'bireysel',
+                'ad' => $row['ad'],
+                'aciklama' => $row['aciklama'],
+                'aylik_fiyat' => $aylik,
+                'aylik_indirimli_fiyat' => $aylik > 0 ? $aylik : null,
+                'yillik_fiyat' => $y,
+                'yillik_indirimli_fiyat' => $aylik > 0 ? $y : null,
+                'aktif_mi' => true,
+                'sira' => $row['sira'],
+                'one_cikan_mi' => $row['one_cikan_mi'],
+                'etiket' => $row['etiket'],
+                'etiket_stil' => $row['etiket_stil'],
+                'deneme_gun' => $row['deneme_gun'],
+                'max_randevu_sayisi' => $row['max_randevu_sayisi'],
+                'max_hasta_sayisi' => $row['max_hasta_sayisi'],
+                'max_hizmet_sayisi' => $row['max_hizmet_sayisi'] ?? null,
+                'max_biyografi_karakter' => $row['max_biyografi_karakter'] ?? null,
+                'max_profil_foto' => $row['max_profil_foto'] ?? null,
+                'sms_aylik_kontor' => $row['sms_aylik_kontor'],
+                'max_personel_sayisi' => $row['max_personel_sayisi'],
+                'max_doktor_sayisi' => null,
+                'listeleme_oncelik' => $row['listeleme_oncelik'],
+                'domain_dahil_mi' => $row['domain_dahil_mi'],
+                'domain_dahil_yil' => 1,
+                'domain_dahil_tlds' => $row['domain_dahil_mi'] ? ['com', 'net'] : null,
+                'ek_doktor_aylik_fiyat' => null,
+                'ek_doktor_yillik_fiyat' => null,
+                'ek_personel_aylik_fiyat' => 300,
+                'ek_personel_yillik_fiyat' => 2880,
+                'ozellikler' => PaketOzellikKatalogu::vitrinMetinleri(
+                    $kodlar,
+                    $row['sms_aylik_kontor'],
+                    $row['max_randevu_sayisi'],
+                    $row['max_hasta_sayisi']
+                ),
+            ];
+
+            $paket = Paket::updateOrCreate(
+                ['ad' => $row['ad'], 'tur' => 'bireysel'],
+                $payload
+            );
+            $paket->sistemOzellikleri()->sync($ids($kodlar));
         }
     }
 }

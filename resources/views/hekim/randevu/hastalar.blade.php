@@ -6,9 +6,22 @@
 @section('icerik')
     <!-- Patients Card -->
     <div class="bg-white border border-[#E5E7EB] rounded-2xl shadow-[0_4px_24px_rgba(31,41,55,0.04)] overflow-hidden">
-        <div class="p-6 border-b border-[#E5E7EB] flex items-center justify-between">
+        <div class="p-6 border-b border-[#E5E7EB] flex items-center justify-between gap-3 flex-wrap">
             <h3 class="text-sm font-bold uppercase tracking-wider text-[#1F2937] font-display">Sistemde Kayıtlı Hasta Listeniz</h3>
-            <span class="text-xs text-[#6B7280] font-medium">Toplam {{ $hastalar->total() }} hasta</span>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-[#6B7280] font-medium">Toplam {{ $hastalar->total() }} hasta</span>
+                @if(!empty($canExport))
+                    <a href="{{ route('hekim.randevu.hastalar.export') }}"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-white bg-[#1F2937] hover:bg-black rounded-lg transition-colors">
+                        Excel / CSV İndir
+                    </a>
+                @else
+                    <a href="{{ route('frontend.hekim.paket_sec', ['degistir' => 1]) }}"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-[#92400e] bg-[#FFF7ED] border border-[#FED7AA] rounded-lg">
+                        🔒 Dışa aktarma (paket)
+                    </a>
+                @endif
+            </div>
         </div>
 
         @if($hastalar->isEmpty())
@@ -64,13 +77,18 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4">
-                                    <a href="{{ route('hekim.finans.hasta-hesap', $hasta->id) }}"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-white bg-[#C96A2B] hover:bg-[#b05a22] rounded-lg transition-colors">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75"/>
-                                        </svg>
-                                        Cari Hesap
-                                    </a>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @if(!empty($canTedavi))
+                                            <a href="{{ route('hekim.randevu.hastalar.tedavi-gecmisi', $hasta->id) }}"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-[#1F2937] bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                                                Tedavi geçmişi
+                                            </a>
+                                        @endif
+                                        <a href="{{ route('hekim.finans.hasta-hesap', $hasta->id) }}"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-white bg-[#C96A2B] hover:bg-[#b05a22] rounded-lg transition-colors">
+                                            Cari Hesap
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

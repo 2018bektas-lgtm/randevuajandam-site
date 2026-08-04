@@ -656,6 +656,55 @@
             @endforelse
         </div>
 
+        {{-- Özellik karşılaştırma matrisi (Excel) --}}
+        @if(isset($matrisOzellikler) && $bireyselPaketler->isNotEmpty())
+        <div class="mt-16 max-w-6xl mx-auto" id="ozellik-matrisi">
+            <h2 class="text-xl font-extrabold font-display text-slate-900 text-center mb-2">Özellik karşılaştırması</h2>
+            <p class="text-xs text-slate-500 text-center mb-6">Bireysel paketler · WhatsApp hariç · SMS kontör paket kotasına bağlı</p>
+            <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <table class="w-full text-left text-xs min-w-[720px]">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200">
+                            <th class="p-3 font-bold text-slate-600 sticky left-0 bg-slate-50">Özellik</th>
+                            @foreach($bireyselPaketler as $bp)
+                                <th class="p-3 font-bold text-slate-800 text-center whitespace-nowrap">{{ $bp->ad }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($matrisOzellikler as $grup => $ozList)
+                            <tr class="bg-orange-50/50">
+                                <td colspan="{{ 1 + $bireyselPaketler->count() }}" class="px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-[#C96A2B]">{{ $grup }}</td>
+                            </tr>
+                            @foreach($ozList as $oz)
+                                <tr class="border-t border-slate-100">
+                                    <td class="p-3 text-slate-600 sticky left-0 bg-white">{{ $oz->ad }}</td>
+                                    @foreach($bireyselPaketler as $bp)
+                                        @php $var = $bp->sistemOzellikleri->contains('kod', $oz->kod); @endphp
+                                        <td class="p-3 text-center {{ $var ? 'text-emerald-600 font-bold' : 'text-slate-300' }}">{{ $var ? '✓' : '—' }}</td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                        @endforeach
+                        <tr class="border-t border-slate-200 bg-slate-50">
+                            <td class="p-3 font-bold">SMS aylık kontör</td>
+                            @foreach($bireyselPaketler as $bp)
+                                <td class="p-3 text-center font-semibold">{{ $bp->sms_aylik_kontor ? number_format($bp->sms_aylik_kontor,0,',','.') : '—' }}</td>
+                            @endforeach
+                        </tr>
+                        <tr class="border-t border-slate-100">
+                            <td class="p-3 font-bold">Max randevu</td>
+                            @foreach($bireyselPaketler as $bp)
+                                <td class="p-3 text-center">{{ $bp->max_randevu_sayisi ?? '∞' }}</td>
+                            @endforeach
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-[11px] text-slate-400 text-center mt-3">Ek SMS: 1.000 adet ₺450 · 5.000 adet ₺1.950 (panelden satın alınır)</p>
+        </div>
+        @endif
+
         <!-- Trust strip -->
         <div class="mt-14 md:mt-16 trust-strip max-w-5xl mx-auto">
             <div class="trust-item">

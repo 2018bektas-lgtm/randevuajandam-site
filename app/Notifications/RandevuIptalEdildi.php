@@ -32,14 +32,19 @@ class RandevuIptalEdildi extends Notification implements ShouldQueue
         $channels = [];
         $ayarlar = $this->randevu->doktor->randevuAyari;
 
+        $doktor = $this->randevu->doktor;
+        $paket = $doktor?->aktifPaket();
+        $hasEmail = $paket && $paket->hasFeature('email_bildirim');
+        $hasSms = $paket && $paket->hasFeature('sms_hatirlatma');
+
         // Hasta iptal etti → doktora: uygulama içi + push (+ isteğe bağlı e-posta/SMS)
         if ($this->iptalEden === 'hasta' && $notifiable instanceof Doktor) {
             $channels[] = 'database';
             $channels[] = ExpoPushChannel::class;
-            if ($ayarlar && $ayarlar->email_bildirimleri) {
+            if ($hasEmail && $ayarlar && $ayarlar->email_bildirimleri) {
                 $channels[] = 'mail';
             }
-            if ($ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
+            if ($hasSms && $ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
                 $channels[] = SmsChannel::class;
             }
 
@@ -48,8 +53,10 @@ class RandevuIptalEdildi extends Notification implements ShouldQueue
 
         // Doktor iptal etti → hastaya: e-posta (+ isteğe bağlı SMS)
         if ($this->iptalEden === 'doktor') {
-            $channels[] = 'mail';
-            if ($ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
+            if ($hasEmail) {
+                $channels[] = 'mail';
+            }
+            if ($hasSms && $ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
                 $channels[] = SmsChannel::class;
             }
 
@@ -57,10 +64,10 @@ class RandevuIptalEdildi extends Notification implements ShouldQueue
         }
 
         // Eski/fallback davranış
-        if ($ayarlar && $ayarlar->email_bildirimleri) {
+        if ($hasEmail && $ayarlar && $ayarlar->email_bildirimleri) {
             $channels[] = 'mail';
         }
-        if ($ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
+        if ($hasSms && $ayarlar && $ayarlar->sms_bildirimleri && ! empty($notifiable->telefon)) {
             $channels[] = SmsChannel::class;
         }
 

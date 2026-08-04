@@ -39,8 +39,9 @@ class SmsService
      *
      * @param  string  $phone  Phone number (e.g. 5551234567)
      * @param  string  $message  Message content
+     * @param  string|null  $headerOverride  Özel gönderici (sms_baslik paketi)
      */
-    public function send(string $phone, string $message): bool
+    public function send(string $phone, string $message, ?string $headerOverride = null): bool
     {
         $normalizedPhone = $this->normalizePhone($phone);
 
@@ -50,11 +51,13 @@ class SmsService
             return false;
         }
 
+        $header = filled($headerOverride) ? trim((string) $headerOverride) : null;
+
         switch ($this->driver) {
             case 'netgsm':
-                return $this->sendNetgsm($normalizedPhone, $message);
+                return $this->sendNetgsm($normalizedPhone, $message, $header);
             case 'iletimerkezi':
-                return $this->sendIletimerkezi($normalizedPhone, $message);
+                return $this->sendIletimerkezi($normalizedPhone, $message, $header);
             case 'log':
                 if (app()->environment('production')) {
                     Log::error('SMS_DRIVER=log production ortamında kullanılamaz. Netgsm veya İleti Merkezi yapılandırın.');
@@ -62,13 +65,13 @@ class SmsService
                     return false;
                 }
 
-                return $this->sendLog($normalizedPhone, $message);
+                return $this->sendLog($normalizedPhone, $message, $header);
             default:
                 Log::error('Bilinmeyen SMS driver: '.$this->driver);
 
                 return app()->environment('production')
                     ? false
-                    : $this->sendLog($normalizedPhone, $message);
+                    : $this->sendLog($normalizedPhone, $message, $header);
         }
     }
 
@@ -106,7 +109,7 @@ class SmsService
     /**
      * Send SMS using Netgsm XML API
      */
-    protected function sendNetgsm(string $phone, string $message): bool
+    protected function sendNetgsm(string $phone, string $message, ?string $headerOverride = null): bool
     {
         if (empty($this->netgsmUser) || empty($this->netgsmPass)) {
             Log::warning('Netgsm SMS gönderilemedi: Kullanıcı adı veya şifre boş.');
@@ -116,8 +119,10 @@ class SmsService
                 return false;
             }
 
-            return $this->sendLog($phone, $message.' (Netgsm Auth Missing Fallback)');
+            return $this->sendLog($phone, $message.' (Netgsm Auth Missing Fallback)', $headerOverride);
         }
+
+        $msgHeader = $headerOverride ?: ($this->netgsmHeader ?? 'NETGSM');
 
         $xmlData = '<?xml version="1.0" encoding="UTF-8"?>
         <mainbody>
@@ -126,7 +131,7 @@ class SmsService
                 <usercode>'.htmlspecialchars($this->netgsmUser).'</usercode>
                 <password>'.htmlspecialchars($this->netgsmPass).'</password>
                 <type>1:n</type>
-                <msgheader>'.htmlspecialchars($this->netgsmHeader ?? 'NETGSM').'</msgheader>
+                <msgheader>'.htmlspecialchars($msgHeader).'</msgheader>
             </header>
             <body>
                 <msg><![CDATA['.$message.']]></msg>
@@ -162,7 +167,7 @@ class SmsService
     /**
      * Send SMS using İleti Merkezi JSON API
      */
-    protected function sendIletimerkezi(string $phone, string $message): bool
+    protected function sendIletimerkezi(string $phone, string $message, ?string $headerOverride = null): bool
     {
         if (empty($this->iletimerkeziKey) || empty($this->iletimerkeziHash)) {
             Log::warning('İleti Merkezi SMS gönderilemedi: API Key veya Hash boş.');
@@ -171,7 +176,7 @@ class SmsService
                 return false;
             }
 
-            return $this->sendLog($phone, $message.' (İleti Merkezi Auth Missing Fallback)');
+            return $this->sendLog($phone, $message.' (İleti Merkezi Auth Missing Fallback)', $headerOverride);
         }
 
         // İleti Merkezi usually expects phone numbers starting with 90 or 5 (API works with 905XXXXXXXXX)
@@ -182,7 +187,7 @@ class SmsService
                     'hash' => $this->iletimerkeziHash,
                 ],
                 'order' => [
-                    'sender' => $this->iletimerkeziSender ?? 'ILETIMERKEZ',
+                    'sender' => $headerOverride ?: ($this->iletimerkeziSender ?? 'ILETIMERKEZ'),
                     'sendDateTime' => '',
                     'message' => [
                         'text' => $message,
@@ -227,11 +232,12 @@ class SmsService
     /**
      * Log SMS for local development
      */
-    protected function sendLog(string $phone, string $message): bool
+    protected function sendLog(string $phone, string $message, ?string $headerOverride = null): bool
     {
         Log::channel('stack')->info('SMS GÖNDERİLDİ (LOG MODU)', [
             'phone' => $phone,
             'message' => $message,
+            'header' => $headerOverride,
         ]);
 
         return true;

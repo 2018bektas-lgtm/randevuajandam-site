@@ -18,19 +18,27 @@ class Paket extends Model
         'yillik_indirimli_fiyat',
         'ek_doktor_aylik_fiyat',
         'ek_doktor_yillik_fiyat',
+        'ek_personel_aylik_fiyat',
+        'ek_personel_yillik_fiyat',
         'ozellikler',
         'aktif_mi',
         'iyzico_plan_aylik',
         'iyzico_plan_yillik',
         'max_doktor_sayisi',
+        'max_ek_doktor',
         'max_personel_sayisi',
         'max_hasta_sayisi',
         'max_randevu_sayisi',
+        'max_hizmet_sayisi',
+        'max_biyografi_karakter',
+        'max_profil_foto',
+        'sms_aylik_kontor',
         'merkezi_finans_mi',
         'toplu_randevu_mi',
         'raporlama_mi',
         'hasta_havuzu_mi',
         'sira',
+        'listeleme_oncelik',
         'domain_dahil_mi',
         'domain_dahil_yil',
         'domain_dahil_tlds',
@@ -46,6 +54,8 @@ class Paket extends Model
             'ozellikler' => 'array',
             'ek_doktor_aylik_fiyat' => 'decimal:2',
             'ek_doktor_yillik_fiyat' => 'decimal:2',
+            'ek_personel_aylik_fiyat' => 'decimal:2',
+            'ek_personel_yillik_fiyat' => 'decimal:2',
             'aktif_mi' => 'boolean',
             'merkezi_finans_mi' => 'boolean',
             'toplu_randevu_mi' => 'boolean',
@@ -56,6 +66,12 @@ class Paket extends Model
             'domain_dahil_tlds' => 'array',
             'deneme_gun' => 'integer',
             'one_cikan_mi' => 'boolean',
+            'sms_aylik_kontor' => 'integer',
+            'max_hizmet_sayisi' => 'integer',
+            'max_biyografi_karakter' => 'integer',
+            'max_profil_foto' => 'integer',
+            'max_ek_doktor' => 'integer',
+            'listeleme_oncelik' => 'integer',
         ];
     }
 
@@ -161,5 +177,29 @@ class Paket extends Model
         }
 
         return $this->sistemOzellikleri()->where('kod', $featureCode)->exists();
+    }
+
+    /**
+     * Herhangi biri varsa true (OR).
+     *
+     * @param  list<string>  $featureCodes
+     */
+    public function hasAnyFeature(array $featureCodes): bool
+    {
+        foreach ($featureCodes as $code) {
+            if ($code !== '' && $this->hasFeature($code)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Ücretsiz vitrin / 0 TL paket mi? */
+    public function ucretsizMi(): bool
+    {
+        $aylik = (float) ($this->aylik_indirimli_fiyat ?? $this->aylik_fiyat ?? 0);
+
+        return $aylik <= 0;
     }
 }

@@ -61,6 +61,12 @@ class HekimHizmetController extends Controller
         /** @var Doktor $doktor */
         $doktor = Auth::guard('doktor')->user();
 
+        $paket = $doktor->aktifPaket();
+        $maxHizmet = $paket?->max_hizmet_sayisi;
+        if ($maxHizmet !== null && $doktor->hizmetler()->count() >= (int) $maxHizmet) {
+            return back()->withInput()->with('hata', "Paketinizde en fazla {$maxHizmet} hizmet tanımlayabilirsiniz. Daha fazlası için paketi yükseltin.");
+        }
+
         $data = [
             'ad' => decode_text($request->ad),
             'aciklama' => HtmlSanitizer::clean($request->aciklama),

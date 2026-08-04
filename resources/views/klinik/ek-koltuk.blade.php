@@ -48,6 +48,10 @@
             <form action="{{ route('hekim.klinik.ek-koltuk.odeme') }}" method="POST" id="ekKoltukForm">
                 @csrf
 
+                <div class="mb-4 p-3 rounded-xl bg-sky-50 border border-sky-100 text-[11px] text-sky-900">
+                    Ek hekim koltuğu ödemesi <strong>PayTR Direkt API 3D</strong> ile alınır (abonelik kartı saklanmaz).
+                </div>
+
                 {{-- Kaç koltuk --}}
                 <div class="mb-6">
                     <label class="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-3 font-display">Kaç ek koltuk almak istiyorsunuz?</label>
@@ -72,10 +76,17 @@
                     <input type="hidden" name="periyot" value="{{ $periyot }}">
                 </div>
 
+                @if(!empty($kist))
+                <div class="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-100 text-[11px] text-amber-900">
+                    Kıst uygulanır: dönem sonuna kalan güne göre · oran <strong>%{{ round(($kist['oran'] ?? 1) * 100) }}</strong>
+                    (1 koltuk ≈ <strong>{{ number_format($kist['tutar'] ?? $birimFiyat, 0, ',', '.') }} ₺</strong>)
+                </div>
+                @endif
+
                 {{-- Fiyat hesaplama --}}
                 <div class="mb-6 p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] space-y-2">
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-[#4B5563]">Birim fiyat</span>
+                        <span class="text-[#4B5563]">Birim fiyat (tam dönem)</span>
                         <span class="font-bold text-[#111827]">{{ number_format($birimFiyat, 0, ',', '.') }} ₺</span>
                     </div>
                     <div class="flex items-center justify-between text-sm">
@@ -100,33 +111,33 @@
                     </div>
                 </div>
 
-                {{-- UYARI --}}
-                <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200">
-                    <div class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
-                        <div class="text-xs text-amber-800 leading-relaxed">
-                            <p class="font-bold mb-1">Önemli Bilgilendirme</p>
-                            <p>Bu tutar <strong>tam dönem birim fiyatıdır</strong>; kalan güne göre indirim uygulanmaz. Ek koltuk hakkınız üyelik bitiş tarihinize (<strong>{{ $uyelikBitis }}</strong>) kadar geçerlidir.</p>
-                        </div>
+                <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                    Ek koltuk üyelik bitişine (<strong>{{ $uyelikBitis }}</strong>) kadar geçerlidir. Ödeme <strong>3D Secure</strong> ile alınır.
+                </div>
+
+                <div class="mb-6 space-y-2 border border-[#E5E7EB] rounded-xl p-4">
+                    <p class="text-[10px] font-bold uppercase text-slate-500">3D Secure kart bilgisi</p>
+                    <input type="text" name="kart_sahibi" required placeholder="Kart sahibi" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs">
+                    <input type="text" name="kart_no" required placeholder="Kart no" maxlength="19" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-mono">
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="text" name="kart_ay" required placeholder="AA" maxlength="2" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-center">
+                        <input type="text" name="kart_yil" required placeholder="YY" maxlength="4" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-center">
+                        <input type="text" name="kart_cvv" required placeholder="CVV" maxlength="4" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-center">
                     </div>
                 </div>
 
-                {{-- Zorunlu Checkbox --}}
                 <div class="mb-6">
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" id="okudum_anladim" name="okudum_anladim" class="mt-1 rounded border-[#E5E7EB] text-[#C96A2B] focus:ring-[#C96A2B] cursor-pointer" onchange="toggleSubmit()">
-                        <span class="text-xs text-[#4B5563] group-hover:text-[#111827] transition-colors">Ek hekim koltuğu fiyatlandırması ve şartlarını okudum ve kabul ediyorum. Kalan süreye göre indirim uygulanmayacağını biliyorum.</span>
+                        <span class="text-xs text-[#4B5563]">Fiyat/kıst şartlarını okudum; PayTR 3D ile ödemeyi onaylıyorum.</span>
                     </label>
                 </div>
 
-                {{-- Butonlar --}}
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('hekim.klinik.doktorlar') }}" class="px-5 py-3 rounded-xl border border-[#E5E7EB] hover:bg-slate-50 text-[#6B7280] font-bold text-sm transition-all duration-200">
-                        Geri Dön
-                    </a>
+                    <a href="{{ route('hekim.klinik.doktorlar') }}" class="px-5 py-3 rounded-xl border border-[#E5E7EB] hover:bg-slate-50 text-[#6B7280] font-bold text-sm">Geri</a>
                     <button type="submit" id="submitBtn" disabled
-                            class="flex-1 px-5 py-3 rounded-xl bg-[#C96A2B] text-white font-bold text-sm transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed enabled:hover:bg-[#B55A20] enabled:hover:shadow-md enabled:hover:scale-[1.01] cursor-pointer">
-                        Ödemeye Geç
+                            class="flex-1 px-5 py-3 rounded-xl bg-[#C96A2B] text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed enabled:hover:bg-[#B55A20] cursor-pointer">
+                        3D ile öde
                     </button>
                 </div>
             </form>
