@@ -32,12 +32,26 @@
         --line: #E2E8F0;
         --soft: #FFF7ED;
     }
+    .lp-hekim .lp-wrap {
+        max-width: 72rem;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+    @@media (min-width: 640px) {
+        .lp-hekim .lp-wrap { padding-left: 1.5rem; padding-right: 1.5rem; }
+    }
+    @@media (min-width: 1280px) {
+        .lp-hekim .lp-wrap { max-width: 78rem; }
+    }
+
     .lp-hekim .btn-cta {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        padding: 0.95rem 1.4rem;
+        padding: 0.95rem 1.5rem;
         border-radius: 16px;
         font-size: 13px;
         font-weight: 800;
@@ -45,6 +59,14 @@
         text-transform: uppercase;
         font-family: Outfit, Inter, system-ui, sans-serif;
         transition: transform .15s ease, box-shadow .2s ease, filter .15s ease;
+        white-space: nowrap;
+    }
+    @@media (min-width: 1024px) {
+        .lp-hekim .btn-cta {
+            padding: 1.05rem 1.75rem;
+            font-size: 13.5px;
+            border-radius: 18px;
+        }
     }
     .lp-hekim .btn-cta-primary {
         background: linear-gradient(135deg, #C96A2B, #D87A3C);
@@ -66,6 +88,7 @@
         color: var(--brand);
         background: var(--soft);
     }
+
     .lp-hekim .feat-card {
         background: #fff;
         border: 1px solid var(--line);
@@ -74,10 +97,16 @@
         height: 100%;
         transition: border-color .2s, box-shadow .2s, transform .2s;
     }
+    @@media (min-width: 1024px) {
+        .lp-hekim .feat-card {
+            padding: 1.6rem 1.5rem;
+            border-radius: 24px;
+        }
+    }
     .lp-hekim .feat-card:hover {
         border-color: rgba(201,106,43,.35);
-        box-shadow: 0 16px 40px rgba(15,23,42,.06);
-        transform: translateY(-2px);
+        box-shadow: 0 18px 44px rgba(15,23,42,.07);
+        transform: translateY(-3px);
     }
     .lp-hekim .feat-icon {
         width: 44px;
@@ -89,6 +118,10 @@
         color: var(--brand);
         border: 1px solid rgba(231,181,138,.45);
         margin-bottom: 0.85rem;
+    }
+    @@media (min-width: 1024px) {
+        .lp-hekim .feat-icon { width: 52px; height: 52px; border-radius: 16px; margin-bottom: 1.1rem; }
+        .lp-hekim .feat-icon svg { width: 22px; height: 22px; }
     }
     .lp-hekim .step-num {
         width: 36px;
@@ -103,6 +136,171 @@
         border: 1px solid rgba(231,181,138,.5);
         flex-shrink: 0;
     }
+    @@media (min-width: 1024px) {
+        .lp-hekim .step-num { width: 44px; height: 44px; font-size: 15px; }
+    }
+
+    /* Masaüstü panel mock */
+    .lp-mock {
+        position: relative;
+        border-radius: 24px;
+        background: #fff;
+        border: 1px solid #E2E8F0;
+        box-shadow:
+            0 0 0 1px rgba(15,23,42,.03),
+            0 28px 70px -24px rgba(15,23,42,.28),
+            0 12px 28px -12px rgba(201,106,43,.12);
+        overflow: hidden;
+    }
+    @@media (min-width: 1024px) {
+        .lp-mock {
+            border-radius: 28px;
+            transform: perspective(1200px) rotateY(-4deg) rotateX(2deg);
+            transform-origin: center right;
+        }
+        .lp-mock:hover { transform: perspective(1200px) rotateY(-1deg) rotateX(0deg); transition: transform .4s ease; }
+    }
+    .lp-mock-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .lp-mock-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .lp-mock-body { display: grid; grid-template-columns: 72px 1fr; min-height: 280px; }
+    @@media (min-width: 1024px) {
+        .lp-mock-body { grid-template-columns: 88px 1fr; min-height: 340px; }
+    }
+    .lp-mock-side {
+        background: #0f172a;
+        padding: 12px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+    }
+    .lp-mock-side span {
+        width: 100%;
+        height: 32px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.06);
+    }
+    .lp-mock-side span.on { background: rgba(201,106,43,.35); border: 1px solid rgba(201,106,43,.5); }
+    .lp-mock-main { padding: 14px 16px 16px; background: #f8fafc; }
+    @@media (min-width: 1024px) {
+        .lp-mock-main { padding: 18px 20px 20px; }
+    }
+    .lp-mock-stat {
+        background: #fff;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 12px;
+    }
+    .lp-mock-cal {
+        margin-top: 12px;
+        background: #fff;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 12px;
+    }
+    .lp-mock-slot {
+        height: 28px;
+        border-radius: 8px;
+        background: #FFF7ED;
+        border: 1px solid rgba(231,181,138,.45);
+        font-size: 10px;
+        font-weight: 700;
+        color: #C96A2B;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+    }
+    .lp-mock-slot.busy {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        color: #64748b;
+    }
+
+    .lp-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    @@media (min-width: 1024px) {
+        .lp-stats {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: -2rem;
+            position: relative;
+            z-index: 20;
+        }
+        .lp-stats .stat-card {
+            background: #fff;
+            border: 1px solid #E2E8F0;
+            border-radius: 20px;
+            padding: 1.25rem 1.35rem;
+            box-shadow: 0 16px 40px -20px rgba(15,23,42,.15);
+        }
+    }
+    .lp-stats .stat-card {
+        background: #fff;
+        border: 1px solid #E2E8F0;
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+    }
+
+    .lp-steps-line { display: none; }
+    @@media (min-width: 768px) {
+        .lp-steps-wrap { position: relative; }
+        .lp-steps-line {
+            display: block;
+            position: absolute;
+            top: 28px;
+            left: 12%;
+            right: 12%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #E7B58A, transparent);
+            z-index: 0;
+        }
+    }
+
+    .lp-final {
+        border-radius: 28px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #334155 100%);
+        color: #fff;
+        padding: 2rem 1.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+    @@media (min-width: 1024px) {
+        .lp-final {
+            padding: 3rem 3.5rem;
+            border-radius: 32px;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2.5rem;
+            align-items: center;
+            text-align: left;
+        }
+        .lp-final .lp-final-actions { justify-content: flex-start; }
+        .lp-final .lp-final-sub { text-align: left; margin-left: 0; }
+    }
+    .lp-final::before {
+        content: '';
+        position: absolute;
+        width: 360px;
+        height: 360px;
+        right: -80px;
+        top: -100px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(201,106,43,.35), transparent 65%);
+        pointer-events: none;
+    }
+
     .lp-sticky-cta {
         position: fixed;
         left: 0;
@@ -115,11 +313,9 @@
         border-top: 1px solid #E5E7EB;
         box-shadow: 0 -10px 30px rgba(15,23,42,.06);
     }
-    /* Blade @media'yı yönerge sanmasın diye @@ */
     @@media (min-width: 1024px) {
         .lp-sticky-cta { display: none !important; }
     }
-    /* mobil: sticky CTA için boşluk; hasta alt menüyü gizle */
     @@media (max-width: 1023px) {
         body.lp-hekim-page { padding-bottom: 5.5rem !important; }
         body.lp-hekim-page > .fixed.bottom-0.z-40 { display: none !important; }
@@ -129,31 +325,32 @@
 <div class="lp-hekim bg-[#F8FAFC]">
     {{-- HERO --}}
     <section class="relative overflow-hidden">
-        <div class="absolute top-[-20%] right-[-15%] w-[520px] h-[520px] rounded-full bg-[#E7B58A]/20 blur-[110px] pointer-events-none"></div>
-        <div class="absolute bottom-[-25%] left-[-10%] w-[420px] h-[420px] rounded-full bg-[#C96A2B]/10 blur-[100px] pointer-events-none"></div>
+        <div class="absolute top-[-18%] right-[-12%] w-[640px] h-[640px] rounded-full bg-[#E7B58A]/18 blur-[120px] pointer-events-none"></div>
+        <div class="absolute bottom-[-22%] left-[-8%] w-[480px] h-[480px] rounded-full bg-[#C96A2B]/10 blur-[110px] pointer-events-none"></div>
+        <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#E7B58A]/50 to-transparent"></div>
 
-        <div class="max-w-6xl mx-auto px-5 sm:px-6 pt-12 sm:pt-16 pb-14 sm:pb-20 relative z-10">
-            <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-                <div class="lg:col-span-7">
-                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFF7ED] border border-[#E7B58A]/40 text-[11px] font-bold uppercase tracking-[0.12em] text-[#C96A2B] font-display mb-5">
+        <div class="lp-wrap pt-12 sm:pt-16 lg:pt-20 xl:pt-24 pb-12 sm:pb-16 lg:pb-24 relative z-10">
+            <div class="grid lg:grid-cols-12 gap-10 lg:gap-14 xl:gap-16 items-center">
+                <div class="lg:col-span-6 xl:col-span-6">
+                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FFF7ED] border border-[#E7B58A]/40 text-[11px] font-bold uppercase tracking-[0.14em] text-[#C96A2B] font-display mb-5 lg:mb-6">
                         <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] animate-pulse"></span>
                         Hekimler için randevu yazılımı
                     </span>
 
-                    <h1 class="text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold font-display text-[#0F172A] leading-[1.12] tracking-tight">
+                    <h1 class="text-3xl sm:text-4xl lg:text-5xl xl:text-[3.35rem] font-extrabold font-display text-[#0F172A] leading-[1.08] tracking-tight">
                         Randevu, hasta ve takvim
-                        <span class="block mt-1 bg-gradient-to-r from-[#C96A2B] via-[#D4894A] to-[#B55A20] bg-clip-text text-transparent">
+                        <span class="block mt-1.5 lg:mt-2 bg-gradient-to-r from-[#C96A2B] via-[#D4894A] to-[#B55A20] bg-clip-text text-transparent">
                             tek panelde.
                         </span>
                     </h1>
 
-                    <p class="mt-5 text-[15px] sm:text-base text-slate-600 leading-relaxed max-w-xl">
+                    <p class="mt-5 lg:mt-6 text-[15px] sm:text-base lg:text-lg text-slate-600 leading-relaxed max-w-xl lg:max-w-lg">
                         Online randevu talepleri, ajanda, SMS hatırlatma, hasta kartları ve isteğe bağlı kişisel web siteniz.
                         <strong class="text-slate-800">Randevu Ajandam</strong> ile muayenehanenizi dijitalleştirin —
                         {{ $deneme }} gün deneme ile başlayın.
                     </p>
 
-                    <div class="mt-7 flex flex-col sm:flex-row gap-3">
+                    <div class="mt-7 lg:mt-8 flex flex-col sm:flex-row gap-3 lg:gap-4">
                         <a href="{{ $kayitUrl }}" class="btn-cta btn-cta-primary" data-lp-cta="hero_kayit">
                             Ücretsiz profil oluştur
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -163,7 +360,7 @@
                         </a>
                     </div>
 
-                    <ul class="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[12.5px] font-semibold text-slate-500">
+                    <ul class="mt-6 lg:mt-8 flex flex-wrap gap-x-5 gap-y-2.5 text-[12.5px] lg:text-[13px] font-semibold text-slate-500">
                         <li class="inline-flex items-center gap-1.5">
                             <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             Kart zorunlu değil
@@ -179,58 +376,100 @@
                         @if($fiyat && $fiyat > 0)
                         <li class="inline-flex items-center gap-1.5">
                             <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            Ücretli paketler {{ number_format($fiyat, 0, ',', '.') }} ₺/ay’dan
+                            {{ number_format($fiyat, 0, ',', '.') }} ₺/ay’dan
                         </li>
                         @endif
                     </ul>
                 </div>
 
-                <div class="lg:col-span-5">
-                    <div class="relative rounded-[28px] border border-slate-200 bg-white p-5 sm:p-6 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.25)]">
-                        <div class="absolute -top-3 right-6 px-3 py-1 rounded-full bg-[#C96A2B] text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
-                            Hekim paneli
+                {{-- Desktop product mock --}}
+                <div class="lg:col-span-6 xl:col-span-6">
+                    <div class="lp-mock">
+                        <div class="lp-mock-bar">
+                            <span class="lp-mock-dot" style="background:#f87171"></span>
+                            <span class="lp-mock-dot" style="background:#fbbf24"></span>
+                            <span class="lp-mock-dot" style="background:#34d399"></span>
+                            <span class="ml-2 text-slate-400">panel.randevuajandam.com</span>
+                            <span class="ml-auto text-[10px] font-bold text-[#E7B58A] uppercase tracking-wider">Hekim paneli</span>
                         </div>
-                        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 mb-4">Tek bakışta</p>
-                        <div class="space-y-3">
-                            @foreach([
-                                ['Takvim & slotlar', 'Online randevu, müsaitlik, hızlı kapatma'],
-                                ['Randevu talepleri', 'Onayla, ertele, reddet — tek ekrandan'],
-                                ['Hasta kartları', 'Not, dosya, seans geçmişi (pakete göre)'],
-                                ['SMS & e-posta', 'Hatırlatma ve bilgilendirme'],
-                                ['Web sitesi', 'Kişisel vitrin ve domain (üst paket)'],
-                            ] as $row)
-                                <div class="flex gap-3 items-start rounded-2xl bg-slate-50 border border-slate-100 px-3.5 py-3">
-                                    <span class="mt-0.5 w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 grid place-items-center flex-shrink-0">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    </span>
+                        <div class="lp-mock-body">
+                            <div class="lp-mock-side">
+                                <span class="on"></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <div class="lp-mock-main">
+                                <div class="flex items-center justify-between mb-3">
                                     <div>
-                                        <p class="text-sm font-bold text-slate-800 font-display">{{ $row[0] }}</p>
-                                        <p class="text-[12px] text-slate-500 leading-snug mt-0.5">{{ $row[1] }}</p>
+                                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bugün</p>
+                                        <p class="text-sm font-extrabold font-display text-slate-800">Takvim özeti</p>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full bg-[#FFF7ED] text-[10px] font-bold text-[#C96A2B] border border-[#E7B58A]/40">8 randevu</span>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="lp-mock-stat">
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Bekleyen</p>
+                                        <p class="text-xl font-extrabold font-display text-slate-800 mt-0.5">3</p>
+                                    </div>
+                                    <div class="lp-mock-stat">
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Onaylı</p>
+                                        <p class="text-xl font-extrabold font-display text-emerald-600 mt-0.5">5</p>
+                                    </div>
+                                    <div class="lp-mock-stat">
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">SMS</p>
+                                        <p class="text-xl font-extrabold font-display text-[#C96A2B] mt-0.5">12</p>
                                     </div>
                                 </div>
-                            @endforeach
+                                <div class="lp-mock-cal">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Öğleden sonra</p>
+                                    <div class="space-y-1.5">
+                                        <div class="lp-mock-slot">14:00 · Kontrol · Ayşe Y.</div>
+                                        <div class="lp-mock-slot busy">14:30 · Dolu</div>
+                                        <div class="lp-mock-slot">15:00 · İlk muayene · M. Kaya</div>
+                                        <div class="lp-mock-slot">16:00 · Online görüşme</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <a href="{{ $kayitUrl }}" class="btn-cta btn-cta-primary w-full mt-5" data-lp-cta="card_kayit">
-                            Hemen başla
-                        </a>
                     </div>
+                    <p class="hidden lg:block text-center text-[11px] text-slate-400 mt-4 font-medium">
+                        Takvim · talepler · hasta · SMS — tek panel
+                    </p>
                 </div>
+            </div>
+
+            {{-- Desktop stats strip --}}
+            <div class="lp-stats mt-10 lg:mt-0">
+                @foreach([
+                    ['7/24', 'Online randevu talebi'],
+                    ['SMS', 'Otomatik hatırlatma'],
+                    ['1 panel', 'Takvim + hasta + finans'],
+                    [$deneme.' gün', 'Deneme ile başlayın'],
+                ] as $s)
+                    <div class="stat-card">
+                        <p class="text-lg lg:text-xl font-extrabold font-display text-[#0F172A]">{{ $s[0] }}</p>
+                        <p class="text-[12px] lg:text-[13px] text-slate-500 mt-0.5 font-medium">{{ $s[1] }}</p>
+                    </div>
+                @endforeach
             </div>
         </div>
     </section>
 
-    {{-- SORUN / ÇÖZÜM --}}
+    {{-- FAYDALAR --}}
     <section class="border-t border-slate-200/80 bg-white">
-        <div class="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-16">
-            <div class="text-center max-w-2xl mx-auto mb-10">
-                <h2 class="text-2xl sm:text-3xl font-extrabold font-display text-[#0F172A] tracking-tight">
+        <div class="lp-wrap py-14 sm:py-16 lg:py-20">
+            <div class="text-center max-w-2xl lg:max-w-3xl mx-auto mb-10 lg:mb-14">
+                <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-[#C96A2B] font-display mb-3">Neden Randevu Ajandam?</p>
+                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-display text-[#0F172A] tracking-tight">
                     WhatsApp ve ajanda yetmiyorsa
                 </h2>
-                <p class="mt-3 text-sm text-slate-500 leading-relaxed">
+                <p class="mt-3 lg:mt-4 text-sm lg:text-base text-slate-500 leading-relaxed">
                     Talepler dağınık, no-show artıyor, hasta kaydı kayboluyor. Randevu Ajandam bunları tek yerde toplar.
                 </p>
             </div>
-            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
                 @foreach([
                     ['Online randevu', 'Hastalar uygun saati seçer; siz onaylarsınız. 7/24 talep alın.'],
                     ['Akıllı takvim', 'Slotlar, izinler, seri randevu ve bekleme listesi (pakete göre).'],
@@ -257,36 +496,42 @@
                                 @endif
                             </svg>
                         </div>
-                        <h3 class="text-[15px] font-bold font-display text-slate-900">{{ $f[0] }}</h3>
-                        <p class="mt-1.5 text-[13px] text-slate-500 leading-relaxed">{{ $f[1] }}</p>
+                        <h3 class="text-[15px] lg:text-base font-bold font-display text-slate-900">{{ $f[0] }}</h3>
+                        <p class="mt-1.5 lg:mt-2 text-[13px] lg:text-[14px] text-slate-500 leading-relaxed">{{ $f[1] }}</p>
                     </div>
                 @endforeach
             </div>
         </div>
     </section>
 
-    {{-- NASIL BAŞLAR --}}
+    {{-- 3 ADIM --}}
     <section class="border-t border-slate-200/80 bg-[#F8FAFC]">
-        <div class="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-16">
-            <h2 class="text-2xl sm:text-3xl font-extrabold font-display text-[#0F172A] text-center tracking-tight">
-                3 adımda başlayın
-            </h2>
-            <div class="mt-10 grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
-                @foreach([
-                    ['1', 'Kayıt olun', 'E-posta ve temel bilgilerle profil oluşturun. Ücretsiz vitrin ile başlayabilirsiniz.'],
-                    ['2', 'Belge onayı', 'Meslek belgesi / e-Devlet doğrulaması (gerekli paketlerde) güvenli süreçle ilerler.'],
-                    ['3', 'Paket & ödeme', 'Deneme veya abonelik seçin. PayTR ile güvenli ödeme; dilerseniz havale.'],
-                ] as $step)
-                    <div class="rounded-2xl bg-white border border-slate-200 p-5 sm:p-6">
-                        <div class="flex items-center gap-3 mb-3">
-                            <span class="step-num">{{ $step[0] }}</span>
-                            <h3 class="text-base font-bold font-display text-slate-900">{{ $step[1] }}</h3>
-                        </div>
-                        <p class="text-[13px] text-slate-500 leading-relaxed">{{ $step[2] }}</p>
-                    </div>
-                @endforeach
+        <div class="lp-wrap py-14 sm:py-16 lg:py-20">
+            <div class="text-center mb-10 lg:mb-14">
+                <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-[#C96A2B] font-display mb-3">Kurulum</p>
+                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-display text-[#0F172A] tracking-tight">
+                    3 adımda başlayın
+                </h2>
             </div>
-            <div class="mt-10 text-center">
+            <div class="lp-steps-wrap max-w-5xl mx-auto">
+                <div class="lp-steps-line" aria-hidden="true"></div>
+                <div class="grid md:grid-cols-3 gap-5 lg:gap-8 relative z-[1]">
+                    @foreach([
+                        ['1', 'Kayıt olun', 'E-posta ve temel bilgilerle profil oluşturun. Ücretsiz vitrin ile başlayabilirsiniz.'],
+                        ['2', 'Belge onayı', 'Meslek belgesi / e-Devlet doğrulaması (gerekli paketlerde) güvenli süreçle ilerler.'],
+                        ['3', 'Paket & ödeme', 'Deneme veya abonelik seçin. PayTR ile güvenli ödeme; dilerseniz havale.'],
+                    ] as $step)
+                        <div class="rounded-2xl lg:rounded-3xl bg-white border border-slate-200 p-5 sm:p-6 lg:p-7 shadow-sm">
+                            <div class="flex items-center gap-3 mb-3 lg:mb-4">
+                                <span class="step-num">{{ $step[0] }}</span>
+                                <h3 class="text-base lg:text-lg font-bold font-display text-slate-900">{{ $step[1] }}</h3>
+                            </div>
+                            <p class="text-[13px] lg:text-[14px] text-slate-500 leading-relaxed">{{ $step[2] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="mt-10 lg:mt-12 text-center">
                 <a href="{{ $kayitUrl }}" class="btn-cta btn-cta-primary" data-lp-cta="steps_kayit">
                     Ücretsiz kayda git
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -297,26 +542,26 @@
 
     {{-- GÜVEN --}}
     <section class="border-t border-slate-200/80 bg-white">
-        <div class="max-w-6xl mx-auto px-5 sm:px-6 py-12 sm:py-14">
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="lp-wrap py-12 sm:py-14 lg:py-16">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
                 @foreach([
                     ['Güvenli ödeme', 'PayTR altyapısı, 3D Secure'],
                     ['KVKK & SSL', 'Veri koruma ve şifreli bağlantı'],
                     ['Mobil uyum', 'Panel ve hasta deneyimi mobil'],
                     ['Esnek paket', 'İstediğiniz zaman yükseltin'],
                 ] as $t)
-                    <div class="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-4 flex gap-3 items-start">
-                        <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 grid place-items-center border border-emerald-100 flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <div class="rounded-2xl lg:rounded-3xl border border-slate-100 bg-slate-50/80 px-4 py-4 lg:px-5 lg:py-5 flex gap-3 items-start">
+                        <span class="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-emerald-50 text-emerald-600 grid place-items-center border border-emerald-100 flex-shrink-0">
+                            <svg class="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         </span>
                         <div>
-                            <p class="text-sm font-bold text-slate-800 font-display">{{ $t[0] }}</p>
-                            <p class="text-[12px] text-slate-500 mt-0.5">{{ $t[1] }}</p>
+                            <p class="text-sm lg:text-[15px] font-bold text-slate-800 font-display">{{ $t[0] }}</p>
+                            <p class="text-[12px] lg:text-[13px] text-slate-500 mt-0.5">{{ $t[1] }}</p>
                         </div>
                     </div>
                 @endforeach
             </div>
-            <p class="mt-8 text-center text-[12px] text-slate-400 max-w-xl mx-auto leading-relaxed">
+            <p class="mt-8 lg:mt-10 text-center text-[12px] lg:text-[13px] text-slate-400 max-w-2xl mx-auto leading-relaxed">
                 Randevu Ajandam bir randevu ve işletme yazılımıdır; tıbbi teşhis/tedavi hizmeti sunmaz.
                 Muayene süreci hekim ile hasta arasındadır.
             </p>
@@ -324,29 +569,36 @@
     </section>
 
     {{-- SON CTA --}}
-    <section class="border-t border-slate-200/80 bg-gradient-to-b from-[#FFF7ED] to-white">
-        <div class="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-16 text-center">
-            <h2 class="text-2xl sm:text-3xl font-extrabold font-display text-[#0F172A] tracking-tight">
-                Bugün profilinizi oluşturun
-            </h2>
-            <p class="mt-3 text-sm text-slate-600 leading-relaxed">
-                Dakikalar içinde kaydolun, paneli keşfedin.
-                @if($fiyat && $fiyat > 0)
-                    Ücretli paketler <strong>{{ number_format($fiyat, 0, ',', '.') }} ₺/ay</strong>’dan başlar (KDV dahil fiyatlar paket sayfasında).
-                @endif
-            </p>
-            <div class="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
-                <a href="{{ $kayitUrl }}" class="btn-cta btn-cta-primary" data-lp-cta="footer_kayit">
-                    Ücretsiz profil oluştur
-                </a>
-                <a href="{{ $paketlerUrl }}" class="btn-cta btn-cta-ghost" data-lp-cta="footer_paketler">
-                    Tüm paketler
-                </a>
+    <section class="border-t border-slate-200/80 bg-[#F8FAFC]">
+        <div class="lp-wrap py-12 sm:py-16 lg:py-20">
+            <div class="lp-final relative z-[1]">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-[#E7B58A] font-display mb-3">Hemen başlayın</p>
+                    <h2 class="text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold font-display text-white tracking-tight leading-tight">
+                        Bugün profilinizi oluşturun
+                    </h2>
+                    <p class="mt-3 lg:mt-4 text-sm lg:text-base text-slate-300 leading-relaxed max-w-md">
+                        Dakikalar içinde kaydolun, paneli keşfedin.
+                        @if($fiyat && $fiyat > 0)
+                            Ücretli paketler <strong class="text-white">{{ number_format($fiyat, 0, ',', '.') }} ₺/ay</strong>’dan başlar.
+                        @endif
+                    </p>
+                </div>
+                <div>
+                    <div class="lp-final-actions flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+                        <a href="{{ $kayitUrl }}" class="btn-cta btn-cta-primary" data-lp-cta="footer_kayit">
+                            Ücretsiz profil oluştur
+                        </a>
+                        <a href="{{ $paketlerUrl }}" class="btn-cta btn-cta-ghost !bg-white/10 !text-white !border-white/20 hover:!bg-white/15" data-lp-cta="footer_paketler">
+                            Tüm paketler
+                        </a>
+                    </div>
+                    <p class="lp-final-sub mt-4 text-[12px] lg:text-[13px] text-slate-400 text-center">
+                        Zaten hesabınız var mı?
+                        <a href="{{ route('frontend.hekim.giris') }}" class="font-bold text-[#E7B58A] hover:underline">Hekim girişi</a>
+                    </p>
+                </div>
             </div>
-            <p class="mt-5 text-[12px] text-slate-400">
-                Zaten hesabınız var mı?
-                <a href="{{ route('frontend.hekim.giris') }}" class="font-bold text-[#C96A2B] hover:underline">Hekim girişi</a>
-            </p>
         </div>
     </section>
 </div>
