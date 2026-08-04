@@ -109,19 +109,20 @@
         right: 0;
         bottom: 0;
         z-index: 45;
-        padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
         background: rgba(255,255,255,.96);
         backdrop-filter: blur(12px);
         border-top: 1px solid #E5E7EB;
         box-shadow: 0 -10px 30px rgba(15,23,42,.06);
     }
-    @media (min-width: 1024px) {
-        .lp-sticky-cta { display: none; }
+    /* Blade @media'yı yönerge sanmasın diye @@ */
+    @@media (min-width: 1024px) {
+        .lp-sticky-cta { display: none !important; }
     }
-    /* mobil alt menü + sticky CTA çakışmasın */
-    @media (max-width: 1023px) {
-        body:has(.lp-sticky-cta) { padding-bottom: 5.5rem; }
-        body:has(.lp-sticky-cta) .fixed.bottom-0.z-40 { display: none !important; }
+    /* mobil: sticky CTA için boşluk; hasta alt menüyü gizle */
+    @@media (max-width: 1023px) {
+        body.lp-hekim-page { padding-bottom: 5.5rem !important; }
+        body.lp-hekim-page > .fixed.bottom-0.z-40 { display: none !important; }
     }
 </style>
 
@@ -357,4 +358,7 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
     </a>
 </div>
+<script>
+    document.body.classList.add('lp-hekim-page');
+</script>
 @endsection
