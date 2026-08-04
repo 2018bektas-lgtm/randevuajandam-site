@@ -88,6 +88,49 @@
         display: none !important;
     }
 
+    /* N paket → tek satır (lg+); mobil/tablet sarmalanır */
+    .pricing-page .plans-equal-row {
+        --plan-count: 4;
+        display: grid;
+        gap: 1rem;
+        align-items: stretch;
+        width: 100%;
+        grid-template-columns: 1fr;
+    }
+    @media (min-width: 640px) {
+        .pricing-page .plans-equal-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.15rem;
+        }
+    }
+    @media (min-width: 1024px) {
+        .pricing-page .plans-equal-row {
+            /* Kaç paket olursa olsun hepsi yan yana */
+            grid-template-columns: repeat(var(--plan-count), minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+    }
+    @media (min-width: 1400px) {
+        .pricing-page .plans-equal-row {
+            gap: 1.15rem;
+        }
+    }
+    .pricing-page .plans-equal-row .price-card {
+        min-width: 0; /* grid taşmasını engelle */
+    }
+    /* 5+ pakette kart içi daha sıkı */
+    .pricing-page .plans-equal-row[data-count="5"] .price-card,
+    .pricing-page .plans-equal-row[data-count="6"] .price-card,
+    .pricing-page .plans-equal-row[data-count="7"] .price-card,
+    .pricing-page .plans-equal-row[data-count="8"] .price-card {
+        padding: 1.25rem 1rem;
+        border-radius: 22px;
+    }
+    .pricing-page .plans-equal-row[data-count="5"] .price-card .text-\[2\.55rem\],
+    .pricing-page .plans-equal-row[data-count="6"] .price-card .text-\[2\.55rem\] {
+        font-size: 2.05rem !important;
+    }
+
     .pricing-page .price-card {
         position: relative;
         display: flex;
@@ -129,6 +172,19 @@
     .pricing-page .price-card.featured:hover {
         transform: translateY(-10px);
         box-shadow: 0 28px 60px rgba(201, 106, 43, 0.18);
+    }
+    /* Çok paket yan yana iken featured kartı hizayı bozmasın */
+    @media (min-width: 1024px) {
+        .pricing-page .plans-equal-row[data-count="5"] .price-card.featured,
+        .pricing-page .plans-equal-row[data-count="6"] .price-card.featured,
+        .pricing-page .plans-equal-row[data-count="7"] .price-card.featured,
+        .pricing-page .plans-equal-row[data-count="8"] .price-card.featured {
+            transform: none;
+        }
+        .pricing-page .plans-equal-row[data-count="5"] .price-card.featured:hover,
+        .pricing-page .plans-equal-row[data-count="6"] .price-card.featured:hover {
+            transform: translateY(-4px);
+        }
     }
     .pricing-page .price-card.website {
         border-style: solid;
@@ -360,7 +416,7 @@
     <div class="absolute bottom-[-12%] left-[-10%] w-[560px] h-[560px] rounded-full bg-[#C96A2B]/10 blur-[120px] pointer-events-none"></div>
     <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#E7B58A]/50 to-transparent"></div>
 
-    <div class="max-w-7xl mx-auto px-5 sm:px-6 relative z-10">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-5 lg:px-6 relative z-10">
         <!-- Header -->
         <div class="text-center max-w-3xl mx-auto mb-12 md:mb-14">
             <span class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/35 rounded-full text-[11px] font-bold font-display uppercase tracking-[0.14em] mb-5">
@@ -423,8 +479,11 @@
             </div>
         </div>
 
-        <!-- Bireysel -->
-        <div id="bireyselPlans" class="plan-container grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 items-stretch">
+        <!-- Bireysel: paket sayısı kadar kolon (hepsi yan yana) -->
+        <div id="bireyselPlans"
+             class="plan-container plans-equal-row"
+             data-count="{{ max(1, $bireyselPaketler->count()) }}"
+             style="--plan-count: {{ max(1, $bireyselPaketler->count()) }}">
             @forelse($bireyselPaketler as $p)
                 @php
                     $isFree = (float) $p->aylik_fiyat == 0;
@@ -590,7 +649,10 @@
         </div>
 
         <!-- Klinik -->
-        <div id="klinikPlans" class="plan-container is-hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 items-stretch max-w-7xl mx-auto">
+        <div id="klinikPlans"
+             class="plan-container plans-equal-row is-hidden"
+             data-count="{{ max(1, $klinikPaketler->count()) }}"
+             style="--plan-count: {{ max(1, $klinikPaketler->count()) }}">
             @forelse($klinikPaketler as $p)
                 @php
                     $isWebsite = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($p->ad), 'kurumsal')
