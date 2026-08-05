@@ -335,6 +335,11 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
         Route::get('/hekim/takvim/ical', [HekimRandevuController::class, 'ical'])->name('hekim.randevu.ical');
     });
 
+    // AI Asistan
+    Route::post('/hekim/asistan/mesaj', [\App\Http\Controllers\Frontend\HekimAsistanController::class, 'mesaj'])
+        ->middleware('throttle:30,1')
+        ->name('hekim.asistan.mesaj');
+
     Route::middleware(['paket.yetki:hizli_slot'])->group(function () {
         Route::get('/hekim/randevu-ayarlari/hizli-kapat-slotlar', [HekimRandevuController::class, 'hizliKapatSlotlar'])->name('hekim.randevu.hizli-kapat-slotlar');
         Route::post('/hekim/randevu-ayarlari/hizli-kapat', [HekimRandevuController::class, 'hizliKapatKaydet'])->name('hekim.randevu.hizli-kapat.post');

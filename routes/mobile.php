@@ -157,8 +157,11 @@ Route::prefix('v1')->group(function () {
             });
             // Durum: talepler onayı controller'da da kontrol edilir
             Route::post('/appointments/{id}/status', [MobileDoctorController::class, 'updateAppointmentStatus'])->whereNumber('id');
-            Route::get('/appointments/{id}/meeting', [MobileDoctorController::class, 'meetingSession'])->whereNumber('id');
-            Route::match(['get', 'post'], '/appointments/{id}/meeting/signal', [MobileDoctorController::class, 'meetingSignal'])->whereNumber('id');
+            // Online görüşme — site hekim paneli panel.paket:online_gorusme ile aynı
+            Route::middleware('paket.yetki:online_gorusme')->group(function () {
+                Route::get('/appointments/{id}/meeting', [MobileDoctorController::class, 'meetingSession'])->whereNumber('id');
+                Route::match(['get', 'post'], '/appointments/{id}/meeting/signal', [MobileDoctorController::class, 'meetingSignal'])->whereNumber('id');
+            });
             Route::middleware('paket.yetki:ical_export')->get('/calendar/ical', [MobileDoctorController::class, 'ical']);
             Route::middleware('paket.yetki:randevu_talepleri,randevu_talebi_goruntule')->get('/requests', [MobileDoctorPortalController::class, 'requests']);
             Route::middleware('paket.yetki:hizli_slot')->group(function () {

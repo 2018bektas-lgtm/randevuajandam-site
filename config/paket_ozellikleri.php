@@ -60,6 +60,9 @@ return [
         ['kod' => 'web_sitesi', 'ad' => 'Kişisel hekim web sitesi', 'aciklama' => 'CMS + tema; domain paket alanından.', 'grup' => 'Online & Web', 'sira' => 20, 'vitrin' => true],
         ['kod' => 'klinik_web_sitesi', 'ad' => 'Klinik web sitesi', 'aciklama' => 'Çok hekimli klinik sitesi.', 'grup' => 'Online & Web', 'sira' => 30, 'vitrin' => true],
 
+        // ── AI Asistan ──
+        ['kod' => 'ai_asistan', 'ad' => 'Dijital AI Asistan', 'aciklama' => 'Randevu yönetimi, takvim, SEO önerisi ve daha fazlası için yapay zeka destekli panel asistanı.', 'grup' => 'AI & Otomasyon', 'sira' => 10, 'vitrin' => true],
+
         // ── Destek ──
         ['kod' => 'destek_email', 'ad' => 'E-posta destek', 'aciklama' => 'E-posta destek hattı.', 'grup' => 'Destek', 'sira' => 10, 'vitrin' => true],
         ['kod' => 'destek_oncelikli', 'ad' => 'Öncelikli destek + kurulum', 'aciklama' => 'Birebir kurulum ve öncelik.', 'grup' => 'Destek', 'sira' => 20, 'vitrin' => true],

@@ -53,6 +53,7 @@ class PaketSeeder extends Seeder
             'hasta_not_dosya', 'tedavi_gecmisi', 'onam_formu', 'hasta_export',
             'hakkimda', 'galeri', 'dis_baglanti', 'oncelikli_liste',
             'yorum_davet', 'hasta_bakiyeleri',
+            'ai_asistan',
         ]);
 
         $vipOz = array_merge($profesyonelOz, [

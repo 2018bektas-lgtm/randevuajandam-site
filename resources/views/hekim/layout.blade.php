@@ -1438,5 +1438,6 @@
         });
     </script>
 
+    @include('hekim.partials.asistan_widget')
 </body>
 </html>
