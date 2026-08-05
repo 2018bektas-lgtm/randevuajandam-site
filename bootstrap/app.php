@@ -26,6 +26,11 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('api')
                 ->prefix('api/mobile')
                 ->group(base_path('routes/mobile.php'));
+
+            // Harici hekim / klinik web sitesi API (X-Api-Key + X-Api-Secret)
+            Route::middleware('api')
+                ->prefix('api/site')
+                ->group(base_path('routes/site_api.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
@@ -42,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'doktor.mobile' => \App\Http\Middleware\DoktorMobileToken::class,
             'personel.mobile' => \App\Http\Middleware\PersonelMobileToken::class,
             'recaptcha' => \App\Http\Middleware\VerifyRecaptcha::class,
+            'site.api'  => \App\Http\Middleware\SiteApiKeyMiddleware::class,
         ]);
 
         // Hostinger / reverse proxy arkasında gerçek istemci IP (PayTR user_ip)
@@ -58,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/iyzico/webhook',
             'api/paytr/notify',
             'api/mobile/*',
+            'api/site/*',
             'odeme/paytr/3d/ok',
             'odeme/paytr/3d/fail',
         ]);
