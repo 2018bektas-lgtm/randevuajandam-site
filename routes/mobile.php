@@ -281,6 +281,12 @@ Route::prefix('v1')->group(function () {
                 Route::post('/finance/patients/{hastaId}/collect', [MobileDoctorPortalController::class, 'patientCollect'])->whereNumber('hastaId');
                 Route::post('/finance/patients/{hastaId}/debt', [MobileDoctorPortalController::class, 'patientAddDebt'])->whereNumber('hastaId');
             });
+
+            // AI Asistan — Profesyonel+ paket
+            Route::middleware('paket.yetki:ai_asistan')->group(function () {
+                Route::post('/asistan/mesaj', [MobileDoctorPortalController::class, 'asistanMesaj'])
+                    ->middleware('throttle:100,1440');
+            });
         });
     });
 

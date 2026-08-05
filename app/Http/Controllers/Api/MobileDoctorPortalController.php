@@ -9,6 +9,7 @@ use App\Models\Brans;
 use App\Models\Doktor;
 use App\Models\Hasta;
 use App\Models\HekimWebSitesi;
+use App\Services\AsistanService;
 use App\Services\BeklemeListesiService;
 use App\Services\HtmlSanitizer;
 use App\Services\TwoFactorService;
@@ -2710,6 +2711,68 @@ class MobileDoctorPortalController extends Controller
                 'ozet' => $ozet,
                 'davetler' => $davetler,
             ],
+        ]);
+    }
+
+    // ── AI Asistan ─────────────────────────────────────────────
+
+    public function asistanMesaj(Request $request, AsistanService $asistanService): JsonResponse
+    {
+        $request->validate([
+            'mesaj'              => 'sometimes|string|max:500',
+            'gecmis'             => 'sometimes|array|max:20',
+            'onay'               => 'sometimes|array',
+            'onay.fonksiyon'     => 'required_with:onay|string',
+            'onay.parametreler'  => 'required_with:onay|array',
+            'secim'              => 'sometimes|string|in:sadece_kapat,kapat_ve_iptal,kapat_iptal_sms,kapat_bekleme,vazgec',
+            'secim_parametreler' => 'required_with:secim|array',
+        ]);
+
+        $doktor   = $this->doktor($request);
+        $doktorId = $doktor->id;
+
+        if ($request->filled('onay')) {
+            $onay  = $request->input('onay');
+            $sonuc = $asistanService->onayliIsleCalistir(
+                $doktorId,
+                $onay['fonksiyon'],
+                $onay['parametreler'],
+            );
+            return response()->json(['success' => true, 'yanit' => $sonuc['yanit'], 'onay_gerekli' => null]);
+        }
+
+        if ($request->filled('secim')) {
+            $secim  = $request->input('secim');
+            $params = (array) $request->input('secim_parametreler', []);
+
+            if ($secim === 'vazgec') {
+                return response()->json(['success' => true, 'yanit' => 'İptal edildi.', 'onay_gerekli' => null]);
+            }
+
+            $fonksiyon        = match ($secim) {
+                'kapat_ve_iptal',
+                'kapat_iptal_sms',
+                'kapat_bekleme'  => 'takvim_kapat_ve_iptal',
+                default          => 'takvim_kapat',
+            };
+            $params['_secim'] = $secim;
+            $sonuc            = $asistanService->onayliIsleCalistir($doktorId, $fonksiyon, $params);
+            return response()->json(['success' => true, 'yanit' => $sonuc['yanit'], 'onay_gerekli' => null]);
+        }
+
+        $mesaj = trim((string) $request->input('mesaj', ''));
+        if ($mesaj === '') {
+            return response()->json(['success' => false, 'message' => 'Mesaj boş olamaz.'], 422);
+        }
+
+        $gecmis = (array) $request->input('gecmis', []);
+        $sonuc  = $asistanService->isle($doktorId, $mesaj, $gecmis);
+
+        return response()->json([
+            'success'       => true,
+            'yanit'         => $sonuc['yanit'],
+            'onay_gerekli'  => $sonuc['onay_gerekli']  ?? null,
+            'secim_gerekli' => $sonuc['secim_gerekli'] ?? null,
         ]);
     }
 }
