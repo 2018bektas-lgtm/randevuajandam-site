@@ -194,7 +194,8 @@ class PaketOzellikKatalogu
                     $n->where('ad', 'like', '%Profesyonel%')
                         ->orWhere('ad', 'like', '%VIP%')
                         ->orWhere('ad', 'like', '%Özel Web%')
-                        ->orWhere('ad', 'like', '%Ozel Web%');
+                        ->orWhere('ad', 'like', '%Ozel Web%')
+                        ->orWhere('ad', 'like', '%Plus%');
                 });
             })
             ->where('ad', 'not like', '%Başlangıç%')
