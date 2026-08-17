@@ -169,6 +169,52 @@ class PaketOzellikKatalogu
     }
 
     /**
+     * Özelliği Profesyonel+ paketlere bağlar (seri_randevu olanlar + isim eşleşmesi).
+     * Vitrin / Başlangıç dokunulmaz.
+     *
+     * @return list<array{id:int,ad:string,eklendi:bool}>
+     */
+    public static function attachToProfesyonelTier(string $kod): array
+    {
+        $map = self::sync();
+        $oz = $map[$kod] ?? PaketOzelligi::query()->where('kod', $kod)->first();
+        if (! $oz) {
+            return [];
+        }
+
+        $seriId = optional($map['seri_randevu'] ?? null)->id
+            ?? PaketOzelligi::query()->where('kod', 'seri_randevu')->value('id');
+
+        $ids = Paket::query()
+            ->where(function ($q) use ($seriId) {
+                if ($seriId) {
+                    $q->whereHas('sistemOzellikleri', fn ($s) => $s->where('paket_ozellikleri.id', $seriId));
+                }
+                $q->orWhere(function ($n) {
+                    $n->where('ad', 'like', '%Profesyonel%')
+                        ->orWhere('ad', 'like', '%VIP%')
+                        ->orWhere('ad', 'like', '%Özel Web%')
+                        ->orWhere('ad', 'like', '%Ozel Web%');
+                });
+            })
+            ->where('ad', 'not like', '%Başlangıç%')
+            ->where('ad', 'not like', '%Baslangic%')
+            ->where('ad', 'not like', 'Vitrin')
+            ->pluck('id');
+
+        $out = [];
+        foreach (Paket::query()->whereIn('id', $ids)->get() as $paket) {
+            $had = $paket->sistemOzellikleri()->where('paket_ozellikleri.id', $oz->id)->exists();
+            if (! $had) {
+                $paket->sistemOzellikleri()->syncWithoutDetaching([$oz->id]);
+            }
+            $out[] = ['id' => (int) $paket->id, 'ad' => (string) $paket->ad, 'eklendi' => ! $had];
+        }
+
+        return $out;
+    }
+
+    /**
      * Gruplu liste (yönetim formu).
      *
      * @return Collection<string, Collection<int, PaketOzelligi>>
