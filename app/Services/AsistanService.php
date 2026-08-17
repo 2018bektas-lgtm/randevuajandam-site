@@ -304,7 +304,7 @@ PROMPT;
 
         $body = [
             'contents'    => $contents,
-            'tools'       => [['function_declarations' => self::FONKSIYON_TANIMLARI]],
+            'tools'       => [['function_declarations' => $this->geminiFonksiyonTanimlari()]],
             'tool_config' => $toolConfig,
         ];
 
@@ -359,6 +359,27 @@ PROMPT;
         }
 
         return ['yanit' => 'Anlamadım, farklı bir şekilde sorar mısınız?', 'onay_gerekli' => null];
+    }
+
+    /**
+     * PHP boş array'i JSON [] yapar; Gemini parameters.properties için {} (map) ister.
+     */
+    private function geminiFonksiyonTanimlari(): array
+    {
+        $defs = self::FONKSIYON_TANIMLARI;
+        foreach ($defs as $i => $def) {
+            if (! isset($def['parameters']) || ! is_array($def['parameters'])) {
+                continue;
+            }
+            if (($def['parameters']['properties'] ?? null) === []) {
+                $defs[$i]['parameters']['properties'] = new \stdClass();
+            }
+            if (($def['parameters']['required'] ?? null) === []) {
+                unset($defs[$i]['parameters']['required']);
+            }
+        }
+
+        return $defs;
     }
 
     /**
