@@ -309,7 +309,7 @@ PROMPT;
         ];
 
         try {
-            $resp = Http::timeout(20)->post($url, $body);
+            $resp = $this->geminiIstek($url, $body, 20);
         } catch (\Throwable $e) {
             Log::error('Asistan Gemini timeout', ['error' => $e->getMessage()]);
             return ['yanit' => 'Şu an AI servisine ulaşılamıyor. Lütfen tekrar deneyin.', 'onay_gerekli' => null];
@@ -363,6 +363,7 @@ PROMPT;
 
     /**
      * PHP boş array'i JSON [] yapar; Gemini parameters.properties için {} (map) ister.
+     * Argümansız fonksiyonlarda parameters alanını hiç göndermemek en güvenlisi.
      */
     private function geminiFonksiyonTanimlari(): array
     {
@@ -371,15 +372,52 @@ PROMPT;
             if (! isset($def['parameters']) || ! is_array($def['parameters'])) {
                 continue;
             }
-            if (($def['parameters']['properties'] ?? null) === []) {
-                $defs[$i]['parameters']['properties'] = new \stdClass();
-            }
             if (($def['parameters']['required'] ?? null) === []) {
                 unset($defs[$i]['parameters']['required']);
+            }
+            if (($defs[$i]['parameters']['properties'] ?? null) === []) {
+                unset($defs[$i]['parameters']);
             }
         }
 
         return $defs;
+    }
+
+    /**
+     * Guzzle json seçeneği iç içe stdClass'ı bazen []'e çevirir.
+     * Gövdeyi kendimiz encode edip ham JSON gönderiyoruz.
+     */
+    private function geminiIstek(string $url, array $body, int $timeout)
+    {
+        $json = json_encode($this->geminiJsonNormalize($body), JSON_UNESCAPED_UNICODE);
+        if ($json === false) {
+            throw new \RuntimeException('Gemini isteği JSON kodlanamadı.');
+        }
+
+        return Http::timeout($timeout)
+            ->withBody($json, 'application/json')
+            ->post($url);
+    }
+
+    private function geminiJsonNormalize(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        foreach ($value as $k => $v) {
+            if ($k === 'properties' && $v === []) {
+                $value[$k] = new \stdClass();
+                continue;
+            }
+            if ($k === 'required' && $v === []) {
+                unset($value[$k]);
+                continue;
+            }
+            $value[$k] = $this->geminiJsonNormalize($v);
+        }
+
+        return $value;
     }
 
     /**
@@ -557,7 +595,7 @@ PROMPT;
         ];
 
         try {
-            $resp2 = Http::timeout(15)->post($url, array_merge($origBody, ['contents' => $contents]));
+            $resp2 = $this->geminiIstek($url, array_merge($origBody, ['contents' => $contents]), 15);
             if (! $resp2->successful()) {
                 return $this->sonucuBicimlendir($fonksiyonAdi, $sonuc);
             }
