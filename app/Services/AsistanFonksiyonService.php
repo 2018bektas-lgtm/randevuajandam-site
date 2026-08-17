@@ -68,7 +68,7 @@ class AsistanFonksiyonService
         $periyot = $this->slotService->getPeriyot($doktor);
         $slots = $this->slotService->generateGunlukSlotlar($doktor, $gun, $randevular, $izinler, $periyot);
 
-        $bosSlotlar = array_values(array_filter($slots, fn ($s) => $s['durum'] === 'musait'));
+        $bosSlotlar = array_values(array_filter($slots, fn ($s) => in_array($s['durum'] ?? '', ['bos', 'musait'], true)));
 
         return [
             'tarih'       => $gun->format('d.m.Y'),

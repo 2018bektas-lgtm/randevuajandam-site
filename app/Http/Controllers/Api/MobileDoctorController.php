@@ -2153,47 +2153,10 @@ class MobileDoctorController extends Controller
 
     public function destroyPatient(Request $request, int $id): JsonResponse
     {
-        /** @var Doktor $doktor */
-        $doktor = $request->attributes->get('auth_doktor');
-
-        $allowedIds = $doktor->randevular()->whereNotNull('hasta_id')->distinct()->pluck('hasta_id');
-        if ($doktor->klinik_id) {
-            $allowedIds = $allowedIds->merge($doktor->klinik?->hastalar()->pluck('hastalar.id') ?? collect())->unique();
-        }
-        abort_unless($allowedIds->contains($id), 404);
-
-        $active = $doktor->randevular()
-            ->where('hasta_id', $id)
-            ->whereIn('durum', ['beklemede', 'onaylandi'])
-            ->exists();
-        if ($active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Aktif/bekleyen randevusu olan danışan silinemez.',
-            ], 422);
-        }
-
-        // Soft-unlink: only detach from clinic pool; keep Hasta row for other doctors.
-        if ($doktor->klinik_id && $doktor->klinik) {
-            $doktor->klinik->hastalar()->detach($id);
-        }
-
-        // Do not hard-delete global patient accounts; mark as inactive if only linked to this doctor.
-        $otherLinks = \App\Models\Randevu::query()
-            ->where('hasta_id', $id)
-            ->where('doktor_id', '!=', $doktor->id)
-            ->exists();
-        if (! $otherLinks) {
-            $hasta = Hasta::query()->find($id);
-            if ($hasta && ! $doktor->randevular()->where('hasta_id', $id)->whereIn('durum', ['beklemede', 'onaylandi'])->exists()) {
-                // Keep history; soft flag if column exists
-                if (\Illuminate\Support\Facades\Schema::hasColumn('hastalar', 'aktif_mi')) {
-                    $hasta->update(['aktif_mi' => false]);
-                }
-            }
-        }
-
-        return response()->json(['success' => true, 'message' => 'Danışan listeden kaldırıldı / pasifleştirildi.']);
+        return response()->json([
+            'success' => false,
+            'message' => 'Hasta silme desteklenmez.',
+        ], 405);
     }
 
     /**
@@ -2394,8 +2357,99 @@ class MobileDoctorController extends Controller
     {
         /** @var Doktor $doktor */
         $doktor = $request->attributes->get('auth_doktor');
+        $ayarlar = $this->ensureAppointmentSettings($doktor);
+        $payload = $ayarlar->toArray();
+        $payload['sms_gonderici_baslik'] = $doktor->sms_gonderici_baslik ?? null;
+        $payload['can_email_bildirim'] = $doktor->hasPaketFeature('email_bildirim');
+        $payload['can_sms_hatirlatma'] = $doktor->hasPaketFeature('sms_hatirlatma');
+        $payload['can_sms_baslik'] = $doktor->hasPaketFeature('sms_baslik');
+        $payload['can_yorum_davet'] = $doktor->hasPaketFeature('yorum_davet');
+        $payload['can_no_show_mesaj'] = $doktor->hasPaketFeature('no_show_mesaj');
 
-        return response()->json(['success' => true, 'data' => $this->ensureAppointmentSettings($doktor)]);
+        return response()->json(['success' => true, 'data' => $payload]);
+    }
+
+    /**
+     * Hasta listesi CSV dışa aktarma — web hekim.randevu.hastalar.export karşılığı.
+     * Hasta silme yoktur; yalnızca dışa aktarma.
+     */
+    public function exportPatients(Request $request): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $hastaIds = $doktor->randevular()->distinct()->pluck('hasta_id');
+        $hastalar = Hasta::whereIn('id', $hastaIds)
+            ->withCount(['randevular as randevu_sayisi' => fn ($q) => $q->where('doktor_id', $doktor->id)])
+            ->orderBy('ad')
+            ->orderBy('soyad')
+            ->get();
+
+        $out = fopen('php://temp', 'r+');
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, ['ID', 'Ad', 'Soyad', 'Telefon', 'E-posta', 'Randevu Sayısı', 'Durum'], ';');
+        foreach ($hastalar as $h) {
+            fputcsv($out, [
+                $h->id,
+                $h->ad,
+                $h->soyad,
+                $h->telefon,
+                $h->e_posta,
+                $h->randevu_sayisi ?? 0,
+                $h->aktif_mi ? 'Aktif' : 'Pasif',
+            ], ';');
+        }
+        rewind($out);
+        $csv = stream_get_contents($out) ?: '';
+        fclose($out);
+
+        $filename = 'hastalar-'.now()->format('Y-m-d').'.csv';
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'filename' => $filename,
+                'csv' => $csv,
+                'csv_base64' => base64_encode($csv),
+                'count' => $hastalar->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * SMS kontör bakiyesi ve ek paketler — web hekim.ek-urun.sms karşılığı (satın alma PayTR web).
+     */
+    public function smsCredits(Request $request): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = $request->attributes->get('auth_doktor');
+        $svc = app(\App\Services\SmsKontorService::class);
+        $paket = $svc->paketForDoktor($doktor);
+        $packs = [];
+        foreach (config('ek_urunler.sms_paketleri', []) as $kod => $pack) {
+            $packs[] = [
+                'kod' => (string) $kod,
+                'adet' => (int) ($pack['adet'] ?? 0),
+                'fiyat' => (float) ($pack['fiyat'] ?? 0),
+                'etiket' => (string) ($pack['etiket'] ?? ''),
+                'not' => $pack['not'] ?? null,
+            ];
+        }
+
+        $kalan = $svc->kalan($doktor);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'kalan' => $kalan,
+                'kullanilan' => $svc->kullanilan($doktor),
+                'ek_kontor' => $svc->ekKontor($doktor),
+                'paket_kota' => $paket?->sms_aylik_kontor,
+                'paket_ad' => $paket?->ad,
+                'sinirsiz' => $kalan === null,
+                'sms_paketleri' => $packs,
+                'satin_alma_url' => url('/hekim/sms-kontor'),
+            ],
+        ]);
     }
 
     public function updateAppointmentSettings(Request $request): JsonResponse

@@ -51,6 +51,7 @@ Route::prefix('v1')->group(function () {
             Route::put('/profile', [MobileDoctorController::class, 'updateProfile']);
             Route::get('/meta', [MobileDoctorController::class, 'meta']);
             Route::get('/package-features', [MobileDoctorController::class, 'packageFeatures']);
+            Route::middleware('paket.yetki:sms_hatirlatma')->get('/sms-credits', [MobileDoctorController::class, 'smsCredits']);
             Route::get('/packages', [MobileDoctorController::class, 'packages']);
             Route::get('/subscription', [MobileDoctorController::class, 'subscription']);
             Route::post('/subscription/cancel', [MobileDoctorController::class, 'cancelSubscription']);
@@ -119,6 +120,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/clinic/website', [MobileDoctorClinicController::class, 'website']);
             Route::post('/clinic/website/setup', [MobileDoctorClinicController::class, 'websiteSetup']);
             Route::post('/clinic/website/api-key', [MobileDoctorClinicController::class, 'websiteRegenerateApiKey']);
+            Route::post('/clinic/website/domain/check', [MobileDoctorClinicController::class, 'websiteDomainCheck']);
+            Route::post('/clinic/website/domain/claim', [MobileDoctorClinicController::class, 'websiteDomainClaim']);
+            Route::post('/clinic/website/dns-verify', [MobileDoctorClinicController::class, 'websiteDnsVerify']);
             Route::get('/clinic/announcements/admin', [MobileDoctorClinicController::class, 'adminAnnouncements']);
             Route::post('/clinic/announcements', [MobileDoctorClinicController::class, 'storeAnnouncement']);
             Route::put('/clinic/announcements/{id}', [MobileDoctorClinicController::class, 'updateAnnouncement'])->whereNumber('id');
@@ -172,9 +176,9 @@ Route::prefix('v1')->group(function () {
             // Patients
             Route::middleware('paket.yetki:hasta_kartlari')->group(function () {
                 Route::get('/patients', [MobileDoctorController::class, 'patients']);
+                Route::middleware('paket.yetki:hasta_export')->get('/patients/export', [MobileDoctorController::class, 'exportPatients']);
                 Route::get('/patients/{id}', [MobileDoctorController::class, 'showPatient'])->whereNumber('id');
                 Route::put('/patients/{id}', [MobileDoctorController::class, 'updatePatient'])->whereNumber('id');
-                Route::delete('/patients/{id}', [MobileDoctorController::class, 'destroyPatient'])->whereNumber('id');
                 Route::post('/patients', [MobileDoctorController::class, 'storePatient']);
                 Route::middleware('paket.yetki:hasta_not_dosya')->group(function () {
                     Route::get('/patients/{id}/files', [MobileDoctorPortalController::class, 'patientFiles'])->whereNumber('id');

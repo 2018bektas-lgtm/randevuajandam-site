@@ -196,10 +196,11 @@ class AsistanService
     private const YAZMA_FONKSIYONLARI = ['randevu_olustur', 'takvim_kapat', 'takvim_kapat_ve_iptal', 'takvim_ac', 'randevu_durum_guncelle', 'randevular_durum_toplu_guncelle', 'randevu_tasi', 'randevu_notu_guncelle'];
 
     private const KISAYOLLAR = [
-        ['desen' => '/bugün.*randev|bugün.*kaç|bugünkü randev/iu', 'fonksiyon' => 'ozet_ver', 'parametreler' => ['periyot' => 'bugun']],
-        ['desen' => '/bu hafta.*randev|haftalık özet|hafta.*kaç/iu', 'fonksiyon' => 'ozet_ver', 'parametreler' => ['periyot' => 'hafta']],
-        ['desen' => '/bu ay.*randev|aylık özet|ay.*kaç/iu', 'fonksiyon' => 'ozet_ver', 'parametreler' => ['periyot' => 'ay']],
         ['desen' => '/bekleyen randev|onay bekl/iu', 'fonksiyon' => 'randevu_listele', 'parametreler' => ['tarih_baslangic' => 'today', 'tarih_bitis' => '+30 days', 'durum' => 'beklemede']],
+        ['desen' => '/(bugün|bugünkü).*(listele|göster|neler)|randevularımı listele/iu', 'fonksiyon' => 'randevu_listele', 'parametreler' => ['tarih_baslangic' => 'today', 'tarih_bitis' => 'today']],
+        ['desen' => '/bu hafta.*(özet|kaç)|haftalık özet|haftanın randevu özeti/iu', 'fonksiyon' => 'ozet_ver', 'parametreler' => ['periyot' => 'hafta']],
+        ['desen' => '/bu ay.*(özet|kaç)|aylık özet/iu', 'fonksiyon' => 'ozet_ver', 'parametreler' => ['periyot' => 'ay']],
+        ['desen' => '/bugün.*(kaç|özet)|bugünkü özet/iu', 'fonksiyon' => 'ozet_ver', 'parametreler' => ['periyot' => 'bugun']],
     ];
 
     public function __construct(protected AsistanFonksiyonService $fonksiyonService) {}
@@ -328,31 +329,71 @@ PROMPT;
 
         $this->gunlukSayaciArtir($doktorId);
 
-        $data      = $resp->json();
-        $candidate = $data['candidates'][0]['content']['parts'][0] ?? null;
-
-        if (! $candidate) {
-            return ['yanit' => 'Anlamadım, farklı bir şekilde sorar mısınız?', 'onay_gerekli' => null];
-        }
-
-        if (isset($candidate['functionCall'])) {
-            $fonksiyonAdi = $candidate['functionCall']['name'];
-            $parametreler = (array) ($candidate['functionCall']['args'] ?? []);
+        $parsed = $this->geminiParcaAyikla($resp->json());
+        if ($parsed['functionCall']) {
+            $fonksiyonAdi = $parsed['functionCall']['name'] ?? '';
+            $parametreler = (array) ($parsed['functionCall']['args'] ?? []);
 
             if (in_array($fonksiyonAdi, self::YAZMA_FONKSIYONLARI, true)) {
                 return $this->yazmaFonksiyonuIsle($fonksiyonAdi, $parametreler, $doktorId);
             }
 
             $sonuc  = $this->fonksiyonCalistir($fonksiyonAdi, $doktorId, $parametreler);
-            $adimIki = $this->sonucuGeminiyeGonder($url, $body, $candidate, $fonksiyonAdi, $sonuc, $doktorId);
+            $adimIki = $this->sonucuGeminiyeGonder(
+                $url,
+                $body,
+                $parsed['functionCallPart'] ?? ['functionCall' => $parsed['functionCall']],
+                $fonksiyonAdi,
+                $sonuc,
+                $doktorId
+            );
 
             if (is_array($adimIki)) {
-                return $adimIki; // onay_gerekli veya secim_gerekli içeriyor
+                return $adimIki;
             }
             return ['yanit' => $adimIki, 'onay_gerekli' => null];
         }
 
-        return ['yanit' => $candidate['text'] ?? 'Yanıt alınamadı.', 'onay_gerekli' => null];
+        if ($parsed['text'] !== '') {
+            return ['yanit' => $parsed['text'], 'onay_gerekli' => null];
+        }
+
+        return ['yanit' => 'Anlamadım, farklı bir şekilde sorar mısınız?', 'onay_gerekli' => null];
+    }
+
+    /**
+     * Gemini bazen thought + functionCall'u ayrı parts'ta döner; yalnızca parts[0] okunursa çağrı kaybolur.
+     *
+     * @return array{text: string, functionCall: ?array, functionCallPart: ?array}
+     */
+    private function geminiParcaAyikla(?array $payload): array
+    {
+        $parts = $payload['candidates'][0]['content']['parts'] ?? [];
+        $text = '';
+        $functionCall = null;
+        $functionCallPart = null;
+
+        foreach (is_array($parts) ? $parts : [] as $part) {
+            if (! is_array($part)) {
+                continue;
+            }
+            $call = $part['functionCall'] ?? $part['function_call'] ?? null;
+            if (is_array($call) && ! empty($call['name'])) {
+                $functionCall = $call;
+                $functionCallPart = isset($part['functionCall'])
+                    ? ['functionCall' => $call]
+                    : ['functionCall' => $call];
+            }
+            if (isset($part['text']) && is_string($part['text']) && $part['text'] !== '') {
+                $text .= $part['text'];
+            }
+        }
+
+        return [
+            'text' => trim($text),
+            'functionCall' => $functionCall,
+            'functionCallPart' => $functionCallPart,
+        ];
     }
 
     public function onayliIsleCalistir(int $doktorId, string $fonksiyon, array $parametreler): array
@@ -500,27 +541,20 @@ PROMPT;
                 return $this->sonucuBicimlendir($fonksiyonAdi, $sonuc);
             }
 
-            $data2 = $resp2->json();
-            $part2 = $data2['candidates'][0]['content']['parts'][0] ?? null;
-            if (! $part2) {
-                return $this->sonucuBicimlendir($fonksiyonAdi, $sonuc);
-            }
-
-            // Gemini ikinci adımda yine fonksiyon çağırdı (örn. listeden ID bulup randevu_tasi)
-            if (isset($part2['functionCall'])) {
-                $fonksiyon2   = $part2['functionCall']['name'];
-                $parametreler2 = (array) ($part2['functionCall']['args'] ?? []);
+            $parsed2 = $this->geminiParcaAyikla($resp2->json());
+            if ($parsed2['functionCall']) {
+                $fonksiyon2 = $parsed2['functionCall']['name'] ?? '';
+                $parametreler2 = (array) ($parsed2['functionCall']['args'] ?? []);
 
                 if (in_array($fonksiyon2, self::YAZMA_FONKSIYONLARI, true)) {
                     return $this->yazmaFonksiyonuIsle($fonksiyon2, $parametreler2, $doktorId);
                 }
-                // Okuma fonksiyonu — çalıştır, metne dönüştür
                 $sonuc2 = $this->fonksiyonCalistir($fonksiyon2, $doktorId, $parametreler2);
                 return $this->sonucuBicimlendir($fonksiyon2, $sonuc2);
             }
 
-            if (isset($part2['text'])) {
-                return $part2['text'];
+            if ($parsed2['text'] !== '') {
+                return $parsed2['text'];
             }
         } catch (\Throwable) {
         }

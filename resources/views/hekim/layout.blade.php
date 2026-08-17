@@ -1438,6 +1438,11 @@
         });
     </script>
 
-    @include('hekim.partials.asistan_widget')
+    @php
+        $asistanDoktor = auth('doktor')->user();
+    @endphp
+    @if($asistanDoktor && \App\Support\PaketYetki::has($asistanDoktor, 'ai_asistan'))
+        @include('hekim.partials.asistan_widget')
+    @endif
 </body>
 </html>

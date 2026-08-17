@@ -1045,7 +1045,7 @@ class MobileDoctorClinicController extends Controller
         ];
     }
 
-    public function website(Request $request): JsonResponse
+    public function website(Request $request, \App\Services\DomainInclusionService $domains): JsonResponse
     {
         $doktor = $this->doktor($request);
         $this->requireOwner($doktor);
@@ -1070,6 +1070,7 @@ class MobileDoctorClinicController extends Controller
                 'dns_adimlari' => $this->dnsSteps($domain),
                 'dns_a_record' => (string) config('services.hostinger.dns_a_record', ''),
                 'dns_cname_target' => (string) config('services.hostinger.dns_cname_target', 'proxy.randevuajandam.com'),
+                'domain_eligibility' => $this->clinicDomainEligibility($klinik, $domains),
             ],
         ]);
     }
@@ -1182,6 +1183,124 @@ class MobileDoctorClinicController extends Controller
                 'plain_api_secret' => $secretKeyVal,
             ],
         ]);
+    }
+
+    public function websiteDomainCheck(
+        Request $request,
+        \App\Services\DomainInclusionService $domains
+    ): JsonResponse {
+        $doktor = $this->doktor($request);
+        $this->requireOwner($doktor);
+        $klinik = $this->klinikOrFail($doktor);
+
+        $data = $request->validate([
+            'sld' => ['required', 'string', 'min:2', 'max:63'],
+            'tld' => ['nullable', 'string', 'max:20'],
+            'tlds' => ['nullable', 'array'],
+            'tlds.*' => ['string', 'max:20'],
+        ]);
+
+        $tlds = $data['tlds'] ?? null;
+        if (! empty($data['tld'])) {
+            $tlds = [strtolower(ltrim($data['tld'], '.'))];
+        }
+
+        try {
+            $results = $domains->check($klinik, $data['sld'], $tlds);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'results' => $results,
+                'eligibility' => $this->clinicDomainEligibility($klinik, $domains),
+            ],
+        ]);
+    }
+
+    public function websiteDomainClaim(
+        Request $request,
+        \App\Services\WebsiteProvisioningService $provisioning
+    ): JsonResponse {
+        $doktor = $this->doktor($request);
+        $this->requireOwner($doktor);
+        $klinik = $this->klinikOrFail($doktor);
+
+        $data = $request->validate([
+            'domain' => ['required', 'string', 'max:150'],
+            'mode' => ['nullable', 'in:included,byod'],
+        ]);
+
+        $mode = $data['mode'] ?? 'included';
+
+        try {
+            $result = $provisioning->provisionKlinik($klinik, $data['domain'], $mode);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        $msg = $mode === 'byod'
+            ? 'Klinik web sitesi bağlandı (kendi domain). DNS adımlarını tamamlayın. Secret key bir kez gösterilir.'
+            : 'Domain pakete dahil kaydedildi ve klinik web sitesi otomatik açıldı.';
+
+        return response()->json([
+            'success' => true,
+            'message' => $msg,
+            'data' => [
+                'domain' => $result['domain'] ?? $data['domain'],
+                'created_site' => $result['created_site'] ?? true,
+                'plain_api_secret' => $result['plain_secret'] ?? null,
+                'dns_adimlari' => $this->dnsSteps($result['domain'] ?? $data['domain']),
+            ],
+        ], 201);
+    }
+
+    public function websiteDnsVerify(
+        Request $request,
+        \App\Services\DnsVerificationService $dns
+    ): JsonResponse {
+        $doktor = $this->doktor($request);
+        $this->requireOwner($doktor);
+        $klinik = $this->klinikOrFail($doktor);
+        $webSite = $klinik->webSite;
+        if (! $webSite) {
+            return response()->json(['success' => false, 'message' => 'Önce domain kaydı yapın.'], 422);
+        }
+
+        $result = $dns->check($webSite->domain);
+        $webSite->forceFill(
+            $result['ok']
+                ? ['durum' => 'aktif', 'hata_mesaji' => null]
+                : ['hata_mesaji' => $result['message'] ?? 'DNS henüz doğrulanamadı']
+        )->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['ok'] ? 'DNS doğrulandı. Site aktif.' : ($result['message'] ?? 'DNS henüz yayılmamış.'),
+            'data' => [
+                'ok' => (bool) $result['ok'],
+                'domain' => $webSite->domain,
+                'durum' => $webSite->durum,
+            ],
+        ]);
+    }
+
+    private function clinicDomainEligibility($klinik, \App\Services\DomainInclusionService $domains): array
+    {
+        $e = $domains->eligibility($klinik);
+
+        return [
+            'eligible' => $e['eligible'],
+            'reason' => $e['reason'],
+            'tlds' => $e['tlds'],
+            'yil' => $e['yil'],
+            'already_claimed' => $e['already_claimed'],
+            'active_domain' => $e['active_domain'],
+            'hostinger_ready' => $e['hostinger_ready'],
+            'paket_ad' => $e['paket']?->ad,
+        ];
     }
 
     // ── Announcements CRUD (admin) ─────────────────────────────

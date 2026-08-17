@@ -375,9 +375,11 @@
     }
 
     function isleSonuc(d) {
-        const yanit = d.yanit ?? 'Yanıt alınamadı.';
+        const paket = d && d.data ? d.data : d;
+        const yanit = (paket && (paket.yanit || paket.message)) || (d && d.message) || 'Yanıt alınamadı.';
         gecmis.push({ rol: 'asistan', mesaj: yanit });
         mesajEkle('asistan', yanit);
+        d = paket || {};
         if (d.secim_gerekli) {
             secimKartusuEkle(d.secim_gerekli);
         } else if (d.onay_gerekli) {

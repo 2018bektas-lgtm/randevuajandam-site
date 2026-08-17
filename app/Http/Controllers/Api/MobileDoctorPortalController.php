@@ -2738,7 +2738,7 @@ class MobileDoctorPortalController extends Controller
                 $onay['fonksiyon'],
                 $onay['parametreler'],
             );
-            return response()->json(['success' => true, 'yanit' => $sonuc['yanit'], 'onay_gerekli' => null]);
+            return $this->asistanJson($sonuc['yanit'] ?? 'Tamam.');
         }
 
         if ($request->filled('secim')) {
@@ -2746,7 +2746,7 @@ class MobileDoctorPortalController extends Controller
             $params = (array) $request->input('secim_parametreler', []);
 
             if ($secim === 'vazgec') {
-                return response()->json(['success' => true, 'yanit' => 'İptal edildi.', 'onay_gerekli' => null]);
+                return $this->asistanJson('İptal edildi.');
             }
 
             $fonksiyon        = match ($secim) {
@@ -2757,7 +2757,7 @@ class MobileDoctorPortalController extends Controller
             };
             $params['_secim'] = $secim;
             $sonuc            = $asistanService->onayliIsleCalistir($doktorId, $fonksiyon, $params);
-            return response()->json(['success' => true, 'yanit' => $sonuc['yanit'], 'onay_gerekli' => null]);
+            return $this->asistanJson($sonuc['yanit'] ?? 'Tamam.');
         }
 
         $mesaj = trim((string) $request->input('mesaj', ''));
@@ -2768,11 +2768,26 @@ class MobileDoctorPortalController extends Controller
         $gecmis = (array) $request->input('gecmis', []);
         $sonuc  = $asistanService->isle($doktorId, $mesaj, $gecmis);
 
+        return $this->asistanJson(
+            $sonuc['yanit'] ?? 'Yanıt alınamadı.',
+            $sonuc['onay_gerekli'] ?? null,
+            $sonuc['secim_gerekli'] ?? null,
+        );
+    }
+
+    private function asistanJson(string $yanit, ?array $onay = null, ?array $secim = null): JsonResponse
+    {
+        $payload = [
+            'yanit' => $yanit,
+            'onay_gerekli' => $onay,
+            'secim_gerekli' => $secim,
+        ];
+
         return response()->json([
-            'success'       => true,
-            'yanit'         => $sonuc['yanit'],
-            'onay_gerekli'  => $sonuc['onay_gerekli']  ?? null,
-            'secim_gerekli' => $sonuc['secim_gerekli'] ?? null,
+            'success' => true,
+            'data' => $payload,
+            // Eski istemciler üst seviyeden de okuyabilsin
+            ...$payload,
         ]);
     }
 }
