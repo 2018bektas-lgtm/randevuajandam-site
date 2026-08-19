@@ -70,7 +70,7 @@ class PublicMedia
             mkdir($dir, 0755, true);
         }
 
-        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $ext = strtolower($file->extension() ?: $file->getClientOriginalExtension() ?: 'jpg');
         $name = 'doktor_'.time().'_'.Str::lower(Str::random(8)).'.'.$ext;
         $file->move($dir, $name);
 

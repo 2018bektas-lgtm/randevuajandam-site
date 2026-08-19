@@ -53,7 +53,7 @@ class HekimGaleriController extends Controller
             $basliklar = $request->input('basliklar', []);
 
             foreach ($files as $index => $file) {
-                $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+                $ext = strtolower($file->extension() ?: $file->getClientOriginalExtension() ?: 'jpg');
                 if (! in_array($ext, ['jpeg', 'jpg', 'png', 'gif', 'webp'], true)) {
                     continue;
                 }

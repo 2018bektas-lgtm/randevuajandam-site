@@ -20,7 +20,10 @@ class HastaMobileToken
             return response()->json(['success' => false, 'message' => 'Oturum gerekli.'], 401);
         }
 
-        $row = HastaApiToken::query()->where('token', $header)->with('hasta')->first();
+        $row = HastaApiToken::findByPlainToken($header);
+        if ($row) {
+            $row->load('hasta');
+        }
         if (! $row || ! $row->isValid() || ! $row->hasta || ! $row->hasta->aktif_mi) {
             return response()->json(['success' => false, 'message' => 'Geçersiz veya süresi dolmuş oturum.'], 401);
         }

@@ -19,6 +19,10 @@ class HastaApiToken extends Model
         'expires_at',
     ];
 
+    protected $hidden = [
+        'token',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -32,16 +36,38 @@ class HastaApiToken extends Model
         return $this->belongsTo(Hasta::class, 'hasta_id');
     }
 
-    public static function issue(Hasta $hasta, ?string $device = null): self
+    public static function hashToken(string $plain): string
     {
-        return self::create([
-            'hasta_id' => $hasta->id,
-            'token' => Str::random(64),
-            'name' => 'mobile',
-            'device' => $device,
-            'expires_at' => now()->addDays(90),
+        return hash('sha256', $plain);
+    }
+
+    public static function findByPlainToken(string $plain): ?self
+    {
+        $plain = trim($plain);
+        if ($plain === '') {
+            return null;
+        }
+
+        return static::query()->where('token', self::hashToken($plain))->first();
+    }
+
+    /**
+     * @return array{model: self, plain: string}
+     */
+    public static function issue(Hasta $hasta, ?string $device = null): array
+    {
+        $plain = Str::random(64);
+
+        $model = self::create([
+            'hasta_id'     => $hasta->id,
+            'token'        => self::hashToken($plain),
+            'name'         => 'mobile',
+            'device'       => $device,
+            'expires_at'   => now()->addDays(90),
             'last_used_at' => now(),
         ]);
+
+        return ['model' => $model, 'plain' => $plain];
     }
 
     public function isValid(): bool

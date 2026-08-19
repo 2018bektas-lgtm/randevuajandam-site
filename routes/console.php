@@ -18,3 +18,5 @@ Schedule::command('doktor:uyelik-hatirlat')->dailyAt('09:15');
 Schedule::command('doktor:vitrin-temizlik')->dailyAt('03:30');
 // PayTR kayıtlı kart (utoken/ctoken) Non3D yenileme — PAYTR_RECURRING_ENABLED gerekir
 Schedule::command('abonelik:yenile')->dailyAt('07:00');
+// KVKK: silme talebi 30 gunu gecen hasta kayitlarini imha et
+Schedule::command('hasta:imha')->dailyAt('03:00');

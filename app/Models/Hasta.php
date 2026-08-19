@@ -89,6 +89,11 @@ class Hasta extends Authenticatable
         return $this->hasMany(Randevu::class, 'hasta_id');
     }
 
+    public function apiTokens(): HasMany
+    {
+        return $this->hasMany(HastaApiToken::class, 'hasta_id');
+    }
+
     /**
      * Get the reviews written by the patient.
      */

@@ -1861,7 +1861,8 @@ class MobileDoctorClinicController extends Controller
         ]);
 
         $file = $request->file('logo');
-        $name = 'klinik_'.$klinik->id.'_'.time().'.'.$file->getClientOriginalExtension();
+        $ext = strtolower($file->extension() ?: $file->getClientOriginalExtension() ?: 'jpg');
+        $name = 'klinik_'.$klinik->id.'_'.time().'.'.$ext;
         $publicRelative = 'uploads/klinik/'.$name;
         $dest = public_path($publicRelative);
         $dir = dirname($dest);

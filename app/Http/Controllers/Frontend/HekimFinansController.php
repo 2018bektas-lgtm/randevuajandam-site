@@ -439,7 +439,7 @@ class HekimFinansController extends Controller
 
         if ($request->hasFile('belge')) {
             $file = $request->file('belge');
-            $ext = strtolower($file->getClientOriginalExtension() ?: 'bin');
+            $ext = strtolower($file->extension() ?: $file->getClientOriginalExtension() ?: 'bin');
             if (! in_array($ext, ['jpeg', 'jpg', 'png', 'pdf'], true)) {
                 return back()->withErrors(['belge' => 'Geçersiz belge formatı.'])->withInput();
             }
