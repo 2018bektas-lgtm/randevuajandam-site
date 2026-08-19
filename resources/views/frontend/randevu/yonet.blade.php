@@ -53,17 +53,14 @@
             </dl>
 
             <div class="mt-8 space-y-3">
-                @if(($randevu->gorusme_tipi ?? '') === 'online' && $randevu->durum === 'onaylandi' && $randevu->meeting_join_token)
-                    <a href="{{ route('frontend.gorusme.join', $randevu->meeting_join_token) }}"
+                @if(($randevu->gorusme_tipi ?? '') === 'online' && $randevu->durum === 'onaylandi' && $randevu->meeting_url)
+                    <a href="{{ $randevu->meeting_url }}" target="_blank" rel="noopener noreferrer"
                        class="block w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider text-center shadow-sm">
                         Görüşmeye Katıl
                     </a>
-                    <p class="text-[11px] text-center text-slate-500 -mt-1">
-                        Görüntülü görüşme sitemiz üzerinden açılır (Zoom linki gerekmez). Randevu saatine yakın aktif olur.
-                    </p>
-                @elseif(($randevu->gorusme_tipi ?? '') === 'online' && $randevu->durum === 'beklemede')
+                @elseif(($randevu->gorusme_tipi ?? '') === 'online')
                     <div class="p-3 rounded-xl bg-sky-50 border border-sky-100 text-xs text-sky-900 text-center">
-                        Online görüşme odası, hekim onayından sonra hazırlanacaktır.
+                        Online görüşme linki hekiminiz tarafından paylaşılacaktır.
                     </div>
                 @endif
 

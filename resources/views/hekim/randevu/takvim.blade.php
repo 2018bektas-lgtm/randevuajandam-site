@@ -375,17 +375,6 @@
                 </a>
             </div>
 
-            <!-- Hekim Notu Section -->
-            @php $hastaNotAcikDetail = $doktor->aktifPaket()?->hasFeature('hasta_not_dosya'); @endphp
-            <div class="border-t border-[#E5E7EB] pt-4 space-y-2">
-                <label class="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider font-display">
-                    Hekim Notu / Takip Notları
-                    @if(!$hastaNotAcikDetail) <span class="text-amber-700 normal-case">(paket)</span> @endif
-                </label>
-                <textarea id="detailHekimNotuInput" @if(!$hastaNotAcikDetail) disabled @endif
-                    class="w-full text-xs p-3.5 border border-[#E5E7EB] rounded-xl focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none transition-colors disabled:bg-slate-50 disabled:text-slate-400"
-                    rows="3" placeholder="{{ $hastaNotAcikDetail ? 'Randevuya dair takip notlarınızı buraya yazabilirsiniz...' : 'Not için paket yükseltin' }}"></textarea>
-            </div>
         </div>
         <!-- Modal Footer -->
         <div class="px-6 py-4 bg-slate-50 border-t border-[#E5E7EB] flex flex-wrap items-center justify-between gap-3">
@@ -414,9 +403,6 @@
                         </button>
                     </div>
                 </div>
-                <button onclick="saveHekimNotuOnly()" class="px-4 py-2.5 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white text-xs font-bold font-display cursor-pointer transition-all shadow-md shadow-orange-500/10">
-                    💾 Notu Kaydet
-                </button>
                 <button onclick="closeDetailModal()" class="px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#6B7280] text-xs font-bold font-display cursor-pointer transition-all">
                     Kapat
                 </button>
@@ -485,7 +471,6 @@
                 @php
                     $onlineGorusmeAcik = $doktor->aktifPaket()?->hasFeature('online_gorusme');
                     $seriRandevuAcik = $doktor->aktifPaket()?->hasFeature('seri_randevu');
-                    $hastaNotAcik = $doktor->aktifPaket()?->hasFeature('hasta_not_dosya');
                 @endphp
                 @if($onlineGorusmeAcik)
                 <div>
@@ -531,14 +516,10 @@
                 <!-- Açıklama / Not -->
                 <div>
                     <label class="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider font-display mb-1.5">
-                        Randevu Notu / Açıklama
-                        @if(!$hastaNotAcik) <span class="text-amber-700 normal-case font-semibold">(paket özelliği)</span> @endif
+                        Randevu Notu
+                        <span class="text-[9px] text-gray-500 normal-case font-normal">(organizasyonel — tıbbi bilgi girmeyiniz)</span>
                     </label>
-                    @if($hastaNotAcik)
-                        <textarea name="aciklama" id="formAciklamaInput" class="w-full text-xs p-3.5 border border-[#E5E7EB] rounded-xl focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none" rows="3" placeholder="Randevu ile ilgili doktor notları..."></textarea>
-                    @else
-                        <textarea id="formAciklamaInput" disabled class="w-full text-xs p-3.5 border border-[#E5E7EB] rounded-xl bg-slate-50 text-slate-400" rows="2" placeholder="Not yazmak için paket yükseltin..."></textarea>
-                    @endif
+                    <textarea name="aciklama" id="formAciklamaInput" class="w-full text-xs p-3.5 border border-[#E5E7EB] rounded-xl focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none" rows="3" placeholder="Randevu ile ilgili organizasyonel notlar..."></textarea>
                 </div>
             </div>
             <!-- Modal Footer -->
@@ -971,7 +952,6 @@
         document.getElementById('detailTarih').innerText = dateStr;
         document.getElementById('detailSaat').innerText = timeStr;
         document.getElementById('detailDanisanNot').innerText = randevu.not || 'Not bırakılmamış.';
-        document.getElementById('detailHekimNotuInput').value = randevu.hekim_notu || '';
 
         var durum = props.durum;
         var badge = document.getElementById('detailDurumBadge');
@@ -1005,20 +985,20 @@
         }
         var joinBox = document.getElementById('detailOnlineJoinBox');
         var joinLink = document.getElementById('detailJoinLink');
-        var randevuId = event.id ? String(event.id).replace('randevu_', '') : null;
-        var hekimJoinUrl = randevuId ? ('{{ url('/hekim/gorusme') }}/' + randevuId) : null;
-        var joinUrl = hekimJoinUrl || props.platform_join_url || null;
+        var joinUrl = props.meeting_url || null;
         if (joinBox && joinLink) {
             joinLink.classList.remove('opacity-50', 'pointer-events-none');
             joinLink.textContent = 'Görüşmeye Katıl →';
             if (gorusmeTipi === 'online' && durum === 'onaylandi' && joinUrl) {
                 joinBox.classList.remove('hidden');
                 joinLink.href = joinUrl;
-            } else if (gorusmeTipi === 'online' && durum === 'beklemede') {
+                joinLink.target = '_blank';
+                joinLink.rel = 'noopener noreferrer';
+            } else if (gorusmeTipi === 'online') {
                 joinBox.classList.remove('hidden');
                 joinLink.href = '#';
                 joinLink.classList.add('opacity-50', 'pointer-events-none');
-                joinLink.textContent = 'Onay sonrası katılım linki oluşur';
+                joinLink.textContent = 'Görüşme linki henüz eklenmedi';
             } else {
                 joinBox.classList.add('hidden');
             }
@@ -1052,7 +1032,6 @@
     function updateStatus(newStatus) {
         if (!currentEvent) return;
         var appointmentId = currentEvent.id.replace('randevu_', '');
-        var hekimNotu = document.getElementById('detailHekimNotuInput').value;
 
         fetch(`/hekim/randevular/${appointmentId}/durum`, {
             method: 'POST',
@@ -1063,8 +1042,7 @@
                 'Accept': 'application/json'
             },
             body: JSON.stringify({
-                durum: newStatus,
-                hekim_notu: hekimNotu
+                durum: newStatus
             })
         })
         .then(res => {
@@ -1077,43 +1055,6 @@
         })
         .then(data => {
             toastAc(data.message, 'basarili');
-            closeDetailModal();
-            calendar.refetchEvents();
-        })
-        .catch(err => {
-            mesajModalAc(err.message || 'Bir hata oluştu.', 'hata');
-        });
-    }
-
-    function saveHekimNotuOnly() {
-        if (!currentEvent) return;
-        var appointmentId = currentEvent.id.replace('randevu_', '');
-        var hekimNotu = document.getElementById('detailHekimNotuInput').value;
-        var props = currentEvent.extendedProps;
-
-        fetch(`/hekim/randevular/${appointmentId}/durum`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                durum: props.durum,
-                hekim_notu: hekimNotu
-            })
-        })
-        .then(res => {
-            if (!res.ok) {
-                return res.json().then(data => {
-                    throw new Error(data.message || 'Not kaydedilemedi.');
-                });
-            }
-            return res.json();
-        })
-        .then(data => {
-            toastAc('Hekim notu başarıyla güncellendi.', 'basarili');
             closeDetailModal();
             calendar.refetchEvents();
         })

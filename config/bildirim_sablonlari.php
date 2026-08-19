@@ -2,7 +2,7 @@
 
 /**
  * Bildirim metin şablonları (e-posta konu / SMS).
- * Yer tutucular: {hasta}, {doktor}, {tarih}, {saat}, {hizmet}, {vakit}, {hekim_notu},
+ * Yer tutucular: {hasta}, {doktor}, {tarih}, {saat}, {hizmet}, {vakit},
  * {gorusme_tipi}, {gorusme_linki}, {gorusme_notu}
  *
  * İleride yönetim panelinden DB'ye taşınabilir; şimdilik config tek kaynak.

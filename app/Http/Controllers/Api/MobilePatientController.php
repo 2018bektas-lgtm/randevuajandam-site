@@ -15,7 +15,6 @@ use App\Models\Klinik;
 use App\Models\Randevu;
 use App\Models\Yorum;
 use App\Services\AppointmentBookingService;
-use App\Services\MeetingRoomService;
 use App\Services\RecaptchaService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -54,13 +53,13 @@ class MobilePatientController extends Controller
         }
 
         RateLimiter::clear($key);
-        $token = HastaApiToken::issue($hasta, $data['device'] ?? null);
+        $issued = HastaApiToken::issue($hasta, $data['device'] ?? null);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'token' => $token->token,
-                'expires_at' => $token->expires_at?->toIso8601String(),
+                'token' => $issued['plain'],
+                'expires_at' => $issued['model']->expires_at?->toIso8601String(),
                 'hasta' => $this->hastaPayload($hasta),
             ],
         ]);
@@ -86,14 +85,14 @@ class MobilePatientController extends Controller
             'aktif_mi' => true,
         ]);
 
-        $token = HastaApiToken::issue($hasta, $data['device'] ?? null);
+        $issued = HastaApiToken::issue($hasta, $data['device'] ?? null);
 
         return response()->json([
             'success' => true,
             'message' => 'Üyelik oluşturuldu.',
             'data' => [
-                'token' => $token->token,
-                'expires_at' => $token->expires_at?->toIso8601String(),
+                'token' => $issued['plain'],
+                'expires_at' => $issued['model']->expires_at?->toIso8601String(),
                 'hasta' => $this->hastaPayload($hasta),
             ],
         ], 201);
@@ -770,19 +769,7 @@ class MobilePatientController extends Controller
 
     protected function randevuPayload(Randevu $r): array
     {
-        $meet = app(MeetingRoomService::class);
-        $join = null;
-        $canJoin = false;
-        if (($r->gorusme_tipi ?? '') === 'online' && $r->durum === 'onaylandi') {
-            try {
-                $meet->ensureRoom($r);
-                $r->refresh();
-                $join = $meet->platformJoinUrl($r);
-                $canJoin = $meet->canJoin($r);
-            } catch (\Throwable) {
-                //
-            }
-        }
+        $isOnline = ($r->gorusme_tipi ?? 'yuz_yuze') === 'online';
 
         return [
             'id' => $r->id,
@@ -791,8 +778,7 @@ class MobilePatientController extends Controller
             'durum' => $r->durum,
             'gorusme_tipi' => $r->gorusme_tipi ?? 'yuz_yuze',
             'not' => $r->not,
-            'can_join' => $canJoin,
-            'platform_join_url' => $join,
+            'meeting_url' => ($isOnline && $r->durum === 'onaylandi') ? ($r->meeting_url ?: null) : null,
             'doktor' => $r->doktor ? [
                 'id' => $r->doktor->id,
                 'ad_soyad' => $r->doktor->ad_soyad,

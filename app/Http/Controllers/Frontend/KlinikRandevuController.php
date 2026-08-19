@@ -93,8 +93,8 @@ class KlinikRandevuController extends Controller
                     'ucret' => '₺' . number_format($randevu->ucret ?? 0, 2, ',', '.'),
                     'durum' => $durumText,
                     'gorusme_tipi' => $randevu->gorusme_tipi ?? 'yuz_yuze',
-                    'platform_join_url' => ($randevu->isOnline() && $randevu->durum === 'onaylandi')
-                        ? $randevu->platformJoinUrl()
+                    'meeting_url' => ($randevu->isOnline() && $randevu->durum === 'onaylandi')
+                        ? ($randevu->meeting_url ?: null)
                         : null,
                 ],
             ];

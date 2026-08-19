@@ -28,13 +28,9 @@ class Randevu extends Model
         'not',
         'durum',
         'gorusme_tipi',
-        'meeting_provider',
-        'meeting_room_id',
         'meeting_url',
-        'meeting_join_token',
         'meeting_baslangic_at',
         'meeting_bitis_at',
-        'hekim_notu',
         'yonetim_token',
         'hatirlatma_1gun_gonderildi',
         'hatirlatma_2saat_gonderildi',
@@ -42,9 +38,6 @@ class Randevu extends Model
 
     protected $hidden = [
         'yonetim_token',
-        'meeting_join_token',
-        'meeting_url',
-        'meeting_room_id',
     ];
 
     protected static function booted(): void
@@ -73,13 +66,6 @@ class Randevu extends Model
 
             // Eğer ilk oluşturulduğunda onaylı ise webhook gönder
             if ($randevu->durum === 'onaylandi') {
-                if ($randevu->isOnline()) {
-                    try {
-                        app(\App\Services\MeetingRoomService::class)->ensureRoom($randevu);
-                    } catch (\Throwable) {
-                        // oda hatası randevuyu bozmasın
-                    }
-                }
                 \App\Jobs\SendWebhookJob::dispatch(
                     'appointment.approved',
                     $randevu->toArray(),
@@ -95,13 +81,6 @@ class Randevu extends Model
                 $event = null;
                 if ($randevu->durum === 'onaylandi') {
                     $event = 'appointment.approved';
-                    if ($randevu->isOnline()) {
-                        try {
-                            app(\App\Services\MeetingRoomService::class)->ensureRoom($randevu);
-                        } catch (\Throwable) {
-                            //
-                        }
-                    }
                 } elseif ($randevu->durum === 'iptal') {
                     $event = 'appointment.cancelled';
                 }
@@ -135,21 +114,6 @@ class Randevu extends Model
     public function isOnline(): bool
     {
         return ($this->gorusme_tipi ?? 'yuz_yuze') === 'online';
-    }
-
-    public function hasMeetingRoom(): bool
-    {
-        return filled($this->meeting_room_id) && filled($this->meeting_join_token);
-    }
-
-    public function canJoinMeeting(?\Carbon\Carbon $now = null): bool
-    {
-        return app(\App\Services\MeetingRoomService::class)->canJoin($this, $now);
-    }
-
-    public function platformJoinUrl(): ?string
-    {
-        return app(\App\Services\MeetingRoomService::class)->platformJoinUrl($this);
     }
 
     public function doktor(): BelongsTo

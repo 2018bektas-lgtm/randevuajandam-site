@@ -75,26 +75,6 @@ class PaketYetkiTamSetTest extends TestCase
         $this->assertNotEquals(403, $response->status());
     }
 
-    public function test_onam_index_requires_feature(): void
-    {
-        $paket = $this->makePaketWithFeatures(['profil_sayfasi']);
-        $doktor = $this->makeDoktor($paket);
-
-        $this->actingAs($doktor, 'doktor')
-            ->get(route('hekim.onam.index'))
-            ->assertRedirect(route('frontend.hekim.paket_sec', ['degistir' => 1]));
-    }
-
-    public function test_onam_index_ok_with_feature(): void
-    {
-        $paket = $this->makePaketWithFeatures(['onam_formu', 'profil_sayfasi']);
-        $doktor = $this->makeDoktor($paket);
-
-        $this->actingAs($doktor, 'doktor')
-            ->get(route('hekim.onam.index'))
-            ->assertOk();
-    }
-
     public function test_vitrin_helpers_respect_features(): void
     {
         $paket = $this->makePaketWithFeatures(['profil_sayfasi', 'iletisim_profilde', 'yorum_gorunur']);

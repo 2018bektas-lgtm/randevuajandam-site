@@ -18,7 +18,6 @@
     $hasWebSitesi = $has('web_sitesi');
     $hasEgitimler = $has('egitimler');
     $hasSmsHatirlatma = $has('sms_hatirlatma');
-    $hasOnam = $has('onam_formu');
     $paketYukseltUrl = route('frontend.hekim.paket_sec', ['degistir' => 1]);
 
     $ysbDash = [
@@ -38,7 +37,6 @@
                 ['href' => $hasTalepler ? route('hekim.randevu.talepler') : $paketYukseltUrl, 'match' => 'hekim.randevu.talepler', 'label' => $hasTaleplerYonet ? 'Randevu Talepleri' : 'Randevu Talepleri (salt görüntüle)', 'locked' => ! $hasTalepler],
                 ['href' => $hasBekleme ? route('hekim.randevu.bekleme-listesi') : $paketYukseltUrl, 'match' => 'hekim.randevu.bekleme-listesi*', 'label' => 'Bekleme Listesi', 'locked' => ! $hasBekleme],
                 ['href' => $hasHastalar ? route('hekim.randevu.hastalar') : $paketYukseltUrl, 'match' => 'hekim.randevu.hastalar*', 'label' => 'Hasta Kayitlari', 'locked' => ! $hasHastalar],
-                ['href' => $hasOnam ? route('hekim.onam.index') : $paketYukseltUrl, 'match' => 'hekim.onam.*', 'label' => 'Onam Formlari', 'locked' => ! $hasOnam],
                 ['href' => $hasTakvim ? route('hekim.randevu.ayarlar') : $paketYukseltUrl, 'match' => 'hekim.randevu.ayarlar', 'label' => 'Randevu Ayarlari', 'locked' => ! $hasTakvim],
             ],
         ],

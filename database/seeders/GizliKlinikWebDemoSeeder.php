@@ -518,7 +518,6 @@ class GizliKlinikWebDemoSeeder extends Seeder
                     'not' => 'Demo hasta randevusu #'.($i + 1),
                     'durum' => 'tamamlandi',
                     'gorusme_tipi' => $online ? 'online' : 'yuz_yuze',
-                    'hekim_notu' => 'Muayene tamamlandı. Takip planlandı.',
                 ]);
             });
             $randevuSay++;
@@ -597,7 +596,6 @@ class GizliKlinikWebDemoSeeder extends Seeder
                     'not' => $g['not'],
                     'durum' => $g['durum'],
                     'gorusme_tipi' => $online ? 'online' : 'yuz_yuze',
-                    'hekim_notu' => $g['durum'] === 'iptal' ? 'Demo iptal kaydı' : null,
                 ]);
                 $randevuSay++;
             });

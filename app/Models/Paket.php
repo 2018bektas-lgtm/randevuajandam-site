@@ -234,7 +234,7 @@ class Paket extends Model
             'online_takvim', 'randevu_talepleri', 'bekleme_listesi', 'hasta_kartlari',
             'email_bildirim', 'sms_hatirlatma', 'finans', 'hasta_bakiyeleri',
             'web_sitesi', 'klinik_web_sitesi', 'online_gorusme', 'blog',
-            'galeri', 'egitimler', 'onam_formu', 'finans_rapor', 'destek_oncelikli',
+            'galeri', 'egitimler', 'finans_rapor', 'destek_oncelikli',
         ];
 
         $byKod = collect();

@@ -334,16 +334,6 @@ class Doktor extends Authenticatable
         return $this->hasMany(DoktorGaleri::class, 'doktor_id')->orderBy('sira');
     }
 
-    public function onamFormlari(): HasMany
-    {
-        return $this->hasMany(OnamFormu::class, 'doktor_id');
-    }
-
-    public function hastaDosyalar(): HasMany
-    {
-        return $this->hasMany(HastaDosya::class, 'doktor_id');
-    }
-
     /** Destek SLA / satış vaadi (operasyonel bayrak). */
     public function hasDestekEmail(): bool
     {

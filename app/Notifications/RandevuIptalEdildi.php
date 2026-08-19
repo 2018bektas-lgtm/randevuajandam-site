@@ -130,10 +130,6 @@ class RandevuIptalEdildi extends Notification implements ShouldQueue
                 ->line('📅 Tarih: '.$vars['tarih'])
                 ->line('⏰ Saat: '.$vars['saat'])
                 ->line('🏥 Hizmet: '.$vars['hizmet']);
-
-            if (! empty($this->randevu->hekim_notu)) {
-                $mail->line('💬 Hekim Notu: '.$this->randevu->hekim_notu);
-            }
         } else {
             $mail->subject($s['mail_subject'])
                 ->greeting('Sayın '.$vars['doktor'].',')

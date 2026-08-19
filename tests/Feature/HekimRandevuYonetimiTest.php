@@ -131,14 +131,12 @@ class HekimRandevuYonetimiTest extends TestCase
         $response = $this->actingAs($this->doktor, 'doktor')
             ->post(route('hekim.randevu.durum-guncelle', $randevu->id), [
                 'durum' => 'onaylandi',
-                'hekim_notu' => 'Randevunuz onaylanmistir.',
             ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('randevular', [
             'id' => $randevu->id,
             'durum' => 'onaylandi',
-            'hekim_notu' => 'Randevunuz onaylanmistir.',
         ]);
     }
 
@@ -164,14 +162,12 @@ class HekimRandevuYonetimiTest extends TestCase
         $response = $this->actingAs($this->doktor, 'doktor')
             ->post(route('hekim.randevu.durum-guncelle', $randevu->id), [
                 'durum' => 'iptal',
-                'hekim_notu' => 'O tarihte ameliyatta olacagim.',
             ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('randevular', [
             'id' => $randevu->id,
             'durum' => 'iptal',
-            'hekim_notu' => 'O tarihte ameliyatta olacagim.',
         ]);
     }
 

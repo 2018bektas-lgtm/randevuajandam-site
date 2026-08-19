@@ -42,24 +42,13 @@ class BildirimSablonu
                 : (string) $randevu->tarih);
 
         $isOnline = ($randevu->gorusme_tipi ?? 'yuz_yuze') === 'online';
-        $gorusmeLinki = '';
-        if ($isOnline) {
-            try {
-                if (! $randevu->meeting_join_token && $randevu->durum === 'onaylandi') {
-                    app(\App\Services\MeetingRoomService::class)->ensureRoom($randevu);
-                    $randevu->refresh();
-                }
-                $gorusmeLinki = (string) (app(\App\Services\MeetingRoomService::class)->platformJoinUrl($randevu) ?? '');
-            } catch (\Throwable) {
-                $gorusmeLinki = '';
-            }
-        }
+        $gorusmeLinki = $isOnline ? (string) ($randevu->meeting_url ?? '') : '';
 
         $gorusmeNotu = '';
         if ($isOnline) {
             $gorusmeNotu = $gorusmeLinki !== ''
                 ? 'Online gorusme linki: '.$gorusmeLinki
-                : 'Online gorusme (platform); onay ve saat yaklasinca katilim acilir.';
+                : 'Online gorusme; hekiminiz gorusme linkini kisa sure once paylasacaktir.';
         }
 
         return [
@@ -68,7 +57,6 @@ class BildirimSablonu
             'tarih' => (string) $tarih,
             'saat' => substr((string) $randevu->saat, 0, 5),
             'hizmet' => (string) ($randevu->hizmet?->ad ?? 'Genel Muayene'),
-            'hekim_notu' => (string) ($randevu->hekim_notu ?? ''),
             'vakit' => '',
             'gorusme_tipi' => $isOnline ? 'Online' : 'Yuz yuze',
             'gorusme_linki' => $gorusmeLinki,

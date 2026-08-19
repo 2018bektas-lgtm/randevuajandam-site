@@ -176,8 +176,8 @@
                                             <!-- Actions -->
                                             <td class="p-4 text-right">
                                                 <div class="inline-flex flex-col sm:flex-row items-end gap-1.5 justify-end">
-                                                @if(($randevu->gorusme_tipi ?? '') === 'online' && $randevu->durum === 'onaylandi' && $randevu->meeting_join_token)
-                                                    <a href="{{ route('frontend.gorusme.join', $randevu->meeting_join_token) }}"
+                                                @if(($randevu->gorusme_tipi ?? '') === 'online' && $randevu->durum === 'onaylandi' && $randevu->meeting_url)
+                                                    <a href="{{ $randevu->meeting_url }}" target="_blank" rel="noopener noreferrer"
                                                        class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold font-display uppercase text-[9px] tracking-wider rounded-lg transition-colors">
                                                         Katıl
                                                     </a>

@@ -161,11 +161,6 @@ Route::prefix('v1')->group(function () {
             });
             // Durum: talepler onayı controller'da da kontrol edilir
             Route::post('/appointments/{id}/status', [MobileDoctorController::class, 'updateAppointmentStatus'])->whereNumber('id');
-            // Online görüşme — site hekim paneli panel.paket:online_gorusme ile aynı
-            Route::middleware('paket.yetki:online_gorusme')->group(function () {
-                Route::get('/appointments/{id}/meeting', [MobileDoctorController::class, 'meetingSession'])->whereNumber('id');
-                Route::match(['get', 'post'], '/appointments/{id}/meeting/signal', [MobileDoctorController::class, 'meetingSignal'])->whereNumber('id');
-            });
             Route::middleware('paket.yetki:ical_export')->get('/calendar/ical', [MobileDoctorController::class, 'ical']);
             Route::middleware('paket.yetki:randevu_talepleri,randevu_talebi_goruntule')->get('/requests', [MobileDoctorPortalController::class, 'requests']);
             Route::middleware('paket.yetki:hizli_slot')->group(function () {
@@ -180,20 +175,6 @@ Route::prefix('v1')->group(function () {
                 Route::get('/patients/{id}', [MobileDoctorController::class, 'showPatient'])->whereNumber('id');
                 Route::put('/patients/{id}', [MobileDoctorController::class, 'updatePatient'])->whereNumber('id');
                 Route::post('/patients', [MobileDoctorController::class, 'storePatient']);
-                Route::middleware('paket.yetki:hasta_not_dosya')->group(function () {
-                    Route::get('/patients/{id}/files', [MobileDoctorPortalController::class, 'patientFiles'])->whereNumber('id');
-                    Route::post('/patients/{id}/files', [MobileDoctorPortalController::class, 'storePatientFile'])->whereNumber('id');
-                    Route::delete('/patients/files/{id}', [MobileDoctorPortalController::class, 'destroyPatientFile'])->whereNumber('id');
-                });
-            });
-
-            // Onam formları
-            Route::middleware('paket.yetki:onam_formu')->group(function () {
-                Route::get('/consent-forms', [MobileDoctorPortalController::class, 'consentForms']);
-                Route::post('/consent-forms', [MobileDoctorPortalController::class, 'storeConsentForm']);
-                Route::put('/consent-forms/{id}', [MobileDoctorPortalController::class, 'updateConsentForm'])->whereNumber('id');
-                Route::delete('/consent-forms/{id}', [MobileDoctorPortalController::class, 'destroyConsentForm'])->whereNumber('id');
-                Route::post('/consent-forms/sign', [MobileDoctorPortalController::class, 'signConsentForm']);
             });
 
             // Services

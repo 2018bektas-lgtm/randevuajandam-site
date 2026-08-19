@@ -499,7 +499,6 @@ class MobileDoctorController extends Controller
 
         $data = $request->validate([
             'durum' => ['required', 'in:onaylandi,iptal,tamamlandi,beklemede,gelmedi'],
-            'hekim_notu' => ['nullable', 'string', 'max:1000'],
         ], [
             'durum.required' => 'Durum alanı zorunludur.',
             'durum.in' => 'Geçersiz randevu durumu.',
@@ -516,20 +515,9 @@ class MobileDoctorController extends Controller
             ], 403);
         }
 
-        if (array_key_exists('hekim_notu', $data) && filled($data['hekim_notu'])
-            && ! $doktor->hasPaketFeature('hasta_not_dosya')
-        ) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hasta notu mevcut paketinizde yok.',
-                'feature' => 'hasta_not_dosya',
-            ], 403);
-        }
-
         $eskiDurum = $randevu->durum;
         $randevu->update([
             'durum' => $data['durum'],
-            'hekim_notu' => $data['hekim_notu'] ?? $randevu->hekim_notu,
         ]);
 
         if ($eskiDurum !== $data['durum']) {
@@ -577,112 +565,6 @@ class MobileDoctorController extends Controller
         ]);
     }
 
-    /**
-     * Online görüşme oturumu — mobil uygulama içi (WebView / native) için.
-     */
-    public function meetingSession(Request $request, int $id): JsonResponse
-    {
-        /** @var Doktor $doktor */
-        $doktor = $request->attributes->get('auth_doktor');
-        $randevu = $doktor->randevular()->with(['hasta', 'hizmet', 'doktor'])->findOrFail($id);
-
-        if (! method_exists($randevu, 'isOnline') || ! $randevu->isOnline()) {
-            return response()->json(['success' => false, 'message' => 'Bu randevu online görüşme değil.'], 422);
-        }
-        if ($randevu->durum !== 'onaylandi') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Görüşme için randevunun onaylı olması gerekir.',
-                'data' => ['can_join' => false, 'durum' => $randevu->durum],
-            ], 422);
-        }
-
-        $meet = app(\App\Services\MeetingRoomService::class);
-        $randevu = $meet->ensureRoom($randevu);
-        $canJoin = $meet->canJoin($randevu);
-        $window = $meet->joinWindow($randevu);
-
-        $hostPeerId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $randevu->meeting_room_id) ?: ('ra'.$randevu->id);
-        $hostPeerId = substr($hostPeerId, 0, 60);
-        $signalUrl = url('/api/mobile/v1/doctor/appointments/'.$randevu->id.'/meeting/signal');
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'randevu_id' => $randevu->id,
-                'can_join' => $canJoin,
-                'online_mi' => true,
-                'role' => 'hekim',
-                'display_name' => (string) ($doktor->ad_soyad ?? 'Hekim'),
-                'room' => $randevu->meeting_room_id,
-                'host_peer_id' => $hostPeerId,
-                'ice_servers' => $meet->iceServers(),
-                'peerjs' => config('gorusme.peerjs', [
-                    'host' => '0.peerjs.com',
-                    'port' => 443,
-                    'path' => '/',
-                    'secure' => true,
-                    'key' => 'peerjs',
-                ]),
-                'signal_url' => $signalUrl,
-                'window' => $window ? [
-                    'baslangic' => $window[0]->toIso8601String(),
-                    'bitis' => $window[1]->toIso8601String(),
-                ] : null,
-                'hasta_adi' => trim(($randevu->hasta->ad ?? $randevu->ad).' '.($randevu->hasta->soyad ?? $randevu->soyad)),
-                'tarih' => $randevu->tarih instanceof \DateTimeInterface
-                    ? $randevu->tarih->format('Y-m-d')
-                    : (string) $randevu->tarih,
-                'saat' => substr((string) $randevu->saat, 0, 5),
-            ],
-        ]);
-    }
-
-    /**
-     * WebRTC DIY signal (hekim) — native / in-app room uses this instead of website pages.
-     */
-    public function meetingSignal(Request $request, int $id): JsonResponse
-    {
-        /** @var Doktor $doktor */
-        $doktor = $request->attributes->get('auth_doktor');
-        $randevu = $doktor->randevular()->findOrFail($id);
-
-        if (! method_exists($randevu, 'isOnline') || ! $randevu->isOnline()) {
-            return response()->json(['success' => false, 'message' => 'Bu randevu online görüşme değil.'], 422);
-        }
-
-        $meet = app(\App\Services\MeetingRoomService::class);
-        $randevu = $meet->ensureRoom($randevu);
-
-        if (! $meet->canJoin($randevu)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Görüşme penceresi kapalı.',
-                'can_join' => false,
-            ], 403);
-        }
-
-        $roomId = (string) $randevu->meeting_room_id;
-        $role = 'hekim';
-
-        if ($request->isMethod('get')) {
-            return response()->json([
-                'success' => true,
-                'state' => $meet->getSignalState($roomId),
-            ]);
-        }
-
-        $payload = $request->validate([
-            'type' => ['required', 'string', 'in:ping,offer,answer,ice,hangup,reset'],
-            'sdp' => ['nullable', 'string'],
-            'candidate' => ['nullable', 'array'],
-            'name' => ['nullable', 'string', 'max:120'],
-        ]);
-
-        $state = $meet->applySignal($roomId, $role, $payload);
-
-        return response()->json(['success' => true, 'state' => $state]);
-    }
 
     /**
      * Update appointment service / notes (hekim panel update).
@@ -696,8 +578,8 @@ class MobileDoctorController extends Controller
         $data = $request->validate([
             'hizmet_id' => ['sometimes', 'nullable', 'integer', 'exists:hizmetler,id'],
             'aciklama' => ['nullable', 'string', 'max:1000'],
-            'hekim_notu' => ['nullable', 'string', 'max:1000'],
             'gorusme_tipi' => ['nullable', 'in:yuz_yuze,online'],
+            'meeting_url' => ['nullable', 'url', 'max:500'],
         ]);
 
         if (array_key_exists('hizmet_id', $data) && $data['hizmet_id']) {
@@ -708,21 +590,8 @@ class MobileDoctorController extends Controller
             $randevu->hizmet_id = $hizmet->id;
         }
 
-        $needsNote = (array_key_exists('aciklama', $data) && filled($data['aciklama']))
-            || (array_key_exists('hekim_notu', $data) && filled($data['hekim_notu']));
-        if ($needsNote && ! $doktor->hasPaketFeature('hasta_not_dosya')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Randevu / hasta notu mevcut paketinizde yok.',
-                'feature' => 'hasta_not_dosya',
-            ], 403);
-        }
-
         if (array_key_exists('aciklama', $data)) {
             $randevu->not = $data['aciklama'];
-        }
-        if (array_key_exists('hekim_notu', $data)) {
-            $randevu->hekim_notu = $data['hekim_notu'];
         }
         if (! empty($data['gorusme_tipi'])) {
             if ($data['gorusme_tipi'] === 'online' && ! $doktor->hasPaketFeature('online_gorusme')) {
@@ -733,6 +602,9 @@ class MobileDoctorController extends Controller
                 ], 403);
             }
             $randevu->gorusme_tipi = $data['gorusme_tipi'];
+        }
+        if (array_key_exists('meeting_url', $data)) {
+            $randevu->meeting_url = $data['meeting_url'] ?: null;
         }
         $randevu->save();
 
@@ -885,13 +757,6 @@ class MobileDoctorController extends Controller
         ]);
 
         $not = $data['aciklama'] ?? null;
-        if (filled($not) && ! $doktor->hasPaketFeature('hasta_not_dosya')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Randevu notu mevcut paketinizde yok. Paketinizi yükseltin.',
-                'feature' => 'hasta_not_dosya',
-            ], 403);
-        }
 
         $seri = (bool) ($data['seri'] ?? false) || (int) ($data['seri_adet'] ?? 0) > 1;
         if ($seri && ! $doktor->hasPaketFeature('seri_randevu')) {
@@ -2030,7 +1895,6 @@ class MobileDoctorController extends Controller
         $hasta = Hasta::query()->findOrFail($id);
 
         $canTedavi = $doktor->hasPaketFeature('tedavi_gecmisi');
-        $canNot = $doktor->hasPaketFeature('hasta_not_dosya');
         $canFinans = $doktor->hasPaketFeature('hasta_bakiyeleri') || $doktor->hasPaketFeature('finans');
 
         $randevular = $canTedavi
@@ -2041,16 +1905,7 @@ class MobileDoctorController extends Controller
                 ->orderByDesc('saat')
                 ->limit(50)
                 ->get()
-                ->map(function ($r) use ($canNot) {
-                    $payload = $this->appointmentPayload($r);
-                    if (! $canNot) {
-                        $payload['not'] = null;
-                        $payload['hekim_notu'] = null;
-                        $payload['aciklama'] = null;
-                    }
-
-                    return $payload;
-                })
+                ->map(fn ($r) => $this->appointmentPayload($r))
             : [];
 
         $odemeler = collect();
@@ -2081,7 +1936,6 @@ class MobileDoctorController extends Controller
                 'e_posta' => $hasta->e_posta,
                 'randevular' => $randevular,
                 'tedavi_gecmisi_acik' => $canTedavi,
-                'hasta_not_acik' => $canNot,
                 'finans' => $canFinans ? [
                     'toplam_borc' => $toplamBorc,
                     'toplam_odenen' => $toplamOdenen,
@@ -2564,29 +2418,11 @@ class MobileDoctorController extends Controller
             'hizmet_id' => $randevu->hizmet_id,
             'hizmet' => $randevu->hizmet?->ad,
             'not' => $randevu->not,
-            'hekim_notu' => $randevu->hekim_notu,
         ];
 
-        $isOnline = method_exists($randevu, 'isOnline') ? $randevu->isOnline() : ($randevu->gorusme_tipi === 'online');
+        $isOnline = ($randevu->gorusme_tipi ?? 'yuz_yuze') === 'online';
         $payload['online_mi'] = $isOnline;
-        $payload['join_url'] = null;
-        $payload['can_join'] = false;
-
-        if ($detailed && $isOnline && $randevu->durum === 'onaylandi') {
-            try {
-                $meet = app(\App\Services\MeetingRoomService::class);
-                if (! $randevu->meeting_join_token) {
-                    $randevu = $meet->ensureRoom($randevu);
-                }
-                $payload['join_url'] = url('/hekim/gorusme/'.$randevu->id);
-                $payload['join_app_url'] = url('/hekim/gorusme/'.$randevu->id.'/app');
-                $payload['can_join'] = $meet->canJoin($randevu);
-                $payload['platform_join_url'] = $meet->platformJoinUrl($randevu);
-            } catch (\Throwable) {
-                $payload['join_url'] = url('/hekim/gorusme/'.$randevu->id);
-                $payload['join_app_url'] = url('/hekim/gorusme/'.$randevu->id.'/app');
-            }
-        }
+        $payload['meeting_url'] = $isOnline ? ($randevu->meeting_url ?: null) : null;
 
         return $payload;
     }

@@ -135,14 +135,6 @@ Route::post('/egitim-basvuru', [PublicEgitimController::class, 'basvur'])
     ->name('frontend.egitim.basvuru');
 
 // Token ile randevu yönetimi (girişsiz iptal / hesap oluştur / iCal)
-// Platform online görüşme (WebRTC — hesap/Jitsi girişi yok)
-Route::get('/gorusme/{token}', [\App\Http\Controllers\Frontend\GorusmeJoinController::class, 'join'])
-    ->middleware('throttle:60,1')
-    ->name('frontend.gorusme.join');
-Route::match(['get', 'post'], '/gorusme/{token}/signal', [\App\Http\Controllers\Frontend\GorusmeJoinController::class, 'signalByToken'])
-    ->middleware('throttle:120,1')
-    ->name('frontend.gorusme.signal');
-
 Route::get('/randevu-yonet/{token}', [\App\Http\Controllers\Frontend\RandevuYonetimController::class, 'goster'])
     ->name('frontend.randevu.yonet');
 Route::get('/randevu-yonet/{token}/ical', [\App\Http\Controllers\Frontend\RandevuYonetimController::class, 'ical'])
@@ -238,17 +230,6 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
 
     // Doctor Dashboard
     Route::get('/hekim/panel', [HekimController::class, 'panel'])->name('hekim.panel');
-    Route::get('/hekim/gorusme/{id}', [\App\Http\Controllers\Frontend\GorusmeJoinController::class, 'hekimJoin'])
-        ->whereNumber('id')
-        ->name('hekim.gorusme.join');
-    // Mobil uygulama içi WebView (access_token ile, tarayıcıya çıkmadan)
-    Route::get('/hekim/gorusme/{id}/app', [\App\Http\Controllers\Frontend\GorusmeJoinController::class, 'hekimJoinApp'])
-        ->whereNumber('id')
-        ->name('hekim.gorusme.app');
-    Route::match(['get', 'post'], '/hekim/gorusme/{id}/signal', [\App\Http\Controllers\Frontend\GorusmeJoinController::class, 'signalById'])
-        ->whereNumber('id')
-        ->middleware('throttle:120,1')
-        ->name('hekim.gorusme.signal');
 
     // Profile Settings
     Route::get('/hekim/profil', [HekimController::class, 'profilDuzenle'])->name('hekim.profil');
@@ -370,22 +351,6 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
                 ->name('hekim.randevu.hastalar.tedavi-gecmisi')
                 ->whereNumber('hastaId');
         });
-        Route::middleware(['paket.yetki:hasta_not_dosya'])->group(function () {
-            Route::post('/hekim/hastalar/{hastaId}/dosya', [\App\Http\Controllers\Frontend\HekimHastaDosyaController::class, 'store'])
-                ->name('hekim.randevu.hastalar.dosya.store')
-                ->whereNumber('hastaId');
-            Route::delete('/hekim/hastalar/dosya/{id}', [\App\Http\Controllers\Frontend\HekimHastaDosyaController::class, 'destroy'])
-                ->name('hekim.randevu.hastalar.dosya.destroy')
-                ->whereNumber('id');
-        });
-    });
-
-    Route::middleware(['paket.yetki:onam_formu'])->group(function () {
-        Route::get('/hekim/onam-formlari', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'index'])->name('hekim.onam.index');
-        Route::post('/hekim/onam-formlari', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'store'])->name('hekim.onam.store');
-        Route::post('/hekim/onam-formlari/{id}/guncelle', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'update'])->name('hekim.onam.update')->whereNumber('id');
-        Route::delete('/hekim/onam-formlari/{id}', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'destroy'])->name('hekim.onam.destroy')->whereNumber('id');
-        Route::post('/hekim/onam-formlari/imza', [\App\Http\Controllers\Frontend\HekimOnamController::class, 'imzaKaydet'])->name('hekim.onam.imza');
     });
 
     // Danışan yorumları listesi herkese; yanıt yetkisi özellikte

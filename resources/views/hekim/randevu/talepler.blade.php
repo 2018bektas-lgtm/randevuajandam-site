@@ -142,13 +142,7 @@
 
                 <div class="p-4 rounded-xl bg-red-50/50 border border-red-100 text-xs text-red-700">
                     <p><strong>Hasta:</strong> <span id="rHastaAd" class="font-bold"></span></p>
-                    <p class="mt-1">Randevu talebi iptal edilecek ve hastaya bilgilendirme yapılacaktır. Lütfen iptal nedenini aşağıdaki alana yazınız.</p>
-                </div>
-
-                <div class="space-y-1">
-                    <label for="rHekimNotu" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Ret / İptal Gerekçesi</label>
-                    <textarea id="rHekimNotu" name="hekim_notu" rows="3" required placeholder="İptal edilme gerekçesini belirtin (örn: Hekimimiz ameliyattadır)..." 
-                              class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-xs transition-all resize-none"></textarea>
+                    <p class="mt-1">Randevu talebi iptal edilecek ve hastaya bilgilendirme yapılacaktır.</p>
                 </div>
 
                 <div class="pt-4 flex items-center gap-3 border-t border-slate-100">

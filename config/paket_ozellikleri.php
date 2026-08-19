@@ -26,9 +26,7 @@ return [
 
         // ── Hasta ──
         ['kod' => 'hasta_kartlari', 'ad' => 'Hasta / danışan kartları', 'aciklama' => 'Hasta listesi ve temel kart.', 'grup' => 'Hasta', 'sira' => 10, 'vitrin' => true],
-        ['kod' => 'hasta_not_dosya', 'ad' => 'Hasta notu ve dosya yükleme', 'aciklama' => 'Not, görsel, dosya.', 'grup' => 'Hasta', 'sira' => 20, 'vitrin' => true],
-        ['kod' => 'tedavi_gecmisi', 'ad' => 'Tedavi geçmişi ve seans takibi', 'aciklama' => 'Seans / tedavi geçmişi.', 'grup' => 'Hasta', 'sira' => 30, 'vitrin' => true],
-        ['kod' => 'onam_formu', 'ad' => 'Onam formu / dijital form', 'aciklama' => 'Dijital onam ve formlar.', 'grup' => 'Hasta', 'sira' => 40, 'vitrin' => true],
+        ['kod' => 'tedavi_gecmisi', 'ad' => 'Randevu geçmişi', 'aciklama' => 'Geçmiş randevu takibi.', 'grup' => 'Hasta', 'sira' => 30, 'vitrin' => true],
         ['kod' => 'hasta_export', 'ad' => 'Hasta listesi Excel dışa aktarma', 'aciklama' => 'Hasta listesini Excel olarak indir.', 'grup' => 'Hasta', 'sira' => 50, 'vitrin' => true],
 
         // ── Profil ──

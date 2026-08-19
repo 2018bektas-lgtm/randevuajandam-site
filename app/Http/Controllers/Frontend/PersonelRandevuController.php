@@ -118,7 +118,6 @@ class PersonelRandevuController extends Controller
                     'hasta_ad' => $randevu->ad.' '.$randevu->soyad,
                     'hizmet_ad' => $randevu->hizmet?->ad ?? 'Genel Hizmet',
                     'durum' => $randevu->durum,
-                    'hekim_notu' => $randevu->hekim_notu,
                 ],
             ];
         }

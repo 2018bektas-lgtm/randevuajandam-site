@@ -36,7 +36,7 @@ class KlinikSeeder extends Seeder
 
         $hekimProfesyonel = array_merge($hekimBaslangic, [
             'seri_randevu', 'ical_export', 'sms_baslik', 'no_show_mesaj',
-            'hasta_not_dosya', 'tedavi_gecmisi', 'onam_formu', 'hasta_export',
+            'tedavi_gecmisi', 'hasta_export',
             'hakkimda', 'galeri', 'dis_baglanti', 'oncelikli_liste',
             'yorum_davet', 'hasta_bakiyeleri',
             'ai_asistan',

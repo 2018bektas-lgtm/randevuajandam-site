@@ -198,7 +198,6 @@ class HekimRandevuController extends Controller
 
         $request->validate([
             'durum' => 'required|in:onaylandi,iptal,tamamlandi,beklemede,gelmedi',
-            'hekim_notu' => 'nullable|string|max:1000',
         ], [
             'durum.required' => 'Durum alanı zorunludur.',
             'durum.in' => 'Geçersiz randevu durumu.',
@@ -225,25 +224,8 @@ class HekimRandevuController extends Controller
 
         $eskiDurum = $randevu->durum;
 
-        $hekimNotu = $request->hekim_notu;
-        if (filled($hekimNotu) && ! PaketYetki::has($doktor, 'hasta_not_dosya')) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Hasta notu / takip notu mevcut paketinizde yok. Paketinizi yükseltin.',
-                    'upgrade_url' => route('frontend.hekim.paket_sec', ['degistir' => 1]),
-                    'feature' => 'hasta_not_dosya',
-                ], 403);
-            }
-
-            return redirect()
-                ->route('frontend.hekim.paket_sec', ['degistir' => 1])
-                ->with('hata', 'Hasta notu / takip notu mevcut paketinizde yok.');
-        }
-
         $randevu->update([
             'durum' => $request->durum,
-            'hekim_notu' => $hekimNotu,
         ]);
 
         if ($eskiDurum !== $request->durum) {
@@ -422,27 +404,10 @@ class HekimRandevuController extends Controller
             ->orderByDesc('saat')
             ->paginate(30);
 
-        $canNotDosya = \App\Support\PaketYetki::has($doktor, 'hasta_not_dosya');
-        $canOnam = \App\Support\PaketYetki::has($doktor, 'onam_formu');
-        $dosyalar = $canNotDosya
-            ? \App\Models\HastaDosya::where('doktor_id', $doktor->id)->where('hasta_id', $hastaId)->orderByDesc('id')->get()
-            : collect();
-        $onamFormlar = $canOnam
-            ? $doktor->onamFormlari()->where('aktif_mi', true)->orderBy('sira')->get()
-            : collect();
-        $onamImzalar = $canOnam
-            ? \App\Models\OnamImza::where('doktor_id', $doktor->id)->where('hasta_id', $hastaId)->with('form:id,baslik')->orderByDesc('imzalandi_at')->get()
-            : collect();
-
         return view('hekim.randevu.tedavi_gecmisi', compact(
             'doktor',
             'hasta',
-            'randevular',
-            'canNotDosya',
-            'canOnam',
-            'dosyalar',
-            'onamFormlar',
-            'onamImzalar'
+            'randevular'
         ));
     }
 
@@ -847,20 +812,7 @@ class HekimRandevuController extends Controller
             }
 
             $isOnline = $randevu->isOnline();
-            $joinUrl = null;
-            $canJoin = false;
-            if ($isOnline && $randevu->durum === 'onaylandi') {
-                try {
-                    $meet = app(\App\Services\MeetingRoomService::class);
-                    if (! $randevu->meeting_join_token) {
-                        $randevu = $meet->ensureRoom($randevu);
-                    }
-                    $joinUrl = $meet->platformJoinUrl($randevu);
-                    $canJoin = $meet->canJoin($randevu);
-                } catch (\Throwable) {
-                    //
-                }
-            }
+            $joinUrl = ($isOnline && $randevu->durum === 'onaylandi') ? ($randevu->meeting_url ?: null) : null;
 
             $titlePrefix = $isOnline ? '📹 ' : '';
             $events[] = [
@@ -877,10 +829,8 @@ class HekimRandevuController extends Controller
                     'hasta_ad' => $randevu->ad.' '.$randevu->soyad,
                     'hizmet_ad' => $randevu->hizmet?->ad ?? 'Genel Hizmet',
                     'durum' => $randevu->durum,
-                    'hekim_notu' => $randevu->hekim_notu,
                     'gorusme_tipi' => $randevu->gorusme_tipi ?? 'yuz_yuze',
-                    'platform_join_url' => $joinUrl,
-                    'can_join' => $canJoin,
+                    'meeting_url' => $joinUrl,
                 ],
             ];
         }
@@ -1028,14 +978,6 @@ class HekimRandevuController extends Controller
         ]);
 
         $not = $request->aciklama;
-        if (filled($not) && ! PaketYetki::has($doktor, 'hasta_not_dosya')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Randevu notu mevcut paketinizde yok. Paketinizi yükseltin.',
-                'upgrade_url' => route('frontend.hekim.paket_sec', ['degistir' => 1]),
-                'feature' => 'hasta_not_dosya',
-            ], 403);
-        }
 
         $seri = $request->boolean('seri') || (int) $request->input('seri_adet', 0) > 1;
         if ($seri && ! PaketYetki::has($doktor, 'seri_randevu')) {
@@ -1096,6 +1038,7 @@ class HekimRandevuController extends Controller
         $request->validate([
             'hizmet_id' => 'required|exists:hizmetler,id',
             'aciklama' => 'nullable|string|max:1000',
+            'meeting_url' => 'nullable|url|max:500',
         ]);
 
         $hizmet = $doktor->hizmetler()->where('id', $request->hizmet_id)->first();
@@ -1107,19 +1050,15 @@ class HekimRandevuController extends Controller
         }
 
         $not = $request->aciklama;
-        if (filled($not) && $not !== $randevu->not && ! PaketYetki::has($doktor, 'hasta_not_dosya')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Randevu notu mevcut paketinizde yok. Paketinizi yükseltin.',
-                'upgrade_url' => route('frontend.hekim.paket_sec', ['degistir' => 1]),
-                'feature' => 'hasta_not_dosya',
-            ], 403);
-        }
 
-        $randevu->update([
+        $payload = [
             'hizmet_id' => $hizmet->id,
             'not' => $not,
-        ]);
+        ];
+        if ($request->has('meeting_url')) {
+            $payload['meeting_url'] = $request->input('meeting_url') ?: null;
+        }
+        $randevu->update($payload);
 
         return response()->json([
             'success' => true,
