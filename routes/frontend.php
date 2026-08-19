@@ -241,6 +241,12 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     Route::get('/hekim/profil', [HekimController::class, 'profilDuzenle'])->name('hekim.profil');
     Route::post('/hekim/profil', [HekimController::class, 'profilGuncelle'])->name('hekim.profil.post');
 
+    // WhatsApp Embedded Signup — bireysel hekim (klinik olmayan)
+    Route::post('/hekim/whatsapp/baglan', [\App\Http\Controllers\Frontend\HekimWhatsAppController::class, 'baglan'])
+        ->name('hekim.whatsapp.baglan');
+    Route::post('/hekim/whatsapp/ayir', [\App\Http\Controllers\Frontend\HekimWhatsAppController::class, 'ayir'])
+        ->name('hekim.whatsapp.ayir');
+
     // Üyelik / abonelik iptal (dönem sonuna kadar erişim)
     Route::get('/hekim/uyelik', [\App\Http\Controllers\Frontend\HekimUyelikController::class, 'index'])->name('hekim.uyelik');
     Route::post('/hekim/uyelik/iptal', [\App\Http\Controllers\Frontend\HekimUyelikController::class, 'iptal'])->name('hekim.uyelik.iptal');

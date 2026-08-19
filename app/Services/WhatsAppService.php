@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Doktor;
 use App\Models\Klinik;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -10,12 +11,16 @@ use RuntimeException;
 /**
  * WhatsApp Business Cloud API istemcisi.
  *
- * Klinik parametresi opsiyonel: null verilirse Model A (config('whatsapp.default'))
- * ile bireysel hekim / sistem gonderimi yapar.
+ * Tenant hicligi (null) = Model A (config('whatsapp.default')).
+ * Doktor / Klinik verirse whatsappAyari() ile Model B ozel numarasi kullanilir.
+ * Array de gecilebilir — dogrudan config sozlugu.
  */
 class WhatsAppService
 {
-    public function __construct(private ?Klinik $klinik = null) {}
+    /**
+     * @param  Klinik|Doktor|array|null  $tenant
+     */
+    public function __construct(private Klinik|Doktor|array|null $tenant = null) {}
 
     /**
      * Onayli sablon gonderir.
@@ -107,8 +112,12 @@ class WhatsAppService
      */
     private function ayar(): array
     {
-        if ($this->klinik) {
-            return $this->klinik->whatsappAyari();
+        if ($this->tenant instanceof Doktor || $this->tenant instanceof Klinik) {
+            return $this->tenant->whatsappAyari();
+        }
+
+        if (is_array($this->tenant) && $this->tenant !== []) {
+            return $this->tenant;
         }
 
         return (array) config('whatsapp.default');

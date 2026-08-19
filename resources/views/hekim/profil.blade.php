@@ -340,16 +340,29 @@
 
             <!-- Form Submission Action -->
             <div class="flex justify-end gap-3.5">
-                <a href="{{ route('hekim.panel') }}" 
+                <a href="{{ route('hekim.panel') }}"
                    class="px-6 py-3 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#6B7280] font-bold text-xs uppercase tracking-wider transition-all font-display text-center select-none shadow-sm cursor-pointer">
                     Geri Dön
                 </a>
-                <button type="submit" 
+                <button type="submit"
                         class="px-8 py-3 rounded-xl bg-[#C96A2B] hover:bg-[#B55A20] text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer font-display">
                     Bilgilerimi Güncelle
                 </button>
             </div>
         </form>
+
+        {{-- WhatsApp Business bağlantısı — sadece bireysel hekim (klinik altındaysa klinik ayarından bağlanır) --}}
+        @if(empty($doktor->klinik_id))
+            <div class="mt-8">
+                @include('partials.whatsapp-baglan', [
+                    'whatsappOwner' => 'hekim',
+                    'whatsappConfig' => $doktor->whatsapp_config,
+                    'whatsappBaglandiAt' => $doktor->whatsapp_baglandi_at,
+                    'whatsappBaglanUrl' => route('hekim.whatsapp.baglan'),
+                    'whatsappAyirUrl' => route('hekim.whatsapp.ayir'),
+                ])
+            </div>
+        @endif
     </div>
 
     <script>

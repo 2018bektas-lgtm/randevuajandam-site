@@ -93,6 +93,9 @@ class Doktor extends Authenticatable
         'klinik_aktif_mi',
         'komisyon_orani',
         'klinik_yetkileri',
+        'whatsapp_config',
+        'whatsapp_baglandi_at',
+        'whatsapp_kota',
     ];
 
     protected static function boot()
@@ -190,7 +193,53 @@ class Doktor extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'paytr_utoken' => 'encrypted',
             'paytr_ctoken' => 'encrypted',
+            'whatsapp_config' => 'encrypted:array',
+            'whatsapp_baglandi_at' => 'datetime',
+            'whatsapp_kota' => 'integer',
         ];
+    }
+
+    /**
+     * Bu hekim icin gecerli WhatsApp yapilandirmasi.
+     * Oncelik: 1) kendi Model B baglantisi 2) baglı olduğu klinik 3) config('whatsapp.default')
+     *
+     * @return array{token: ?string, phone_number_id: ?string, waba_id: ?string, display_name?: ?string}
+     */
+    public function whatsappAyari(): array
+    {
+        $ozel = $this->whatsapp_config ?? [];
+        if (! empty($ozel['token']) && ! empty($ozel['phone_number_id'])) {
+            return $ozel;
+        }
+
+        if ($this->klinik_id && $this->klinik) {
+            return $this->klinik->whatsappAyari();
+        }
+
+        return (array) config('whatsapp.default');
+    }
+
+    /**
+     * Ay basindan bu yana basarili gonderim sayisi cikarilarak kalan kota.
+     */
+    public function whatsappKotaKaldi(): int
+    {
+        $kota = (int) ($this->whatsapp_kota ?? 0);
+        $kullanilan = $this->whatsappGonderimler()
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->whereIn('durum', [
+                WhatsappGonderim::DURUM_GONDERILDI,
+                WhatsappGonderim::DURUM_ILETILDI,
+                WhatsappGonderim::DURUM_OKUNDU,
+            ])
+            ->count();
+
+        return max(0, $kota - $kullanilan);
+    }
+
+    public function whatsappGonderimler(): HasMany
+    {
+        return $this->hasMany(WhatsappGonderim::class, 'doktor_id');
     }
 
     /**

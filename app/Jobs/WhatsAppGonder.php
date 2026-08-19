@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Doktor;
 use App\Models\Klinik;
 use App\Models\WhatsappGonderim;
 use App\Services\SmsService;
@@ -52,9 +53,11 @@ class WhatsAppGonder implements ShouldQueue
         }
 
         $klinik = $this->klinikId ? Klinik::find($this->klinikId) : null;
+        $doktor = $this->doktorId ? Doktor::find($this->doktorId) : null;
 
-        // 2) Klinik varsa kota kontrolu
-        if ($klinik && $klinik->whatsappKotaKaldi() <= 0) {
+        // 2) Tenant onceligi: klinik > doktor > sistem. Kota kime aitse ondan dus.
+        $tenant = $klinik ?: $doktor;
+        if ($tenant && $tenant->whatsappKotaKaldi() <= 0) {
             $this->smsFallback('kota_bitti');
             return;
         }
@@ -62,7 +65,7 @@ class WhatsAppGonder implements ShouldQueue
         // 3) Gonderim kaydi (idempotency icin update() ile ilerleriz)
         $kayit = WhatsappGonderim::create([
             'klinik_id' => $klinik?->id,
-            'doktor_id' => $this->doktorId,
+            'doktor_id' => $doktor?->id,
             'hasta_id'  => $this->hastaId,
             'telefon'   => $this->telefon,
             'sablon'    => $this->sablon,
@@ -71,7 +74,7 @@ class WhatsAppGonder implements ShouldQueue
         ]);
 
         try {
-            $cevap = (new WhatsAppService($klinik))
+            $cevap = (new WhatsAppService($tenant))
                 ->sablonGonder($this->telefon, $this->sablon, $this->degiskenler);
 
             $wamid = $cevap['messages'][0]['id'] ?? null;

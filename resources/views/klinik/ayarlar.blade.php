@@ -163,6 +163,15 @@
                     <p class="text-xs text-[#6B7280] py-2">Kayıtlı paket bulunamadı.</p>
                 @endif
             </div>
+
+            {{-- WhatsApp Business bağlantısı --}}
+            @include('partials.whatsapp-baglan', [
+                'whatsappOwner' => 'klinik',
+                'whatsappConfig' => $klinik->whatsapp_config,
+                'whatsappBaglandiAt' => $klinik->whatsapp_baglandi_at,
+                'whatsappBaglanUrl' => route('hekim.klinik.whatsapp.baglan'),
+                'whatsappAyirUrl' => route('hekim.klinik.whatsapp.ayir'),
+            ])
         </div>
     </div>
 
