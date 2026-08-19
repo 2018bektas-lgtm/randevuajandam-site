@@ -65,6 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/paytr/notify',
             'api/mobile/*',
             'api/site/*',
+            'api/whatsapp/webhook',
             'odeme/paytr/3d/ok',
             'odeme/paytr/3d/fail',
         ]);

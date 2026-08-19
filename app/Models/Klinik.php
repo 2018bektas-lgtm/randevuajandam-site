@@ -59,6 +59,9 @@ class Klinik extends Model
         'garanti_bitis',
         'meta_baslik',
         'meta_aciklama',
+        'whatsapp_config',
+        'whatsapp_baglandi_at',
+        'whatsapp_kota',
     ];
 
     protected function casts(): array
@@ -84,7 +87,50 @@ class Klinik extends Model
             'boylam' => 'float',
             'paytr_utoken' => 'encrypted',
             'paytr_ctoken' => 'encrypted',
+            'whatsapp_config' => 'encrypted:array',
+            'whatsapp_baglandi_at' => 'datetime',
+            'whatsapp_kota' => 'integer',
         ];
+    }
+
+    /**
+     * Bu klinik icin gecerli WhatsApp yapilandirmasi.
+     * Model B ile kendi numarasini bagladiysa oradan, yoksa sistem varsayilanindan.
+     *
+     * @return array{token: ?string, phone_number_id: ?string, waba_id: ?string, display_name?: ?string}
+     */
+    public function whatsappAyari(): array
+    {
+        $config = $this->whatsapp_config ?? [];
+
+        if (! empty($config['token']) && ! empty($config['phone_number_id'])) {
+            return $config;
+        }
+
+        return (array) config('whatsapp.default');
+    }
+
+    /**
+     * Ay basindan bu yana basarili gonderim sayisi cikarilarak kalan kota.
+     */
+    public function whatsappKotaKaldi(): int
+    {
+        $kota = (int) ($this->whatsapp_kota ?? 0);
+        $kullanilan = $this->whatsappGonderimler()
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->whereIn('durum', [
+                WhatsappGonderim::DURUM_GONDERILDI,
+                WhatsappGonderim::DURUM_ILETILDI,
+                WhatsappGonderim::DURUM_OKUNDU,
+            ])
+            ->count();
+
+        return max(0, $kota - $kullanilan);
+    }
+
+    public function whatsappGonderimler(): HasMany
+    {
+        return $this->hasMany(WhatsappGonderim::class, 'klinik_id');
     }
 
     /** Ana site vitrininde listelenir mi? */

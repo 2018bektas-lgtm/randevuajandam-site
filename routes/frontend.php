@@ -39,6 +39,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// WhatsApp Business webhook (Meta). CSRF muafiyeti bootstrap/app.php'de.
+Route::get('/api/whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'verify'])
+    ->name('api.whatsapp.webhook.verify');
+Route::post('/api/whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'handle'])
+    ->name('api.whatsapp.webhook.handle');
+
 // Password Reset Routes
 Route::get('/sifremi-unuttum', [\App\Http\Controllers\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('/sifremi-unuttum', [\App\Http\Controllers\ForgotPasswordController::class, 'sendResetLinkEmail'])
@@ -514,6 +520,11 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
         Route::middleware(['klinik.yetki:klinik_ayarlari'])->group(function () {
             Route::get('/hekim/klinik/ayarlar', [KlinikController::class, 'ayarlar'])->name('hekim.klinik.ayarlar');
             Route::post('/hekim/klinik/ayarlar', [KlinikController::class, 'ayarlarGuncelle'])->name('hekim.klinik.ayarlar.post');
+            // WhatsApp Embedded Signup (Model B) — Tech Provider hazir olduktan sonra
+            Route::post('/hekim/klinik/whatsapp/baglan', [\App\Http\Controllers\Frontend\KlinikWhatsAppController::class, 'baglan'])
+                ->name('hekim.klinik.whatsapp.baglan');
+            Route::post('/hekim/klinik/whatsapp/ayir', [\App\Http\Controllers\Frontend\KlinikWhatsAppController::class, 'ayir'])
+                ->name('hekim.klinik.whatsapp.ayir');
         });
 
         // Klinik Web Sitesi — route + paket: klinik_web_sitesi (Kurumsal)
