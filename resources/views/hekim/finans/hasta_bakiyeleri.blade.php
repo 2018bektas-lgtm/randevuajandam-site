@@ -53,15 +53,33 @@
     @endif
 
     {{-- FİLTRELER --}}
+    @php
+        $aktifFiltreSayisi = collect(['arama', 'durum', 'min_bakiye', 'max_bakiye'])
+            ->filter(fn ($k) => filled(request($k)))->count();
+    @endphp
     <form method="GET" action="{{ route('hekim.finans.hasta-bakiyeleri') }}" class="mb-5">
         <div class="rounded-2xl bg-white border border-[#E5E7EB] shadow-sm overflow-hidden">
-            <div class="px-5 py-3 border-b border-[#F3F4F6] flex items-center gap-2">
-                <svg class="w-4 h-4 text-[#9CA3AF]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
-                </svg>
-                <span class="text-xs font-bold text-[#4B5563] uppercase tracking-wider">Filtreler</span>
+            <div class="px-5 py-3 border-b border-[#F3F4F6] flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-[#9CA3AF]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
+                    </svg>
+                    <span class="text-xs font-bold text-[#4B5563] uppercase tracking-wider">Filtreler</span>
+                    @if($aktifFiltreSayisi > 0)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#FFF7ED] text-[#C96A2B] text-[10px] font-bold border border-[#FED7AA]">
+                            {{ $aktifFiltreSayisi }} aktif
+                        </span>
+                    @endif
+                </div>
+                @if($aktifFiltreSayisi > 0)
+                    <a href="{{ route('hekim.finans.hasta-bakiyeleri') }}"
+                       class="text-[11px] font-bold text-[#6B7280] hover:text-rose-600 transition-colors inline-flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Temizle
+                    </a>
+                @endif
             </div>
-            <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Ad / Soyad / Telefon</label>
                     <div class="relative">
@@ -81,24 +99,26 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Min. Kalan (₺)</label>
-                    <input type="number" name="min_bakiye" value="{{ request('min_bakiye') }}" min="0" step="0.01" placeholder="0,00"
-                           class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 py-2.5 bg-[#FAFAFA]">
+                    <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Kalan Aralığı (₺)</label>
+                    <div class="flex items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] focus-within:border-[#C96A2B] focus-within:ring focus-within:ring-[#C96A2B]/10 transition col-span-2">
+                        <input type="number" name="min_bakiye" value="{{ request('min_bakiye') }}" min="0" step="0.01" placeholder="Min"
+                               aria-label="Minimum kalan bakiye"
+                               class="flex-1 min-w-0 text-sm border-0 bg-transparent focus:ring-0 p-2.5">
+                        <span class="text-[#D1D5DB] text-xs">—</span>
+                        <input type="number" name="max_bakiye" value="{{ request('max_bakiye') }}" min="0" step="0.01" placeholder="Max"
+                               aria-label="Maksimum kalan bakiye"
+                               class="flex-1 min-w-0 text-sm border-0 bg-transparent focus:ring-0 p-2.5">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Max. Kalan (₺)</label>
-                    <input type="number" name="max_bakiye" value="{{ request('max_bakiye') }}" min="0" step="0.01" placeholder="Sınırsız"
-                           class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 py-2.5 bg-[#FAFAFA]">
+                <div class="flex items-end">
+                    <button type="submit"
+                            class="w-full inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-[#C96A2B] hover:bg-[#b05c24] text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        Filtrele
+                    </button>
                 </div>
-            </div>
-            <div class="px-5 py-3 bg-[#FAFAFA]/50 border-t border-[#F3F4F6] flex items-center justify-end gap-2">
-                <a href="{{ route('hekim.finans.hasta-bakiyeleri') }}"
-                   class="px-4 py-2 text-xs font-bold text-[#6B7280] bg-white hover:bg-[#F3F4F6] border border-[#E5E7EB] rounded-xl transition-colors">
-                    Sıfırla
-                </a>
-                <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-[#C96A2B] hover:bg-[#b05c24] rounded-xl transition-colors">
-                    Filtrele
-                </button>
             </div>
         </div>
     </form>
@@ -152,11 +172,14 @@
                             </td>
                             <td class="px-5 py-3.5 text-right">
                                 <a href="{{ route('hekim.finans.hasta-hesap', $hasta->id) }}"
-                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#E5E7EB] hover:border-[#C96A2B] text-[#4B5563] hover:text-[#C96A2B] text-xs font-bold transition-colors">
+                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFF7ED] border border-[#FED7AA] text-[#C96A2B] hover:bg-[#C96A2B] hover:text-white hover:border-[#C96A2B] text-xs font-bold transition-all">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
                                     </svg>
                                     Cari Hesap
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                                    </svg>
                                 </a>
                             </td>
                         </tr>
