@@ -27,6 +27,9 @@ class UyelikOdeme extends Model
         'yenileme_kaynak_odeme_id',
         'kurulum_verisi',
         'fatura_bilgisi',
+        'fatura_url',
+        'fatura_no',
+        'fatura_kesildi_at',
         'callback_payload',
         'onaylandi_at',
         'onaylayan_yonetici_id',
@@ -40,6 +43,7 @@ class UyelikOdeme extends Model
             'fatura_bilgisi' => 'array',
             'callback_payload' => 'array',
             'onaylandi_at' => 'datetime',
+            'fatura_kesildi_at' => 'datetime',
             'otomatik_yenileme' => 'boolean',
         ];
     }

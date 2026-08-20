@@ -240,6 +240,9 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     // Bildirimler
     Route::get('/hekim/bildirimler', [\App\Http\Controllers\Frontend\HekimBildirimController::class, 'index'])->name('hekim.bildirimler');
 
+    // Faturalarım (paket/üyelik ödemelerinin faturaları)
+    Route::get('/hekim/faturalarim', [\App\Http\Controllers\Frontend\HekimFaturaController::class, 'index'])->name('hekim.faturalarim');
+
     // Profile Settings
     Route::get('/hekim/profil', [HekimController::class, 'profilDuzenle'])->name('hekim.profil');
     Route::post('/hekim/profil', [HekimController::class, 'profilGuncelle'])->name('hekim.profil.post');

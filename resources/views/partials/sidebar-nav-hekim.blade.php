@@ -86,6 +86,7 @@
                 ['href' => $hasWebSitesi ? route('hekim.web-sitesi.kurulum') : $paketYukseltUrl, 'match' => 'hekim.web-sitesi.*', 'label' => 'Kisisel Web Sitem', 'locked' => ! $hasWebSitesi],
                 // Klinik geçişi yalnızca yönetici tarafından yapılabilir — hekim sidebar'dan kaldırıldı
                 ['href' => route('hekim.uyelik'), 'match' => 'hekim.uyelik*', 'label' => 'Uyelik / Abonelik'],
+                ['href' => route('hekim.faturalarim'), 'match' => 'hekim.faturalarim', 'label' => 'Faturalarim'],
                 ['href' => $hasSmsHatirlatma ? route('hekim.ek-urun.sms') : $paketYukseltUrl, 'match' => 'hekim.ek-urun.*', 'label' => 'SMS kontor', 'locked' => ! $hasSmsHatirlatma],
                 ['href' => route('hekim.referans'), 'match' => 'hekim.referans*', 'label' => 'Referans programi'],
                 ['href' => route('hekim.profil'), 'match' => 'hekim.profil', 'label' => 'Profil'],
