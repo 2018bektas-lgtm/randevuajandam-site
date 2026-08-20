@@ -4,106 +4,159 @@
 @section('sayfa_baslik', 'Finansal Yönetim')
 
 @section('icerik')
-    <!-- Finance Navigation Header -->
-    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
-        <div class="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
-            <a href="{{ route('hekim.finans.index') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.index') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">📊 Genel Bakış</a>
-            <a href="{{ route('hekim.finans.gelirler') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.gelirler') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">💵 Gelir Kayıtları</a>
-            <a href="{{ route('hekim.finans.giderler') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.giderler') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">💸 Gider Kayıtları</a>
-            <a href="{{ route('hekim.finans.hasta-bakiyeleri') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.hasta-bakiyeleri') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">👥 Hasta Bakiyeleri</a>
-            <a href="{{ route('hekim.finans.kategoriler') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.kategoriler') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">🏷️ Kategoriler</a>
-        </div>
-        <button onclick="toggleModal('addKategoriModal')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#C96A2B] text-white hover:bg-[#b05c24] transition-all shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Yeni Kategori
-        </button>
-    </div>
+    {{-- FINANS NAV --}}
+    @component('hekim.finans.partials._nav')
+        @slot('aksiyon')
+            <button type="button" onclick="toggleModal('addKategoriModal')"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#C96A2B] hover:bg-[#b05c24] text-white shadow-sm transition-all">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                Yeni Kategori
+            </button>
+        @endslot
+    @endcomponent
 
     @if(session('basarili'))
-        <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold">{{ session('basarili') }}</div>
+        <div class="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold flex items-center gap-2">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{ session('basarili') }}
+        </div>
     @endif
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Gelir Kategorileri -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {{-- GELİR KATEGORİLERİ --}}
         <div class="rounded-2xl bg-white border border-[#E5E7EB] shadow-sm overflow-hidden">
-            <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
-                <h2 class="text-sm font-bold text-[#111827] font-display">Gelir Kategorileri</h2>
-                <span class="ml-auto text-xs text-[#6B7280]">{{ $gelirKategorileri->count() }} kategori</span>
+            <div class="px-6 py-4 border-b border-[#F3F4F6] flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                    </svg>
+                </span>
+                <h2 class="text-base font-bold text-[#111827] font-display flex-1">Gelir Kategorileri</h2>
+                <span class="text-xs font-semibold text-[#6B7280] px-2 py-0.5 rounded-full bg-[#FAFAFA] border border-[#E5E7EB]">
+                    {{ $gelirKategorileri->count() }}
+                </span>
             </div>
-            <div class="divide-y divide-[#E5E7EB]">
+            <div class="divide-y divide-[#F3F4F6]">
                 @forelse($gelirKategorileri as $kategori)
-                    <div class="flex items-center gap-3 px-6 py-3.5">
-                        <span class="w-4 h-4 rounded-full flex-shrink-0 border border-white shadow-sm" style="background-color: {{ $kategori->renk }}"></span>
-                        <span class="flex-1 text-sm font-medium text-[#111827]">{{ $kategori->ad }}</span>
-                        <span class="text-xs px-2 py-0.5 rounded-full {{ $kategori->aktif_mi ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500' }}">
+                    <div class="flex items-center gap-3 px-6 py-3.5 hover:bg-[#FAFAFA]/50 transition-colors">
+                        <span class="w-4 h-4 rounded-full flex-shrink-0 ring-2 ring-white shadow-sm" style="background-color: {{ $kategori->renk }}"></span>
+                        <span class="flex-1 text-sm font-semibold text-[#111827]">{{ $kategori->ad }}</span>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $kategori->aktif_mi ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-[#F3F4F6] text-[#6B7280] border border-[#E5E7EB]' }}">
                             {{ $kategori->aktif_mi ? 'Aktif' : 'Pasif' }}
                         </span>
-                        <div class="flex items-center gap-1">
-                            <button onclick="editKategoriModal({{ $kategori->id }}, '{{ addslashes($kategori->ad) }}', '{{ $kategori->renk }}', '{{ $kategori->tur }}')" class="p-1.5 text-[#6B7280] hover:text-[#C96A2B] transition-colors" title="Düzenle">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+                        <div class="flex items-center gap-0.5">
+                            <button type="button" title="Düzenle"
+                                    onclick="editKategoriModal({{ $kategori->id }}, '{{ addslashes($kategori->ad) }}', '{{ $kategori->renk }}', '{{ $kategori->tur }}')"
+                                    class="p-1.5 text-[#9CA3AF] hover:text-[#C96A2B] hover:bg-[#FFF7ED] rounded-lg transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                                </svg>
                             </button>
                             <form action="{{ route('hekim.finans.kategoriler.toggle', $kategori->id) }}" method="POST" class="inline">
                                 @csrf
-                                <button type="submit" class="p-1.5 text-[#6B7280] hover:text-amber-600 transition-colors" title="{{ $kategori->aktif_mi ? 'Pasife Al' : 'Aktife Al' }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9"/></svg>
+                                <button type="submit" title="{{ $kategori->aktif_mi ? 'Pasife Al' : 'Aktife Al' }}"
+                                        class="p-1.5 text-[#9CA3AF] hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9"/>
+                                    </svg>
                                 </button>
                             </form>
-                            <form action="{{ route('hekim.finans.kategoriler.destroy', $kategori->id) }}" method="POST" onsubmit="return confirm('Bu kategoriyi silmek istediğinize emin misiniz?')" class="inline">
+                            <form action="{{ route('hekim.finans.kategoriler.destroy', $kategori->id) }}" method="POST" class="inline"
+                                  onsubmit="return confirm('Bu kategoriyi silmek istediğinize emin misiniz?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="p-1.5 text-[#6B7280] hover:text-red-600 transition-colors" title="Sil">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <button type="submit" title="Sil"
+                                        class="p-1.5 text-[#9CA3AF] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                                    </svg>
                                 </button>
                             </form>
                         </div>
                     </div>
                 @empty
-                    <div class="px-6 py-8 text-center text-sm text-[#6B7280]">Henüz gelir kategorisi eklenmedi.</div>
+                    <div class="px-6 py-12 text-center">
+                        <div class="w-12 h-12 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-semibold text-[#111827]">Henüz kategori yok</p>
+                        <p class="text-xs text-[#6B7280] mt-1">"Yeni Kategori" ile başlayın.</p>
+                    </div>
                 @endforelse
             </div>
         </div>
 
-        <!-- Gider Kategorileri -->
+        {{-- GİDER KATEGORİLERİ --}}
         <div class="rounded-2xl bg-white border border-[#E5E7EB] shadow-sm overflow-hidden">
-            <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
-                <h2 class="text-sm font-bold text-[#111827] font-display">Gider Kategorileri</h2>
-                <span class="ml-auto text-xs text-[#6B7280]">{{ $giderKategorileri->count() }} kategori</span>
+            <div class="px-6 py-4 border-b border-[#F3F4F6] flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6"/>
+                    </svg>
+                </span>
+                <h2 class="text-base font-bold text-[#111827] font-display flex-1">Gider Kategorileri</h2>
+                <span class="text-xs font-semibold text-[#6B7280] px-2 py-0.5 rounded-full bg-[#FAFAFA] border border-[#E5E7EB]">
+                    {{ $giderKategorileri->count() }}
+                </span>
             </div>
-            <div class="divide-y divide-[#E5E7EB]">
+            <div class="divide-y divide-[#F3F4F6]">
                 @forelse($giderKategorileri as $kategori)
-                    <div class="flex items-center gap-3 px-6 py-3.5">
-                        <span class="w-4 h-4 rounded-full flex-shrink-0 border border-white shadow-sm" style="background-color: {{ $kategori->renk }}"></span>
-                        <span class="flex-1 text-sm font-medium text-[#111827]">{{ $kategori->ad }}</span>
-                        <span class="text-xs px-2 py-0.5 rounded-full {{ $kategori->aktif_mi ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500' }}">
+                    <div class="flex items-center gap-3 px-6 py-3.5 hover:bg-[#FAFAFA]/50 transition-colors">
+                        <span class="w-4 h-4 rounded-full flex-shrink-0 ring-2 ring-white shadow-sm" style="background-color: {{ $kategori->renk }}"></span>
+                        <span class="flex-1 text-sm font-semibold text-[#111827]">{{ $kategori->ad }}</span>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $kategori->aktif_mi ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-[#F3F4F6] text-[#6B7280] border border-[#E5E7EB]' }}">
                             {{ $kategori->aktif_mi ? 'Aktif' : 'Pasif' }}
                         </span>
-                        <div class="flex items-center gap-1">
-                            <button onclick="editKategoriModal({{ $kategori->id }}, '{{ addslashes($kategori->ad) }}', '{{ $kategori->renk }}', '{{ $kategori->tur }}')" class="p-1.5 text-[#6B7280] hover:text-[#C96A2B] transition-colors" title="Düzenle">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+                        <div class="flex items-center gap-0.5">
+                            <button type="button" title="Düzenle"
+                                    onclick="editKategoriModal({{ $kategori->id }}, '{{ addslashes($kategori->ad) }}', '{{ $kategori->renk }}', '{{ $kategori->tur }}')"
+                                    class="p-1.5 text-[#9CA3AF] hover:text-[#C96A2B] hover:bg-[#FFF7ED] rounded-lg transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                                </svg>
                             </button>
                             <form action="{{ route('hekim.finans.kategoriler.toggle', $kategori->id) }}" method="POST" class="inline">
                                 @csrf
-                                <button type="submit" class="p-1.5 text-[#6B7280] hover:text-amber-600 transition-colors" title="{{ $kategori->aktif_mi ? 'Pasife Al' : 'Aktife Al' }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9"/></svg>
+                                <button type="submit" title="{{ $kategori->aktif_mi ? 'Pasife Al' : 'Aktife Al' }}"
+                                        class="p-1.5 text-[#9CA3AF] hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9"/>
+                                    </svg>
                                 </button>
                             </form>
-                            <form action="{{ route('hekim.finans.kategoriler.destroy', $kategori->id) }}" method="POST" onsubmit="return confirm('Bu kategoriyi silmek istediğinize emin misiniz?')" class="inline">
+                            <form action="{{ route('hekim.finans.kategoriler.destroy', $kategori->id) }}" method="POST" class="inline"
+                                  onsubmit="return confirm('Bu kategoriyi silmek istediğinize emin misiniz?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="p-1.5 text-[#6B7280] hover:text-red-600 transition-colors" title="Sil">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <button type="submit" title="Sil"
+                                        class="p-1.5 text-[#9CA3AF] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                                    </svg>
                                 </button>
                             </form>
                         </div>
                     </div>
                 @empty
-                    <div class="px-6 py-8 text-center text-sm text-[#6B7280]">Henüz gider kategorisi eklenmedi.</div>
+                    <div class="px-6 py-12 text-center">
+                        <div class="w-12 h-12 mx-auto rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-semibold text-[#111827]">Henüz kategori yok</p>
+                        <p class="text-xs text-[#6B7280] mt-1">"Yeni Kategori" ile başlayın.</p>
+                    </div>
                 @endforelse
             </div>
         </div>
     </div>
 
-    <!-- Modal: Yeni Kategori -->
+    {{-- Modal: Yeni Kategori --}}
     <div id="addKategoriModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true" onclick="handleModalBackdropClick(event, 'addKategoriModal')">
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
@@ -121,13 +174,14 @@
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Tür</label>
                                 <select name="tur" id="add_tur" class="select2-modal w-full">
-                                    <option value="gelir">💵 Gelir Kategorisi</option>
-                                    <option value="gider">💸 Gider Kategorisi</option>
+                                    <option value="gelir">Gelir Kategorisi</option>
+                                    <option value="gider">Gider Kategorisi</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Kategori Adı</label>
-                                <input type="text" name="ad" required class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]" placeholder="Örn: Muayene Ücreti, Kira...">
+                                <input type="text" name="ad" required
+                                       class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]" placeholder="Örn: Muayene Ücreti, Kira...">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Renk</label>
@@ -147,7 +201,7 @@
         </div>
     </div>
 
-    <!-- Modal: Kategori Düzenle -->
+    {{-- Modal: Kategori Düzenle --}}
     <div id="editKategoriModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true" onclick="handleModalBackdropClick(event, 'editKategoriModal')">
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
@@ -164,7 +218,8 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Kategori Adı</label>
-                                <input type="text" name="ad" id="edit_kategori_ad" required class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
+                                <input type="text" name="ad" id="edit_kategori_ad" required
+                                       class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Renk</label>

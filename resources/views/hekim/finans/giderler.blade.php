@@ -4,37 +4,48 @@
 @section('sayfa_baslik', 'Finansal Yönetim')
 
 @section('icerik')
-    <!-- Finance Navigation Header -->
-    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
-        <div class="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
-            <a href="{{ route('hekim.finans.index') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.index') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">📊 Genel Bakış</a>
-            <a href="{{ route('hekim.finans.gelirler') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.gelirler') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">💵 Gelir Kayıtları</a>
-            <a href="{{ route('hekim.finans.giderler') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.giderler') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">💸 Gider Kayıtları</a>
-            <a href="{{ route('hekim.finans.hasta-bakiyeleri') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.hasta-bakiyeleri') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">👥 Hasta Bakiyeleri</a>
-            <a href="{{ route('hekim.finans.kategoriler') }}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 {{ request()->routeIs('hekim.finans.kategoriler') ? 'bg-[#C96A2B] text-white shadow-sm' : 'bg-[#FAFAFA] text-[#4B5563] hover:bg-[#F3F4F6]' }}">🏷️ Kategoriler</a>
-        </div>
-        <button onclick="openAddGiderModal()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#C96A2B] text-white hover:bg-[#b05c24] transition-all shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Yeni Gider Kaydı
-        </button>
-    </div>
+    {{-- FINANS NAV --}}
+    @component('hekim.finans.partials._nav')
+        @slot('aksiyon')
+            <button type="button" onclick="openAddGiderModal()"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#C96A2B] hover:bg-[#b05c24] text-white shadow-sm transition-all">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                Yeni Gider
+            </button>
+        @endslot
+    @endcomponent
 
     @if(session('basarili'))
-        <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold">{{ session('basarili') }}</div>
+        <div class="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold flex items-center gap-2">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{ session('basarili') }}
+        </div>
     @endif
 
     @if($giderKategorileri->isEmpty())
-        <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-3">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
-            <span>Henüz gider kategorisi eklemediniz. <a href="{{ route('hekim.finans.kategoriler') }}" class="font-bold underline">Kategoriler sayfasından</a> ekleyebilirsiniz.</span>
+        <div class="mb-5 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-start gap-3">
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"/>
+            </svg>
+            <span>Henüz gider kategorisi eklemediniz. <a href="{{ route('hekim.finans.kategoriler') }}" class="font-bold underline">Kategoriler sayfasından</a> ekleyerek başlayın.</span>
         </div>
     @endif
 
-    <!-- Filters -->
-    <div class="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm mb-6">
-        <form method="GET" action="{{ route('hekim.finans.giderler') }}" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+    {{-- FİLTRELER --}}
+    <div class="mb-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-[#F3F4F6] flex items-center gap-2">
+            <svg class="w-4 h-4 text-[#9CA3AF]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
+            </svg>
+            <span class="text-xs font-bold text-[#4B5563] uppercase tracking-wider">Filtreler</span>
+        </div>
+        <form method="GET" action="{{ route('hekim.finans.giderler') }}" class="p-5 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
             <div>
-                <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Kategori</label>
+                <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Kategori</label>
                 <select name="finans_kategori_id" class="select2-filter w-full">
                     <option value="">Tümü</option>
                     @foreach($giderKategorileri as $kat)
@@ -43,71 +54,91 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Başlangıç Tarihi</label>
-                <input type="date" name="tarih_baslangic" value="{{ request('tarih_baslangic') }}" class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
+                <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Başlangıç</label>
+                <input type="date" name="tarih_baslangic" value="{{ request('tarih_baslangic') }}"
+                       class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
             </div>
             <div>
-                <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Bitiş Tarihi</label>
-                <input type="date" name="tarih_bitis" value="{{ request('tarih_bitis') }}" class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
+                <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Bitiş</label>
+                <input type="date" name="tarih_bitis" value="{{ request('tarih_bitis') }}"
+                       class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
             </div>
-            <button type="submit" class="w-full py-2.5 bg-[#C96A2B] text-white text-sm font-semibold rounded-xl hover:bg-[#b05c24] transition-all flex items-center justify-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <button type="submit" class="w-full py-2.5 bg-[#C96A2B] hover:bg-[#b05c24] text-white text-xs font-bold rounded-xl transition-all inline-flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
                 Filtrele
             </button>
         </form>
     </div>
 
-    <!-- Expenses Table -->
-    <div class="rounded-2xl bg-white border border-[#E5E7EB] shadow-sm overflow-hidden mb-6">
+    {{-- TABLO --}}
+    <div class="rounded-2xl bg-white border border-[#E5E7EB] shadow-sm overflow-hidden mb-5">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-[#FAFAFA] border-b border-[#E5E7EB] text-xs font-bold text-[#4B5563] uppercase tracking-wider">
-                        <th class="p-4">Gider Başlığı</th>
-                        <th class="p-4">Kategori</th>
-                        <th class="p-4 text-right">Tutar</th>
-                        <th class="p-4">Tarih</th>
-                        <th class="p-4">Açıklama</th>
-                        <th class="p-4">Belge</th>
-                        <th class="p-4 text-center">İşlemler</th>
+                    <tr class="bg-[#FAFAFA] border-b border-[#E5E7EB] text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">
+                        <th class="px-5 py-3.5">Gider</th>
+                        <th class="px-5 py-3.5">Kategori</th>
+                        <th class="px-5 py-3.5">Tarih</th>
+                        <th class="px-5 py-3.5">Belge</th>
+                        <th class="px-5 py-3.5 text-right">Tutar</th>
+                        <th class="px-5 py-3.5 text-right">İşlem</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-[#E5E7EB] text-sm text-[#111827]">
+                <tbody class="divide-y divide-[#F3F4F6] text-sm text-[#111827]">
                     @forelse($giderler as $gider)
-                        <tr class="hover:bg-[#FAFAFA]/50 transition-colors">
-                            <td class="p-4 font-semibold">{{ $gider->baslik }}</td>
-                            <td class="p-4">
+                        <tr class="hover:bg-[#FAFAFA]/60 transition-colors">
+                            <td class="px-5 py-3.5">
+                                <p class="font-semibold text-[#111827]">{{ $gider->baslik }}</p>
+                                @if($gider->aciklama)
+                                    <p class="text-[11px] text-[#9CA3AF] mt-0.5 max-w-md truncate" title="{{ $gider->aciklama }}">{{ $gider->aciklama }}</p>
+                                @endif
+                            </td>
+                            <td class="px-5 py-3.5">
                                 @if($gider->finansKategori)
-                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style="background-color: {{ $gider->finansKategori->renk }}22; color: {{ $gider->finansKategori->renk }}">
+                                    <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                                          style="background-color: {{ $gider->finansKategori->renk }}18; color: {{ $gider->finansKategori->renk }}">
                                         <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $gider->finansKategori->renk }}"></span>
                                         {{ $gider->finansKategori->ad }}
                                     </span>
                                 @else
-                                    <span class="text-xs text-[#9CA3AF]">Kategorisiz</span>
+                                    <span class="text-[11px] text-[#9CA3AF]">Kategorisiz</span>
                                 @endif
                             </td>
-                            <td class="p-4 text-right font-bold text-rose-600">-{{ number_format($gider->tutar, 2, ',', '.') }} ₺</td>
-                            <td class="p-4 text-[#6B7280]">{{ $gider->tarih->format('d.m.Y') }}</td>
-                            <td class="p-4 text-[#6B7280] max-w-xs truncate" title="{{ $gider->aciklama }}">{{ $gider->aciklama ?? '-' }}</td>
-                            <td class="p-4">
+                            <td class="px-5 py-3.5 text-[#6B7280] whitespace-nowrap">{{ $gider->tarih->format('d.m.Y') }}</td>
+                            <td class="px-5 py-3.5">
                                 @if($gider->belge_yolu)
-                                    <a href="{{ asset($gider->belge_yolu) }}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C96A2B] hover:underline">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                                    <a href="{{ asset($gider->belge_yolu) }}" target="_blank"
+                                       class="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#C96A2B] hover:underline">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                                        </svg>
                                         Görüntüle
                                     </a>
                                 @else
-                                    <span class="text-xs text-[#9CA3AF]">Yok</span>
+                                    <span class="text-[11px] text-[#9CA3AF]">—</span>
                                 @endif
                             </td>
-                            <td class="p-4 text-center">
-                                <div class="flex items-center justify-center gap-1">
-                                    <button onclick="editGiderModal({{ json_encode($gider) }})" class="p-1.5 text-[#6B7280] hover:text-[#C96A2B] transition-colors" title="Düzenle">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+                            <td class="px-5 py-3.5 text-right font-bold text-rose-600 whitespace-nowrap">
+                                -{{ number_format($gider->tutar, 2, ',', '.') }} ₺
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <div class="flex items-center justify-end gap-0.5">
+                                    <button type="button" title="Düzenle"
+                                            onclick="editGiderModal({{ json_encode($gider) }})"
+                                            class="p-1.5 text-[#9CA3AF] hover:text-[#C96A2B] hover:bg-[#FFF7ED] rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                                        </svg>
                                     </button>
-                                    <form action="{{ route('hekim.finans.giderler.destroy', $gider->id) }}" method="POST" onsubmit="return confirm('Bu gider kaydını silmek istediğinize emin misiniz?')" class="inline">
+                                    <form action="{{ route('hekim.finans.giderler.destroy', $gider->id) }}" method="POST" class="inline"
+                                          onsubmit="return confirm('Bu gider kaydını silmek istediğinize emin misiniz?')">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="p-1.5 text-[#6B7280] hover:text-red-600 transition-colors" title="Sil">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        <button type="submit" title="Sil" class="p-1.5 text-[#9CA3AF] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                                            </svg>
                                         </button>
                                     </form>
                                 </div>
@@ -115,7 +146,17 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="p-8 text-center text-sm text-[#6B7280]">Kayıtlı gider bulunamadı.</td>
+                            <td colspan="6" class="px-5 py-16">
+                                <div class="flex flex-col items-center text-center">
+                                    <div class="w-14 h-14 rounded-full bg-[#FAFAFA] text-[#9CA3AF] flex items-center justify-center mb-3">
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M9 12l2.25 2.25L15 9.75M9 8.25v-1.5a2.25 2.25 0 012.25-2.25h1.5a2.25 2.25 0 012.25 2.25v1.5m-6 0h6"/>
+                                        </svg>
+                                    </div>
+                                    <p class="text-sm font-semibold text-[#111827]">Kayıt bulunamadı</p>
+                                    <p class="text-xs text-[#6B7280] mt-1">Filtrelere uygun gider kaydı yok.</p>
+                                </div>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -125,7 +166,7 @@
 
     <div>{{ $giderler->links() }}</div>
 
-    <!-- Modal: Yeni Gider -->
+    {{-- Modal: Yeni Gider --}}
     <div id="addGiderModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true" onclick="handleModalBackdropClick(event, 'addGiderModal')">
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
@@ -142,12 +183,13 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Gider Başlığı</label>
-                                <input type="text" name="baslik" required class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]" placeholder="Örn: Haziran Kirası, Tıbbi Malzeme">
+                                <input type="text" name="baslik" required
+                                       class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]" placeholder="Örn: Haziran Kirası, Tıbbi Malzeme">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Kategori</label>
                                 <select name="finans_kategori_id" id="add_gider_kategori" class="select2-modal w-full">
-                                    <option value="">-- Kategorisiz --</option>
+                                    <option value="">— Kategorisiz —</option>
                                     @foreach($giderKategorileri as $kat)
                                         <option value="{{ $kat->id }}">{{ $kat->ad }}</option>
                                     @endforeach
@@ -156,21 +198,25 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Tutar (₺)</label>
-                                    <input type="number" name="tutar" step="0.01" min="0.01" required class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]" placeholder="0.00">
+                                    <input type="number" name="tutar" step="0.01" min="0.01" required
+                                           class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]" placeholder="0.00">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Gider Tarihi</label>
-                                    <input type="date" name="tarih" value="{{ date('Y-m-d') }}" required class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
+                                    <input type="date" name="tarih" value="{{ date('Y-m-d') }}" required
+                                           class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Fatura / Makbuz</label>
-                                <input type="file" name="belge" accept=".pdf,.png,.jpg,.jpeg" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#FFF7ED] file:text-[#C96A2B] hover:file:bg-amber-100 border border-[#E5E7EB] rounded-xl p-1 bg-[#FAFAFA]">
+                                <input type="file" name="belge" accept=".pdf,.png,.jpg,.jpeg"
+                                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#FFF7ED] file:text-[#C96A2B] hover:file:bg-amber-100 border border-[#E5E7EB] rounded-xl p-1 bg-[#FAFAFA]">
                                 <span class="block text-[10px] text-[#9CA3AF] mt-1">PDF, PNG, JPG — Maks. 4MB</span>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Açıklama</label>
-                                <textarea name="aciklama" rows="2" class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]" placeholder="Opsiyonel not..."></textarea>
+                                <textarea name="aciklama" rows="2"
+                                          class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]" placeholder="Opsiyonel not..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -183,7 +229,7 @@
         </div>
     </div>
 
-    <!-- Modal: Gider Düzenle -->
+    {{-- Modal: Gider Düzenle --}}
     <div id="editGiderModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true" onclick="handleModalBackdropClick(event, 'editGiderModal')">
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
@@ -200,12 +246,13 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Gider Başlığı</label>
-                                <input type="text" name="baslik" id="edit_gider_baslik" required class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
+                                <input type="text" name="baslik" id="edit_gider_baslik" required
+                                       class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Kategori</label>
                                 <select name="finans_kategori_id" id="edit_gider_kategori" class="select2-modal w-full">
-                                    <option value="">-- Kategorisiz --</option>
+                                    <option value="">— Kategorisiz —</option>
                                     @foreach($giderKategorileri as $kat)
                                         <option value="{{ $kat->id }}">{{ $kat->ad }}</option>
                                     @endforeach
@@ -214,16 +261,19 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Tutar (₺)</label>
-                                    <input type="number" name="tutar" id="edit_gider_tutar" step="0.01" min="0.01" required class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
+                                    <input type="number" name="tutar" id="edit_gider_tutar" step="0.01" min="0.01" required
+                                           class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Gider Tarihi</label>
-                                    <input type="date" name="tarih" id="edit_gider_tarih" required class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
+                                    <input type="date" name="tarih" id="edit_gider_tarih" required
+                                           class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Açıklama</label>
-                                <textarea name="aciklama" id="edit_gider_aciklama" rows="2" class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]"></textarea>
+                                <textarea name="aciklama" id="edit_gider_aciklama" rows="2"
+                                          class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]"></textarea>
                             </div>
                         </div>
                     </div>

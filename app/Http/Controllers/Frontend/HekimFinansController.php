@@ -22,9 +22,11 @@ class HekimFinansController extends Controller
         $doktor = Auth::guard('doktor')->user();
 
         $baslangicTarihi = Carbon::now()->startOfMonth();
-        $bitisTarihi = Carbon::now()->endOfMonth();
+        $bitisTarihi     = Carbon::now()->endOfMonth();
+        $oncekiAyBas     = Carbon::now()->subMonthNoOverflow()->startOfMonth();
+        $oncekiAyBit     = Carbon::now()->subMonthNoOverflow()->endOfMonth();
 
-        // 1. Stats Cards
+        // 1. Bu Ay
         $buAyGelir = (float) $doktor->odemeler()
             ->whereBetween('odeme_tarihi', [$baslangicTarihi, $bitisTarihi])
             ->where('durum', '!=', 'iptal')
@@ -36,10 +38,71 @@ class HekimFinansController extends Controller
 
         $buAyNetKar = $buAyGelir - $buAyGider;
 
-        $toplamBorc = (float) $doktor->odemeler()
+        // 1b. Önceki Ay (delta karşılaştırması için)
+        $oncekiAyGelir = (float) $doktor->odemeler()
+            ->whereBetween('odeme_tarihi', [$oncekiAyBas, $oncekiAyBit])
+            ->where('durum', '!=', 'iptal')
+            ->sum('odenen_tutar');
+
+        $oncekiAyGider = (float) $doktor->giderler()
+            ->whereBetween('tarih', [$oncekiAyBas, $oncekiAyBit])
+            ->sum('tutar');
+
+        $oncekiAyNetKar = $oncekiAyGelir - $oncekiAyGider;
+
+        $gelirDeltaYuzde = $oncekiAyGelir > 0
+            ? (($buAyGelir - $oncekiAyGelir) / $oncekiAyGelir) * 100
+            : ($buAyGelir > 0 ? 100 : 0);
+        $giderDeltaYuzde = $oncekiAyGider > 0
+            ? (($buAyGider - $oncekiAyGider) / $oncekiAyGider) * 100
+            : ($buAyGider > 0 ? 100 : 0);
+        $netKarDeltaYuzde = abs($oncekiAyNetKar) > 0
+            ? (($buAyNetKar - $oncekiAyNetKar) / abs($oncekiAyNetKar)) * 100
+            : ($buAyNetKar > 0 ? 100 : ($buAyNetKar < 0 ? -100 : 0));
+
+        // 1c. Tahsilat oranı — bu ay faturalanmış toplam / tahsil edilen
+        $buAyFaturalanan = (float) $doktor->odemeler()
+            ->whereBetween('odeme_tarihi', [$baslangicTarihi, $bitisTarihi])
+            ->where('durum', '!=', 'iptal')
+            ->sum('tutar');
+        $tahsilatOrani = $buAyFaturalanan > 0
+            ? min(100, ($buAyGelir / $buAyFaturalanan) * 100)
+            : 0;
+
+        // 1d. Bekleyen toplam alacak
+        $toplamBorc = (float) ($doktor->odemeler()
             ->whereIn('durum', ['beklemede', 'kismi_odeme'])
             ->selectRaw('SUM(tutar - odenen_tutar) as bakiye')
-            ->value('bakiye') ?? 0.00;
+            ->value('bakiye') ?? 0.00);
+
+        // 1e. Vadesi geçen (>30 gün) faturalar
+        $otuzGunOnce = Carbon::now()->subDays(30);
+        $vadesiGecenOzet = $doktor->odemeler()
+            ->whereIn('durum', ['beklemede', 'kismi_odeme'])
+            ->whereDate('odeme_tarihi', '<', $otuzGunOnce)
+            ->selectRaw('COUNT(*) as adet, COALESCE(SUM(tutar - odenen_tutar), 0) as tutar')
+            ->first();
+        $vadesiGecenSayi  = (int)   ($vadesiGecenOzet->adet  ?? 0);
+        $vadesiGecenTutar = (float) ($vadesiGecenOzet->tutar ?? 0);
+
+        // 1f. En çok borçlu 3 hasta (kalan bakiyeye göre)
+        $enCokBorcluHastalar = $doktor->odemeler()
+            ->whereIn('durum', ['beklemede', 'kismi_odeme'])
+            ->whereNotNull('hasta_id')
+            ->selectRaw('hasta_id, SUM(tutar - odenen_tutar) as kalan')
+            ->groupBy('hasta_id')
+            ->orderByDesc('kalan')
+            ->with('hasta:id,ad_soyad,telefon')
+            ->take(3)
+            ->get()
+            ->filter(fn ($r) => $r->hasta && (float) $r->kalan > 0.009)
+            ->values();
+
+        // 1g. Bu ay açılan yeni fatura sayısı
+        $buAyFaturaSayisi = (int) $doktor->odemeler()
+            ->whereBetween('odeme_tarihi', [$baslangicTarihi, $bitisTarihi])
+            ->where('durum', '!=', 'iptal')
+            ->count();
 
         // 2. Chart 1: Monthly income/expense trends (Last 12 months)
         $months = [];
@@ -147,7 +210,19 @@ class HekimFinansController extends Controller
             'buAyGelir',
             'buAyGider',
             'buAyNetKar',
+            'oncekiAyGelir',
+            'oncekiAyGider',
+            'oncekiAyNetKar',
+            'gelirDeltaYuzde',
+            'giderDeltaYuzde',
+            'netKarDeltaYuzde',
+            'tahsilatOrani',
+            'buAyFaturalanan',
+            'buAyFaturaSayisi',
             'toplamBorc',
+            'vadesiGecenSayi',
+            'vadesiGecenTutar',
+            'enCokBorcluHastalar',
             'months',
             'incomeTrends',
             'expenseTrends',
