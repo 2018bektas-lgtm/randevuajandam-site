@@ -113,13 +113,80 @@ class DoktorController extends Controller
 
     public function faturaDurumGuncelle(Request $request, $id)
     {
+        $odeme = UyelikOdeme::findOrFail($id);
+
+        // Aksiyon tipini belirle (input'a göre)
+        $aksiyon = $request->input('aksiyon', 'durum'); // durum | yukle | sil
+
+        if ($aksiyon === 'sil') {
+            // Yüklü faturayı sil
+            if ($odeme->fatura_url) {
+                $this->faturaDosyasiniSil($odeme->fatura_url);
+            }
+            $odeme->update([
+                'fatura_url'         => null,
+                'fatura_no'          => null,
+                'fatura_kesildi_at'  => null,
+                'fatura_durumu'      => 'bekliyor',
+            ]);
+            return back()->with('basarili', 'Fatura kaldırıldı; durum "bekliyor" a döndü.');
+        }
+
+        if ($aksiyon === 'yukle') {
+            $data = $request->validate([
+                'fatura_pdf'        => ['required', 'file', 'mimes:pdf', 'max:8192'], // 8MB
+                'fatura_no'         => ['required', 'string', 'max:100'],
+                'fatura_kesildi_at' => ['nullable', 'date'],
+            ], [
+                'fatura_pdf.required' => 'PDF dosyası seçmelisiniz.',
+                'fatura_pdf.mimes'    => 'Yalnızca PDF dosyası yüklenebilir.',
+                'fatura_pdf.max'      => 'Dosya en fazla 8 MB olabilir.',
+                'fatura_no.required'  => 'Fatura numarası zorunludur.',
+            ]);
+
+            // Eski dosya varsa sil (değiştirme senaryosu)
+            if ($odeme->fatura_url) {
+                $this->faturaDosyasiniSil($odeme->fatura_url);
+            }
+
+            // Yeni dosyayı kaydet: storage/app/public/faturalar/{yil}/uyelik-{id}-{time}.pdf
+            $yil = now()->year;
+            $dosyaAdi = 'uyelik-'.$odeme->id.'-'.now()->timestamp.'.pdf';
+            $yol = $request->file('fatura_pdf')->storeAs("public/faturalar/{$yil}", $dosyaAdi);
+            // Public erişim için "storage/faturalar/..." formuna çevir
+            $publicYol = str_replace('public/', 'storage/', $yol);
+
+            $odeme->update([
+                'fatura_url'        => $publicYol,
+                'fatura_no'         => $data['fatura_no'],
+                'fatura_kesildi_at' => $data['fatura_kesildi_at'] ?? now(),
+                'fatura_durumu'     => 'kesildi',
+            ]);
+
+            return back()->with('basarili', "Fatura yüklendi (No: {$data['fatura_no']}). Hekim faturasını indirebilir.");
+        }
+
+        // Sadece durum güncelle (eski davranış)
         $request->validate([
             'fatura_durumu' => ['required', 'in:bekliyor,kesildi'],
         ]);
-        $odeme = UyelikOdeme::findOrFail($id);
         $odeme->update(['fatura_durumu' => $request->input('fatura_durumu')]);
 
         return back()->with('basarili', 'Fatura durumu güncellendi.');
+    }
+
+    /**
+     * Fatura PDF dosyasını disk'ten sil.
+     */
+    private function faturaDosyasiniSil(string $publicYol): void
+    {
+        // 'storage/faturalar/..' -> 'public/faturalar/..'
+        $diskYol = str_replace('storage/', 'public/', $publicYol);
+        try {
+            Storage::disk('local')->delete($diskYol);
+        } catch (\Throwable $e) {
+            // sessizce geç, dosya zaten yoksa sorun değil
+        }
     }
 
     /**
