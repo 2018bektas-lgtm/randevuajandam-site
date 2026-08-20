@@ -337,7 +337,7 @@
                                     <option value="">Yeni borç / hizmet kaydı oluştur</option>
                                 </select>
                                 <p class="text-[11px] text-amber-700">
-                                    Tahsilat seçerseniz yeni borç açılmaz; tutar seçtiğiniz faturanın kalanından düşer.
+                                    Tahsilat seçerseniz yeni borç açılmaz; tutar seçtiğiniz kaydın kalanından düşer.
                                 </p>
                             </div>
                             <div>

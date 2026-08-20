@@ -74,7 +74,7 @@
                 </span>
             </div>
             <p class="text-2xl font-bold text-[#111827] font-display">{{ number_format($toplamBorc, 2, ',', '.') }} ₺</p>
-            <p class="text-[11px] text-[#9CA3AF] mt-1">Tüm faturalar toplamı</p>
+            <p class="text-[11px] text-[#9CA3AF] mt-1">Tüm alacak kayıtları toplamı</p>
         </div>
 
         <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
@@ -206,7 +206,7 @@
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="modalKapat('borcModal')"></div>
         <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
             <div class="bg-[#C96A2B] px-6 py-4 flex items-center justify-between">
-                <h3 class="text-sm font-bold text-white font-display">Borç / Fatura Ekle</h3>
+                <h3 class="text-sm font-bold text-white font-display">Borç Ekle</h3>
                 <button onclick="modalKapat('borcModal')" class="text-white/70 hover:text-white">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -280,13 +280,13 @@
             <form method="POST" action="{{ route('hekim.finans.hasta-tahsilat', $hasta->id) }}" class="p-6 space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-[11px] font-bold text-[#6B7280] uppercase mb-1.5">Açık Fatura *</label>
+                    <label class="block text-[11px] font-bold text-[#6B7280] uppercase mb-1.5">Açık Borç *</label>
                     <select name="odeme_id" required
                             class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-emerald-500 focus:ring focus:ring-emerald-500/10 bg-[#FAFAFA] py-2.5">
                         @foreach($acikFaturalar as $f)
                             @php $k = max(0, (float)$f->tutar - (float)$f->odenen_tutar); @endphp
                             <option value="{{ $f->id }}">
-                                #{{ $f->id }} · {{ $f->hizmet?->ad ?? ($f->aciklama ?: 'Fatura') }} · Kalan {{ number_format($k, 2, ',', '.') }} ₺
+                                #{{ $f->id }} · {{ $f->hizmet?->ad ?? ($f->aciklama ?: 'Kayıt') }} · Kalan {{ number_format($k, 2, ',', '.') }} ₺
                             </option>
                         @endforeach
                     </select>

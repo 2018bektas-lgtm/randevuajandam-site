@@ -234,7 +234,7 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Fatura / Makbuz</label>
+                                <label class="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Belge / Makbuz</label>
                                 <input type="file" name="belge" accept=".pdf,.png,.jpg,.jpeg"
                                        class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#FFF7ED] file:text-[#C96A2B] hover:file:bg-amber-100 border border-[#E5E7EB] rounded-xl p-1 bg-[#FAFAFA]">
                                 <span class="block text-[10px] text-[#9CA3AF] mt-1">PDF, PNG, JPG — Maks. 4MB</span>

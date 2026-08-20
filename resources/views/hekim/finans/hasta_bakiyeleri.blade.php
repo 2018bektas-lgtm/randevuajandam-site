@@ -31,7 +31,7 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="text-[11px] font-bold uppercase text-[#9CA3AF] tracking-wide">Toplam Faturalanan</p>
+                        <p class="text-[11px] font-bold uppercase text-[#9CA3AF] tracking-wide">Toplam Alacak</p>
                         <p class="text-xl font-bold text-[#111827]">{{ number_format($hastalar->sum('toplam_borc'), 2, ',', '.') }} ₺</p>
                     </div>
                 </div>

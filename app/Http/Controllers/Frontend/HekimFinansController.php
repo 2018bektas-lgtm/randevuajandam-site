@@ -303,7 +303,7 @@ class HekimFinansController extends Controller
                 'id' => $o->id,
                 'kalan' => round((float) $o->tutar - (float) $o->odenen_tutar, 2),
                 'etiket' => trim(
-                    ($o->hizmet->ad ?? ($o->aciklama ?: 'Fatura'))
+                    ($o->hizmet->ad ?? ($o->aciklama ?: 'Kayıt'))
                     .' · '.($o->odeme_tarihi?->format('d.m.Y') ?? '')
                 ),
             ])->values());
@@ -346,7 +346,7 @@ class HekimFinansController extends Controller
 
             if (in_array($odeme->durum, ['iptal', 'odendi'], true)) {
                 throw ValidationException::withMessages([
-                    'tahsilat_odeme_id' => 'Bu fatura tahsilata kapalı (ödendi veya iptal).',
+                    'tahsilat_odeme_id' => 'Bu kayıt tahsilata kapalı (ödendi veya iptal).',
                 ]);
             }
 
@@ -366,7 +366,7 @@ class HekimFinansController extends Controller
             $odeme->odenenTutariGuncelle();
 
             return redirect()->route('hekim.finans.gelirler')
-                ->with('basarili', 'Tahsilat mevcut faturaya işlendi. Kalan bakiye güncellendi.');
+                ->with('basarili', 'Tahsilat mevcut kayda işlendi. Kalan bakiye güncellendi.');
         }
 
         $ilkOdemeTutar = (float) ($request->ilk_odeme_tutar ?? 0);
@@ -720,7 +720,7 @@ class HekimFinansController extends Controller
             'odeme_yontemi' => 'required|in:nakit,kredi_karti,havale,online',
             'not' => 'nullable|string|max:500',
         ], [
-            'odeme_id.required' => 'Hangi açık faturaya tahsilat yapılacağını seçin.',
+            'odeme_id.required' => 'Hangi açık kayda tahsilat yapılacağını seçin.',
             'tutar.required' => 'Tahsilat tutarı zorunludur.',
         ]);
 
@@ -731,7 +731,7 @@ class HekimFinansController extends Controller
 
         if (in_array($odeme->durum, ['iptal', 'odendi'], true)) {
             throw ValidationException::withMessages([
-                'odeme_id' => 'Bu fatura tahsilata kapalı (ödendi veya iptal).',
+                'odeme_id' => 'Bu kayıt tahsilata kapalı (ödendi veya iptal).',
             ]);
         }
 

@@ -161,10 +161,10 @@
             <p class="text-[11px] text-[#9CA3AF] mt-1">Geçen ay: {{ number_format($oncekiAyNetKar, 0, ',', '.') }} ₺</p>
         </div>
 
-        {{-- Bu Ay Fatura Sayısı --}}
+        {{-- Bu Ay Yeni Kayıt Sayısı --}}
         <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">Fatura</span>
+                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">Yeni Kayıt</span>
                 <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -174,7 +174,7 @@
             <p class="text-xl font-bold font-display text-[#111827] tracking-tight">
                 {{ $buAyFaturaSayisi }} <span class="text-sm font-medium text-[#6B7280]">adet</span>
             </p>
-            <p class="text-[11px] text-[#9CA3AF] mt-1">Toplamda {{ $toplamFaturaSayisi }} fatura</p>
+            <p class="text-[11px] text-[#9CA3AF] mt-1">Toplamda {{ $toplamFaturaSayisi }} kayıt</p>
         </div>
     </div>
 
@@ -206,15 +206,15 @@
             {{-- Tahsilat Oranı Gauge --}}
             <div class="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
                 <h3 class="text-base font-bold font-display text-[#111827] mb-1">Tahsilat Oranı</h3>
-                <p class="text-xs text-[#6B7280] mb-3">Bu ay faturalanan tutarın ne kadarı tahsil edildi</p>
+                <p class="text-xs text-[#6B7280] mb-3">Bu ay kaydedilen tutarın ne kadarı tahsil edildi</p>
                 <div id="tahsilatGauge" class="w-full h-[180px]"></div>
                 <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-[#F3F4F6] text-center">
                     <div>
-                        <p class="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide">Faturalanan</p>
+                        <p class="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide">Kayıt Tutarı</p>
                         <p class="text-sm font-bold text-[#111827] mt-0.5">{{ number_format($buAyFaturalanan, 0, ',', '.') }} ₺</p>
                     </div>
                     <div>
-                        <p class="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide">Fatura Sayısı</p>
+                        <p class="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide">Kayıt Sayısı</p>
                         <p class="text-sm font-bold text-[#111827] mt-0.5">{{ $buAyFaturaSayisi }}</p>
                     </div>
                 </div>

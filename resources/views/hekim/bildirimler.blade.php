@@ -71,7 +71,7 @@
             </div>
             <h3 class="text-lg font-bold font-display text-[#111827]">Her şey yolunda</h3>
             <p class="text-sm text-[#6B7280] mt-2 max-w-md mx-auto">
-                Şu an ilgilenmeniz gereken bir bildirim yok. Yeni randevu talepleri, vadesi geçen faturalar veya iptal edilen randevular burada görünecek.
+                Şu an ilgilenmeniz gereken bir bildirim yok. Yeni randevu talepleri, vadesi geçen tahsilatlar veya iptal edilen randevular burada görünecek.
             </p>
         </div>
     @else

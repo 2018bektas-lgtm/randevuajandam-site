@@ -103,7 +103,7 @@ class HekimBildirimService
             'id'     => 'vadesi_gecen_ozet',
             'tip'    => 'vadesi_gecen',
             'onem'   => 'kritik',
-            'baslik' => "{$adet} fatura 30 günden uzun süredir tahsil edilmedi",
+            'baslik' => "{$adet} tahsilat 30 günden uzun süredir açık",
             'mesaj'  => 'Bekleyen tutar: ' . number_format($tutar, 2, ',', '.') . ' ₺ — hasta cari hesaplarını gözden geçirin.',
             'url'    => route('hekim.finans.hasta-bakiyeleri', ['durum' => 'borclu']),
             'tarih'  => Carbon::parse($ozet->son_tarih ?? Carbon::now()->subDays(30)),
