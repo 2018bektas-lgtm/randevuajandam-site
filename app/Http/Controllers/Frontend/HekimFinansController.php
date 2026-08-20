@@ -92,7 +92,7 @@ class HekimFinansController extends Controller
             ->selectRaw('hasta_id, SUM(tutar - odenen_tutar) as kalan')
             ->groupBy('hasta_id')
             ->orderByDesc('kalan')
-            ->with('hasta:id,ad_soyad,telefon')
+            ->with('hasta')
             ->take(3)
             ->get()
             ->filter(fn ($r) => $r->hasta && (float) $r->kalan > 0.009)
