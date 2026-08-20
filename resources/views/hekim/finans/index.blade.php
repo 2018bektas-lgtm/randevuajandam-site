@@ -69,96 +69,137 @@
         </div>
     @endif
 
-    {{-- HERO KPI GRID — 4 kart, delta rozetleriyle --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        {{-- Tahsilat --}}
-        <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider font-display">Bu Ay Tahsilat</span>
-                <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+    {{-- ═══ TÜM ZAMANLAR (Genel Özet) ═══ --}}
+    <div class="mb-3 flex items-center gap-2">
+        <span class="w-1 h-4 bg-[#C96A2B] rounded-full"></span>
+        <h3 class="text-[11px] font-bold uppercase tracking-widest text-[#6B7280]">Tüm Zamanlar</h3>
+        <span class="flex-1 h-px bg-gradient-to-r from-[#E5E7EB] to-transparent"></span>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 shadow-sm">
+            <div class="flex items-center gap-2.5 mb-2">
+                <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75"/>
                     </svg>
                 </span>
+                <span class="text-[11px] font-bold text-emerald-800/70 uppercase tracking-wider">Toplam Tahsilat</span>
             </div>
-            <p class="text-2xl font-bold font-display text-emerald-700 tracking-tight">
-                {{ number_format($buAyGelir, 2, ',', '.') }} ₺
+            <p class="text-2xl font-bold font-display text-emerald-800 tracking-tight">
+                {{ number_format($toplamTahsilatTumZaman, 2, ',', '.') }} ₺
             </p>
-            <div class="mt-2 flex items-center gap-1.5">
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border {{ $deltaRenk($gelirDeltaYuzde) }}">
-                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        {!! $deltaOk($gelirDeltaYuzde) !!}
-                    </svg>
-                    {{ number_format(abs($gelirDeltaYuzde), 1, ',', '.') }}%
-                </span>
-                <span class="text-[11px] text-[#6B7280]">geçen ay</span>
-            </div>
         </div>
 
-        {{-- Gider --}}
-        <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider font-display">Bu Ay Gider</span>
-                <span class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+        <div class="p-5 rounded-2xl bg-gradient-to-br from-rose-50 to-white border border-rose-100 shadow-sm">
+            <div class="flex items-center gap-2.5 mb-2">
+                <span class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
                     </svg>
                 </span>
+                <span class="text-[11px] font-bold text-rose-800/70 uppercase tracking-wider">Toplam Gider</span>
             </div>
-            <p class="text-2xl font-bold font-display text-rose-700 tracking-tight">
-                {{ number_format($buAyGider, 2, ',', '.') }} ₺
+            <p class="text-2xl font-bold font-display text-rose-800 tracking-tight">
+                {{ number_format($toplamGiderTumZaman, 2, ',', '.') }} ₺
             </p>
-            <div class="mt-2 flex items-center gap-1.5">
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border {{ $deltaRenk($giderDeltaYuzde, true) }}">
-                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        {!! $deltaOk($giderDeltaYuzde) !!}
-                    </svg>
-                    {{ number_format(abs($giderDeltaYuzde), 1, ',', '.') }}%
-                </span>
-                <span class="text-[11px] text-[#6B7280]">geçen ay</span>
-            </div>
         </div>
 
-        {{-- Net Kâr --}}
-        <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider font-display">Net Kâr</span>
-                <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+        <div class="p-5 rounded-2xl bg-gradient-to-br {{ $toplamNetKarTumZaman >= 0 ? 'from-[#FFF7ED] to-white border-[#FED7AA]' : 'from-rose-50 to-white border-rose-100' }} border shadow-sm">
+            <div class="flex items-center gap-2.5 mb-2">
+                <span class="w-8 h-8 rounded-xl {{ $toplamNetKarTumZaman >= 0 ? 'bg-[#FFEDD5] text-[#C96A2B]' : 'bg-rose-100 text-rose-700' }} flex items-center justify-center">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.281m5.94 2.28l-2.28 5.941"/>
                     </svg>
                 </span>
+                <span class="text-[11px] font-bold uppercase tracking-wider {{ $toplamNetKarTumZaman >= 0 ? 'text-[#9a3412]/70' : 'text-rose-800/70' }}">Toplam Net Kâr</span>
             </div>
-            <p class="text-2xl font-bold font-display tracking-tight {{ $buAyNetKar >= 0 ? 'text-[#111827]' : 'text-rose-700' }}">
-                {{ number_format($buAyNetKar, 2, ',', '.') }} ₺
+            <p class="text-2xl font-bold font-display tracking-tight {{ $toplamNetKarTumZaman >= 0 ? 'text-[#9a3412]' : 'text-rose-800' }}">
+                {{ number_format($toplamNetKarTumZaman, 2, ',', '.') }} ₺
             </p>
-            <div class="mt-2 flex items-center gap-1.5">
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border {{ $deltaRenk($netKarDeltaYuzde) }}">
-                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        {!! $deltaOk($netKarDeltaYuzde) !!}
-                    </svg>
-                    {{ number_format(abs($netKarDeltaYuzde), 1, ',', '.') }}%
-                </span>
-                <span class="text-[11px] text-[#6B7280]">geçen ay</span>
-            </div>
         </div>
 
-        {{-- Bekleyen Alacak --}}
-        <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider font-display">Bekleyen Alacak</span>
-                <span class="w-8 h-8 rounded-xl bg-[#FFF7ED] text-[#C96A2B] flex items-center justify-center">
+        <div class="p-5 rounded-2xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 shadow-sm">
+            <div class="flex items-center gap-2.5 mb-2">
+                <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </span>
+                <span class="text-[11px] font-bold text-amber-800/70 uppercase tracking-wider">Bekleyen Alacak</span>
             </div>
-            <p class="text-2xl font-bold font-display text-[#C96A2B] tracking-tight">
+            <p class="text-2xl font-bold font-display text-amber-800 tracking-tight">
                 {{ number_format($toplamBorc, 2, ',', '.') }} ₺
             </p>
-            <div class="mt-2 text-[11px] text-[#6B7280]">
-                {{ $enCokBorcluHastalar->count() }} borçlu hasta
+            <p class="text-[11px] text-amber-700/70 mt-1">{{ $enCokBorcluHastalar->count() }} borçlu hasta</p>
+        </div>
+    </div>
+
+    {{-- ═══ BU AY (Kıyaslamalı) ═══ --}}
+    <div class="mb-3 flex items-center gap-2">
+        <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
+        <h3 class="text-[11px] font-bold uppercase tracking-widest text-[#6B7280]">Bu Ay ({{ \Carbon\Carbon::now()->translatedFormat('F Y') }}) — geçen ayla kıyas</h3>
+        <span class="flex-1 h-px bg-gradient-to-r from-[#E5E7EB] to-transparent"></span>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {{-- Bu Ay Tahsilat --}}
+        <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">Tahsilat</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border {{ $deltaRenk($gelirDeltaYuzde) }}">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">{!! $deltaOk($gelirDeltaYuzde) !!}</svg>
+                    {{ number_format(abs($gelirDeltaYuzde), 1, ',', '.') }}%
+                </span>
             </div>
+            <p class="text-xl font-bold font-display text-emerald-700 tracking-tight">
+                {{ number_format($buAyGelir, 2, ',', '.') }} ₺
+            </p>
+            <p class="text-[11px] text-[#9CA3AF] mt-1">Geçen ay: {{ number_format($oncekiAyGelir, 0, ',', '.') }} ₺</p>
+        </div>
+
+        {{-- Bu Ay Gider --}}
+        <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">Gider</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border {{ $deltaRenk($giderDeltaYuzde, true) }}">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">{!! $deltaOk($giderDeltaYuzde) !!}</svg>
+                    {{ number_format(abs($giderDeltaYuzde), 1, ',', '.') }}%
+                </span>
+            </div>
+            <p class="text-xl font-bold font-display text-rose-700 tracking-tight">
+                {{ number_format($buAyGider, 2, ',', '.') }} ₺
+            </p>
+            <p class="text-[11px] text-[#9CA3AF] mt-1">Geçen ay: {{ number_format($oncekiAyGider, 0, ',', '.') }} ₺</p>
+        </div>
+
+        {{-- Bu Ay Net Kâr --}}
+        <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">Net Kâr</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border {{ $deltaRenk($netKarDeltaYuzde) }}">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">{!! $deltaOk($netKarDeltaYuzde) !!}</svg>
+                    {{ number_format(abs($netKarDeltaYuzde), 1, ',', '.') }}%
+                </span>
+            </div>
+            <p class="text-xl font-bold font-display tracking-tight {{ $buAyNetKar >= 0 ? 'text-[#111827]' : 'text-rose-700' }}">
+                {{ number_format($buAyNetKar, 2, ',', '.') }} ₺
+            </p>
+            <p class="text-[11px] text-[#9CA3AF] mt-1">Geçen ay: {{ number_format($oncekiAyNetKar, 0, ',', '.') }} ₺</p>
+        </div>
+
+        {{-- Bu Ay Fatura Sayısı --}}
+        <div class="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">Fatura</span>
+                <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </span>
+            </div>
+            <p class="text-xl font-bold font-display text-[#111827] tracking-tight">
+                {{ $buAyFaturaSayisi }} <span class="text-sm font-medium text-[#6B7280]">adet</span>
+            </p>
+            <p class="text-[11px] text-[#9CA3AF] mt-1">Toplamda {{ $toplamFaturaSayisi }} fatura</p>
         </div>
     </div>
 

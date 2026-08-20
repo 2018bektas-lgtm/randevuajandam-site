@@ -36,61 +36,85 @@
     @endif
 
     {{-- FİLTRELER --}}
-    <div class="mb-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm overflow-hidden">
-        <div class="px-5 py-3 border-b border-[#F3F4F6] flex items-center gap-2">
-            <svg class="w-4 h-4 text-[#9CA3AF]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
-            </svg>
-            <span class="text-xs font-bold text-[#4B5563] uppercase tracking-wider">Filtreler</span>
-        </div>
-        <form method="GET" action="{{ route('hekim.finans.gelirler') }}" class="p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end">
-            <div>
-                <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Durum</label>
-                <select name="durum" class="select2-filter w-full">
-                    <option value="">Tümü</option>
-                    <option value="beklemede"   {{ request('durum') === 'beklemede'   ? 'selected' : '' }}>Beklemede</option>
-                    <option value="kismi_odeme" {{ request('durum') === 'kismi_odeme' ? 'selected' : '' }}>Kısmi Ödeme</option>
-                    <option value="odendi"      {{ request('durum') === 'odendi'      ? 'selected' : '' }}>Ödendi</option>
-                    <option value="iptal"       {{ request('durum') === 'iptal'       ? 'selected' : '' }}>İptal</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Kategori</label>
-                <select name="finans_kategori_id" class="select2-filter w-full">
-                    <option value="">Tümü</option>
-                    @foreach($gelirKategorileri as $kat)
-                        <option value="{{ $kat->id }}" {{ request('finans_kategori_id') == $kat->id ? 'selected' : '' }}>{{ $kat->ad }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Hasta</label>
-                <select name="hasta_id" class="select2-hasta-filter w-full">
-                    <option value="">Tüm Hastalar</option>
-                    @foreach($hastalar as $hasta)
-                        <option value="{{ $hasta->id }}" {{ request('hasta_id') == $hasta->id ? 'selected' : '' }}>{{ $hasta->ad_soyad }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Başlangıç</label>
-                <input type="date" name="tarih_baslangic" value="{{ request('tarih_baslangic') }}"
-                       class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
-            </div>
-            <div class="flex items-end gap-2">
-                <div class="flex-1">
-                    <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Bitiş</label>
-                    <input type="date" name="tarih_bitis" value="{{ request('tarih_bitis') }}"
-                           class="w-full text-sm rounded-xl border-[#E5E7EB] focus:border-[#C96A2B] focus:ring focus:ring-[#C96A2B]/10 p-2.5 bg-[#FAFAFA]">
+    @php
+        $aktifFiltreSayisi = collect(['durum', 'finans_kategori_id', 'hasta_id', 'tarih_baslangic', 'tarih_bitis'])
+            ->filter(fn ($k) => filled(request($k)))->count();
+    @endphp
+    <form method="GET" action="{{ route('hekim.finans.gelirler') }}" class="mb-5">
+        <div class="rounded-2xl bg-white border border-[#E5E7EB] shadow-sm overflow-hidden">
+            <div class="px-5 py-3 border-b border-[#F3F4F6] flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-[#9CA3AF]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
+                    </svg>
+                    <span class="text-xs font-bold text-[#4B5563] uppercase tracking-wider">Filtreler</span>
+                    @if($aktifFiltreSayisi > 0)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#FFF7ED] text-[#C96A2B] text-[10px] font-bold border border-[#FED7AA]">
+                            {{ $aktifFiltreSayisi }} aktif
+                        </span>
+                    @endif
                 </div>
-                <button type="submit" class="p-2.5 bg-[#C96A2B] hover:bg-[#b05c24] text-white rounded-xl transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                @if($aktifFiltreSayisi > 0)
+                    <a href="{{ route('hekim.finans.gelirler') }}"
+                       class="text-[11px] font-bold text-[#6B7280] hover:text-rose-600 transition-colors inline-flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Temizle
+                    </a>
+                @endif
+            </div>
+            <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Ödeme Durumu</label>
+                    <select name="durum" class="select2-filter w-full">
+                        <option value="">Tümü</option>
+                        <option value="beklemede"   {{ request('durum') === 'beklemede'   ? 'selected' : '' }}>Beklemede</option>
+                        <option value="kismi_odeme" {{ request('durum') === 'kismi_odeme' ? 'selected' : '' }}>Kısmi Ödeme</option>
+                        <option value="odendi"      {{ request('durum') === 'odendi'      ? 'selected' : '' }}>Ödendi</option>
+                        <option value="iptal"       {{ request('durum') === 'iptal'       ? 'selected' : '' }}>İptal</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Kategori</label>
+                    <select name="finans_kategori_id" class="select2-filter w-full">
+                        <option value="">Tümü</option>
+                        @foreach($gelirKategorileri as $kat)
+                            <option value="{{ $kat->id }}" {{ request('finans_kategori_id') == $kat->id ? 'selected' : '' }}>{{ $kat->ad }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Hasta</label>
+                    <select name="hasta_id" class="select2-hasta-filter w-full">
+                        <option value="">Tüm Hastalar</option>
+                        @foreach($hastalar as $hasta)
+                            <option value="{{ $hasta->id }}" {{ request('hasta_id') == $hasta->id ? 'selected' : '' }}>{{ $hasta->ad_soyad }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-[#6B7280] mb-1.5 uppercase tracking-wide">Tarih Aralığı</label>
+                    <div class="flex items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] focus-within:border-[#C96A2B] focus-within:ring focus-within:ring-[#C96A2B]/10 transition">
+                        <input type="date" name="tarih_baslangic" value="{{ request('tarih_baslangic') }}"
+                               aria-label="Başlangıç"
+                               class="flex-1 min-w-0 text-sm border-0 bg-transparent focus:ring-0 p-2.5">
+                        <span class="text-[#D1D5DB] text-xs">—</span>
+                        <input type="date" name="tarih_bitis" value="{{ request('tarih_bitis') }}"
+                               aria-label="Bitiş"
+                               class="flex-1 min-w-0 text-sm border-0 bg-transparent focus:ring-0 p-2.5">
+                    </div>
+                </div>
+            </div>
+            <div class="px-5 py-3 bg-[#FAFAFA]/60 border-t border-[#F3F4F6] flex items-center justify-end">
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-5 py-2 bg-[#C96A2B] hover:bg-[#b05c24] text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
+                    Filtrele
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 
     {{-- TABLO --}}
     <div class="rounded-2xl bg-white border border-[#E5E7EB] shadow-sm overflow-hidden mb-5">
@@ -152,38 +176,47 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border {{ $durum[1] }}">{{ $durum[0] }}</span>
                             </td>
                             <td class="px-5 py-3.5">
-                                <div class="flex items-center justify-end gap-0.5">
-                                    <button type="button" title="Ödeme ekle"
-                                            onclick="kalemModalAc({{ $odeme->id }}, '{{ addslashes($odeme->hasta ? $odeme->hasta->ad_soyad : 'Serbest Gelir') }}', {{ $odeme->tutar }}, {{ $odeme->odenen_tutar }})"
-                                            class="p-1.5 text-[#9CA3AF] hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                    </button>
+                                <div class="flex items-center justify-end gap-1.5">
+                                    {{-- Ödeme Ekle (yeşil) --}}
+                                    @if($odeme->durum !== 'iptal' && $odeme->durum !== 'odendi')
+                                        <button type="button" title="Ödeme ekle"
+                                                onclick="kalemModalAc({{ $odeme->id }}, '{{ addslashes($odeme->hasta ? $odeme->hasta->ad_soyad : 'Serbest Gelir') }}', {{ $odeme->tutar }}, {{ $odeme->odenen_tutar }})"
+                                                class="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 text-[11px] font-bold transition-all">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                                            </svg>
+                                            <span class="hidden xl:inline">Ödeme</span>
+                                        </button>
+                                    @endif
+
+                                    {{-- Geçmiş (mavi) --}}
                                     @if($odeme->kalemler->count() > 0)
                                         <button type="button" title="Ödeme geçmişi ({{ $odeme->kalemler->count() }})"
                                                 onclick="kalemleriGoster({{ $odeme->id }})"
-                                                class="p-1.5 text-[#9CA3AF] hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors relative">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                class="relative inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-[11px] font-bold transition-all">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                             </svg>
-                                            <span class="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center">
-                                                {{ $odeme->kalemler->count() }}
-                                            </span>
+                                            <span class="text-[10px] font-bold">{{ $odeme->kalemler->count() }}</span>
                                         </button>
                                     @endif
+
+                                    {{-- Düzenle (turuncu/marka) --}}
                                     <button type="button" title="Düzenle"
                                             onclick="editGelirModal({{ json_encode($odeme) }})"
-                                            class="p-1.5 text-[#9CA3AF] hover:text-[#C96A2B] hover:bg-[#FFF7ED] rounded-lg transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#FFF7ED] border border-[#FED7AA] text-[#C96A2B] hover:bg-[#C96A2B] hover:text-white hover:border-[#C96A2B] transition-all">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
                                         </svg>
                                     </button>
+
+                                    {{-- Sil (kırmızı) --}}
                                     <form action="{{ route('hekim.finans.gelirler.destroy', $odeme->id) }}" method="POST" class="inline"
                                           onsubmit="return confirm('Bu gelir kaydını silmek istediğinize emin misiniz?')">
                                         @csrf @method('DELETE')
-                                        <button type="submit" title="Sil" class="p-1.5 text-[#9CA3AF] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <button type="submit" title="Sil"
+                                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
                                             </svg>
                                         </button>

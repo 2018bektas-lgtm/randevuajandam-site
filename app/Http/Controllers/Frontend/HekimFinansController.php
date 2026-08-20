@@ -26,6 +26,19 @@ class HekimFinansController extends Controller
         $oncekiAyBas     = Carbon::now()->subMonthNoOverflow()->startOfMonth();
         $oncekiAyBit     = Carbon::now()->subMonthNoOverflow()->endOfMonth();
 
+        // 0. Tüm Zamanlar (genel özet)
+        $toplamTahsilatTumZaman = (float) $doktor->odemeler()
+            ->where('durum', '!=', 'iptal')
+            ->sum('odenen_tutar');
+
+        $toplamGiderTumZaman = (float) $doktor->giderler()->sum('tutar');
+
+        $toplamNetKarTumZaman = $toplamTahsilatTumZaman - $toplamGiderTumZaman;
+
+        $toplamFaturaSayisi = (int) $doktor->odemeler()
+            ->where('durum', '!=', 'iptal')
+            ->count();
+
         // 1. Bu Ay
         $buAyGelir = (float) $doktor->odemeler()
             ->whereBetween('odeme_tarihi', [$baslangicTarihi, $bitisTarihi])
@@ -207,6 +220,10 @@ class HekimFinansController extends Controller
 
         return view('hekim.finans.index', compact(
             'doktor',
+            'toplamTahsilatTumZaman',
+            'toplamGiderTumZaman',
+            'toplamNetKarTumZaman',
+            'toplamFaturaSayisi',
             'buAyGelir',
             'buAyGider',
             'buAyNetKar',
