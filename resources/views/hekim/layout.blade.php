@@ -453,6 +453,29 @@
             <button onclick="hizliKapatModalAc()" class="p-2 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 cursor-pointer" title="Hızlı Saat Kapat">
                 ⚡
             </button>
+            @if(auth('doktor')->check())
+                @php
+                    $mobilBildirimSayisi = 0;
+                    $mobilKritikSayi = 0;
+                    try {
+                        $mobilBildirimListesi = app(\App\Services\HekimBildirimService::class)->getBildirimler(auth('doktor')->user());
+                        $mobilBildirimSayisi = $mobilBildirimListesi->count();
+                        $mobilKritikSayi = $mobilBildirimListesi->where('onem', 'kritik')->count();
+                    } catch (\Throwable $e) {}
+                @endphp
+                <a href="{{ route('hekim.bildirimler') }}"
+                   class="relative p-2 rounded-lg bg-[#FFF7ED] text-[#C96A2B] border border-[#FED7AA] hover:bg-[#FFEDD5]"
+                   title="Bildirimler">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+                    </svg>
+                    @if($mobilBildirimSayisi > 0)
+                        <span class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold flex items-center justify-center text-white {{ $mobilKritikSayi > 0 ? 'bg-rose-500 animate-pulse' : 'bg-[#C96A2B]' }}">
+                            {{ $mobilBildirimSayisi > 9 ? '9+' : $mobilBildirimSayisi }}
+                        </span>
+                    @endif
+                </a>
+            @endif
             <button id="menuToggle" class="p-2 rounded-lg hover:bg-slate-50 border border-slate-100 text-[#111827] cursor-pointer">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -489,6 +512,18 @@
             } else {
                 $kisaAd = 'HE';
             }
+
+            // Bildirim özeti (header bell için)
+            $hekimBildirimler = collect();
+            if ($doktorUser) {
+                try {
+                    $hekimBildirimler = app(\App\Services\HekimBildirimService::class)->getBildirimler($doktorUser);
+                } catch (\Throwable $e) {
+                    $hekimBildirimler = collect();
+                }
+            }
+            $hekimBildirimSayisi = $hekimBildirimler->count();
+            $hekimBildirimKritikSayi = $hekimBildirimler->where('onem', 'kritik')->count();
         @endphp
         <div class="ysb-footer shrink-0">
             <div class="ysb-footer-row">
@@ -528,6 +563,88 @@
                 <button onclick="hizliKapatModalAc()" class="flex items-center gap-2 text-xs bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 px-4 py-2 rounded-full font-bold font-display transition-all cursor-pointer">
                     <span>⚡ Hızlı Saat Kapat</span>
                 </button>
+
+                <!-- Bildirim Bell Dropdown -->
+                @php
+                    $bellRenkStilleri = [
+                        'rose'    => 'bg-rose-100 text-rose-600',
+                        'amber'   => 'bg-amber-100 text-amber-600',
+                        'blue'    => 'bg-blue-100 text-blue-600',
+                        'emerald' => 'bg-emerald-100 text-emerald-600',
+                        'indigo'  => 'bg-indigo-100 text-indigo-600',
+                        'orange'  => 'bg-orange-100 text-orange-600',
+                    ];
+                @endphp
+                <div class="relative" id="bildirimDropdownContainer">
+                    <button type="button" id="bildirimDropdownBtn"
+                            class="relative w-10 h-10 rounded-full bg-white border border-[#E5E7EB] hover:border-[#C96A2B] hover:bg-[#FFF7ED]/50 flex items-center justify-center transition-all cursor-pointer group"
+                            aria-label="Bildirimler">
+                        <svg class="w-5 h-5 text-[#4B5563] group-hover:text-[#C96A2B] transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+                        </svg>
+                        @if($hekimBildirimSayisi > 0)
+                            <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white shadow-sm {{ $hekimBildirimKritikSayi > 0 ? 'bg-rose-500 animate-pulse' : 'bg-[#C96A2B]' }}">
+                                {{ $hekimBildirimSayisi > 99 ? '99+' : $hekimBildirimSayisi }}
+                            </span>
+                        @endif
+                    </button>
+
+                    <div id="bildirimDropdownMenu"
+                         class="absolute right-0 mt-3 w-96 max-w-[calc(100vw-2rem)] bg-white border border-[#E5E7EB] rounded-2xl shadow-xl z-50 hidden transition-all transform scale-95 opacity-0 duration-150 overflow-hidden">
+                        <div class="px-5 py-4 border-b border-[#F3F4F6] flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-bold text-[#111827] font-display">Bildirimler</h4>
+                                <p class="text-[11px] text-[#9CA3AF] mt-0.5">
+                                    @if($hekimBildirimSayisi === 0)
+                                        Yapılması gereken bir şey yok
+                                    @else
+                                        {{ $hekimBildirimSayisi }} aktif
+                                    @endif
+                                </p>
+                            </div>
+                            @if($hekimBildirimKritikSayi > 0)
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-200">
+                                    {{ $hekimBildirimKritikSayi }} kritik
+                                </span>
+                            @endif
+                        </div>
+
+                        <div class="max-h-[420px] overflow-y-auto">
+                            @forelse($hekimBildirimler->take(6) as $b)
+                                <a href="{{ $b['url'] }}"
+                                   class="flex items-start gap-3 px-5 py-3.5 border-b border-[#F3F4F6] last:border-0 hover:bg-[#FAFAFA] transition-colors">
+                                    <span class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 {{ $bellRenkStilleri[$b['renk']] ?? 'bg-gray-100 text-gray-600' }}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                            {!! $b['ikon'] !!}
+                                        </svg>
+                                    </span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-bold text-[#111827] font-display">{{ $b['baslik'] }}</p>
+                                        <p class="text-xs text-[#6B7280] mt-0.5 line-clamp-2 leading-snug">{{ $b['mesaj'] }}</p>
+                                        <p class="text-[10px] text-[#9CA3AF] mt-1">{{ $b['tarih']->diffForHumans() }}</p>
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="px-5 py-10 text-center">
+                                    <div class="w-12 h-12 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <p class="text-xs font-semibold text-[#111827]">Her şey yolunda</p>
+                                    <p class="text-[11px] text-[#9CA3AF] mt-1">Yeni bir bildirim yok.</p>
+                                </div>
+                            @endforelse
+                        </div>
+
+                        @if($hekimBildirimSayisi > 0)
+                            <a href="{{ route('hekim.bildirimler') }}"
+                               class="block px-5 py-3 border-t border-[#F3F4F6] bg-[#FAFAFA]/60 text-center text-xs font-bold text-[#C96A2B] hover:bg-[#FFF7ED] transition-colors">
+                                Tümünü Gör ({{ $hekimBildirimSayisi }}) →
+                            </a>
+                        @endif
+                    </div>
+                </div>
 
                 @php
                     if ($doktorUser->klinikteMi()) {
@@ -672,6 +789,40 @@
                 }
             });
         }
+    </script>
+    <!-- Bildirim Dropdown Toggle Script -->
+    <script>
+        (function() {
+            const btn  = document.getElementById('bildirimDropdownBtn');
+            const menu = document.getElementById('bildirimDropdownMenu');
+            if (!btn || !menu) return;
+
+            function open() {
+                menu.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    menu.classList.remove('scale-95', 'opacity-0');
+                    menu.classList.add('scale-100', 'opacity-100');
+                });
+            }
+            function close() {
+                menu.classList.remove('scale-100', 'opacity-100');
+                menu.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => menu.classList.add('hidden'), 150);
+            }
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menu.classList.contains('hidden') ? open() : close();
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!btn.contains(e.target) && !menu.contains(e.target)) close();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !menu.classList.contains('hidden')) close();
+            });
+        })();
     </script>
     <!-- Preloader Script -->
     <script>

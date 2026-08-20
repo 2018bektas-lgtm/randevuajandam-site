@@ -42,32 +42,7 @@
         @endslot
     @endcomponent
 
-    {{-- KRİTİK UYARI ŞERİDİ — sadece vadesi geçen fatura varsa --}}
-    @if($vadesiGecenSayi > 0)
-        <div class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-white border border-rose-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
-                </svg>
-            </div>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-rose-900">
-                    {{ $vadesiGecenSayi }} fatura 30 günden uzun süredir tahsil edilmedi
-                </p>
-                <p class="text-xs text-rose-800/80 mt-0.5">
-                    Toplam bekleyen tutar: <strong>{{ number_format($vadesiGecenTutar, 2, ',', '.') }} ₺</strong>
-                    — hasta cari hesaplarını gözden geçirin.
-                </p>
-            </div>
-            <a href="{{ route('hekim.finans.hasta-bakiyeleri', ['durum' => 'borclu']) }}"
-               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors">
-                Borçlu hastalar
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
-                </svg>
-            </a>
-        </div>
-    @endif
+    {{-- Vadesi gecen bildirimi artik header bildirim merkezinde gorunuyor. --}}
 
     {{-- ═══ TÜM ZAMANLAR (Genel Özet) ═══ --}}
     <div class="mb-3 flex items-center gap-2">

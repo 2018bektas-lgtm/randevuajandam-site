@@ -237,6 +237,9 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
     // Doctor Dashboard
     Route::get('/hekim/panel', [HekimController::class, 'panel'])->name('hekim.panel');
 
+    // Bildirimler
+    Route::get('/hekim/bildirimler', [\App\Http\Controllers\Frontend\HekimBildirimController::class, 'index'])->name('hekim.bildirimler');
+
     // Profile Settings
     Route::get('/hekim/profil', [HekimController::class, 'profilDuzenle'])->name('hekim.profil');
     Route::post('/hekim/profil', [HekimController::class, 'profilGuncelle'])->name('hekim.profil.post');
