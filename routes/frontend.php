@@ -177,7 +177,7 @@ Route::middleware('guest:doktor')->group(function () {
     // Registration
     Route::get('/hekim/kayit-ol', [PaketController::class, 'kayitFormu'])->name('frontend.hekim.kayit');
     Route::post('/hekim/kayit-ol', [PaketController::class, 'kayitOl'])
-        ->middleware('recaptcha:hekim_kayit')
+        ->middleware(['throttle:5,1', 'recaptcha:hekim_kayit'])
         ->name('frontend.hekim.kayit.post');
     Route::post('/hekim/kayit-ol/mezuniyet-dogrula', [PaketController::class, 'mezuniyetDogrula'])
         ->middleware('throttle:5,1')
