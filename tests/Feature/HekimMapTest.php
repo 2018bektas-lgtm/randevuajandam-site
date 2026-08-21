@@ -6,6 +6,8 @@ use App\Models\Brans;
 use App\Models\Doktor;
 use App\Models\Il;
 use App\Models\Ilce;
+use App\Models\Paket;
+use App\Models\PaketOzelligi;
 use App\Models\Unvan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -14,6 +16,23 @@ use Tests\TestCase;
 class HekimMapTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function vitrinPaketi(): Paket
+    {
+        $paket = Paket::create([
+            'ad' => 'Vitrin Test',
+            'tur' => 'bireysel',
+            'aciklama' => 'Test',
+            'aylik_fiyat' => 0,
+            'yillik_fiyat' => 0,
+            'ozellikler' => [],
+            'aktif_mi' => true,
+        ]);
+        $oz = PaketOzelligi::firstOrCreate(['kod' => 'profil_sayfasi'], ['ad' => 'Profil Sayfası']);
+        $paket->sistemOzellikleri()->sync([$oz->id]);
+
+        return $paket;
+    }
 
     /**
      * Test doctor can save coordinates in profile.
@@ -67,6 +86,8 @@ class HekimMapTest extends TestCase
         $il2 = Il::create(['ad' => 'Izmir', 'plaka' => '35']);
         $ilce2 = Ilce::create(['il_id' => $il2->id, 'ad' => 'Konak']);
 
+        $paket = $this->vitrinPaketi();
+
         // Doctor 1 near Beşiktaş, Istanbul
         $doktorBesiktas = Doktor::create([
             'ad_soyad' => 'Merve Yakın',
@@ -78,6 +99,9 @@ class HekimMapTest extends TestCase
             'aktif_mi' => true,
             'enlem' => 41.0428,
             'boylam' => 29.0075,
+            'paket_id' => $paket->id,
+            'platformda_gorunur' => true,
+            'meslek_dogrulama_durumu' => 'onaylandi',
         ]);
 
         // Doctor 2 in Konak, Izmir (far away)
@@ -91,6 +115,9 @@ class HekimMapTest extends TestCase
             'aktif_mi' => true,
             'enlem' => 38.4189,
             'boylam' => 27.1287,
+            'paket_id' => $paket->id,
+            'platformda_gorunur' => true,
+            'meslek_dogrulama_durumu' => 'onaylandi',
         ]);
 
         // Search near Beşiktaş (41.0428, 29.0075) with 20km radius

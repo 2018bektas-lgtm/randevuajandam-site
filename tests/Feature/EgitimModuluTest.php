@@ -57,6 +57,7 @@ class EgitimModuluTest extends TestCase
             'paket_id' => $paket->id,
             'aktif_mi' => true,
             'platformda_gorunur' => true,
+            'meslek_dogrulama_durumu' => 'onaylandi',
         ]);
         $this->doktor->branslar()->attach($brans->id);
 

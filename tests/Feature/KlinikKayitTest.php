@@ -118,7 +118,11 @@ class KlinikKayitTest extends TestCase
         $this->assertNotNull($doktor->klinik_id);
     }
 
-    public function test_individual_doctor_can_transition_to_clinic_successfully(): void
+    /**
+     * Bireysel hekimin klinik geçişi ürün kararı gereği kapatıldı — sadece yönetici yapabilir.
+     * Bu yüzden hem GET hem POST rotaları 403 dönmeli, klinik oluşturulmamalı.
+     */
+    public function test_individual_doctor_clinic_transition_is_admin_only(): void
     {
         $bireyselPaket = Paket::create([
             'ad' => 'Bireysel Başlangıç',
@@ -143,12 +147,11 @@ class KlinikKayitTest extends TestCase
             'uyelik_bitis' => now()->addMonth(),
         ]);
 
-        $response = $this->actingAs($doktor, 'doktor')
-            ->get(route('frontend.hekim.klinik.gecis'));
+        $this->actingAs($doktor, 'doktor')
+            ->get(route('frontend.hekim.klinik.gecis'))
+            ->assertStatus(403);
 
-        $response->assertStatus(200);
-
-        $response = $this->actingAs($doktor, 'doktor')
+        $this->actingAs($doktor, 'doktor')
             ->post(route('frontend.hekim.klinik.gecis.post'), [
                 'klinik_adi' => 'Tabip Sağlık',
                 'telefon' => '0 (224) 987 65 43',
@@ -158,23 +161,14 @@ class KlinikKayitTest extends TestCase
                 'ilce_id' => $this->ilce->ad,
                 'paket_id' => $this->paket->id,
                 'odeme_periyodu' => 'aylik',
-            ]);
+            ])
+            ->assertStatus(403);
 
-        $response->assertRedirect();
-
-        $this->assertDatabaseHas('klinikler', [
-            'ad' => 'Tabip Sağlık',
-            'sahip_doktor_id' => $doktor->id,
-            'paket_id' => $this->paket->id,
-        ]);
-
-        $klinik = Klinik::where('ad', 'Tabip Sağlık')->first();
-
+        // Hiç klinik oluşturulmamış olmalı
+        $this->assertDatabaseMissing('klinikler', ['ad' => 'Tabip Sağlık']);
         $this->assertDatabaseHas('doktorlar', [
             'id' => $doktor->id,
-            'klinik_id' => $klinik->id,
-            'klinik_rolu' => 'sahip',
-            'klinik_aktif_mi' => true,
+            'klinik_id' => null,
         ]);
     }
 }

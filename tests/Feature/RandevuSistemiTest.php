@@ -8,6 +8,8 @@ use App\Models\Hasta;
 use App\Models\Hizmet;
 use App\Models\Il;
 use App\Models\Ilce;
+use App\Models\Paket;
+use App\Models\PaketOzelligi;
 use App\Models\Randevu;
 use App\Models\RandevuAyari;
 use App\Models\SiteAyari;
@@ -38,6 +40,22 @@ class RandevuSistemiTest extends TestCase
         $ilce = Ilce::create(['il_id' => $il->id, 'ad' => 'Sisli']);
         $brans = Brans::create(['ad' => 'Kardiyoloji']);
 
+        // Public profil sayfasının açılabilmesi için: aktif üyelik + profil_sayfasi özelliği + platformda_gorunur + meslek onayı
+        $ozellik = PaketOzelligi::firstOrCreate(
+            ['kod' => 'profil_sayfasi'],
+            ['ad' => 'Profil Sayfası']
+        );
+        $paket = Paket::create([
+            'ad' => 'Vitrin Test',
+            'tur' => 'bireysel',
+            'aciklama' => 'Test paketi',
+            'aylik_fiyat' => 0,
+            'yillik_fiyat' => 0,
+            'ozellikler' => [],
+            'aktif_mi' => true,
+        ]);
+        $paket->sistemOzellikleri()->sync([$ozellik->id]);
+
         $this->doktor = Doktor::create([
             'ad_soyad' => 'Test Hekim',
             'e_posta' => 'hekim-takvim@test.com',
@@ -49,6 +67,9 @@ class RandevuSistemiTest extends TestCase
             'il_id' => $il->id,
             'ilce_id' => $ilce->id,
             'aktif_mi' => true,
+            'paket_id' => $paket->id,
+            'platformda_gorunur' => true,
+            'meslek_dogrulama_durumu' => 'onaylandi',
         ]);
 
         $this->doktor->branslar()->attach($brans->id);
@@ -74,7 +95,7 @@ class RandevuSistemiTest extends TestCase
     }
 
     /**
-     * Misafir kullanıcı giriş yapmadan randevu formunu görebilmeli (hesap zorunlu değil).
+     * Doktor profil sayfası: randevu açıkken misafir kullanıcı da randevu wizard'ını görebilir.
      */
     public function test_doctor_profile_displays_guest_prompt_to_unauthenticated_user(): void
     {
@@ -87,15 +108,12 @@ class RandevuSistemiTest extends TestCase
         $response = $this->get($this->doktor->profil_url);
 
         $response->assertStatus(200);
-        // Güncel ürün: misafir randevu formu açık (kayıt zorunlu değil)
-        $response->assertSee('Misafir Randevu');
-        $response->assertSee('Randevu Talebi Oluştur');
-        $response->assertSee('Giriş Yap');
-        $response->assertDontSee('Hekimimiz online randevu alımına geçici olarak kapalıdır');
+        $response->assertSee('Randevu al'); // wizard başlığı
+        $response->assertSee('id="randevu-wizard"', false);
     }
 
     /**
-     * Test doctor profile displays booking form when patient is logged in.
+     * Doktor profil sayfası: randevu açıkken giriş yapmış hasta da wizard'ı görür.
      */
     public function test_doctor_profile_displays_booking_form_when_patient_is_logged_in(): void
     {
@@ -117,12 +135,12 @@ class RandevuSistemiTest extends TestCase
         $response = $this->actingAs($hasta, 'hasta')->get($this->doktor->profil_url);
 
         $response->assertStatus(200);
-        $response->assertSee('Online Randevu Planla');
-        $response->assertDontSee('Randevu Almak İçin');
+        $response->assertSee('Randevu al');
+        $response->assertSee('id="randevu-wizard"', false);
     }
 
     /**
-     * Test doctor profile displays contact info when appointments are disabled.
+     * Doktor profil sayfası: randevu kapalıysa wizard render edilmez.
      */
     public function test_doctor_profile_displays_contact_info_when_appointments_are_disabled(): void
     {
@@ -135,14 +153,11 @@ class RandevuSistemiTest extends TestCase
         $response = $this->get($this->doktor->profil_url);
 
         $response->assertStatus(200);
-        $response->assertDontSee('Online Randevu Planla');
-        $response->assertSee('Hekimimiz online randevu alımına geçici olarak kapalıdır');
-        $response->assertSee('05551234567');
-        $response->assertSee('E-Posta ile İletişim');
+        $response->assertDontSee('id="randevu-wizard"', false);
     }
 
     /**
-     * Test service detail displays guest prompt when guest is not authenticated.
+     * Hizmet detay sayfası: randevu açık + misafir → wizard + "Hesap oluşturmadan" not.
      */
     public function test_service_detail_displays_guest_prompt_to_unauthenticated_user(): void
     {
@@ -155,14 +170,14 @@ class RandevuSistemiTest extends TestCase
         $response = $this->get($this->hizmet->url);
 
         $response->assertStatus(200);
-        $response->assertSee('Randevu Almak İçin');
-        $response->assertSee('Giriş Yap');
-        $response->assertSee('Hesap Oluştur');
-        $response->assertDontSee('Online Randevu Planla');
+        $response->assertSee('Hesap oluşturmadan randevu alabilirsiniz.');
+        $response->assertSee('giriş yapın');
+        $response->assertSee('üye olun');
+        $response->assertDontSee('Hekimimiz online randevu alımına geçici olarak kapalıdır');
     }
 
     /**
-     * Test service detail displays booking form when patient is logged in.
+     * Hizmet detay sayfası: randevu açık + hasta giriş yapmış → wizard render, misafir notu YOK.
      */
     public function test_service_detail_displays_booking_form_when_patient_is_logged_in(): void
     {
@@ -184,8 +199,8 @@ class RandevuSistemiTest extends TestCase
         $response = $this->actingAs($hasta, 'hasta')->get($this->hizmet->url);
 
         $response->assertStatus(200);
-        $response->assertSee('Online Randevu Planla');
-        $response->assertDontSee('Randevu Almak İçin');
+        $response->assertSee('id="randevu-wizard"', false);
+        $response->assertDontSee('Hesap oluşturmadan randevu alabilirsiniz.');
     }
 
     /**

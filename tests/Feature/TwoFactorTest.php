@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Doktor;
 use App\Models\Il;
 use App\Models\Ilce;
+use App\Models\Paket;
 use App\Services\TwoFactorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,17 @@ class TwoFactorTest extends TestCase
         $il = Il::create(['ad' => 'Ankara', 'plaka' => '06']);
         $ilce = Ilce::create(['il_id' => $il->id, 'ad' => 'Cankaya']);
 
+        // Login sonrası paket_sec'e değil panele gitmesi için aktif paket şart
+        $paket = Paket::create([
+            'ad' => '2FA Test Paket',
+            'tur' => 'bireysel',
+            'aciklama' => 'Test',
+            'aylik_fiyat' => 0,
+            'yillik_fiyat' => 0,
+            'ozellikler' => [],
+            'aktif_mi' => true,
+        ]);
+
         $this->doktor = Doktor::create([
             'ad_soyad' => '2FA Hekim',
             'e_posta' => '2fa-hekim@test.com',
@@ -36,6 +48,7 @@ class TwoFactorTest extends TestCase
             'il_id' => $il->id,
             'ilce_id' => $ilce->id,
             'aktif_mi' => true,
+            'paket_id' => $paket->id,
         ]);
 
         $this->service = app(TwoFactorService::class);

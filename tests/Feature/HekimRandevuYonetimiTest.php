@@ -8,6 +8,8 @@ use App\Models\Hasta;
 use App\Models\Hizmet;
 use App\Models\Il;
 use App\Models\Ilce;
+use App\Models\Paket;
+use App\Models\PaketOzelligi;
 use App\Models\Randevu;
 use App\Models\RandevuAyari;
 use App\Models\SiteAyari;
@@ -41,6 +43,26 @@ class HekimRandevuYonetimiTest extends TestCase
         $ilce = Ilce::create(['il_id' => $il->id, 'ad' => 'Sisli']);
         $brans = Brans::create(['ad' => 'Kardiyoloji']);
 
+        // Randevu onay/red için `randevu_talepleri`, ayarlar için `email_bildirim` şart
+        $paket = Paket::create([
+            'ad' => 'Randevu Yönetim Test',
+            'tur' => 'bireysel',
+            'aciklama' => 'Test',
+            'aylik_fiyat' => 0,
+            'yillik_fiyat' => 0,
+            'ozellikler' => [],
+            'aktif_mi' => true,
+        ]);
+        // Bu testin dokunduğu tüm hekim panel özelliklerini ekle
+        $ozIds = [];
+        foreach ([
+            'profil_sayfasi', 'randevu_talepleri', 'email_bildirim',
+            'online_takvim', 'hasta_kartlari', 'hizli_slot',
+        ] as $kod) {
+            $ozIds[] = PaketOzelligi::firstOrCreate(['kod' => $kod], ['ad' => $kod])->id;
+        }
+        $paket->sistemOzellikleri()->sync($ozIds);
+
         $this->doktor = Doktor::create([
             'ad_soyad' => 'Test Doktor',
             'e_posta' => 'doktor@test.com',
@@ -52,6 +74,9 @@ class HekimRandevuYonetimiTest extends TestCase
             'il_id' => $il->id,
             'ilce_id' => $ilce->id,
             'aktif_mi' => true,
+            'paket_id' => $paket->id,
+            'platformda_gorunur' => true,
+            'meslek_dogrulama_durumu' => 'onaylandi',
         ]);
 
         $this->doktor->branslar()->attach($brans->id);

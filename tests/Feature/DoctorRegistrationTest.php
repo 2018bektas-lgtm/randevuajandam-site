@@ -9,6 +9,8 @@ use App\Models\Ilce;
 use App\Models\Paket;
 use App\Models\Unvan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class DoctorRegistrationTest extends TestCase
@@ -44,28 +46,39 @@ class DoctorRegistrationTest extends TestCase
     }
 
     /**
-     * Test doctor can register successfully without a package (package selected post-registration).
+     * Kayıt: paket seçilmiş şekilde, meslek belgesi manuel yüklenerek.
+     * Sonrası: doktor beklemede oluşturulur, paket_id null (kayit_paket_id dolu), meslek belgesi bekleme ekranına yönlendirilir.
      */
-    public function test_doctor_can_register_successfully_without_package(): void
+    public function test_doctor_can_register_successfully_with_package_pending_review(): void
     {
+        Storage::fake('local');
+
         $response = $this->post(route('frontend.hekim.kayit.post'), [
             'ad_soyad' => 'Hasan Hekim',
             'e_posta' => 'hasan@hekim.com',
             'sifre' => 'Sifre123!',
             'sifre_confirmation' => 'Sifre123!',
             'telefon' => '0 (555) 123 45 67',
+            'tc_kimlik_no' => '12345678950',
+            'diploma_no' => 'D-2024-000123',
+            'meslek_belgesi' => UploadedFile::fake()->create('diploma.pdf', 120, 'application/pdf'),
             'unvan' => 'Uzm. Dr.',
             'il' => 'Bursa',
             'ilce' => 'Nilufer',
             'branslar' => [$this->brans->id],
+            'kvkk_onay' => '1',
+            'sozlesme_onay' => '1',
+            'paket_id' => $this->paket->id,
+            'odeme_periyodu' => 'aylik',
         ]);
 
-        $response->assertRedirect(route('frontend.hekim.paket_sec'));
+        $response->assertRedirect(route('frontend.hekim.meslek.bekleme'));
 
         $this->assertDatabaseHas('doktorlar', [
             'ad_soyad' => 'Hasan Hekim',
             'e_posta' => 'hasan@hekim.com',
             'paket_id' => null,
+            'kayit_paket_id' => $this->paket->id,
             'uyelik_bitis' => null,
         ]);
 

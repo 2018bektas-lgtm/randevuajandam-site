@@ -7,6 +7,8 @@ use App\Models\Doktor;
 use App\Models\DoktorGaleri;
 use App\Models\Il;
 use App\Models\Ilce;
+use App\Models\Paket;
+use App\Models\PaketOzelligi;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -28,6 +30,19 @@ class HekimGaleriTest extends TestCase
         $ilce = Ilce::create(['il_id' => $il->id, 'ad' => 'Nilufer']);
         $brans = Brans::create(['ad' => 'Fizyoterapi']);
 
+        $ozProfil = PaketOzelligi::firstOrCreate(['kod' => 'profil_sayfasi'], ['ad' => 'Profil Sayfası']);
+        $ozGaleri = PaketOzelligi::firstOrCreate(['kod' => 'galeri'], ['ad' => 'Galeri']);
+        $paket = Paket::create([
+            'ad' => 'Vitrin Test',
+            'tur' => 'bireysel',
+            'aciklama' => 'Test',
+            'aylik_fiyat' => 0,
+            'yillik_fiyat' => 0,
+            'ozellikler' => [],
+            'aktif_mi' => true,
+        ]);
+        $paket->sistemOzellikleri()->sync([$ozProfil->id, $ozGaleri->id]);
+
         $doktor = Doktor::create([
             'ad_soyad' => 'Hasan Hekim',
             'e_posta' => 'hasan@test.com',
@@ -37,6 +52,9 @@ class HekimGaleriTest extends TestCase
             'tur' => 'bireysel',
             'aktif_mi' => true,
             'uzmanlik_alani' => 'Fizyoterapi',
+            'paket_id' => $paket->id,
+            'platformda_gorunur' => true,
+            'meslek_dogrulama_durumu' => 'onaylandi',
         ]);
         $doktor->branslar()->attach($brans->id);
 

@@ -7,6 +7,8 @@ use App\Models\Doktor;
 use App\Models\Hizmet;
 use App\Models\Il;
 use App\Models\Ilce;
+use App\Models\Paket;
+use App\Models\PaketOzelligi;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -15,11 +17,34 @@ class HekimHizmetTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function vitrinPaketi(array $extraOzellikKodlari = []): Paket
+    {
+        $paket = Paket::create([
+            'ad' => 'Vitrin Test',
+            'tur' => 'bireysel',
+            'aciklama' => 'Test',
+            'aylik_fiyat' => 0,
+            'yillik_fiyat' => 0,
+            'ozellikler' => [],
+            'aktif_mi' => true,
+        ]);
+        $kodlar = array_unique(array_merge(['profil_sayfasi', 'hizmet_yonetimi'], $extraOzellikKodlari));
+        $ids = [];
+        foreach ($kodlar as $kod) {
+            $ids[] = PaketOzelligi::firstOrCreate(['kod' => $kod], ['ad' => $kod])->id;
+        }
+        $paket->sistemOzellikleri()->sync($ids);
+
+        return $paket;
+    }
+
     /**
      * Set up a doctor for testing.
      */
     private function createDoktor(string $email = 'hekim@test.com'): Doktor
     {
+        $paket = $this->vitrinPaketi();
+
         return Doktor::create([
             'ad_soyad' => 'Test Hekim',
             'e_posta' => $email,
@@ -30,6 +55,9 @@ class HekimHizmetTest extends TestCase
             'uzmanlik_alani' => 'Kardiyoloji',
             'mezuniyet' => null,
             'aktif_mi' => true,
+            'paket_id' => $paket->id,
+            'platformda_gorunur' => true,
+            'meslek_dogrulama_durumu' => 'onaylandi',
         ]);
     }
 
@@ -171,6 +199,7 @@ class HekimHizmetTest extends TestCase
             'ad' => 'Kardiyoloji',
         ]);
 
+        $paket = $this->vitrinPaketi();
         $doktor = Doktor::create([
             'ad_soyad' => 'Test Hekim',
             'e_posta' => 'public-service@test.com',
@@ -182,6 +211,9 @@ class HekimHizmetTest extends TestCase
             'il_id' => $il->id,
             'ilce_id' => $ilce->id,
             'aktif_mi' => true,
+            'paket_id' => $paket->id,
+            'platformda_gorunur' => true,
+            'meslek_dogrulama_durumu' => 'onaylandi',
         ]);
 
         $doktor->branslar()->attach($brans->id);
@@ -211,7 +243,7 @@ class HekimHizmetTest extends TestCase
         $response = $this->get($hizmet->url);
         $response->assertStatus(200);
         $response->assertSee('Kardiyoloji Muayenesi');
-        $response->assertSee('30 Dakika Süre');
+        $response->assertSee('30 dk süre');
         $response->assertSee('Test Hekim');
         $response->assertDontSee('1500.00'); // Ensure price is never visible on public pages
     }

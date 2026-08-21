@@ -30,11 +30,16 @@ class PlatformGorunurlukTest extends TestCase
         $ilce = Ilce::create(['il_id' => $il->id, 'ad' => 'Nilufer', 'slug' => 'nilufer']);
         $brans = Brans::create(['ad' => 'Dermatoloji', 'slug' => 'dermatoloji']);
 
-        $ozellik = PaketOzelligi::create([
+        $ozWeb = PaketOzelligi::create([
             'kod' => 'web_sitesi',
             'ad' => 'Web Sitesi',
             'aciklama' => 'Test',
         ]);
+        // Vitrin dizininde görünmek için profil_sayfasi özelliği şart (scopePlatformdaListelenen)
+        $ozProfil = PaketOzelligi::firstOrCreate(
+            ['kod' => 'profil_sayfasi'],
+            ['ad' => 'Profil Sayfası']
+        );
 
         $paket = Paket::create([
             'ad' => 'Web Test Paket',
@@ -45,7 +50,7 @@ class PlatformGorunurlukTest extends TestCase
             'aktif_mi' => true,
             'ozellikler' => [],
         ]);
-        $paket->sistemOzellikleri()->sync([$ozellik->id]);
+        $paket->sistemOzellikleri()->sync([$ozWeb->id, $ozProfil->id]);
 
         $this->doktor = Doktor::create([
             'ad_soyad' => 'Gizli Hekim',

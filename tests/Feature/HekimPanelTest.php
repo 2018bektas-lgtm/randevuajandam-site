@@ -7,6 +7,8 @@ use App\Models\Brans;
 use App\Models\Doktor;
 use App\Models\Il;
 use App\Models\Ilce;
+use App\Models\Paket;
+use App\Models\PaketOzelligi;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -14,6 +16,36 @@ use Tests\TestCase;
 class HekimPanelTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function vitrinPaketi(array $extraOzellikKodlari = []): Paket
+    {
+        $paket = Paket::create([
+            'ad' => 'Vitrin Test',
+            'tur' => 'bireysel',
+            'aciklama' => 'Test',
+            'aylik_fiyat' => 0,
+            'yillik_fiyat' => 0,
+            'ozellikler' => [],
+            'aktif_mi' => true,
+        ]);
+        $kodlar = array_unique(array_merge(['profil_sayfasi'], $extraOzellikKodlari));
+        $ids = [];
+        foreach ($kodlar as $kod) {
+            $ids[] = PaketOzelligi::firstOrCreate(['kod' => $kod], ['ad' => $kod])->id;
+        }
+        $paket->sistemOzellikleri()->sync($ids);
+
+        return $paket;
+    }
+
+    private function vitrinAlanlari(int $paketId): array
+    {
+        return [
+            'paket_id' => $paketId,
+            'platformda_gorunur' => true,
+            'meslek_dogrulama_durumu' => 'onaylandi',
+        ];
+    }
 
     /**
      * Test doctor panel renders successfully with array-cast mezuniyet field.
@@ -83,6 +115,8 @@ class HekimPanelTest extends TestCase
         $il2 = Il::create(['ad' => 'Izmir', 'plaka' => '35']);
         $ilce2 = Ilce::create(['il_id' => $il2->id, 'ad' => 'Konak']);
 
+        $paket = $this->vitrinPaketi();
+
         $doktor1 = Doktor::create([
             'ad_soyad' => 'Ahmet Yurt',
             'e_posta' => 'ahmet_yurt@test.com',
@@ -93,7 +127,7 @@ class HekimPanelTest extends TestCase
             'unvan' => 'Prof. Dr.',
             'uzmanlik_alani' => 'Kardiyoloji',
             'aktif_mi' => true,
-        ]);
+        ] + $this->vitrinAlanlari($paket->id));
 
         $doktor2 = Doktor::create([
             'ad_soyad' => 'Elif Demir',
@@ -105,7 +139,7 @@ class HekimPanelTest extends TestCase
             'unvan' => 'Uzm. Dr.',
             'uzmanlik_alani' => 'Dermatoloji',
             'aktif_mi' => true,
-        ]);
+        ] + $this->vitrinAlanlari($paket->id));
 
         // Filter by Istanbul
         $response = $this->get(route('frontend.hekimler', ['il' => $il1->id]));
@@ -135,6 +169,7 @@ class HekimPanelTest extends TestCase
         $ilce = Ilce::create(['il_id' => $il->id, 'ad' => 'Nilufer']);
         $brans = Brans::create(['ad' => 'Fizyoterapi']);
 
+        $paket = $this->vitrinPaketi(['blog']);
         $doktor = Doktor::create([
             'ad_soyad' => 'Kemal Can',
             'e_posta' => 'kemal@test.com',
@@ -144,7 +179,7 @@ class HekimPanelTest extends TestCase
             'tur' => 'bireysel',
             'aktif_mi' => true,
             'uzmanlik_alani' => 'Fizyoterapi',
-        ]);
+        ] + $this->vitrinAlanlari($paket->id));
         $doktor->branslar()->attach($brans->id);
 
         // 1. View empty blog list
@@ -270,6 +305,7 @@ class HekimPanelTest extends TestCase
         $ilce = Ilce::create(['il_id' => $il->id, 'ad' => 'Nilufer']);
         $brans = Brans::create(['ad' => 'Fizyoterapi']);
 
+        $paket = $this->vitrinPaketi();
         $doktor = Doktor::create([
             'ad_soyad' => 'Banu Can',
             'e_posta' => 'banu@test.com',
@@ -279,7 +315,7 @@ class HekimPanelTest extends TestCase
             'tur' => 'bireysel',
             'aktif_mi' => true,
             'uzmanlik_alani' => 'Fizyoterapi',
-        ]);
+        ] + $this->vitrinAlanlari($paket->id));
         $doktor->branslar()->attach($brans->id);
 
         // 1. Test City Route
