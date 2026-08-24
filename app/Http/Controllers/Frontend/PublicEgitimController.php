@@ -77,9 +77,12 @@ class PublicEgitimController extends Controller
         return view('frontend.egitimler.index', compact('egitimler', 'arama', 'tip', 'tipler'));
     }
 
-    public function liste(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug): View
+    public function liste(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug)
     {
-        $doktor = $this->resolveDoktor($il_slug, $ilce_slug, $brans_slug, $doctor_slug);
+        $doktor = $this->resolveDoktor($il_slug, $ilce_slug, $brans_slug, $doctor_slug, 'frontend.hekim.egitimler');
+        if ($doktor instanceof \Illuminate\Http\RedirectResponse) {
+            return $doktor;
+        }
         $egitimler = $doktor->egitimler()->yayinda()->orderBy('sira')->orderByDesc('baslangic_at')->get();
 
         return view('frontend.hekimler.egitimler', compact('doktor', 'egitimler'));
@@ -91,8 +94,11 @@ class PublicEgitimController extends Controller
         string $brans_slug,
         string $doctor_slug,
         string $egitim_slug
-    ): View {
-        $doktor = $this->resolveDoktor($il_slug, $ilce_slug, $brans_slug, $doctor_slug);
+    ) {
+        $doktor = $this->resolveDoktor($il_slug, $ilce_slug, $brans_slug, $doctor_slug, 'frontend.hekim.egitim.detay', ['egitim_slug' => $egitim_slug]);
+        if ($doktor instanceof \Illuminate\Http\RedirectResponse) {
+            return $doktor;
+        }
         $egitim = $doktor->egitimler()
             ->yayinda()
             ->where('slug', $egitim_slug)
@@ -201,19 +207,37 @@ class PublicEgitimController extends Controller
         return back()->with('basarili', 'Başvurunuz alındı. Hekim sizinle iletişime geçecektir. (Ödeme siteden alınmaz.)');
     }
 
-    protected function resolveDoktor(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug): Doktor
+    /**
+     * @return \App\Models\Doktor|\Illuminate\Http\RedirectResponse
+     */
+    protected function resolveDoktor(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug, string $redirectRouteName = 'frontend.hekim.egitimler', array $extraRouteParams = [])
     {
         $il = Il::where('slug', $il_slug)->firstOrFail();
         $ilce = Ilce::where('il_id', $il->id)->where('slug', $ilce_slug)->firstOrFail();
         $brans = Brans::where('slug', $brans_slug)->firstOrFail();
 
-        $doktor = Doktor::where('aktif_mi', true)
+        $baseQuery = fn () => Doktor::where('aktif_mi', true)
             ->where('il_id', $il->id)
             ->where('ilce_id', $ilce->id)
+            ->whereHas('branslar', fn ($q) => $q->where('branslar.id', $brans->id));
+
+        $doktor = $baseQuery()
             ->where('slug', $doctor_slug)
-            ->whereHas('branslar', fn ($q) => $q->where('branslar.id', $brans->id))
             ->with(['il', 'ilce', 'branslar'])
-            ->firstOrFail();
+            ->first();
+
+        if (! $doktor) {
+            $eski = $baseQuery()->where('eski_slug', $doctor_slug)->first();
+            if ($eski) {
+                return redirect()->route($redirectRouteName, array_merge([
+                    'il_slug' => $il_slug,
+                    'ilce_slug' => $ilce_slug,
+                    'brans_slug' => $brans_slug,
+                    'doctor_slug' => $eski->slug,
+                ], $extraRouteParams), 301);
+            }
+            abort(404);
+        }
 
         if (! $doktor->isListedOnPlatform()) {
             abort(404, 'Bu hekim profili platform vitrininde yayınlanmıyor.');

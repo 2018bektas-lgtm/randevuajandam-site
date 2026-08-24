@@ -808,35 +808,70 @@ class HekimController extends Controller
     /**
      * Display a specific doctor's profile page by slug.
      */
-    public function hekimDetay(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug)
+    /**
+     * Slug ile doktor arar; slug eslesmezse eski_slug ile deneyip 301 redirect verir.
+     *
+     * @param  array<int, string>|null  $eagerLoad  with(...) yuklemek istenen iliskiler
+     * @return \App\Models\Doktor|\Illuminate\Http\RedirectResponse
+     */
+    protected function resolveDoktorBySlug(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug, string $redirectRouteName, array $extraRouteParams = [], ?array $eagerLoad = null)
     {
         $il = Il::where('slug', $il_slug)->firstOrFail();
         $ilce = Ilce::where('il_id', $il->id)->where('slug', $ilce_slug)->firstOrFail();
+        $brans = Brans::where('slug', $brans_slug)->firstOrFail();
 
-        $query = Doktor::where('aktif_mi', true)
+        $baseQuery = fn () => Doktor::where('aktif_mi', true)
             ->where('il_id', $il->id)
             ->where('ilce_id', $ilce->id)
-            ->where('slug', $doctor_slug);
+            ->whereHas('branslar', fn ($q) => $q->where('branslar.id', $brans->id));
 
-        $brans = Brans::where('slug', $brans_slug)->firstOrFail();
-        $query->whereHas('branslar', function ($q) use ($brans) {
-            $q->where('branslar.id', $brans->id);
-        });
+        $query = $baseQuery()->where('slug', $doctor_slug);
+        if ($eagerLoad !== null) {
+            $query->with($eagerLoad);
+        }
+        $doktor = $query->first();
 
-        $doktor = $query->with([
-            'paket.sistemOzellikleri',
-            'webSite',
-            'il',
-            'ilce',
-            'branslar',
-            'hizmetler',
-            'calismaSaatleri',
-            'randevuAyari',
-            'galeriler',
-            'bloglar' => function ($q) {
-                $q->where('aktif_mi', true)->latest();
-            },
-        ])->firstOrFail();
+        if (! $doktor) {
+            $eski = $baseQuery()->where('eski_slug', $doctor_slug)->first();
+            if ($eski) {
+                return redirect()->route($redirectRouteName, array_merge([
+                    'il_slug' => $il_slug,
+                    'ilce_slug' => $ilce_slug,
+                    'brans_slug' => $brans_slug,
+                    'doctor_slug' => $eski->slug,
+                ], $extraRouteParams), 301);
+            }
+            abort(404);
+        }
+
+        return $doktor;
+    }
+
+    public function hekimDetay(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug)
+    {
+        $doktor = $this->resolveDoktorBySlug(
+            $il_slug, $ilce_slug, $brans_slug, $doctor_slug,
+            'frontend.hekim.detay',
+            [],
+            [
+                'paket.sistemOzellikleri',
+                'webSite',
+                'il',
+                'ilce',
+                'branslar',
+                'hizmetler',
+                'calismaSaatleri',
+                'randevuAyari',
+                'galeriler',
+                'bloglar' => function ($q) {
+                    $q->where('aktif_mi', true)->latest();
+                },
+            ]
+        );
+
+        if ($doktor instanceof \Illuminate\Http\RedirectResponse) {
+            return $doktor;
+        }
 
         if (! $doktor->isListedOnPlatform()) {
             abort(404, 'Bu hekim profili platform vitrininde yayınlanmıyor.');
@@ -859,20 +894,14 @@ class HekimController extends Controller
      */
     public function blogDetay(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug, string $blog_slug)
     {
-        $il = Il::where('slug', $il_slug)->firstOrFail();
-        $ilce = Ilce::where('il_id', $il->id)->where('slug', $ilce_slug)->firstOrFail();
-
-        $query = Doktor::where('aktif_mi', true)
-            ->where('il_id', $il->id)
-            ->where('ilce_id', $ilce->id)
-            ->where('slug', $doctor_slug);
-
-        $brans = Brans::where('slug', $brans_slug)->firstOrFail();
-        $query->whereHas('branslar', function ($q) use ($brans) {
-            $q->where('branslar.id', $brans->id);
-        });
-
-        $doktor = $query->firstOrFail();
+        $doktor = $this->resolveDoktorBySlug(
+            $il_slug, $ilce_slug, $brans_slug, $doctor_slug,
+            'frontend.hekim.blog.detay',
+            ['blog_slug' => $blog_slug]
+        );
+        if ($doktor instanceof \Illuminate\Http\RedirectResponse) {
+            return $doktor;
+        }
         if (! $doktor->isListedOnPlatform()) {
             abort(404, 'Bu hekim profili platform vitrininde yayınlanmıyor.');
         }
@@ -889,29 +918,16 @@ class HekimController extends Controller
      */
     public function hizmetDetay(string $il_slug, string $ilce_slug, string $brans_slug, string $doctor_slug, string $hizmet_slug)
     {
-        $il = Il::where('slug', $il_slug)->firstOrFail();
-        $ilce = Ilce::where('il_id', $il->id)->where('slug', $ilce_slug)->firstOrFail();
-
-        $query = Doktor::where('aktif_mi', true)
-            ->where('il_id', $il->id)
-            ->where('ilce_id', $ilce->id)
-            ->where('slug', $doctor_slug);
-
-        $brans = Brans::where('slug', $brans_slug)->firstOrFail();
-        $query->whereHas('branslar', function ($q) use ($brans) {
-            $q->where('branslar.id', $brans->id);
-        });
-
         // Randevu wizard (misafir + üye) için gerekli ilişkiler
-        $doktor = $query->with([
-            'paket',
-            'il',
-            'ilce',
-            'branslar',
-            'hizmetler',
-            'calismaSaatleri',
-            'randevuAyari',
-        ])->firstOrFail();
+        $doktor = $this->resolveDoktorBySlug(
+            $il_slug, $ilce_slug, $brans_slug, $doctor_slug,
+            'frontend.hekim.hizmet.detay',
+            ['hizmet_slug' => $hizmet_slug],
+            ['paket', 'il', 'ilce', 'branslar', 'hizmetler', 'calismaSaatleri', 'randevuAyari']
+        );
+        if ($doktor instanceof \Illuminate\Http\RedirectResponse) {
+            return $doktor;
+        }
 
         if (! $doktor->isListedOnPlatform()) {
             abort(404, 'Bu hekim profili platform vitrininde yayınlanmıyor.');

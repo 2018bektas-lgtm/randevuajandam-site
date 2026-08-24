@@ -16,7 +16,23 @@ class KlinikProfilController extends Controller
      */
     protected function getKlinikAndValidate(string $il_slug, string $ilce_slug, string $klinik_slug)
     {
-        $klinik = Klinik::where('slug', $klinik_slug)->where('aktif_mi', true)->firstOrFail();
+        $klinik = Klinik::where('slug', $klinik_slug)->where('aktif_mi', true)->first();
+
+        // Slug degismis (klinik ad guncellendi) → eski_slug ile ara, 301 yolla
+        if (! $klinik) {
+            $eski = Klinik::where('eski_slug', $klinik_slug)->where('aktif_mi', true)->first();
+            if ($eski) {
+                $routeName = request()->route()->getName();
+
+                return redirect()->route($routeName, [
+                    'il_slug' => $eski->il?->slug ?? $il_slug,
+                    'ilce_slug' => $eski->ilce?->slug ?? $ilce_slug,
+                    'klinik_slug' => $eski->slug,
+                ], 301);
+            }
+            abort(404);
+        }
+
         // Vitrinden gizli klinik — public profil kapalı (panel çalışır)
         if (! $klinik->isListedOnPlatform()) {
             abort(404, 'Bu klinik profili platform vitrininde yayınlanmıyor.');

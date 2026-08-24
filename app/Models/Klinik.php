@@ -19,6 +19,7 @@ class Klinik extends Model
     protected $fillable = [
         'ad',
         'slug',
+        'eski_slug',
         'sahip_doktor_id',
         'paket_id',
         'logo',
@@ -214,7 +215,12 @@ class Klinik extends Model
 
         static::updating(function (Klinik $klinik) {
             if ($klinik->isDirty('ad')) {
-                $klinik->slug = self::generateUniqueSlug($klinik->ad, $klinik->id);
+                $yeniSlug = self::generateUniqueSlug($klinik->ad, $klinik->id);
+                $mevcut = (string) $klinik->getOriginal('slug');
+                if ($yeniSlug !== $mevcut && $mevcut !== '') {
+                    $klinik->eski_slug = $mevcut;
+                }
+                $klinik->slug = $yeniSlug;
             }
         });
     }

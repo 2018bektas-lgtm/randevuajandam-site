@@ -20,6 +20,7 @@ class Doktor extends Authenticatable
     protected $fillable = [
         'ad_soyad',
         'slug',
+        'eski_slug',
         'e_posta',
         'sifre',
         'telefon',
@@ -108,9 +109,15 @@ class Doktor extends Authenticatable
             }
         });
 
+        // Slug yalnizca ad_soyad'a bagli; unvan/il/ilce/uzmanlik_alani degisiminde slug degismez.
         static::updating(function ($doktor) {
-            if ($doktor->isDirty('ad_soyad') || $doktor->isDirty('unvan') || $doktor->isDirty('il_id') || $doktor->isDirty('ilce_id') || $doktor->isDirty('uzmanlik_alani')) {
-                $doktor->slug = self::generateUniqueSlug($doktor);
+            if ($doktor->isDirty('ad_soyad')) {
+                $yeniSlug = self::generateUniqueSlug($doktor);
+                $mevcut = (string) $doktor->getOriginal('slug');
+                if ($yeniSlug !== $mevcut && $mevcut !== '') {
+                    $doktor->eski_slug = $mevcut;
+                }
+                $doktor->slug = $yeniSlug;
             }
         });
 
@@ -120,11 +127,12 @@ class Doktor extends Authenticatable
     }
 
     /**
-     * Generate unique slug for doctor based on unvan, name, branch, city, district.
+     * Doktor slug: sadece ad_soyad. Il/ilce icinde tekil olacak sekilde -N eklenir.
+     * Unvan bilerek SLUG'a girmez — unvan degisince URL kirilmasin diye.
      */
     public static function generateUniqueSlug(Doktor $doktor): string
     {
-        $baseSlug = Str::slug(($doktor->unvan ? $doktor->unvan.' ' : '').$doktor->ad_soyad);
+        $baseSlug = Str::slug((string) $doktor->ad_soyad) ?: 'hekim';
         $slug = $baseSlug;
         $counter = 1;
 
