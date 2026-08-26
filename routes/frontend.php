@@ -375,6 +375,8 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
         Route::get('/hekim/hastalar', [HekimRandevuController::class, 'hastalar'])->name('hekim.randevu.hastalar');
         Route::middleware(['paket.yetki:hasta_export'])->group(function () {
             Route::get('/hekim/hastalar/export', [HekimRandevuController::class, 'hastalarExport'])->name('hekim.randevu.hastalar.export');
+            Route::get('/hekim/hastalar/sablon', [HekimRandevuController::class, 'hastaSablon'])->name('hekim.randevu.hastalar.sablon');
+            Route::post('/hekim/hastalar/import', [HekimRandevuController::class, 'hastaImport'])->name('hekim.randevu.hastalar.import');
         });
         Route::middleware(['paket.yetki:tedavi_gecmisi'])->group(function () {
             Route::get('/hekim/hastalar/{hastaId}/tedavi-gecmisi', [HekimRandevuController::class, 'hastaTedaviGecmisi'])

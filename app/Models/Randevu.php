@@ -66,6 +66,13 @@ class Randevu extends Model
                 ]);
             }
 
+            // Bireysel + klinik hekim: doktor hasta havuzuna da ekle (idempotent)
+            if ($doktor && $randevu->hasta_id) {
+                $doktor->hastalar()->syncWithoutDetaching([
+                    $randevu->hasta_id => ['kayit_tarihi' => now(), 'kaynak' => 'randevu'],
+                ]);
+            }
+
             // Eğer ilk oluşturulduğunda onaylı ise webhook gönder
             if ($randevu->durum === 'onaylandi') {
                 \App\Jobs\SendWebhookJob::dispatch(

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Doktor;
 use App\Models\Hasta;
 use App\Services\AppointmentBookingService;
+use App\Services\HastaImportService;
 use App\Services\SlotService;
 use App\Support\PaketYetki;
 use Carbon\Carbon;
@@ -329,10 +330,8 @@ class HekimRandevuController extends Controller
         /** @var Doktor $doktor */
         $doktor = Auth::guard('doktor')->user();
 
-        // Get unique patients that have booked appointments with this doctor
-        $hastaIds = $doktor->randevular()->distinct()->pluck('hasta_id');
-
-        $hastalar = Hasta::whereIn('id', $hastaIds)
+        // Hasta havuzu: doktor pivotu (toplu import + manuel eklenen + randevu-otomatik)
+        $hastalar = $doktor->hastalar()
             ->withCount(['randevular' => function ($query) use ($doktor) {
                 $query->where('doktor_id', $doktor->id);
             }])
@@ -353,8 +352,7 @@ class HekimRandevuController extends Controller
     {
         /** @var Doktor $doktor */
         $doktor = Auth::guard('doktor')->user();
-        $hastaIds = $doktor->randevular()->distinct()->pluck('hasta_id');
-        $hastalar = Hasta::whereIn('id', $hastaIds)
+        $hastalar = $doktor->hastalar()
             ->withCount(['randevular' => function ($query) use ($doktor) {
                 $query->where('doktor_id', $doktor->id);
             }])
@@ -366,9 +364,8 @@ class HekimRandevuController extends Controller
 
         return response()->streamDownload(function () use ($hastalar) {
             $out = fopen('php://output', 'w');
-            // Excel UTF-8 BOM
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['ID', 'Ad', 'Soyad', 'Telefon', 'E-posta', 'Randevu Sayısı', 'Durum'], ';');
+            fwrite($out, "\xEF\xBB\xBF"); // Excel UTF-8 BOM
+            fputcsv($out, ['id', 'ad', 'soyad', 'telefon', 'e_posta', 'randevu_sayisi', 'kayit_tarihi', 'kaynak', 'durum'], ';');
             foreach ($hastalar as $h) {
                 fputcsv($out, [
                     $h->id,
@@ -377,6 +374,8 @@ class HekimRandevuController extends Controller
                     $h->telefon,
                     $h->e_posta,
                     $h->randevular_count,
+                    optional($h->pivot?->kayit_tarihi)->format('Y-m-d') ?? '',
+                    $h->pivot?->kaynak ?? 'randevu',
                     $h->aktif_mi ? 'Aktif' : 'Pasif',
                 ], ';');
             }
@@ -387,14 +386,103 @@ class HekimRandevuController extends Controller
     }
 
     /**
+     * 3 örneklik hasta import şablonu (CSV). ?tip=bos|az|dolu
+     */
+    public function hastaSablon(Request $request): StreamedResponse
+    {
+        $tip = $request->query('tip', 'bos');
+
+        $ornekler = [
+            'bos' => [
+                ['Ahmet', 'Yılmaz', '05551112233', 'ahmet.yilmaz@example.com', ''],
+            ],
+            'az' => [
+                ['Ayşe', 'Kaya', '05321234567', 'ayse.kaya@example.com', 'İlk seans 15 Eylül'],
+                ['Mehmet', 'Demir', '05442345678', 'mehmet.demir@example.com', ''],
+                ['Zeynep', 'Şahin', '05055551122', '', 'Kontrol randevusu istedi'],
+            ],
+            'dolu' => [
+                ['Ali', 'Öztürk', '05321112233', 'ali.ozturk@example.com', 'VIP danışan'],
+                ['Fatma', 'Aslan', '05332223344', 'fatma.aslan@example.com', 'Aile hekimi yönlendirmesi'],
+                ['Hasan', 'Çelik', '05443334455', 'hasan.celik@example.com', 'Randevu esnekliği yüksek'],
+                ['Elif', 'Aydın', '05554445566', 'elif.aydin@example.com', ''],
+                ['Mustafa', 'Yıldız', '05065556677', '', 'İlk randevu 20 Ekim'],
+                ['Selin', 'Kurt', '05076667788', 'selin.kurt@example.com', ''],
+                ['Emre', 'Doğan', '05087778899', 'emre.dogan@example.com', 'Öğle saatleri tercih ediyor'],
+                ['Merve', 'Arslan', '05098889900', 'merve.arslan@example.com', ''],
+            ],
+        ];
+
+        $satirlar = $ornekler[$tip] ?? $ornekler['bos'];
+        $filename = 'hasta-sablonu-'.$tip.'.csv';
+
+        return response()->streamDownload(function () use ($satirlar) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF"); // Excel UTF-8 BOM
+            fputcsv($out, ['ad', 'soyad', 'telefon', 'e_posta', 'notlar'], ';');
+            foreach ($satirlar as $satir) {
+                fputcsv($out, $satir, ';');
+            }
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Toplu hasta import (CSV upload). hasta_export paket ozelligi ile korunur (yetki route'ta).
+     */
+    public function hastaImport(Request $request, HastaImportService $service): JsonResponse
+    {
+        /** @var Doktor $doktor */
+        $doktor = Auth::guard('doktor')->user();
+
+        $request->validate([
+            'dosya' => ['required', 'file', 'max:5120', 'mimes:csv,txt'],
+        ], [
+            'dosya.max' => 'Dosya boyutu 5MB\'ı aşamaz.',
+            'dosya.mimes' => 'Sadece CSV dosyaları desteklenir.',
+        ]);
+
+        // Paket max_hasta_sayisi kontrolu (mevcut sayi + eklenecek satirlar)
+        if ($doktor->paket && ! is_null($doktor->paket->max_hasta_sayisi)) {
+            $mevcut = $doktor->hastalar()->count();
+            $maxKalan = (int) $doktor->paket->max_hasta_sayisi - $mevcut;
+            if ($maxKalan <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Paket hasta limitiniz dolu ('.$doktor->paket->max_hasta_sayisi.'). Yükseltme yapın veya mevcut hastaları temizleyin.',
+                ], 422);
+            }
+        }
+
+        try {
+            $sonuc = $service->importFromCsv($doktor, $request->file('dosya'));
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'sonuc' => $sonuc,
+            'message' => sprintf(
+                '%d yeni, %d mevcut hasta havuzunuza eklendi. %d satır atlandı.',
+                $sonuc['eklendi'],
+                $sonuc['guncellendi'],
+                $sonuc['atlanan']
+            ),
+        ]);
+    }
+
+    /**
      * Hasta tedavi / seans geçmişi (tedavi_gecmisi).
      */
     public function hastaTedaviGecmisi(int $hastaId)
     {
         /** @var Doktor $doktor */
         $doktor = Auth::guard('doktor')->user();
-        $hastaIds = $doktor->randevular()->distinct()->pluck('hasta_id');
-        abort_unless($hastaIds->contains($hastaId), 404);
+        $sahip = $doktor->hastalar()->where('hasta_id', $hastaId)->exists();
+        abort_unless($sahip, 404);
 
         $hasta = Hasta::findOrFail($hastaId);
         $randevular = $doktor->randevular()
@@ -1180,6 +1268,11 @@ class HekimRandevuController extends Controller
                 $hasta->id => ['kayit_tarihi' => now()],
             ]);
         }
+
+        // Bireysel + klinik hekim: doktor havuzuna da ekle
+        $doktor->hastalar()->syncWithoutDetaching([
+            $hasta->id => ['kayit_tarihi' => now()->toDateString(), 'kaynak' => 'manuel'],
+        ]);
 
         return response()->json([
             'success' => true,

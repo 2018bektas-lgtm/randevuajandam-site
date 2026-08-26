@@ -253,6 +253,17 @@ class Doktor extends Authenticatable
     }
 
     /**
+     * Bireysel hekim hasta havuzu. Randevu yaratıldığında otomatik senkron edilir
+     * (bkz. Randevu::booted); toplu import / manuel ekleme bu pivot uzerinden isler.
+     */
+    public function hastalar()
+    {
+        return $this->belongsToMany(Hasta::class, 'doktor_hastalari', 'doktor_id', 'hasta_id')
+            ->withPivot('kayit_tarihi', 'notlar', 'kaynak')
+            ->withTimestamps();
+    }
+
+    /**
      * Bu hekim icin gecerli WhatsApp yapilandirmasi.
      * Oncelik: 1) kendi Model B baglantisi 2) baglı olduğu klinik 3) config('whatsapp.default')
      *
