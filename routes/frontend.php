@@ -45,6 +45,10 @@ Route::get('/api/whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookCo
 Route::post('/api/whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'handle'])
     ->name('api.whatsapp.webhook.handle');
 
+// Google Calendar push notification (X-Goog-Channel-Token). CSRF muaf.
+Route::post('/api/google-calendar/webhook', [\App\Http\Controllers\Api\GoogleCalendarWebhookController::class, 'handle'])
+    ->name('api.google-calendar.webhook');
+
 // Password Reset Routes
 Route::get('/sifremi-unuttum', [\App\Http\Controllers\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('/sifremi-unuttum', [\App\Http\Controllers\ForgotPasswordController::class, 'sendResetLinkEmail'])
@@ -252,6 +256,14 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
         ->name('hekim.whatsapp.baglan');
     Route::post('/hekim/whatsapp/ayir', [\App\Http\Controllers\Frontend\HekimWhatsAppController::class, 'ayir'])
         ->name('hekim.whatsapp.ayir');
+
+    // Google Takvim (bireysel hekim OAuth)
+    Route::get('/hekim/google-takvim/baglan', [\App\Http\Controllers\Frontend\HekimGoogleTakvimController::class, 'baglan'])
+        ->name('hekim.google-takvim.baglan');
+    Route::get('/hekim/google-takvim/callback', [\App\Http\Controllers\Frontend\HekimGoogleTakvimController::class, 'callback'])
+        ->name('hekim.google-takvim.callback');
+    Route::post('/hekim/google-takvim/ayir', [\App\Http\Controllers\Frontend\HekimGoogleTakvimController::class, 'ayir'])
+        ->name('hekim.google-takvim.ayir');
 
     // Üyelik / abonelik iptal (dönem sonuna kadar erişim)
     Route::get('/hekim/uyelik', [\App\Http\Controllers\Frontend\HekimUyelikController::class, 'index'])->name('hekim.uyelik');
@@ -537,6 +549,14 @@ Route::middleware(['auth:doktor', 'uyelik.kontrol'])->group(function () {
                 ->name('hekim.klinik.whatsapp.baglan');
             Route::post('/hekim/klinik/whatsapp/ayir', [\App\Http\Controllers\Frontend\KlinikWhatsAppController::class, 'ayir'])
                 ->name('hekim.klinik.whatsapp.ayir');
+
+            // Google Takvim (klinik OAuth) — sahip yetkisi kontrolu controller icinde
+            Route::get('/hekim/klinik/google-takvim/baglan', [\App\Http\Controllers\Frontend\KlinikGoogleTakvimController::class, 'baglan'])
+                ->name('hekim.klinik.google-takvim.baglan');
+            Route::get('/hekim/klinik/google-takvim/callback', [\App\Http\Controllers\Frontend\KlinikGoogleTakvimController::class, 'callback'])
+                ->name('hekim.klinik.google-takvim.callback');
+            Route::post('/hekim/klinik/google-takvim/ayir', [\App\Http\Controllers\Frontend\KlinikGoogleTakvimController::class, 'ayir'])
+                ->name('hekim.klinik.google-takvim.ayir');
         });
 
         // Klinik Web Sitesi — route + paket: klinik_web_sitesi (Kurumsal)

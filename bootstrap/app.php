@@ -66,6 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/mobile/*',
             'api/site/*',
             'api/whatsapp/webhook',
+            'api/google-calendar/webhook',
             'odeme/paytr/3d/ok',
             'odeme/paytr/3d/fail',
         ]);

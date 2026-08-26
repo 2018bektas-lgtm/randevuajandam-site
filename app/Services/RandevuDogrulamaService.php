@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Doktor;
 use App\Models\DoktorCalismaSaati;
+use App\Models\DoktorGoogleBlok;
 use App\Models\DoktorIzin;
 use App\Models\Randevu;
 use Carbon\Carbon;
@@ -81,6 +82,18 @@ class RandevuDogrulamaService
 
         if ($izinli) {
             return 'Hekimimiz seçtiğiniz zaman diliminde hizmet dışıdır. Lütfen başka bir saat seçin.';
+        }
+
+        // 3b. Google Takvim'den cekilmis mesgul araliklarla cakisma
+        if ($doktor->hasPaketFeature('google_takvim') && $doktor->isGoogleTakvimBagli()) {
+            $googleCakisma = DoktorGoogleBlok::where('doktor_id', $doktor->id)
+                ->where('baslangic_at', '<=', $zamanString)
+                ->where('bitis_at', '>', $zamanString)
+                ->exists();
+
+            if ($googleCakisma) {
+                return 'Seçtiğiniz saat hekimimizin Google Takvim\'inde başka bir etkinliğe rezerve edilmiş. Lütfen başka bir saat seçin.';
+            }
         }
 
         // 4. Working hours check

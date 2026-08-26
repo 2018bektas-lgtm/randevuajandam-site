@@ -34,6 +34,8 @@ class Randevu extends Model
         'yonetim_token',
         'hatirlatma_1gun_gonderildi',
         'hatirlatma_2saat_gonderildi',
+        'google_event_id',
+        'google_synced_at',
     ];
 
     protected $hidden = [
@@ -108,6 +110,7 @@ class Randevu extends Model
             'hatirlatma_2saat_gonderildi' => 'boolean',
             'meeting_baslangic_at' => 'datetime',
             'meeting_bitis_at' => 'datetime',
+            'google_synced_at' => 'datetime',
         ];
     }
 

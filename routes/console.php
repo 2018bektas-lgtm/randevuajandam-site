@@ -20,3 +20,5 @@ Schedule::command('doktor:vitrin-temizlik')->dailyAt('03:30');
 Schedule::command('abonelik:yenile')->dailyAt('07:00');
 // KVKK: silme talebi 30 gunu gecen hasta kayitlarini imha et
 Schedule::command('hasta:imha')->dailyAt('03:00');
+// Google Takvim push notification kanallari (7 gunde bir dolar) — gunluk yenile
+Schedule::command('google-calendar:renew-channels')->dailyAt('04:15');

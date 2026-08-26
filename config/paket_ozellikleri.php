@@ -17,6 +17,7 @@ return [
         ['kod' => 'hizli_slot', 'ad' => 'Hızlı slot kapatma / bloklama', 'aciklama' => 'Gün/saat aralığı hızlı kapatma.', 'grup' => 'Randevu', 'sira' => 50, 'vitrin' => true],
         ['kod' => 'seri_randevu', 'ad' => 'Tekrarlayan (seri) randevu', 'aciklama' => 'Periyodik randevu tanımlama.', 'grup' => 'Randevu', 'sira' => 60, 'vitrin' => true],
         ['kod' => 'ical_export', 'ad' => 'Takvim dışa aktarma (iCal)', 'aciklama' => 'Google/Apple takvim dışa aktarma.', 'grup' => 'Randevu', 'sira' => 70, 'vitrin' => true],
+        ['kod' => 'google_takvim', 'ad' => 'Google Takvim entegrasyonu', 'aciklama' => 'Onaylı randevular Google Takvim ile çift yönlü senkron; Google\'daki manuel etkinlikler slotu kapatır.', 'grup' => 'Randevu', 'sira' => 75, 'vitrin' => true],
 
         // ── Hatırlatma (WhatsApp yok — bilinçli olarak dahil edilmedi) ──
         ['kod' => 'email_bildirim', 'ad' => 'E-posta randevu bildirimi', 'aciklama' => 'Hasta/hekim e-posta bildirimleri.', 'grup' => 'Hatırlatma', 'sira' => 10, 'vitrin' => true],

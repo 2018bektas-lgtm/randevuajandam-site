@@ -172,6 +172,20 @@
                 'whatsappBaglanUrl' => route('hekim.klinik.whatsapp.baglan'),
                 'whatsappAyirUrl' => route('hekim.klinik.whatsapp.ayir'),
             ])
+
+            {{-- Google Takvim bağlantısı — klinik geneli, sahip veya ortak bağlar --}}
+            @if(($klinik->paket?->hasFeature('google_takvim')) && auth()->user()?->hasClinicPermission('klinik_ayarlari'))
+                <div class="mt-6">
+                    @include('partials.google-takvim-baglan', [
+                        'gcalOwner' => 'klinik',
+                        'gcalConfig' => $klinik->google_calendar_config,
+                        'gcalBaglandiAt' => $klinik->google_calendar_baglandi_at,
+                        'gcalBaglanUrl' => route('hekim.klinik.google-takvim.baglan'),
+                        'gcalAyirUrl' => route('hekim.klinik.google-takvim.ayir'),
+                        'gcalEnabled' => (bool) config('google_calendar.enabled'),
+                    ])
+                </div>
+            @endif
         </div>
     </div>
 

@@ -6,6 +6,7 @@ use App\Events\RandevuDurumuDegisti;
 use App\Events\RandevuOlusturuldu;
 use App\Listeners\RandevuBildirimleriniGonder;
 use App\Listeners\RandevuFinansKaydet;
+use App\Listeners\RandevuGoogleTakvimeYaz;
 use App\Listeners\RandevuLogKaydet;
 use App\Models\Blog;
 use App\Models\Hizmet;
@@ -48,6 +49,8 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(RandevuDurumuDegisti::class, [RandevuLogKaydet::class, 'durumDegisti']);
         Event::listen(RandevuDurumuDegisti::class, [RandevuBildirimleriniGonder::class, 'durumDegisti']);
         Event::listen(RandevuDurumuDegisti::class, [RandevuFinansKaydet::class, 'durumDegisti']);
+        Event::listen(RandevuOlusturuldu::class, [RandevuGoogleTakvimeYaz::class, 'olusturuldu']);
+        Event::listen(RandevuDurumuDegisti::class, [RandevuGoogleTakvimeYaz::class, 'durumDegisti']);
 
         // Footer: popüler branşlar (gerçek slug + uzmanlık adı ile filtre)
         View::composer('frontend.layouts.partials.footer', function ($view) {

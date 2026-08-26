@@ -63,6 +63,8 @@ class Klinik extends Model
         'whatsapp_config',
         'whatsapp_baglandi_at',
         'whatsapp_kota',
+        'google_calendar_config',
+        'google_calendar_baglandi_at',
     ];
 
     protected function casts(): array
@@ -91,7 +93,27 @@ class Klinik extends Model
             'whatsapp_config' => 'encrypted:array',
             'whatsapp_baglandi_at' => 'datetime',
             'whatsapp_kota' => 'integer',
+            'google_calendar_config' => 'encrypted:array',
+            'google_calendar_baglandi_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Kliniğin Google Takvim yapilandirmasi. Klinik sahibi bagladiginda kullanilir;
+     * altındaki hekimler bunu paylasır (Doktor::googleTakvimAyari() fallback zinciri).
+     *
+     * @return array|null
+     */
+    public function googleTakvimAyari(): ?array
+    {
+        $config = $this->google_calendar_config ?? [];
+
+        return ! empty($config['refresh_token']) ? $config : null;
+    }
+
+    public function isGoogleTakvimBagli(): bool
+    {
+        return $this->googleTakvimAyari() !== null;
     }
 
     /**

@@ -97,6 +97,8 @@ class Doktor extends Authenticatable
         'whatsapp_config',
         'whatsapp_baglandi_at',
         'whatsapp_kota',
+        'google_calendar_config',
+        'google_calendar_baglandi_at',
     ];
 
     protected static function boot()
@@ -204,7 +206,50 @@ class Doktor extends Authenticatable
             'whatsapp_config' => 'encrypted:array',
             'whatsapp_baglandi_at' => 'datetime',
             'whatsapp_kota' => 'integer',
+            'google_calendar_config' => 'encrypted:array',
+            'google_calendar_baglandi_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Bu hekim icin gecerli Google Takvim yapilandirmasi.
+     * Oncelik: 1) hekimin kendi baglantisi 2) baglı olduğu klinik.
+     * Hicbiri yoksa null (system default YOK — per-user OAuth).
+     *
+     * @return array{
+     *   access_token: ?string,
+     *   refresh_token: ?string,
+     *   expires_at: ?int,
+     *   calendar_id: ?string,
+     *   channel_id: ?string,
+     *   channel_resource_id: ?string,
+     *   channel_expires_at: ?int,
+     *   sync_token: ?string,
+     *   email?: ?string
+     * }|null
+     */
+    public function googleTakvimAyari(): ?array
+    {
+        $ozel = $this->google_calendar_config ?? [];
+        if (! empty($ozel['refresh_token'])) {
+            return $ozel;
+        }
+
+        if ($this->klinik_id && $this->klinik) {
+            return $this->klinik->googleTakvimAyari();
+        }
+
+        return null;
+    }
+
+    public function isGoogleTakvimBagli(): bool
+    {
+        return $this->googleTakvimAyari() !== null;
+    }
+
+    public function googleBloklari(): HasMany
+    {
+        return $this->hasMany(DoktorGoogleBlok::class, 'doktor_id');
     }
 
     /**
