@@ -544,7 +544,6 @@ class HekimRandevuController extends Controller
 
         $canEmailBildirim = PaketYetki::has($doktor, 'email_bildirim');
         $canSmsHatirlatma = PaketYetki::has($doktor, 'sms_hatirlatma');
-        $canSmsBaslik = PaketYetki::has($doktor, 'sms_baslik');
 
         return view('hekim.randevu.ayarlar', compact(
             'doktor',
@@ -552,8 +551,7 @@ class HekimRandevuController extends Controller
             'izinler',
             'calismaSaatleri',
             'canEmailBildirim',
-            'canSmsHatirlatma',
-            'canSmsBaslik'
+            'canSmsHatirlatma'
         ));
     }
 
@@ -592,20 +590,6 @@ class HekimRandevuController extends Controller
             'email_bildirimleri' => $emailAcik,
             'sms_bildirimleri' => $smsAcik,
         ]);
-
-        // SMS özel başlık (sms_baslik)
-        if (PaketYetki::has($doktor, 'sms_baslik') && $request->filled('sms_gonderici_baslik')) {
-            $baslik = mb_strtoupper(preg_replace('/[^A-Za-z0-9 ]/', '', (string) $request->input('sms_gonderici_baslik')) ?? '');
-            $baslik = mb_substr(trim($baslik), 0, 11);
-            if (\Illuminate\Support\Facades\Schema::hasColumn('doktorlar', 'sms_gonderici_baslik')) {
-                $doktor->update(['sms_gonderici_baslik' => $baslik ?: null]);
-            }
-        } elseif (! PaketYetki::has($doktor, 'sms_baslik')
-            && \Illuminate\Support\Facades\Schema::hasColumn('doktorlar', 'sms_gonderici_baslik')
-            && filled($doktor->sms_gonderici_baslik)
-        ) {
-            $doktor->update(['sms_gonderici_baslik' => null]);
-        }
 
         return redirect()->route('hekim.randevu.ayarlar')->with([
             'basarili' => 'Randevu ayarlarınız başarıyla güncellendi.',

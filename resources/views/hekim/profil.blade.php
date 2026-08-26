@@ -351,31 +351,18 @@
             </div>
         </form>
 
-        {{-- WhatsApp Business bağlantısı — sadece bireysel hekim (klinik altındaysa klinik ayarından bağlanır) --}}
+        {{-- Google Takvim — bireysel hekim; klinik altındaki hekim klinik ayarından bağlar --}}
         @if(empty($doktor->klinik_id))
             <div class="mt-8">
-                @include('partials.whatsapp-baglan', [
-                    'whatsappOwner' => 'hekim',
-                    'whatsappConfig' => $doktor->whatsapp_config,
-                    'whatsappBaglandiAt' => $doktor->whatsapp_baglandi_at,
-                    'whatsappBaglanUrl' => route('hekim.whatsapp.baglan'),
-                    'whatsappAyirUrl' => route('hekim.whatsapp.ayir'),
+                @include('partials.google-takvim-baglan', [
+                    'gcalOwner' => 'hekim',
+                    'gcalConfig' => $doktor->google_calendar_config,
+                    'gcalBaglandiAt' => $doktor->google_calendar_baglandi_at,
+                    'gcalBaglanUrl' => route('hekim.google-takvim.baglan'),
+                    'gcalAyirUrl' => route('hekim.google-takvim.ayir'),
+                    'gcalEnabled' => (bool) config('google_calendar.enabled'),
                 ])
             </div>
-
-            {{-- Google Takvim — bireysel hekim; klinik altındaki hekim klinik ayarından bağlar --}}
-            @if($doktor->hasPaketFeature('google_takvim'))
-                <div class="mt-6">
-                    @include('partials.google-takvim-baglan', [
-                        'gcalOwner' => 'hekim',
-                        'gcalConfig' => $doktor->google_calendar_config,
-                        'gcalBaglandiAt' => $doktor->google_calendar_baglandi_at,
-                        'gcalBaglanUrl' => route('hekim.google-takvim.baglan'),
-                        'gcalAyirUrl' => route('hekim.google-takvim.ayir'),
-                        'gcalEnabled' => (bool) config('google_calendar.enabled'),
-                    ])
-                </div>
-            @endif
         @endif
     </div>
 

@@ -85,7 +85,7 @@ class RandevuDogrulamaService
         }
 
         // 3b. Google Takvim'den cekilmis mesgul araliklarla cakisma
-        if ($doktor->hasPaketFeature('google_takvim') && $doktor->isGoogleTakvimBagli()) {
+        if ($doktor->isGoogleTakvimBagli()) {
             $googleCakisma = DoktorGoogleBlok::where('doktor_id', $doktor->id)
                 ->where('baslangic_at', '<=', $zamanString)
                 ->where('bitis_at', '>', $zamanString)

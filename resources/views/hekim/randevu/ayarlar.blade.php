@@ -194,18 +194,6 @@
                             </div>
                         </div>
 
-                        @if(!empty($canSmsBaslik))
-                        <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col justify-between gap-4 sm:col-span-2">
-                            <div class="space-y-1">
-                                <span class="block text-xs font-bold text-[#111827] font-display">SMS Gönderici Başlığı</span>
-                                <span class="block text-[11px] text-[#6B7280] leading-relaxed">Kendi firma adınızla SMS (en fazla 11 karakter, harf/rakam). Operatör onaylı başlık olmalıdır.</span>
-                            </div>
-                            <input type="text" name="sms_gonderici_baslik" maxlength="11"
-                                   value="{{ old('sms_gonderici_baslik', $doktor->sms_gonderici_baslik) }}"
-                                   placeholder="ORNEKADI"
-                                   class="w-full max-w-xs px-4 py-3 rounded-xl border border-[#E5E7EB] bg-white text-xs text-[#111827] uppercase focus:outline-none focus:border-[#C96A2B]">
-                        </div>
-                        @endif
                     </div>
 
                     <!-- Approval Type Selection -->

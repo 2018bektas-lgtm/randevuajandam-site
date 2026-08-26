@@ -15,12 +15,6 @@ class SmsService
 
     protected ?string $netgsmHeader;
 
-    protected ?string $iletimerkeziKey;
-
-    protected ?string $iletimerkeziHash;
-
-    protected ?string $iletimerkeziSender;
-
     public function __construct()
     {
         $this->driver = config('sms.driver', env('SMS_DRIVER', 'log'));
@@ -28,10 +22,6 @@ class SmsService
         $this->netgsmUser = config('sms.netgsm.user', env('NETGSM_USER'));
         $this->netgsmPass = config('sms.netgsm.pass', env('NETGSM_PASS'));
         $this->netgsmHeader = config('sms.netgsm.header', env('NETGSM_HEADER'));
-
-        $this->iletimerkeziKey = config('sms.iletimerkezi.key', env('ILETIMERKEZI_KEY'));
-        $this->iletimerkeziHash = config('sms.iletimerkezi.hash', env('ILETIMERKEZI_HASH'));
-        $this->iletimerkeziSender = config('sms.iletimerkezi.sender', env('ILETIMERKEZI_SENDER'));
     }
 
     /**
@@ -56,11 +46,9 @@ class SmsService
         switch ($this->driver) {
             case 'netgsm':
                 return $this->sendNetgsm($normalizedPhone, $message, $header);
-            case 'iletimerkezi':
-                return $this->sendIletimerkezi($normalizedPhone, $message, $header);
             case 'log':
                 if (app()->environment('production')) {
-                    Log::error('SMS_DRIVER=log production ortamında kullanılamaz. Netgsm veya İleti Merkezi yapılandırın.');
+                    Log::error('SMS_DRIVER=log production ortamında kullanılamaz. NetGSM yapılandırın.');
 
                     return false;
                 }
@@ -159,71 +147,6 @@ class SmsService
             return false;
         } catch (\Exception $e) {
             Log::error('Netgsm Bağlantı Hatası: '.$e->getMessage());
-
-            return false;
-        }
-    }
-
-    /**
-     * Send SMS using İleti Merkezi JSON API
-     */
-    protected function sendIletimerkezi(string $phone, string $message, ?string $headerOverride = null): bool
-    {
-        if (empty($this->iletimerkeziKey) || empty($this->iletimerkeziHash)) {
-            Log::warning('İleti Merkezi SMS gönderilemedi: API Key veya Hash boş.');
-
-            if (app()->environment('production')) {
-                return false;
-            }
-
-            return $this->sendLog($phone, $message.' (İleti Merkezi Auth Missing Fallback)', $headerOverride);
-        }
-
-        // İleti Merkezi usually expects phone numbers starting with 90 or 5 (API works with 905XXXXXXXXX)
-        $data = [
-            'request' => [
-                'authentication' => [
-                    'key' => $this->iletimerkeziKey,
-                    'hash' => $this->iletimerkeziHash,
-                ],
-                'order' => [
-                    'sender' => $headerOverride ?: ($this->iletimerkeziSender ?? 'ILETIMERKEZ'),
-                    'sendDateTime' => '',
-                    'message' => [
-                        'text' => $message,
-                        'recipients' => [
-                            'number' => [$phone],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-
-        try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post('https://api.iletimerkezi.com/v1/send-sms/json', $data);
-
-            if ($response->successful()) {
-                $resData = $response->json();
-                $statusCode = $resData['response']['status']['code'] ?? null;
-
-                if ($statusCode == 200) {
-                    Log::info('İleti Merkezi SMS başarıyla gönderildi.', ['phone' => $phone]);
-
-                    return true;
-                }
-
-                Log::error('İleti Merkezi API Hatası: ', ['response' => $resData]);
-
-                return false;
-            }
-
-            Log::error('İleti Merkezi HTTP Hatası: ', ['status' => $response->status()]);
-
-            return false;
-        } catch (\Exception $e) {
-            Log::error('İleti Merkezi Bağlantı Hatası: '.$e->getMessage());
 
             return false;
         }
