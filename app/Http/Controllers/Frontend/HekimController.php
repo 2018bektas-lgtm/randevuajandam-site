@@ -613,34 +613,28 @@ class HekimController extends Controller
         $request->validate(['tarih' => ['required', 'date_format:Y-m-d']]);
 
         $tarih = \Carbon\Carbon::parse($request->string('tarih')->toString())->startOfDay();
+        $tarihStr = $tarih->toDateString();
         $periyot = $slotService->getPeriyot($doktor);
 
-        $randevular = $doktor->randevular()
-            ->whereDate('tarih', $tarih->toDateString())
-            ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
-            ->get();
+        $hizmetSure = $periyot;
+        if ($request->filled('hizmet_id')) {
+            $hizmet = $doktor->hizmetler()
+                ->where('id', (int) $request->hizmet_id)
+                ->where('aktif_mi', true)
+                ->first();
+            if ($hizmet && (int) $hizmet->sure > 0) {
+                $hizmetSure = (int) $hizmet->sure;
+            }
+        }
 
-        $izinler = method_exists($doktor, 'izinler')
-            ? $doktor->izinler()->get()
-            : collect();
-
-        $gunluk = $slotService->generateGunlukSlotlar($doktor, $tarih, $randevular, $izinler, $periyot);
-        $tarihStr = $tarih->toDateString();
-
-        $slots = collect($gunluk)
-            ->filter(fn ($s) => is_array($s))
-            ->map(function ($s) use ($slotService, $doktor, $tarihStr) {
-                $saat = substr((string) ($s['saat_string'] ?? $s['saat_baslangic'] ?? ''), 0, 5);
+        $slots = collect($slotService->publicGunlukSlotlar($doktor, $tarih, $hizmetSure))
+            ->map(function ($s) {
                 $durum = (string) ($s['durum'] ?? 'bos');
-                $musait = $durum === 'bos' && $saat !== '' && $slotService->isSlotSelectable($doktor, $tarihStr, $saat);
-                if ($durum === 'bos' && ! $musait) {
-                    $durum = 'gecmis';
-                }
 
                 return [
-                    'saat' => $saat,
+                    'saat' => $s['saat'],
                     'durum' => $durum,
-                    'musait' => $musait,
+                    'musait' => ! empty($s['musait']),
                     'etiket' => match ($durum) {
                         'bos' => 'Müsait',
                         'dolu' => 'Dolu',
@@ -651,8 +645,6 @@ class HekimController extends Controller
                     },
                 ];
             })
-            ->filter(fn ($s) => $s['saat'] !== '')
-            ->filter(fn ($s) => $s['durum'] !== 'ogle')
             ->values();
 
         $hasFree = $slots->contains(fn ($s) => ! empty($s['musait']));

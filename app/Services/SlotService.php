@@ -35,6 +35,7 @@ class SlotService
         Collection $randevular,
         Collection $izinler,
         int $periyot,
+        ?Collection $googleBloklar = null,
     ): array {
         $gunIndeksi = (int) $gunTarih->format('N');
         $cs = $doktor->relationLoaded('calismaSaatleri')
@@ -70,11 +71,13 @@ class SlotService
             // 1. Check Lunch Break
             $isLunch = $this->isOgleArasi($cs, $slotTimeString);
 
-            // 2. Check Leaves
-            $izinSonuc = $this->checkIzin($izinler, $gunTarih, $slotTimeString);
+            // 2. Check Leaves (slot aralığıyla çakışma)
+            $izinSonuc = $this->checkIzin($izinler, $gunTarih, $slotTimeString, $slotEnd);
 
-            // 3. Check Booked Appointments (excluding cancelled ones).
-            // Hizmet süresi periyottan uzunsa sonraki slotlar da dolu sayılır (site + hekim sitesi aynı kural).
+            // 3. Google Takvim mesgul blokları
+            $googleDolu = $this->googleBlokCakisiyor($googleBloklar, $gunTarih, $slotStart, $slotEnd);
+
+            // 4. Mevcut randevular — hizmet süresi periyoda yuvarlanır (45 dk seans 60 dk gridde 12:00-13:00 kapar).
             $randevu = $randevular->first(function ($item) use ($gunTarih, $slotStart, $slotEnd, $periyot) {
                 if (($item->durum ?? '') === 'iptal') {
                     return false;
@@ -88,20 +91,26 @@ class SlotService
                 if ($sure < 1) {
                     $sure = $periyot;
                 }
-                try {
-                    $itemEnd = Carbon::createFromFormat('H:i', $itemStart)->addMinutes($sure)->format('H:i');
-                } catch (\Throwable) {
-                    $itemEnd = $itemStart;
-                }
+                $sure = (int) (ceil($sure / max(1, $periyot)) * max(1, $periyot));
+                $itemEnd = $this->addMinutesHi($itemStart, $sure);
 
-                return $slotStart < $itemEnd && $slotEnd > $itemStart;
+                return $this->hiOverlap($slotStart, $slotEnd, $itemStart, $itemEnd);
             });
+
+            $durum = 'bos';
+            if ($isLunch) {
+                $durum = 'ogle';
+            } elseif ($izinSonuc['izinli']) {
+                $durum = 'izin';
+            } elseif ($googleDolu || $randevu) {
+                $durum = 'dolu';
+            }
 
             $slots[] = [
                 'saat_baslangic' => $slotStart,
                 'saat_bitis' => $slotEnd,
                 'saat_string' => $slotTimeString,
-                'durum' => $isLunch ? 'ogle' : ($izinSonuc['izinli'] ? 'izin' : ($randevu ? 'dolu' : 'bos')),
+                'durum' => $durum,
                 'randevu' => $randevu,
                 'izin_aciklama' => $izinSonuc['aciklama'],
             ];
@@ -130,18 +139,139 @@ class SlotService
      *
      * @return array{izinli: bool, aciklama: string}
      */
-    public function checkIzin(Collection $izinler, Carbon $gunTarih, string $saat): array
+    public function checkIzin(Collection $izinler, Carbon $gunTarih, string $saat, ?string $slotEnd = null): array
     {
-        $slotDateTimeStr = $gunTarih->toDateString().' '.$saat.':00';
+        $gun = $gunTarih->toDateString();
+        $slotStartStr = $gun.' '.$saat.':00';
+        $slotEndStr = $gun.' '.($slotEnd ?: $saat).':00';
 
         foreach ($izinler as $izin) {
-            if ($slotDateTimeStr >= $izin->baslangic_zaman->toDateTimeString() &&
-                $slotDateTimeStr < $izin->bitis_zaman->toDateTimeString()) {
+            $bStart = $izin->baslangic_zaman instanceof \DateTimeInterface
+                ? $izin->baslangic_zaman->format('Y-m-d H:i:s')
+                : (string) $izin->baslangic_zaman;
+            $bEnd = $izin->bitis_zaman instanceof \DateTimeInterface
+                ? $izin->bitis_zaman->format('Y-m-d H:i:s')
+                : (string) $izin->bitis_zaman;
+            if ($slotStartStr < $bEnd && $slotEndStr > $bStart) {
                 return ['izinli' => true, 'aciklama' => $izin->aciklama ?? 'İzinli'];
             }
         }
 
         return ['izinli' => false, 'aciklama' => ''];
+    }
+
+    /**
+     * @param  Collection<int, mixed>|null  $googleBloklar
+     */
+    protected function googleBlokCakisiyor(?Collection $googleBloklar, Carbon $gunTarih, string $slotStart, string $slotEnd): bool
+    {
+        if (! $googleBloklar || $googleBloklar->isEmpty()) {
+            return false;
+        }
+        $gun = $gunTarih->toDateString();
+        $aStart = $gun.' '.$slotStart.':00';
+        $aEnd = $gun.' '.$slotEnd.':00';
+        foreach ($googleBloklar as $b) {
+            $bStart = $b->baslangic_at instanceof \DateTimeInterface
+                ? $b->baslangic_at->format('Y-m-d H:i:s')
+                : (string) ($b->baslangic_at ?? '');
+            $bEnd = $b->bitis_at instanceof \DateTimeInterface
+                ? $b->bitis_at->format('Y-m-d H:i:s')
+                : (string) ($b->bitis_at ?? '');
+            if ($bStart === '' || $bEnd === '') {
+                continue;
+            }
+            if ($aStart < $bEnd && $aEnd > $bStart) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function addMinutesHi(string $hi, int $minutes): string
+    {
+        try {
+            return Carbon::createFromFormat('H:i', substr($hi, 0, 5))->addMinutes($minutes)->format('H:i');
+        } catch (\Throwable) {
+            return substr($hi, 0, 5);
+        }
+    }
+
+    protected function hiOverlap(string $aStart, string $aEnd, string $bStart, string $bEnd): bool
+    {
+        return $aStart < $bEnd && $aEnd > $bStart;
+    }
+
+    /**
+     * Misafir / hekim sitesi için günün slotları (panel ile aynı kural).
+     *
+     * @return list<array{saat: string, saat_bitis: string, durum: string, musait: bool}>
+     */
+    public function publicGunlukSlotlar(Doktor $doktor, Carbon $tarih, int $hizmetSure = 0): array
+    {
+        $periyot = $this->getPeriyot($doktor);
+        if ($hizmetSure < 1) {
+            $hizmetSure = $periyot;
+        }
+
+        $randevular = $doktor->randevular()
+            ->with('hizmet')
+            ->whereDate('tarih', $tarih->toDateString())
+            ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
+            ->get();
+
+        $izinler = method_exists($doktor, 'izinler')
+            ? $doktor->izinler()
+                ->where('baslangic_zaman', '<=', $tarih->copy()->endOfDay())
+                ->where('bitis_zaman', '>=', $tarih->copy()->startOfDay())
+                ->get()
+            : collect();
+
+        $google = collect();
+        if (method_exists($doktor, 'isGoogleTakvimBagli') && $doktor->isGoogleTakvimBagli() && method_exists($doktor, 'googleBloklari')) {
+            $google = $doktor->googleBloklari()
+                ->where('baslangic_at', '<', $tarih->copy()->endOfDay())
+                ->where('bitis_at', '>', $tarih->copy()->startOfDay())
+                ->get();
+        }
+
+        $gunluk = $this->generateGunlukSlotlar($doktor, $tarih, $randevular, $izinler, $periyot, $google);
+        $needed = max(1, (int) ceil($hizmetSure / max(1, $periyot)));
+        $out = [];
+        foreach ($gunluk as $i => $slot) {
+            $saat = (string) ($slot['saat_string'] ?? '');
+            if ($saat === '') {
+                continue;
+            }
+            $durum = (string) ($slot['durum'] ?? 'bos');
+            if ($durum === 'ogle') {
+                continue;
+            }
+            $musait = $durum === 'bos';
+            if ($musait) {
+                for ($k = 1; $k < $needed; $k++) {
+                    $next = $gunluk[$i + $k] ?? null;
+                    if (! $next || ($next['durum'] ?? '') !== 'bos') {
+                        $musait = false;
+                        $durum = 'dolu';
+                        break;
+                    }
+                }
+            }
+            if ($musait && ! $this->isSlotSelectable($doktor, $tarih->toDateString(), $saat)) {
+                $musait = false;
+                $durum = 'gecmis';
+            }
+            $out[] = [
+                'saat' => $saat,
+                'saat_bitis' => (string) ($slot['saat_bitis'] ?? ''),
+                'durum' => $durum,
+                'musait' => $musait,
+            ];
+        }
+
+        return $out;
     }
 
     /**
@@ -307,11 +437,8 @@ class SlotService
         $saat = substr($saat, 0, 5);
         $periyot = $this->getPeriyot($doktor);
         $sure = max(1, $sureDakika > 0 ? $sureDakika : $periyot);
-        try {
-            $bitis = Carbon::createFromFormat('H:i', $saat)->addMinutes($sure)->format('H:i');
-        } catch (\Throwable) {
-            $bitis = $saat;
-        }
+        $sure = (int) (ceil($sure / max(1, $periyot)) * max(1, $periyot));
+        $bitis = $this->addMinutesHi($saat, $sure);
 
         $q = $doktor->randevular()
             ->with('hizmet')
@@ -330,12 +457,9 @@ class SlotService
             if ($itemSure < 1) {
                 $itemSure = $periyot;
             }
-            try {
-                $itemEnd = Carbon::createFromFormat('H:i', $itemStart)->addMinutes($itemSure)->format('H:i');
-            } catch (\Throwable) {
-                $itemEnd = $itemStart;
-            }
-            if ($saat < $itemEnd && $bitis > $itemStart) {
+            $itemSure = (int) (ceil($itemSure / max(1, $periyot)) * max(1, $periyot));
+            $itemEnd = $this->addMinutesHi($itemStart, $itemSure);
+            if ($this->hiOverlap($saat, $bitis, $itemStart, $itemEnd)) {
                 return true;
             }
         }
