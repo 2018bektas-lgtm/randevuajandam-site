@@ -300,7 +300,7 @@ class AppointmentBookingService
         }
 
         if (! $skipSchedule) {
-            $hata = $this->dogrulamaService->dogrula($doktor, $tarih, $saat);
+            $hata = $this->dogrulamaService->dogrula($doktor, $tarih, $saat, null, (int) $hizmet->sure);
             if ($hata) {
                 throw new InvalidArgumentException($hata);
             }
@@ -312,16 +312,14 @@ class AppointmentBookingService
         try {
             return $lock->block(5, function () use ($doktor, $hasta, $hizmet, $tarih, $saat, $data) {
                 return DB::transaction(function () use ($doktor, $hasta, $hizmet, $tarih, $saat, $data) {
-                    $cakisma = Randevu::query()
-                        ->where('doktor_id', $doktor->id)
-                        ->whereDate('tarih', $tarih)
-                        ->where(function ($q) use ($saat) {
-                            $q->where('saat', $saat)
-                                ->orWhere('saat', $saat.':00');
-                        })
-                        ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
-                        ->lockForUpdate()
-                        ->exists();
+                    $cakisma = app(SlotService::class)->existsOverlappingAppointment(
+                        $doktor,
+                        $tarih,
+                        $saat,
+                        (int) $hizmet->sure,
+                        null,
+                        true,
+                    );
 
                     if ($cakisma) {
                         throw new InvalidArgumentException('Seçtiğiniz randevu saati maalesef doludur. Lütfen başka bir saat seçin.');
@@ -378,7 +376,7 @@ class AppointmentBookingService
         }
 
         if (! $skipScheduleValidation) {
-            $hata = $this->dogrulamaService->dogrula($doktor, $tarih, $saat, $randevu->id);
+            $hata = $this->dogrulamaService->dogrula($doktor, $tarih, $saat, $randevu->id, (int) data_get($randevu, 'hizmet.sure', 0));
             if ($hata) {
                 throw new InvalidArgumentException($hata);
             }
@@ -390,17 +388,14 @@ class AppointmentBookingService
         try {
             return $lock->block(5, function () use ($randevu, $doktor, $tarih, $saat) {
                 return DB::transaction(function () use ($randevu, $doktor, $tarih, $saat) {
-                    $cakisma = Randevu::query()
-                        ->where('doktor_id', $doktor->id)
-                        ->where('id', '!=', $randevu->id)
-                        ->whereDate('tarih', $tarih)
-                        ->where(function ($q) use ($saat) {
-                            $q->where('saat', $saat)
-                                ->orWhere('saat', $saat.':00');
-                        })
-                        ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
-                        ->lockForUpdate()
-                        ->exists();
+                    $cakisma = app(SlotService::class)->existsOverlappingAppointment(
+                        $doktor,
+                        $tarih,
+                        $saat,
+                        (int) data_get($randevu, 'hizmet.sure', 0),
+                        $randevu->id,
+                        true,
+                    );
 
                     if ($cakisma) {
                         throw new InvalidArgumentException('Seçilen saat dilimi doludur.');

@@ -15,10 +15,12 @@ use Carbon\Carbon;
  */
 class RandevuDogrulamaService
 {
+    public function __construct(protected SlotService $slotService) {}
+
     /**
      * Validate a new appointment request. Returns null if valid, or an error message string.
      */
-    public function dogrula(Doktor $doktor, string $tarih, string $saat, ?int $haricRandevuId = null): ?string
+    public function dogrula(Doktor $doktor, string $tarih, string $saat, ?int $haricRandevuId = null, int $sureDakika = 0): ?string
     {
         // 1. Check if doctor accepts online bookings
         if (! $doktor->randevuya_acik_mi) {
@@ -59,17 +61,8 @@ class RandevuDogrulamaService
             }
         }
 
-        // 2. Double Booking check
-        $cakismaQuery = Randevu::where('doktor_id', $doktor->id)
-            ->whereDate('tarih', $tarih)
-            ->where('saat', $saat)
-            ->whereIn('durum', ['beklemede', 'onaylandi']);
-
-        if ($haricRandevuId) {
-            $cakismaQuery->where('id', '!=', $haricRandevuId);
-        }
-
-        if ($cakismaQuery->exists()) {
+        // 2. Double booking — hizmet süresiyle çakışan slotlar da dolu (site + hekim sitesi).
+        if ($this->slotService->existsOverlappingAppointment($doktor, $tarih, $saat, $sureDakika, $haricRandevuId)) {
             return 'Seçtiğiniz randevu saati maalesef doludur. Lütfen başka bir saat seçin.';
         }
 

@@ -45,6 +45,13 @@ class SlotService
             return [];
         }
 
+        if ($randevular->isNotEmpty()) {
+            $first = $randevular->first();
+            if (is_object($first) && method_exists($first, 'relationLoaded') && ! $first->relationLoaded('hizmet') && method_exists($randevular, 'load')) {
+                $randevular->load('hizmet');
+            }
+        }
+
         $slots = [];
         $current = Carbon::parse($cs->mesai_baslangic);
         $end = Carbon::parse($cs->mesai_bitis);
@@ -66,12 +73,28 @@ class SlotService
             // 2. Check Leaves
             $izinSonuc = $this->checkIzin($izinler, $gunTarih, $slotTimeString);
 
-            // 3. Check Booked Appointments (excluding cancelled ones)
-            $randevu = $randevular->first(function ($item) use ($gunTarih, $slotTimeString) {
+            // 3. Check Booked Appointments (excluding cancelled ones).
+            // Hizmet süresi periyottan uzunsa sonraki slotlar da dolu sayılır (site + hekim sitesi aynı kural).
+            $randevu = $randevular->first(function ($item) use ($gunTarih, $slotStart, $slotEnd, $periyot) {
+                if (($item->durum ?? '') === 'iptal') {
+                    return false;
+                }
                 $itemDate = Carbon::parse($item->tarih)->toDateString();
-                $itemTime = substr($item->saat, 0, 5);
+                if ($itemDate !== $gunTarih->toDateString()) {
+                    return false;
+                }
+                $itemStart = substr((string) $item->saat, 0, 5);
+                $sure = (int) (data_get($item, 'hizmet.sure') ?: $periyot);
+                if ($sure < 1) {
+                    $sure = $periyot;
+                }
+                try {
+                    $itemEnd = Carbon::createFromFormat('H:i', $itemStart)->addMinutes($sure)->format('H:i');
+                } catch (\Throwable) {
+                    $itemEnd = $itemStart;
+                }
 
-                return $itemDate === $gunTarih->toDateString() && $itemTime === $slotTimeString && $item->durum !== 'iptal';
+                return $slotStart < $itemEnd && $slotEnd > $itemStart;
             });
 
             $slots[] = [
@@ -186,6 +209,7 @@ class SlotService
         $end = today()->copy()->addDays($maxDays);
 
         $randevularByDate = $doktor->randevular()
+            ->with('hizmet')
             ->whereDate('tarih', '>=', $start->toDateString())
             ->whereDate('tarih', '<=', $end->toDateString())
             ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
@@ -228,11 +252,103 @@ class SlotService
     }
 
     /**
+     * Hizmet süresi periyottan uzunsa ardışık boş slot gerekir.
+     *
+     * @param  array<int, array{durum?:string, saat_string?:string, saat_bitis?:string}>  $gunluk
+     * @return list<array{saat: string, saat_bitis: string}>
+     */
+    public function bosBaslangicSlotlari(array $gunluk, int $periyot, int $hizmetSure, ?string $minSaatExclusive = null): array
+    {
+        $needed = max(1, (int) ceil(max(1, $hizmetSure) / max(1, $periyot)));
+        $out = [];
+        foreach ($gunluk as $i => $slot) {
+            if (($slot['durum'] ?? '') !== 'bos') {
+                continue;
+            }
+            $saat = (string) ($slot['saat_string'] ?? '');
+            if ($saat === '') {
+                continue;
+            }
+            if ($minSaatExclusive !== null && $saat <= $minSaatExclusive) {
+                continue;
+            }
+            $ok = true;
+            for ($k = 1; $k < $needed; $k++) {
+                $next = $gunluk[$i + $k] ?? null;
+                if (! $next || ($next['durum'] ?? '') !== 'bos') {
+                    $ok = false;
+                    break;
+                }
+            }
+            if (! $ok) {
+                continue;
+            }
+            $out[] = [
+                'saat' => $saat,
+                'saat_bitis' => (string) ($slot['saat_bitis'] ?? ''),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Yeni randevu, mevcut randevuların hizmet süresiyle çakışıyor mu?
+     * Site paneli ve hekim sitesi aynı kuralı kullanır.
+     */
+    public function existsOverlappingAppointment(
+        Doktor $doktor,
+        string $tarih,
+        string $saat,
+        int $sureDakika,
+        ?int $haricRandevuId = null,
+        bool $lock = false,
+    ): bool {
+        $saat = substr($saat, 0, 5);
+        $periyot = $this->getPeriyot($doktor);
+        $sure = max(1, $sureDakika > 0 ? $sureDakika : $periyot);
+        try {
+            $bitis = Carbon::createFromFormat('H:i', $saat)->addMinutes($sure)->format('H:i');
+        } catch (\Throwable) {
+            $bitis = $saat;
+        }
+
+        $q = $doktor->randevular()
+            ->with('hizmet')
+            ->whereDate('tarih', $tarih)
+            ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi']);
+        if ($haricRandevuId) {
+            $q->where('id', '!=', $haricRandevuId);
+        }
+        if ($lock) {
+            $q->lockForUpdate();
+        }
+
+        foreach ($q->get() as $item) {
+            $itemStart = substr((string) $item->saat, 0, 5);
+            $itemSure = (int) (data_get($item, 'hizmet.sure') ?: $periyot);
+            if ($itemSure < 1) {
+                $itemSure = $periyot;
+            }
+            try {
+                $itemEnd = Carbon::createFromFormat('H:i', $itemStart)->addMinutes($itemSure)->format('H:i');
+            } catch (\Throwable) {
+                $itemEnd = $itemStart;
+            }
+            if ($saat < $itemEnd && $bitis > $itemStart) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Belirli aralıkta en az 1 müsait slotu olan günler (takvim için).
      *
      * @return list<string> Y-m-d
      */
-    public function availableDatesInRange(Doktor $doktor, Carbon $from, Carbon $to): array
+    public function availableDatesInRange(Doktor $doktor, Carbon $from, Carbon $to, int $hizmetSure = 0): array
     {
         if (! $doktor->randevuya_acik_mi) {
             return [];
@@ -246,6 +362,9 @@ class SlotService
 
         $ayarlar = $doktor->randevuAyari;
         $periyot = $this->getPeriyot($doktor);
+        if ($hizmetSure < 1) {
+            $hizmetSure = $periyot;
+        }
         $enErkenSaat = (int) ($ayarlar->en_erken_randevu_saati ?? 0);
         $enErkenZaman = now()->addHours(max(0, $enErkenSaat));
 
@@ -262,6 +381,7 @@ class SlotService
             : collect();
 
         $randevularByDate = $doktor->randevular()
+            ->with('hizmet')
             ->whereDate('tarih', '>=', $from->toDateString())
             ->whereDate('tarih', '<=', $to->toDateString())
             ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
@@ -274,15 +394,9 @@ class SlotService
             $key = $cursor->toDateString();
             $dayRandevular = $randevularByDate->get($key, collect());
             $slots = $this->generateGunlukSlotlar($doktor, $cursor, $dayRandevular, $izinler, $periyot);
-            foreach ($slots as $slot) {
-                if (($slot['durum'] ?? '') !== 'bos') {
-                    continue;
-                }
-                $saat = (string) ($slot['saat_string'] ?? '');
-                if ($saat === '') {
-                    continue;
-                }
-                if (Carbon::parse($key.' '.$saat)->lt($enErkenZaman)) {
+            $minSaat = $cursor->isToday() ? now()->format('H:i') : null;
+            foreach ($this->bosBaslangicSlotlari($slots, $periyot, $hizmetSure, $minSaat) as $bos) {
+                if (Carbon::parse($key.' '.$bos['saat'])->lt($enErkenZaman)) {
                     continue;
                 }
                 $available[] = $key;
