@@ -225,21 +225,162 @@
                         <div class="sm:col-span-2 text-slate-600">Son not: {{ $doktor->meslek_dogrulama_notu }}</div>
                     @endif
                 </dl>
-                <p class="text-[10px] text-slate-500 leading-relaxed border-t border-slate-200 pt-3">
-                    e-Devlet: önce barkodu, sonra TC’yi girin. Sonuç uyumluysa <strong>Onayla</strong>.
-                    Otomatik bot yok — doğrulama sizin manuel onayınızla kesinleşir.
-                </p>
-                <form action="{{ route('yonetim.doktorlar.meslek-dogrula', $doktor->id) }}" method="POST" class="flex flex-col sm:flex-row gap-2 sm:items-end border-t border-slate-200 pt-4" id="meslekDogrulaForm">
-                    @csrf
-                    <div class="flex-1">
-                        <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Not (red için zorunlu)</label>
-                        <input type="text" name="not" id="meslekNot" placeholder="Örn. Belge okunmuyor / TC uyuşmuyor" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs" value="{{ old('not') }}">
-                        @error('not')<p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>@enderror
+                @if($md === 'onaylandi')
+                    {{-- Onaylandığında form gizli. İhtiyaç halinde durum sıfırlanabilir. --}}
+                    <div class="border-t border-slate-200 pt-4 space-y-3">
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900">
+                            <svg class="w-4 h-4 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <div>
+                                <p class="font-bold">Meslek belgesi onaylandı — hekim ödeme yapabilir.</p>
+                                @if($doktor->meslek_dogrulandi_at)
+                                    <p class="mt-0.5 opacity-80">{{ \Carbon\Carbon::parse($doktor->meslek_dogrulandi_at)->format('d.m.Y H:i') }} tarihinde onaylandı.</p>
+                                @endif
+                            </div>
+                        </div>
+                        <details class="text-[11px]">
+                            <summary class="cursor-pointer text-slate-500 hover:text-slate-700">Onay durumunu sıfırla (yeniden değerlendirme)</summary>
+                            <form action="{{ route('yonetim.doktorlar.meslek-dogrula', $doktor->id) }}" method="POST" class="mt-2 flex flex-col sm:flex-row gap-2 sm:items-end">
+                                @csrf
+                                <div class="flex-1">
+                                    <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Gerekçe (zorunlu)</label>
+                                    <input type="text" name="not" placeholder="Sıfırlama nedeni" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs" required>
+                                </div>
+                                <button type="submit" name="karar" value="reddedildi" class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold">Reddedildiye çevir</button>
+                            </form>
+                        </details>
                     </div>
-                    <button type="submit" name="karar" value="onaylandi" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Onayla → ödeme açılsın</button>
-                    <button type="submit" name="karar" value="reddedildi" class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold" onclick="if(!document.getElementById('meslekNot').value.trim()){event.preventDefault();alert('Reddetmeden önce gerekçe notu girin.');}">Reddet</button>
-                </form>
+                @else
+                    <p class="text-[10px] text-slate-500 leading-relaxed border-t border-slate-200 pt-3">
+                        e-Devlet: önce barkodu, sonra TC’yi girin. Sonuç uyumluysa <strong>Onayla</strong>.
+                        Otomatik bot yok — doğrulama sizin manuel onayınızla kesinleşir.
+                    </p>
+                    <form action="{{ route('yonetim.doktorlar.meslek-dogrula', $doktor->id) }}" method="POST" class="flex flex-col sm:flex-row gap-2 sm:items-end border-t border-slate-200 pt-4" id="meslekDogrulaForm">
+                        @csrf
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Not (red için zorunlu)</label>
+                            <input type="text" name="not" id="meslekNot" placeholder="Örn. Belge okunmuyor / TC uyuşmuyor" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs" value="{{ old('not') }}">
+                            @error('not')<p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <button type="submit" name="karar" value="onaylandi" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Onayla → ödeme açılsın</button>
+                        <button type="submit" name="karar" value="reddedildi" class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold" onclick="if(!document.getElementById('meslekNot').value.trim()){event.preventDefault();alert('Reddetmeden önce gerekçe notu girin.');}">Reddet</button>
+                    </form>
+                @endif
             </div>
+
+            @if(!empty($webSitesiPaketVar))
+                {{-- Web Sitesi & API Anahtarı (sadece web_sitesi paketli hekimlerde) --}}
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 space-y-5 mt-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 font-display flex items-center gap-2">
+                                <span class="inline-flex w-6 h-6 rounded-full bg-sky-100 items-center justify-center text-sky-600 text-xs">🌐</span>
+                                Kişisel Web Sitesi
+                            </h3>
+                            <p class="text-[11px] text-slate-500 mt-1">Hekim paketinde <code class="px-1 rounded bg-slate-100 text-[10px]">web_sitesi</code> özelliği aktif. Yönetici olarak domain, tema ve durum yönetebilirsiniz.</p>
+                        </div>
+                        @if($webSite)
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Kayıtlı</span>
+                        @else
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">Kurulmadı</span>
+                        @endif
+                    </div>
+
+                    <form action="{{ route('yonetim.doktorlar.web-sitesi.guncelle', $doktor->id) }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        @csrf
+                        <div class="sm:col-span-2">
+                            <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Domain (protokolsüz)</label>
+                            <input type="text" name="domain" required
+                                   value="{{ old('domain', $webSite?->domain) }}"
+                                   placeholder="doktoradi.com"
+                                   class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono">
+                            @error('domain')<p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Tema</label>
+                            <select name="tema" required class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs">
+                                @foreach($hekimTemalari as $tid => $tinfo)
+                                    <option value="{{ $tid }}" @selected(old('tema', $webSite?->tema ?? 'tema-1') === $tid)>
+                                        {{ $tinfo['ad'] ?? $tid }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Durum</label>
+                            <select name="durum" required class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs">
+                                @foreach(['beklemede'=>'Beklemede','kuruluyor'=>'Kuruluyor','aktif'=>'Aktif','hata'=>'Hata'] as $k=>$l)
+                                    <option value="{{ $k }}" @selected(old('durum', $webSite?->durum ?? 'beklemede') === $k)>{{ $l }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-[10px] font-bold uppercase text-slate-600 mb-1">Hostinger Domain ID (opsiyonel)</label>
+                            <input type="text" name="hostinger_domain_id"
+                                   value="{{ old('hostinger_domain_id', $webSite?->hostinger_domain_id) }}"
+                                   placeholder="hpanel'den kopyalayın"
+                                   class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono">
+                        </div>
+                        <div class="sm:col-span-2 flex items-center justify-between gap-3 pt-1">
+                            @if($webSite)
+                                <a href="https://{{ $webSite->domain }}" target="_blank" rel="noopener" class="text-[11px] text-sky-600 hover:text-sky-700 font-bold">
+                                    Siteyi aç ↗
+                                </a>
+                            @else
+                                <span class="text-[11px] text-slate-400">Site kaydı henüz yok</span>
+                            @endif
+                            <button type="submit" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold">
+                                Kaydet
+                            </button>
+                        </div>
+                    </form>
+
+                    {{-- API anahtarı yönetimi --}}
+                    <div class="border-t border-slate-200 pt-4 space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-900 font-display">API Anahtarı</h4>
+                                <p class="text-[10px] text-slate-500 mt-0.5">Hekimin web sitesi bu anahtarı kullanarak platform API'sine bağlanır.</p>
+                            </div>
+                            <form action="{{ route('yonetim.doktorlar.api-anahtari.yenile', $doktor->id) }}" method="POST"
+                                  onsubmit="return confirm('API anahtarını yenilemek istediğinize emin misiniz? Eski anahtar geçersiz olur.');">
+                                @csrf
+                                <button type="submit" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold">
+                                    {{ $apiKey ? 'Yenile' : 'Oluştur' }}
+                                </button>
+                            </form>
+                        </div>
+
+                        @if($apiKey)
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <div class="text-[10px] font-bold uppercase text-slate-500">API Key</div>
+                                    <code class="mt-0.5 block font-mono text-[10px] text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 break-all select-all">{{ $apiKey->api_key }}</code>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] font-bold uppercase text-slate-500">Durum</div>
+                                    <div class="mt-0.5">
+                                        @if($apiKey->durum)
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Aktif</span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">Kapalı</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-[11px] text-slate-500 italic">Henüz API anahtarı üretilmedi. "Oluştur" butonuna basın.</p>
+                        @endif
+
+                        @if($plainApiSecret)
+                            <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900">
+                                <p class="font-bold mb-1">⚠️ Secret Key yalnızca bu ekranda görünür — kopyalayın:</p>
+                                <code class="block font-mono text-[10px] text-amber-950 bg-white border border-amber-100 rounded px-2 py-1.5 break-all select-all">{{ $plainApiSecret }}</code>
+                                <p class="mt-1 opacity-80">Kaybederseniz anahtarı yeniden üretmeniz gerekir.</p>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Form Card -->

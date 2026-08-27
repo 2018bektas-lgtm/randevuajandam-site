@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Yonetim\DoktorUpdateRequest;
+use App\Models\ApiKey;
 use App\Models\BelgeErisimLog;
 use App\Models\Brans;
 use App\Models\Doktor;
 use App\Models\DoktorMezuniyetBelgesi;
 use App\Models\EdevletDogrulamaLog;
+use App\Models\HekimWebSitesi;
 use App\Models\Il;
 use App\Models\Ilce;
 use App\Models\Klinik;
@@ -18,9 +20,11 @@ use App\Models\Yonetici;
 use App\Notifications\MeslekBelgesiSonucBildirimi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DoktorController extends Controller
@@ -312,6 +316,13 @@ class DoktorController extends Controller
         $branslar = Brans::query()->orderBy('ad')->get(['id', 'ad']);
         $seciliBransIds = old('branslar', $doktor->branslar->pluck('id')->all());
 
+        // Web sitesi + API anahtar bilgisi (paket web_sitesi ise UI gösterecek)
+        $webSitesiPaketVar = $doktor->hasPaketFeature('web_sitesi');
+        $webSite = $doktor->webSite;
+        $apiKey = $webSitesiPaketVar ? ApiKey::query()->where('doktor_id', $doktor->id)->first() : null;
+        $plainApiSecret = session('plain_api_secret'); // yalnız yenileme sonrası bir defa
+        $hekimTemalari = (array) config('hekim_themes.catalog', []);
+
         return view('yonetim.doktorlar.duzenle', compact(
             'yonetici',
             'doktor',
@@ -320,8 +331,102 @@ class DoktorController extends Controller
             'klinikYetkiAnahtarlari',
             'unvanlar',
             'branslar',
-            'seciliBransIds'
+            'seciliBransIds',
+            'webSitesiPaketVar',
+            'webSite',
+            'apiKey',
+            'plainApiSecret',
+            'hekimTemalari'
         ));
+    }
+
+    /**
+     * Yönetici tarafından hekim web sitesi domain + tema kaydı / güncellenmesi.
+     * BYOD mantığıyla direkt hekim_web_siteleri kaydı oluşturulur; hekim panelindeki
+     * kurulum akışını atlar (yönetici manuel yönetim).
+     */
+    public function webSitesiGuncelle(Request $request, int $id)
+    {
+        $doktor = Doktor::findOrFail($id);
+        if (! $doktor->hasPaketFeature('web_sitesi')) {
+            return back()->with('hata', 'Bu hekimin paketi web sitesi içermiyor.');
+        }
+
+        $data = $request->validate([
+            'domain' => ['required', 'string', 'max:100', 'regex:/^[a-z0-9.-]+\.[a-z]{2,}$/i'],
+            'tema' => ['required', 'string', 'max:40'],
+            'durum' => ['required', 'in:beklemede,kuruluyor,aktif,hata'],
+            'hostinger_domain_id' => ['nullable', 'string', 'max:80'],
+        ], [
+            'domain.regex' => 'Geçerli bir domain girin (örn. doktoradi.com — protokol yazmayın).',
+        ]);
+
+        $domain = strtolower(trim($data['domain']));
+        $domain = preg_replace('#^https?://#i', '', $domain) ?? $domain;
+        $domain = preg_replace('#^www\.#i', '', trim($domain, '/')) ?? $domain;
+        $tema = HekimWebSitesi::normalizeHekimTema($data['tema']);
+
+        // Domain başka hekime aitse hata
+        $baskasi = HekimWebSitesi::where('domain', $domain)->where('doktor_id', '!=', $doktor->id)->first();
+        if ($baskasi) {
+            return back()->with('hata', 'Bu domain başka bir hekime kayıtlı: '.$baskasi->doktor_id);
+        }
+
+        $webSite = $doktor->webSite;
+        if ($webSite) {
+            $webSite->update([
+                'domain' => $domain,
+                'tema' => $tema,
+                'durum' => $data['durum'],
+                'hostinger_domain_id' => $data['hostinger_domain_id'] ?? null,
+            ]);
+        } else {
+            HekimWebSitesi::create([
+                'doktor_id' => $doktor->id,
+                'domain' => $domain,
+                'tema' => $tema,
+                'durum' => $data['durum'],
+                'hostinger_domain_id' => $data['hostinger_domain_id'] ?? null,
+            ]);
+        }
+
+        return back()->with('basarili', 'Web sitesi bilgileri güncellendi.');
+    }
+
+    /**
+     * Yönetici tarafından hekim API anahtarını yeniden oluştur.
+     * Plain secret yalnız bir kez session'a düşer, tekrar gösterilmez.
+     */
+    public function apiAnahtariYenile(int $id)
+    {
+        $doktor = Doktor::findOrFail($id);
+        if (! $doktor->hasPaketFeature('web_sitesi')) {
+            return back()->with('hata', 'Bu hekimin paketi web sitesi içermiyor.');
+        }
+
+        $apiKey = 'rk_'.strtolower(Str::random(30));
+        $secret = strtolower(Str::random(60));
+
+        ApiKey::issue([
+            'doktor_id' => $doktor->id,
+            'klinik_id' => null,
+            'api_key' => $apiKey,
+            'durum' => true,
+            'yetkiler' => ['*'],
+        ], $secret);
+
+        // Webhook secret senkronu (varsa)
+        try {
+            DB::table('webhook_endpoints')
+                ->where('doktor_id', $doktor->id)
+                ->update(['secret_key' => $secret, 'updated_at' => now()]);
+        } catch (\Throwable $e) {
+            Log::warning('Webhook secret sync fail: '.$e->getMessage(), ['doktor_id' => $doktor->id]);
+        }
+
+        return back()
+            ->with('basarili', 'API anahtarları yenilendi. Secret key yalnız bu ekranda görünür — hemen kopyalayın.')
+            ->with('plain_api_secret', $secret);
     }
 
     /**
