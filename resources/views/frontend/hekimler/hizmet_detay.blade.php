@@ -434,11 +434,11 @@
                         <h3>Randevu Al</h3>
                         <p>Hekimimiz online randevu alımına geçici olarak kapalıdır. Randevu bilgisi için lütfen iletişime geçiniz.</p>
                         <div class="svc-closed-actions">
-                            @if($doktor->telefon)
-                                <a href="tel:{{ $doktor->telefon }}" data-meta-event="Contact" data-meta-params='{"content_name":"Hekim telefon"}' class="primary">{{ $doktor->telefon }}</a>
+                            @if($doktor->publicTelefon())
+                                <a href="tel:{{ preg_replace('/\D+/', '', $doktor->publicTelefon()) }}" data-meta-event="Contact" data-meta-params='{"content_name":"Hekim telefon"}' class="primary">{{ $doktor->publicTelefon() }}</a>
                             @endif
-                            @if($doktor->e_posta)
-                                <a href="mailto:{{ $doktor->e_posta }}" data-meta-event="Contact" data-meta-params='{"content_name":"Hekim e-posta"}' class="ghost">E-Posta ile İletişim</a>
+                            @if($doktor->publicWhatsappDigits())
+                                <a href="https://wa.me/{{ $doktor->publicWhatsappDigits() }}" target="_blank" rel="noopener" data-meta-event="Contact" data-meta-params='{"content_name":"Hekim WhatsApp"}' class="ghost">WhatsApp</a>
                             @endif
                         </div>
                     </div>

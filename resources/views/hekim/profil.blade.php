@@ -221,11 +221,40 @@
                                    class="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-[#E5E7EB] text-gray-400 focus:outline-none text-xs transition-all cursor-not-allowed select-none">
                         </div>
 
-                        <!-- Telefon -->
+                        <!-- Yönetici telefonu -->
                         <div class="space-y-1.5">
-                            <label for="telefon" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Telefon</label>
+                            <label for="telefon" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Yönetici telefonu</label>
                             <input type="text" name="telefon" id="telefon" value="{{ old('telefon', $doktor->telefon) }}" required placeholder="0 (5XX) XXX XX XX"
                                    class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                            <p class="text-[10px] text-slate-400">Kayıt telefonunuz. Hastalar görmez; Randevu Ajandam sizinle bu numaradan iletişim kurar.</p>
+                            @error('telefon')
+                                <p class="text-[10px] text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="sm:col-span-2 rounded-2xl border border-[#E5E7EB] bg-[#FCFCFB] p-4 space-y-4">
+                            <div>
+                                <p class="text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">Hastaların göreceği iletişim</p>
+                                <p class="text-[11px] text-[#6B7280] mt-1">Hekim sitenizde ve Randevu Ajandam profilinizde yalnızca bu numaralar görünür.</p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div class="space-y-1.5">
+                                    <label for="hasta_telefon" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">İletişim numarası</label>
+                                    <input type="text" name="hasta_telefon" id="hasta_telefon" value="{{ old('hasta_telefon', $doktor->hasta_telefon) }}" placeholder="0 (5XX) XXX XX XX"
+                                           class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                                    @error('hasta_telefon')
+                                        <p class="text-[10px] text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label for="hasta_whatsapp" class="block text-[10px] font-bold text-[#1F2937] uppercase tracking-wider font-display">WhatsApp</label>
+                                    <input type="text" name="hasta_whatsapp" id="hasta_whatsapp" value="{{ old('hasta_whatsapp', $doktor->hasta_whatsapp) }}" placeholder="0 (5XX) XXX XX XX"
+                                           class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] text-xs transition-all">
+                                    @error('hasta_whatsapp')
+                                        <p class="text-[10px] text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
                         </div>
 
                         <div class="space-y-1.5">
@@ -397,17 +426,18 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const telefonInput = document.getElementById('telefon');
-            if (telefonInput) {
-                telefonInput.value = formatTurkishPhoneNumber(telefonInput.value);
-                telefonInput.addEventListener('input', function() {
+            function bindPhoneMask(id) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.value = formatTurkishPhoneNumber(el.value);
+                el.addEventListener('input', function() {
                     const start = this.selectionStart;
                     const prevLen = this.value.length;
                     this.value = formatTurkishPhoneNumber(this.value);
                     const diff = this.value.length - prevLen;
                     this.setSelectionRange(start + diff, start + diff);
                 });
-                telefonInput.addEventListener('keydown', function(e) {
+                el.addEventListener('keydown', function(e) {
                     const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
                     if (allowedKeys.includes(e.key) || (e.ctrlKey && ['c', 'v', 'a', 'x'].includes(e.key.toLowerCase()))) {
                         return;
@@ -417,6 +447,9 @@
                     }
                 });
             }
+            bindPhoneMask('telefon');
+            bindPhoneMask('hasta_telefon');
+            bindPhoneMask('hasta_whatsapp');
         });
 
         // Turkish capitalization helper function

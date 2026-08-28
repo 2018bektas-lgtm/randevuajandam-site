@@ -24,6 +24,8 @@ class Doktor extends Authenticatable
         'e_posta',
         'sifre',
         'telefon',
+        'hasta_telefon',
+        'hasta_whatsapp',
         'sms_gonderici_baslik',
         'tc_kimlik_no',
         'diploma_no',
@@ -991,11 +993,40 @@ class Doktor extends Authenticatable
     }
 
     /**
-     * Vitrinde iletişim (tel/e-posta) gösterilebilir mi?
+     * Vitrinde iletişim (hasta telefonu / WhatsApp) gösterilebilir mi?
+     * Kayıt (yönetici) telefonu hastalara asla gösterilmez.
      */
     public function canShowContactOnProfile(): bool
     {
         return $this->hasPaketFeature('iletisim_profilde');
+    }
+
+    public function publicTelefon(): ?string
+    {
+        $t = trim((string) ($this->hasta_telefon ?? ''));
+
+        return $t !== '' ? $t : null;
+    }
+
+    public function publicWhatsapp(): ?string
+    {
+        $t = trim((string) ($this->hasta_whatsapp ?? ''));
+
+        return $t !== '' ? $t : null;
+    }
+
+    public function publicWhatsappDigits(): ?string
+    {
+        $raw = preg_replace('/\D+/', '', (string) $this->publicWhatsapp()) ?: '';
+        if (strlen($raw) < 10) {
+            return null;
+        }
+        $wa = ltrim($raw, '0');
+        if (! str_starts_with($wa, '90') && strlen($wa) === 10) {
+            $wa = '90'.$wa;
+        }
+
+        return $wa;
     }
 
     /**

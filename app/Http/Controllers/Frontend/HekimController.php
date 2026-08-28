@@ -970,6 +970,8 @@ class HekimController extends Controller
         $request->validate([
             'ad_soyad' => 'required|string|max:255',
             'telefon' => ['required', 'string', 'regex:/^0\s\(5[0-9]{2}\)\s[0-9]{3}\s[0-9]{2}\s[0-9]{2}$/'],
+            'hasta_telefon' => ['nullable', 'string', 'regex:/^0\s\(5[0-9]{2}\)\s[0-9]{3}\s[0-9]{2}\s[0-9]{2}$/'],
+            'hasta_whatsapp' => ['nullable', 'string', 'regex:/^0\s\(5[0-9]{2}\)\s[0-9]{3}\s[0-9]{2}\s[0-9]{2}$/'],
             'tc_kimlik_no' => ['nullable', 'string', 'size:11', 'regex:/^[1-9][0-9]{10}$/'],
             'unvan' => 'required|string|exists:unvanlar,ad',
             'il' => 'required|string|max:255',
@@ -987,8 +989,10 @@ class HekimController extends Controller
             'boylam' => 'nullable|numeric|between:-180,180',
         ], [
             'ad_soyad.required' => 'Ad Soyad alanı zorunludur.',
-            'telefon.required' => 'Telefon numarası zorunludur.',
+            'telefon.required' => 'Yönetici telefonu zorunludur.',
             'telefon.regex' => 'Telefon numarası 0 (5xx) xxx xx xx formatında olmalıdır.',
+            'hasta_telefon.regex' => 'Hasta iletişim numarası 0 (5xx) xxx xx xx formatında olmalıdır.',
+            'hasta_whatsapp.regex' => 'WhatsApp numarası 0 (5xx) xxx xx xx formatında olmalıdır.',
             'tc_kimlik_no.size' => 'T.C. kimlik 11 haneli olmalıdır.',
             'tc_kimlik_no.regex' => 'T.C. kimlik numarası geçersiz.',
             'unvan.required' => 'Unvan seçimi zorunludur.',
@@ -1006,6 +1010,8 @@ class HekimController extends Controller
         $data = [
             'ad_soyad' => $request->ad_soyad,
             'telefon' => $request->telefon,
+            'hasta_telefon' => $request->filled('hasta_telefon') ? $request->hasta_telefon : null,
+            'hasta_whatsapp' => $request->filled('hasta_whatsapp') ? $request->hasta_whatsapp : null,
             'tc_kimlik_no' => $request->filled('tc_kimlik_no') ? $request->tc_kimlik_no : $doktor->tc_kimlik_no,
             'unvan' => $request->unvan,
             'il_id' => $ilModel?->id,

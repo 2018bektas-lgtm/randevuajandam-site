@@ -335,7 +335,8 @@ class MobilePatientController extends Controller
             'data' => array_merge($this->doktorCard($d), [
                 'biyografi' => $d->hasPaketFeature('hakkimda') ? $d->biyografi : null,
                 'adres' => $showContact ? $d->adres : null,
-                'telefon' => $showContact ? ($d->telefon ?? null) : null,
+                'telefon' => $showContact ? $d->publicTelefon() : null,
+                'whatsapp' => $showContact ? $d->publicWhatsapp() : null,
                 'dogrulanmis_rozet' => $d->canShowVerifiedBadge(),
                 'randevuya_acik_mi' => (bool) $d->randevuya_acik_mi,
                 'online_gorusme' => $online,

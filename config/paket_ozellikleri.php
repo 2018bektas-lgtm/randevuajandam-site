@@ -33,7 +33,7 @@ return [
         // ── Profil ──
         ['kod' => 'profil_sayfasi', 'ad' => 'Hekim profil sayfası', 'aciklama' => 'Platform profili.', 'grup' => 'Profil', 'sira' => 10, 'vitrin' => true],
         ['kod' => 'dogrulanmis_rozet', 'ad' => 'Doğrulanmış hekim rozeti', 'aciklama' => 'Belge onaylı rozet.', 'grup' => 'Profil', 'sira' => 20, 'vitrin' => true],
-        ['kod' => 'iletisim_profilde', 'ad' => 'Telefon / adres profilde görünür', 'aciklama' => 'İletişim bilgilerinin profilde açılması.', 'grup' => 'Profil', 'sira' => 30, 'vitrin' => true],
+        ['kod' => 'iletisim_profilde', 'ad' => 'Hasta iletişim bilgisi profilde görünür', 'aciklama' => 'Hastaların göreceği telefon ve WhatsApp numarasının profilde açılması. Kayıt (yönetici) telefonu asla gösterilmez.', 'grup' => 'Profil', 'sira' => 30, 'vitrin' => true],
         ['kod' => 'hakkimda', 'ad' => 'Hakkımda / özgeçmiş', 'aciklama' => 'Detaylı özgeçmiş ve mezuniyet.', 'grup' => 'Profil', 'sira' => 40, 'vitrin' => true],
         ['kod' => 'galeri', 'ad' => 'Fotoğraf galerisi', 'aciklama' => 'Muayenehane / klinik görselleri.', 'grup' => 'Profil', 'sira' => 50, 'vitrin' => true],
         ['kod' => 'dis_baglanti', 'ad' => 'Dış bağlantılar (Instagram, LinkedIn)', 'aciklama' => 'Sosyal ve web linkleri.', 'grup' => 'Profil', 'sira' => 60, 'vitrin' => true],

@@ -30,8 +30,7 @@
   "name": "{{ ($doktor->unvan ? $doktor->unvan . ' ' : '') . $doktor->ad_soyad }}",
   "image": "{{ $doktor->profil_resmi ? asset($doktor->profil_resmi) : asset('assets/images/logo.png') }}",
   "medicalSpecialty": "{{ $doktor->uzmanlik_alani ?? 'Hekim' }}",
-  "telephone": "{{ $doktor->telefon }}",
-  "email": "{{ $doktor->e_posta }}",
+  "telephone": "{{ $doktor->publicTelefon() }}",
   "address": {
     "@type": "PostalAddress",
     "streetAddress": "{{ $doktor->adres ?? 'Hekim Muayenehanesi' }}",
@@ -312,17 +311,17 @@
                             <span>{{ $doktor->il?->ad }}{{ $doktor->ilce?->ad ? ' / ' . $doktor->ilce->ad : '' }}</span>
                         </span>
                     @endif
-                    @if($doktor->canShowContactOnProfile() && $doktor->telefon)
+                    @if($doktor->canShowContactOnProfile() && $doktor->publicTelefon())
                         <span class="text-slate-300 hidden md:inline">|</span>
                         <span class="flex items-center gap-1.5">
-                            <strong>Tel:</strong> {{ $doktor->telefon }}
+                            <strong>Tel:</strong> <a href="tel:{{ preg_replace('/\D+/', '', $doktor->publicTelefon()) }}">{{ $doktor->publicTelefon() }}</a>
                         </span>
                     @endif
-                    @if($doktor->canShowContactOnProfile() && $doktor->e_posta)
+                    @if($doktor->canShowContactOnProfile() && $doktor->publicWhatsappDigits())
                         <span class="text-slate-300 hidden md:inline">|</span>
-                        <span class="flex items-center gap-1.5">
-                            <strong>E-Posta:</strong> {{ $doktor->e_posta }}
-                        </span>
+                        <a href="https://wa.me/{{ $doktor->publicWhatsappDigits() }}" target="_blank" rel="noopener" class="flex items-center gap-1.5 hover:text-[#C96A2B]">
+                            <strong>WhatsApp</strong>
+                        </a>
                     @endif
                 </div>
 
