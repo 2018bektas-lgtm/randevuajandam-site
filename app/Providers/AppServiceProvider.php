@@ -19,6 +19,7 @@ use App\Policies\RandevuPolicy;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -37,6 +38,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        /*
+         * N+1 sorgulari sessizce uretilmesin.
+         *
+         * Blade'lerde 82 satirda `$randevu->doktor->...` gibi iliski zinciri
+         * var; eager load unutuldugunda liste sayfalari kayit sayisiyla dogru
+         * orantili yavasliyordu ve bu hicbir yerde gorunmuyordu.
+         *
+         * Yerel/test ortaminda exception firlatir (gelistirici hemen gorur),
+         * uretimde sessiz kalir (hasta bir sayfa 500 vermez).
+         */
+        Model::preventLazyLoading(! app()->isProduction());
+
         // Policies
         Gate::policy(Blog::class, BlogPolicy::class);
         Gate::policy(Hizmet::class, HizmetPolicy::class);
