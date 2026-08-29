@@ -82,7 +82,14 @@ class HtmlSanitizer
         if (preg_match_all('/([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*("([^"]*)"|\'([^\']*)\'|([^\s>]+))/', $attrString, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $m) {
                 $name = strtolower($m[1]);
-                $value = $m[3] !== '' ? $m[3] : ($m[4] !== '' ? $m[4] : ($m[5] ?? ''));
+                // PREG_SET_ORDER: eslesmeyen SONRAKI gruplar dizide HIC BULUNMAZ.
+                // Cift tirnakli bir deger eslestiginde $m[4] ve $m[5] yoktur; bu
+                // yuzden dogrudan $m[4] okumak `alt=""` gibi BOS bir attribute'ta
+                // "Undefined array key 4" -> HTTP 500 uretiyordu (CKEditor cikti-
+                // sinda alt="" son derece yaygin).
+                $value = ($m[3] ?? '') !== ''
+                    ? $m[3]
+                    : (($m[4] ?? '') !== '' ? $m[4] : ($m[5] ?? ''));
 
                 // Block event handlers and style/on*
                 if (str_starts_with($name, 'on') || in_array($name, ['style', 'srcset', 'srcdoc', 'formaction', 'xlink:href'], true)) {
@@ -130,7 +137,7 @@ class HtmlSanitizer
                 return null;
             }
             // Allow relative, http(s), mailto, tel
-            if ($value !== '' && ! preg_match('#^(https?:|mailto:|tel:|/|\./|\.\./|#)#i', $value)) {
+            if ($value !== '' && ! preg_match('~^(https?:|mailto:|tel:|/|\./|\.\./|\#)~i', $value)) {
                 // bare paths without scheme ok if start with letter
                 if (! preg_match('#^[a-zA-Z0-9_./%-]+$#', $value)) {
                     return null;
