@@ -28,9 +28,32 @@ else
 fi
 
 echo "==> Composer (production)"
-if command -v composer >/dev/null 2>&1; then
-  composer install --no-dev --optimize-autoloader --no-interaction || true
+# ONEMLI: bu adim sessizce gecilirse uygulama ESKI autoloader ile calisir.
+# Gecmiste tam olarak bu yuzden app/helpers.php yuklenmedi ve hekim profil /
+# hizmet detay / blog sayfalari "Call to undefined function plain_text()" ile
+# 500 verdi. Bu nedenle hata artik yutulmuyor.
+if ! command -v composer >/dev/null 2>&1; then
+  echo "HATA: composer bulunamadi. Autoloader uretilemez, dagitim durduruldu."
+  exit 1
 fi
+composer install --no-dev --optimize-autoloader --no-interaction
+composer dump-autoload --optimize --no-interaction
+
+echo "==> Autoloader dogrulamasi"
+php -r '
+require "vendor/autoload.php";
+$eksik = [];
+foreach (["plain_text", "decode_text"] as $f) {
+    if (! function_exists($f)) { $eksik[] = "function ".$f."()"; }
+}
+if ($eksik) {
+    fwrite(STDERR, "HATA: autoloader eksik -> ".implode(", ", $eksik)."
+");
+    exit(1);
+}
+echo "  helper fonksiyonlari yuklu
+";
+'
 
 echo "==> .env production sertleştirme (mevcut değerleri günceller)"
 # APP_ENV / APP_DEBUG
@@ -78,6 +101,28 @@ fi
 
 rm -f .env.bak 2>/dev/null || true
 
+echo "==> Kuyruk yapılandırması"
+# QUEUE_CONNECTION=sync iken ShouldQueue bildirimleri (SMTP/SMS/WhatsApp) HTTP
+# istegi icinde calisir ve randevu formunu bloklar. Degeri burada zorla
+# degistirmiyoruz: worker calismiyorsa "database" secmek bildirimleri sessizce
+# durdurur. Onun yerine durumu gorunur kiliyoruz.
+QUEUE_CONN=$(grep -E '^QUEUE_CONNECTION=' .env | head -n1 | cut -d= -f2- | tr -d '"'"'"'[:space:]')
+if [[ "${QUEUE_CONN:-sync}" == "sync" ]]; then
+  echo "  UYARI: QUEUE_CONNECTION=sync"
+  echo "         Bildirimler istek icinde gonderiliyor; randevu formu yavas."
+  echo "         Onerilen: .env icinde QUEUE_CONNECTION=database"
+  echo "         (routes/console.php icindeki zamanlanmis queue:work kuyrugu"
+  echo "          her dakika bosaltir; ek bir daemon gerekmez.)"
+else
+  echo "  QUEUE_CONNECTION=${QUEUE_CONN}"
+  BEKLEYEN=$(php artisan tinker --execute='echo \DB::table("jobs")->count();' 2>/dev/null | tail -n1 | tr -dc '0-9')
+  BASARISIZ=$(php artisan tinker --execute='echo \DB::table("failed_jobs")->count();' 2>/dev/null | tail -n1 | tr -dc '0-9')
+  echo "  Bekleyen is: ${BEKLEYEN:-?} · Basarisiz is: ${BASARISIZ:-?}"
+  if [[ "${BEKLEYEN:-0}" -gt 500 ]]; then
+    echo "  UYARI: Kuyruk birikmis. schedule:run cron'u calisiyor mu kontrol edin."
+  fi
+fi
+
 echo "==> Storage dirs (file session/cache için zorunlu)"
 mkdir -p storage/framework/sessions \
          storage/framework/views \
@@ -96,7 +141,9 @@ php artisan storage:link 2>/dev/null || true
 chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
 
 echo "==> Migrate"
-php artisan migrate --force || true
+# Migration hatasi yutulmamali: yarim migrate edilmis sema ile devam etmek
+# tespit edilmesi en zor hatalari uretiyor.
+php artisan migrate --force
 
 echo "==> Optimize caches"
 php artisan optimize:clear
@@ -117,5 +164,5 @@ echo ""
 echo "TAMAM. Kontrol edin:"
 echo "  - Site ana sayfa açılıyor mu"
 echo "  - APP_DEBUG=false (php artisan about -> Debug Mode OFF)"
-echo "  - Cron: queue:work --stop-when-empty"
+echo "  - Cron: * * * * * php artisan schedule:run  (queue:work bunun icinde)"
 echo "  - SMS_DRIVER production'da log olmamalı (OTP için)"

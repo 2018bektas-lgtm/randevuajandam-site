@@ -54,6 +54,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->append(\App\Http\Middleware\ForceHttps::class);
+        // CSP — varsayilan rapor modu (bkz. config/csp.php)
+        $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class);
         // Misafir public GET sayfaları (kısa HTML cache)
         $middleware->appendToGroup('web', \App\Http\Middleware\CachePublicGet::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\CaptureReferansKod::class);
