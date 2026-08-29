@@ -425,23 +425,8 @@
                         </p>
                     @endguest
                 @else
-                    <div class="svc-closed">
-                        <div class="svc-closed-icon" aria-hidden="true">
-                            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z"/>
-                            </svg>
-                        </div>
-                        <h3>Randevu Al</h3>
-                        <p>Hekimimiz online randevu alımına geçici olarak kapalıdır. Randevu bilgisi için lütfen iletişime geçiniz.</p>
-                        <div class="svc-closed-actions">
-                            @if($doktor->publicTelefon())
-                                <a href="tel:{{ preg_replace('/\D+/', '', $doktor->publicTelefon()) }}" data-meta-event="Contact" data-meta-params='{"content_name":"Hekim telefon"}' class="primary">{{ $doktor->publicTelefon() }}</a>
-                            @endif
-                            @if($doktor->publicWhatsappDigits())
-                                <a href="https://wa.me/{{ $doktor->publicWhatsappDigits() }}" target="_blank" rel="noopener" data-meta-event="Contact" data-meta-params='{"content_name":"Hekim WhatsApp"}' class="ghost">WhatsApp</a>
-                            @endif
-                        </div>
-                    </div>
+                    {{-- Ortak "randevu kapali" paneli: iletisim kanali yoksa bile bos kalmaz --}}
+                    @include('frontend.hekimler.partials.randevu_kapali', ['doktor' => $doktor])
                 @endif
             </aside>
         </div>

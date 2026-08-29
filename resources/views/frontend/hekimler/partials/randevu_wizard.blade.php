@@ -1863,4 +1863,9 @@
         <p class="text-sm text-[#6B7280]">Bu hekim için henüz randevu hizmeti tanımlanmamış.</p>
     </div>
 </section>
+@else
+{{-- Randevu kapali: bos alan birakma, iletisim / bekleme listesi goster --}}
+<section class="mb-10">
+    @include('frontend.hekimler.partials.randevu_kapali', ['doktor' => $doktor])
+</section>
 @endif

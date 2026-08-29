@@ -204,10 +204,15 @@ class RandevuSistemiTest extends TestCase
     }
 
     /**
-     * Test service detail displays contact info when appointments are disabled.
+     * Randevu kapaliyken hizmet detayinda hasta iletisim numarasi gosterilir.
+     *
+     * Not: public tarafta yalnizca `hasta_telefon` gosterilir; hekimin kayit
+     * telefonu (`telefon`) asla basilmaz.
      */
     public function test_service_detail_displays_contact_info_when_appointments_are_disabled(): void
     {
+        $this->doktor->update(['hasta_telefon' => '0 (532) 111 22 33']);
+
         RandevuAyari::create([
             'doktor_id' => $this->doktor->id,
             'aktif_mi' => false,
@@ -219,7 +224,48 @@ class RandevuSistemiTest extends TestCase
         $response->assertStatus(200);
         $response->assertDontSee('Online Randevu Planla');
         $response->assertSee('Hekimimiz online randevu alımına geçici olarak kapalıdır');
-        $response->assertSee('05551234567');
+        $response->assertSee('0 (532) 111 22 33');
+        // Kayit telefonu public tarafa sizmamali
+        $response->assertDontSee('05551234567');
+    }
+
+    /**
+     * Hasta iletisim numarasi tanimli degilse bile kapali panel bos kalmamali.
+     */
+    public function test_service_detail_shows_closed_notice_without_contact_number(): void
+    {
+        RandevuAyari::create([
+            'doktor_id' => $this->doktor->id,
+            'aktif_mi' => false,
+            'randevu_onay_tipi' => 'manuel',
+        ]);
+
+        $response = $this->get($this->hizmet->url);
+
+        $response->assertStatus(200);
+        $response->assertSee('Hekimimiz online randevu alımına geçici olarak kapalıdır');
+        $response->assertDontSee('05551234567');
+    }
+
+    /**
+     * Randevu kapaliyken hekim profil sayfasi bos alan birakmamali.
+     */
+    public function test_doctor_profile_shows_closed_notice_when_appointments_are_disabled(): void
+    {
+        $this->doktor->update(['hasta_telefon' => '0 (532) 111 22 33']);
+
+        RandevuAyari::create([
+            'doktor_id' => $this->doktor->id,
+            'aktif_mi' => false,
+            'randevu_onay_tipi' => 'manuel',
+        ]);
+
+        $response = $this->get($this->doktor->profil_url);
+
+        $response->assertStatus(200);
+        $response->assertDontSee('id="randevu-wizard"', false);
+        $response->assertSee('Hekimimiz online randevu alımına geçici olarak kapalıdır');
+        $response->assertSee('0 (532) 111 22 33');
     }
 
     /**
