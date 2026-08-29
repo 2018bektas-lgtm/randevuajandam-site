@@ -266,6 +266,47 @@ class Doktor extends Authenticatable
     }
 
     /**
+     * Hekimin adına randevu yazabileceği hastayı çözer.
+     *
+     * Yetki kaynağı iki yerden gelebilir:
+     *   1) hekimin kendi hasta havuzu (doktor_hastalari)
+     *   2) bağlı olduğu kliniğin hasta havuzu (klinik_hastalari)
+     *
+     * Hiçbirinde yoksa null döner — çağıran taraf 404/403 vermelidir.
+     * Panel ve mobil uçlarda `danisan_id` doğrudan istekten geldiği için
+     * `Hasta::findOrFail()` yerine bu metot kullanılmalıdır; aksi halde bir
+     * hekim başka bir muayenehanenin hastasına randevu yazabilir ve o
+     * hastanın ad/telefon/e-posta bilgisi randevu kaydına kopyalanır.
+     */
+    public function randevuHastasiBul(int $hastaId): ?Hasta
+    {
+        if ($hastaId <= 0) {
+            return null;
+        }
+
+        $hasta = $this->hastalar()->whereKey($hastaId)->first();
+        if ($hasta) {
+            return $hasta;
+        }
+
+        if ($this->klinik_id) {
+            $klinikHastasi = $this->klinik?->hastalar()->whereKey($hastaId)->first();
+            if ($klinikHastasi) {
+                return $klinikHastasi;
+            }
+        }
+
+        // Eski kayitlar: doktor_hastalari pivotu Randevu::booted ile senkron
+        // ediliyor, ama bu kanca eklenmeden once olusan randevularin hastasi
+        // pivotta olmayabilir. Panel arama kutusu (hastaAra) da randevu
+        // gecmisine bakiyor; ayni kumeyi kabul ederek mevcut hastalar icin
+        // randevu yazmayi bozmuyoruz.
+        $randevuduMu = $this->randevular()->where('hasta_id', $hastaId)->exists();
+
+        return $randevuduMu ? Hasta::find($hastaId) : null;
+    }
+
+    /**
      * Bu hekim icin gecerli WhatsApp yapilandirmasi.
      * Oncelik: 1) kendi Model B baglantisi 2) baglı olduğu klinik 3) config('whatsapp.default')
      *

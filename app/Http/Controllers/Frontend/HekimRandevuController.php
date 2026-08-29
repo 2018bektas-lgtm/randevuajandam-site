@@ -1061,7 +1061,16 @@ class HekimRandevuController extends Controller
             ], 403);
         }
 
-        $hasta = Hasta::findOrFail($request->danisan_id);
+        // Yetki: hekim yalnizca kendi (veya klinigi) hasta havuzuna randevu yazabilir.
+        // Duz Hasta::findOrFail() kullanmak baska muayenehanenin hastasina randevu
+        // yazmaya ve o hastanin iletisim bilgisinin randevu kaydina kopyalanmasina izin verirdi.
+        $hasta = $doktor->randevuHastasiBul((int) $request->danisan_id);
+        if (! $hasta) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu danışan hasta listenizde bulunmuyor.',
+            ], 403);
+        }
         $adet = $seri ? max(2, min(52, (int) $request->input('seri_adet', 2))) : 1;
         $aralik = max(1, min(90, (int) $request->input('seri_aralik_gun', 7)));
         $baslangic = Carbon::parse($request->tarih);

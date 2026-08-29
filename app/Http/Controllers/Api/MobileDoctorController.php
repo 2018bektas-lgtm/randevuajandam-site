@@ -775,7 +775,15 @@ class MobileDoctorController extends Controller
             ], 422);
         }
 
-        $hasta = Hasta::findOrFail($data['danisan_id']);
+        // Yetki: bkz. Doktor::randevuHastasiBul() — hekim yalnizca kendi
+        // (veya klinigi) hasta havuzuna randevu yazabilir.
+        $hasta = $doktor->randevuHastasiBul((int) $data['danisan_id']);
+        if (! $hasta) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu danışan hasta listenizde bulunmuyor.',
+            ], 403);
+        }
         $adet = $seri ? max(2, min(52, (int) ($data['seri_adet'] ?? 2))) : 1;
         $aralik = max(1, min(90, (int) ($data['seri_aralik_gun'] ?? 7)));
         $baslangic = Carbon::parse($data['tarih']);

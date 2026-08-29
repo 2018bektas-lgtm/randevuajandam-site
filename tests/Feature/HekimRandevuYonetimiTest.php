@@ -108,6 +108,11 @@ class HekimRandevuYonetimiTest extends TestCase
             'telefon' => '05559998877',
             'aktif_mi' => true,
         ]);
+
+        // Hekim yalnizca kendi hasta havuzuna randevu yazabilir
+        // (bkz. Doktor::randevuHastasiBul). Gercek akista bu bag
+        // hastaEkle() veya ilk randevuda otomatik kuruluyor.
+        $this->doktor->hastalar()->attach($this->hasta->id);
     }
 
     /**
