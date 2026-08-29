@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class ApiKey extends Model
 {
@@ -85,8 +86,43 @@ class ApiKey extends Model
             return Hash::check($provided, $stored);
         }
 
-        // Legacy plain-text secret (migrate on successful check optional)
-        return hash_equals($stored, $provided);
+        // Eski (hash'siz) secret: dogruysa ANINDA hash'e tasi.
+        //
+        // Veritabani sizarsa duz metin secret dogrudan kullanilabilir oldugu
+        // icin bu kayitlarin kalmasi risk. Dogrulama basarili oldugunda ayni
+        // degeri hash'leyip yaziyoruz: hekimin sitesi ayni secret'i gondermeye
+        // devam ettigi icin kesinti olmaz, kayit ise artik hash'li olur.
+        if (! hash_equals($stored, $provided)) {
+            return false;
+        }
+
+        try {
+            $this->forceFill(['secret_key' => self::hashSecret($provided)])->saveQuietly();
+            Log::info('ApiKey: eski duz metin secret hash e tasindi', ['api_key_id' => $this->id]);
+        } catch (\Throwable $e) {
+            // Tasima basarisiz olsa bile dogrulama gecerli — erisimi kesme
+            Log::warning('ApiKey: secret hash e tasinamadi', [
+                'api_key_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Hala hash'lenmemis (duz metin) secret tasiyan kayit sayisi.
+     */
+    public static function legacyPlainSecretCount(): int
+    {
+        return static::query()
+            ->whereNotNull('secret_key')
+            ->where('secret_key', '!=', '')
+            ->where('secret_key', 'not like', '$2y$%')
+            ->where('secret_key', 'not like', '$2a$%')
+            ->where('secret_key', 'not like', '$2b$%')
+            ->where('secret_key', 'not like', '$argon%')
+            ->count();
     }
 
     /**
