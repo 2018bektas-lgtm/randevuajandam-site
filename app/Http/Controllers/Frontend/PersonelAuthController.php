@@ -7,6 +7,8 @@ use App\Models\KlinikPersonel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class PersonelAuthController extends Controller
 {
@@ -36,20 +38,38 @@ class PersonelAuthController extends Controller
             'sifre.required' => 'Şifre alanı gereklidir.',
         ]);
 
+        // Kaba kuvvet korumasi. Tek savunma reCAPTCHA idi; o da anahtar
+        // tanimli degilse veya Google'a ulasilamiyorsa sessizce geciyor
+        // (RecaptchaService::verify → soft_fail_when_unconfigured).
+        $throttleKey = 'personel-giris:'.Str::lower((string) $request->input('e_posta')).'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $saniye = RateLimiter::availableIn($throttleKey);
+
+            return back()
+                ->withInput($request->only('e_posta', 'remember'))
+                ->withErrors(['e_posta' => "Çok fazla başarısız giriş denemesi. Lütfen {$saniye} saniye sonra tekrar deneyin."]);
+        }
+
         $credentials = [
             'e_posta' => $request->e_posta,
             'password' => $request->sifre,
         ];
 
-        // Check if the user exists and is active
         $personel = KlinikPersonel::where('e_posta', $request->e_posta)->first();
-        if ($personel && ! $personel->aktif_mi) {
-            return back()->withInput()->withErrors([
-                'e_posta' => 'Hesabınız pasif duruma getirilmiştir. Lütfen klinik yöneticisi ile iletişime geçin.',
-            ]);
-        }
 
         if (Auth::guard('personel')->attempt($credentials, $request->boolean('remember'))) {
+            // Pasif hesap bilgisi yalnizca sifre dogruyken paylasilir;
+            // aksi halde gecerli e-posta adresleri disaridan tespit edilebilir.
+            if ($personel && ! $personel->aktif_mi) {
+                Auth::guard('personel')->logout();
+
+                return back()->withInput($request->only('e_posta'))->withErrors([
+                    'e_posta' => 'Hesabınız pasif duruma getirilmiştir. Lütfen klinik yöneticisi ile iletişime geçin.',
+                ]);
+            }
+
+            RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
 
             $user = Auth::guard('personel')->user();
@@ -60,7 +80,9 @@ class PersonelAuthController extends Controller
             return redirect()->route('personel.panel')->with('basari', 'Başarıyla giriş yaptınız.');
         }
 
-        return back()->withInput()->withErrors([
+        RateLimiter::hit($throttleKey, 300);
+
+        return back()->withInput($request->only('e_posta'))->withErrors([
             'e_posta' => 'Girdiğiniz bilgiler sistemdekilerle eşleşmiyor.',
         ]);
     }

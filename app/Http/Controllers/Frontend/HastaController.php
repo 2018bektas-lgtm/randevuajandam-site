@@ -108,14 +108,7 @@ class HastaController extends Controller
                 ->withErrors(['e_posta' => "Çok fazla başarısız giriş denemesi. Lütfen {$saniye} saniye sonra tekrar deneyin."]);
         }
 
-        // Check if account is active BEFORE attempting login
         $hasta = Hasta::where('e_posta', $request->e_posta)->first();
-
-        if ($hasta && ! $hasta->aktif_mi) {
-            return redirect()->back()
-                ->withInput($request->only('e_posta'))
-                ->withErrors(['e_posta' => 'Hesabınız pasif durumdadır.']);
-        }
 
         $credentials = [
             'e_posta' => $request->e_posta,
@@ -123,6 +116,16 @@ class HastaController extends Controller
         ];
 
         if (Auth::guard('hasta')->attempt($credentials, $request->has('remember'))) {
+            // "Hesabiniz pasif" bilgisi yalnizca SIFRE DOGRUYKEN paylasilir
+            // (kullanici numaralandirmayi engellemek icin).
+            if ($hasta && ! $hasta->aktif_mi) {
+                Auth::guard('hasta')->logout();
+
+                return redirect()->back()
+                    ->withInput($request->only('e_posta'))
+                    ->withErrors(['e_posta' => 'Hesabınız pasif durumdadır.']);
+            }
+
             RateLimiter::clear($throttleKey);
 
             // Hesap silme talebi varsa otomatik iptal et

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -28,7 +29,9 @@ class RecaptchaService
         }
 
         try {
-            $fromDb = trim((string) (\App\Models\SiteAyari::query()->value('recaptcha_site_key') ?? ''));
+            // SiteAyari::cached() request-scoped + 30 dk onbellekli; duz
+            // ->value() her cagride yeni bir DB sorgusu aciyordu.
+            $fromDb = trim((string) (\App\Models\SiteAyari::cached()?->recaptcha_site_key ?? ''));
             if ($fromDb !== '') {
                 return $fromDb;
             }
@@ -47,7 +50,7 @@ class RecaptchaService
         }
 
         try {
-            $fromDb = trim((string) (\App\Models\SiteAyari::query()->value('recaptcha_secret_key') ?? ''));
+            $fromDb = trim((string) (\App\Models\SiteAyari::cached()?->recaptcha_secret_key ?? ''));
             if ($fromDb !== '') {
                 return $fromDb;
             }
@@ -56,6 +59,56 @@ class RecaptchaService
         }
 
         return trim((string) config('recaptcha.secret_key', ''));
+    }
+
+    /**
+     * Bu aksiyonda soft-fail (sessizce gecme) kabul edilemez mi?
+     */
+    public function isStrictAction(string $action): bool
+    {
+        if ($action === '') {
+            return false;
+        }
+
+        return in_array($action, (array) config('recaptcha.strict_actions', []), true);
+    }
+
+    /**
+     * Dogrulama yapilamadiginda ne yapilacagini tek noktadan karara baglar.
+     *
+     * Onceden bu durumlar sessizce `ok: true` donuyordu ve hicbir iz
+     * birakmiyordu; anahtar tanimli degilse veya Google'a ulasilamiyorsa
+     * korumanin kapali oldugu fark edilemiyordu.
+     *
+     * @return array{ok: bool, skipped?: bool, message?: string, reason?: string}
+     */
+    protected function dogrulanamadi(string $reason, string $expectedAction): array
+    {
+        if ($this->isStrictAction($expectedAction)) {
+            Log::warning('reCAPTCHA strict aksiyon dogrulanamadi, istek reddedildi', [
+                'reason' => $reason,
+                'action' => $expectedAction,
+            ]);
+
+            return [
+                'ok' => false,
+                'reason' => $reason,
+                'message' => 'Güvenlik doğrulaması şu an yapılamıyor. Lütfen birazdan tekrar deneyin.',
+            ];
+        }
+
+        // Log gurultusu olmasin: ayni sebep icin saatte bir uyar.
+        $cacheKey = 'recaptcha:softfail-log:'.$reason;
+        if (! Cache::has($cacheKey)) {
+            Cache::put($cacheKey, true, now()->addHour());
+            Log::warning('reCAPTCHA dogrulamasi atlandi (koruma devre disi)', [
+                'reason' => $reason,
+                'action' => $expectedAction,
+                'ipucu' => 'RECAPTCHA_STRICT_ACTIONS ile kritik uclarda bunu engelleyebilirsiniz.',
+            ]);
+        }
+
+        return ['ok' => true, 'skipped' => true, 'reason' => $reason, 'message' => $reason];
     }
 
     /**
@@ -69,7 +122,7 @@ class RecaptchaService
         }
 
         try {
-            $dbEnabled = \App\Models\SiteAyari::query()->value('recaptcha_enabled');
+            $dbEnabled = \App\Models\SiteAyari::cached()?->recaptcha_enabled;
             if ($dbEnabled === false || $dbEnabled === 0 || $dbEnabled === '0') {
                 return ['ok' => true, 'skipped' => true, 'message' => 'disabled_db'];
             }
@@ -80,7 +133,7 @@ class RecaptchaService
         $secret = $this->secretKey($override);
         if ($secret === '') {
             if (config('recaptcha.soft_fail_when_unconfigured', true)) {
-                return ['ok' => true, 'skipped' => true, 'message' => 'unconfigured'];
+                return $this->dogrulanamadi('unconfigured', $expectedAction);
             }
 
             return ['ok' => false, 'message' => 'reCAPTCHA yapılandırılmamış.'];
@@ -109,7 +162,7 @@ class RecaptchaService
         } catch (\Throwable $e) {
             Log::warning('reCAPTCHA verify network error', ['error' => $e->getMessage()]);
             if (config('recaptcha.soft_fail_when_unconfigured', true)) {
-                return ['ok' => true, 'skipped' => true, 'message' => 'network_error'];
+                return $this->dogrulanamadi('network_error', $expectedAction);
             }
 
             return ['ok' => false, 'message' => 'Güvenlik doğrulaması yapılamadı. Tekrar deneyin.'];

@@ -117,7 +117,7 @@ Route::middleware('guest:hasta')->group(function () {
         ->name('frontend.hasta.kayit.post');
     Route::get('/giris', [HastaController::class, 'girisFormu'])->name('frontend.hasta.giris');
     Route::post('/giris', [HastaController::class, 'girisYap'])
-        ->middleware('recaptcha:hasta_giris')
+        ->middleware(['throttle:12,1', 'recaptcha:hasta_giris'])
         ->name('frontend.hasta.giris.post');
 });
 
@@ -194,7 +194,7 @@ Route::middleware('guest:doktor')->group(function () {
     // Login
     Route::get('/hekim/giris', [HekimController::class, 'girisFormu'])->name('frontend.hekim.giris');
     Route::post('/hekim/giris', [HekimController::class, 'girisYap'])
-        ->middleware('recaptcha:hekim_giris')
+        ->middleware(['throttle:12,1', 'recaptcha:hekim_giris'])
         ->name('frontend.hekim.giris.post');
 });
 
@@ -593,7 +593,7 @@ Route::post('/klinik/davet/{token}/reddet', [KlinikController::class, 'davetRedd
 // Personel Auth Routes
 Route::get('/personel/giris', [PersonelAuthController::class, 'girisFormu'])->name('personel.giris');
 Route::post('/personel/giris', [PersonelAuthController::class, 'girisYap'])
-    ->middleware('recaptcha:personel_giris')
+    ->middleware(['throttle:12,1', 'recaptcha:personel_giris'])
     ->name('personel.giris.post');
 Route::post('/personel/cikis', [PersonelAuthController::class, 'cikisYap'])->name('personel.cikis');
 

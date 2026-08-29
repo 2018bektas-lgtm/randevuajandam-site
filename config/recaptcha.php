@@ -34,4 +34,25 @@ return [
 
     /** true: anahtar tanımlı değilse formu engelleme */
     'soft_fail_when_unconfigured' => filter_var(env('RECAPTCHA_SOFT_FAIL', true), FILTER_VALIDATE_BOOLEAN),
+
+    /**
+     * Soft-fail'e İZİN VERİLMEYEN aksiyonlar.
+     *
+     * Normalde anahtar tanımlı değilse veya Google'a ulaşılamıyorsa doğrulama
+     * sessizce geçer (yukarıdaki soft_fail). Bu liste, o davranışın kabul
+     * edilemez olduğu uçlar içindir: burada listelenen aksiyonlarda soft-fail
+     * durumunda istek REDDEDİLİR.
+     *
+     * Varsayılan boştur — anahtarları henüz tanımlamamış bir kurulumu kilitleme.
+     * Anahtarlar tanımlandıktan sonra şu değerle açmanız önerilir:
+     *   RECAPTCHA_STRICT_ACTIONS="hasta_kayit,hekim_kayit,sifre_sifirlama"
+     *
+     * Not: giriş uçlarında kaba kuvvet koruması artık throttle + RateLimiter
+     * ile sağlanıyor (bkz. PersonelAuthController, HekimController), yani
+     * reCAPTCHA tek savunma değil.
+     */
+    'strict_actions' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('RECAPTCHA_STRICT_ACTIONS', ''))
+    ))),
 ];

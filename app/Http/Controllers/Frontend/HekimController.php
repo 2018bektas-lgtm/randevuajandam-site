@@ -55,14 +55,7 @@ class HekimController extends Controller
                 ->withErrors(['e_posta' => "Çok fazla başarısız giriş denemesi. Lütfen {$saniye} saniye sonra tekrar deneyin."]);
         }
 
-        // Check if account is active BEFORE attempting login
         $doktor = Doktor::where('e_posta', $request->e_posta)->first();
-
-        if ($doktor && ! $doktor->aktif_mi) {
-            return redirect()->back()
-                ->withInput($request->only('e_posta', 'remember'))
-                ->withErrors(['e_posta' => 'Hesabınız pasif durumdadır. Lütfen yönetici ile iletişime geçin.']);
-        }
 
         $credentials = [
             'e_posta' => $request->e_posta,
@@ -70,6 +63,17 @@ class HekimController extends Controller
         ];
 
         if (Auth::guard('doktor')->attempt($credentials, $request->has('remember'))) {
+            // "Hesabiniz pasif" bilgisi yalnizca SIFRE DOGRUYKEN paylasilir.
+            // Aksi halde bu mesaj, sifreyi bilmeyen birine e-postanin sistemde
+            // kayitli oldugunu soyler (kullanici numaralandirma).
+            if ($doktor && ! $doktor->aktif_mi) {
+                Auth::guard('doktor')->logout();
+
+                return redirect()->back()
+                    ->withInput($request->only('e_posta', 'remember'))
+                    ->withErrors(['e_posta' => 'Hesabınız pasif durumdadır. Lütfen yönetici ile iletişime geçin.']);
+            }
+
             RateLimiter::clear($throttleKey);
             session()->forget('url.intended');
 
