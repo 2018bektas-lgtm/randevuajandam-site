@@ -65,12 +65,16 @@ class ContentSecurityPolicy
             // Google Analytics / Tag Manager / Meta Pixel de buradan yükleniyor.
             "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com "
                 ."https://www.google-analytics.com https://connect.facebook.net "
-                ."https://www.google.com https://www.gstatic.com https://cdn.jsdelivr.net",
+                ."https://www.google.com https://www.gstatic.com "
+                ."https://cdn.jsdelivr.net https://unpkg.com https://code.jquery.com "
+                ."https://cdn.ckeditor.com https://www.paytr.com",
 
             // Tema CSS'i ve blade içi <style> blokları
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net "
+                ."https://cdn.jsdelivr.net https://unpkg.com",
 
-            "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
+            "font-src 'self' data: https://fonts.gstatic.com https://fonts.bunny.net "
+                ."https://cdn.jsdelivr.net",
 
             // Hekim görselleri paylaşılan medya sunucusundan; avatar data: URI
             "img-src 'self' data: https:",
@@ -79,7 +83,9 @@ class ContentSecurityPolicy
 
             // YouTube tanıtım videosu ve reCAPTCHA çerçevesi
             "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com "
-                ."https://www.google.com https://maps.google.com",
+                ."https://www.google.com https://maps.google.com "
+                // PayTR guvenli odeme cercevesi
+                ."https://www.paytr.com",
 
             "media-src 'self' https:",
 

@@ -122,4 +122,56 @@ class CspTest extends TestCase
 
         $this->assertFalse($yanit->headers->has('Content-Security-Policy-Report-Only'));
     }
+
+    /**
+     * Blade'lerde GEÇEN her dış stylesheet/script sunucusu izin listesinde
+     * olmalı.
+     *
+     * Neden dinamik: yukarıdaki liste elle yazıldığı için `unpkg.com`
+     * gözden kaçmıştı — Leaflet harita CSS/JS'i oradan geliyor ve CSP
+     * zorlamaya alındığı an engellenecekti. Artık yeni bir CDN eklenirse
+     * bu test kendiliğinden kırılır.
+     */
+    public function test_bladelerde_gecen_tum_dis_sunucular_izinli(): void
+    {
+        $politika = (string) $this->basliklar()->get('Content-Security-Policy-Report-Only');
+
+        $sunucular = [];
+        $dizin = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(resource_path('views'))
+        );
+
+        foreach ($dizin as $dosya) {
+            if (! $dosya->isFile() || ! str_ends_with($dosya->getFilename(), '.blade.php')) {
+                continue;
+            }
+
+            $icerik = (string) file_get_contents($dosya->getPathname());
+
+            // <link href="https://..."> ve <script src="https://...">
+            preg_match_all(
+                '~<(?:link[^>]+href|script[^>]+src)=["\'](https://([^/"\']+))~i',
+                $icerik,
+                $eslesmeler
+            );
+
+            foreach ($eslesmeler[2] as $sunucu) {
+                $sunucular[strtolower($sunucu)] = true;
+            }
+        }
+
+        $this->assertNotEmpty($sunucular, 'Blade taramasi hicbir dis sunucu bulamadi.');
+
+        $izinsiz = [];
+        foreach (array_keys($sunucular) as $sunucu) {
+            if (! str_contains($politika, $sunucu)) {
+                $izinsiz[] = $sunucu;
+            }
+        }
+
+        $this->assertSame([], $izinsiz, sprintf(
+            "Blade'lerde kullanilan ama CSP'de izinli olmayan sunucular:\n  - %s",
+            implode("\n  - ", $izinsiz)
+        ));
+    }
 }
