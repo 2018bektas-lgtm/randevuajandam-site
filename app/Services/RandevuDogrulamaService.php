@@ -20,16 +20,24 @@ class RandevuDogrulamaService
     /**
      * Validate a new appointment request. Returns null if valid, or an error message string.
      */
-    public function dogrula(Doktor $doktor, string $tarih, string $saat, ?int $haricRandevuId = null, int $sureDakika = 0): ?string
+    /**
+     * @param  bool  $hekimTarafindan  Hekim/personel kendi ajandasindan
+     *   islem yapiyorsa true. Bu durumda HASTAYA yonelik online randevu
+     *   politikalari (alima kapali olmasi, en erken/en gec sinirlari,
+     *   gunluk kota) atlanir; hekimin kendi takvimini duzenlemesini
+     *   engellememeleri gerekir. Fiziksel kisitlar (cakisma, izin, Google
+     *   mesgul, calisma saati, ogle arasi) her durumda uygulanir.
+     */
+    public function dogrula(Doktor $doktor, string $tarih, string $saat, ?int $haricRandevuId = null, int $sureDakika = 0, bool $hekimTarafindan = false): ?string
     {
         // 1. Check if doctor accepts online bookings
-        if (! $doktor->randevuya_acik_mi) {
+        if (! $hekimTarafindan && ! $doktor->randevuya_acik_mi) {
             return 'Hekimimiz online randevu alımına geçici olarak kapalıdır.';
         }
 
         $ayarlar = $doktor->randevuAyari;
 
-        if ($ayarlar) {
+        if ($ayarlar && ! $hekimTarafindan) {
             $randevuZamani = Carbon::parse($tarih.' '.$saat);
 
             // Check en_erken_randevu_saati (in hours)
@@ -50,9 +58,12 @@ class RandevuDogrulamaService
 
             // Check gunluk_maksimum_randevu
             if ($ayarlar->gunluk_maksimum_randevu > 0) {
+                // Tasinan randevunun KENDISI sayilmamali; aksi halde limiti
+                // dolduran randevu kendi gunu icinde hic oynatilamaz.
                 $gunlukRandevuSayisi = Randevu::where('doktor_id', $doktor->id)
                     ->whereDate('tarih', $tarih)
                     ->whereIn('durum', ['beklemede', 'onaylandi', 'tamamlandi'])
+                    ->when($haricRandevuId, fn ($q) => $q->where('id', '!=', $haricRandevuId))
                     ->count();
 
                 if ($gunlukRandevuSayisi >= $ayarlar->gunluk_maksimum_randevu) {

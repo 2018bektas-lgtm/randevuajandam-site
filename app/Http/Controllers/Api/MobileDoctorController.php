@@ -849,7 +849,7 @@ class MobileDoctorController extends Controller
         }
 
         try {
-            $bookingService->reschedule($randevu, Carbon::parse($data['tarih'])->toDateString(), $data['saat']);
+            $bookingService->reschedule($randevu, Carbon::parse($data['tarih'])->toDateString(), $data['saat'], hekimTarafindan: true);
         } catch (InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,

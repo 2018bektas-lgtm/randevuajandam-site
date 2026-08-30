@@ -366,7 +366,11 @@ class AppointmentBookingService
      *
      * @throws InvalidArgumentException
      */
-    public function reschedule(Randevu $randevu, string $tarih, string $saat, bool $skipScheduleValidation = false): Randevu
+    /**
+     * @param  bool  $hekimTarafindan  Hekim/personel kendi ajandasindan
+     *   tasiyorsa true; hastaya yonelik politika kurallari atlanir.
+     */
+    public function reschedule(Randevu $randevu, string $tarih, string $saat, bool $skipScheduleValidation = false, bool $hekimTarafindan = false): Randevu
     {
         $saat = substr($saat, 0, 5);
         $doktor = $randevu->doktor;
@@ -376,7 +380,7 @@ class AppointmentBookingService
         }
 
         if (! $skipScheduleValidation) {
-            $hata = $this->dogrulamaService->dogrula($doktor, $tarih, $saat, $randevu->id, (int) data_get($randevu, 'hizmet.sure', 0));
+            $hata = $this->dogrulamaService->dogrula($doktor, $tarih, $saat, $randevu->id, (int) data_get($randevu, 'hizmet.sure', 0), $hekimTarafindan);
             if ($hata) {
                 throw new InvalidArgumentException($hata);
             }

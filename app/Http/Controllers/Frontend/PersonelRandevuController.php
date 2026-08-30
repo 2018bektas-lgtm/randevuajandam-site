@@ -301,7 +301,7 @@ class PersonelRandevuController extends Controller
         })->findOrFail($id);
 
         try {
-            $bookingService->reschedule($randevu, $request->tarih, $request->saat);
+            $bookingService->reschedule($randevu, $request->tarih, $request->saat, hekimTarafindan: true);
         } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }

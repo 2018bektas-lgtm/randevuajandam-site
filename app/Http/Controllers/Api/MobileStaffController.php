@@ -335,7 +335,7 @@ class MobileStaffController extends Controller
         $randevu = $this->clinicAppointment($personel, $id);
 
         try {
-            $bookingService->reschedule($randevu, $data['tarih'], $data['saat']);
+            $bookingService->reschedule($randevu, $data['tarih'], $data['saat'], hekimTarafindan: true);
         } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
