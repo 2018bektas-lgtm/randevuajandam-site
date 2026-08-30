@@ -107,8 +107,8 @@ class PersonelRandevuController extends Controller
             $events[] = [
                 'id' => 'randevu_'.$randevu->id,
                 'title' => $randevu->ad.' '.$randevu->soyad.' ('.($randevu->hizmet?->ad ?? 'Hizmet').')',
-                'start' => $startDateTime->toIso8601String(),
-                'end' => $endDateTime->toIso8601String(),
+                'start' => $startDateTime->format('Y-m-d\TH:i:s'),
+                'end' => $endDateTime->format('Y-m-d\TH:i:s'),
                 'backgroundColor' => $color,
                 'borderColor' => $color,
                 'textColor' => $textColor,
@@ -133,8 +133,8 @@ class PersonelRandevuController extends Controller
         foreach ($izinler as $izin) {
             $events[] = [
                 'id' => 'izin_'.$izin->id,
-                'start' => $izin->baslangic_zaman->toIso8601String(),
-                'end' => $izin->bitis_zaman->toIso8601String(),
+                'start' => $izin->baslangic_zaman->format('Y-m-d\TH:i:s'),
+                'end' => $izin->bitis_zaman->format('Y-m-d\TH:i:s'),
                 'display' => 'background',
                 'backgroundColor' => '#F3F4F6',
                 'extendedProps' => [

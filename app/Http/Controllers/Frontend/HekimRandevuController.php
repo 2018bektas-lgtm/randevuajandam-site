@@ -890,8 +890,8 @@ class HekimRandevuController extends Controller
             $events[] = [
                 'id' => 'randevu_'.$randevu->id,
                 'title' => $titlePrefix.$randevu->ad.' '.$randevu->soyad.' ('.($randevu->hizmet?->ad ?? 'Hizmet').')',
-                'start' => $startDateTime->toIso8601String(),
-                'end' => $endDateTime->toIso8601String(),
+                'start' => $startDateTime->format('Y-m-d\TH:i:s'),
+                'end' => $endDateTime->format('Y-m-d\TH:i:s'),
                 'backgroundColor' => $color,
                 'borderColor' => $color,
                 'textColor' => $textColor,
@@ -952,8 +952,8 @@ class HekimRandevuController extends Controller
             if ($isHizliKapat) {
                 $events[] = [
                     'id' => 'izin_'.$izin->id,
-                    'start' => $izin->baslangic_zaman->toIso8601String(),
-                    'end' => $izin->bitis_zaman->toIso8601String(),
+                    'start' => $izin->baslangic_zaman->format('Y-m-d\TH:i:s'),
+                    'end' => $izin->bitis_zaman->format('Y-m-d\TH:i:s'),
                     'display' => 'background',
                     'backgroundColor' => '#F3F4F6', // Hafif gri arka plan (kapalı saatler)
                     'extendedProps' => [
@@ -965,8 +965,8 @@ class HekimRandevuController extends Controller
                 $events[] = [
                     'id' => 'izin_'.$izin->id,
                     'title' => 'İzin: '.($izin->aciklama ?? 'İzin Dönemi'),
-                    'start' => $izin->baslangic_zaman->toIso8601String(),
-                    'end' => $izin->bitis_zaman->toIso8601String(),
+                    'start' => $izin->baslangic_zaman->format('Y-m-d\TH:i:s'),
+                    'end' => $izin->bitis_zaman->format('Y-m-d\TH:i:s'),
                     'backgroundColor' => '#EF4444', // Kendi eklediği izinler normal kırmızı blok
                     'borderColor' => '#EF4444',
                     'textColor' => '#ffffff',
