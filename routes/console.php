@@ -30,6 +30,11 @@ Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3 --backof
 Schedule::command('queue:prune-failed --hours=168')->daily();
 
 Schedule::command('randevu:hatirlat')->everyFiveMinutes();
+
+// Randevu saatinin 2 saat sonrasinda girissiz yorum daveti.
+// Zamana bakar; hekimin randevuyu "tamamlandi" isaretlemesini beklemez
+// (sahada bu isaretleme neredeyse hic yapilmiyor).
+Schedule::command('yorum:davet-gonder')->everyFifteenMinutes();
 Schedule::command('klinik:davet-suresi-kontrol')->daily();
 Schedule::command('klinik:gider-tekrarla')->monthlyOn(1, '01:00');
 Schedule::command('klinik:uyelik-hatirlat')->dailyAt('09:00');

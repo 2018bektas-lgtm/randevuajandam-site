@@ -672,7 +672,19 @@ Route::get('/{il_slug}/{ilce_slug}/klinik/{klinik_slug}/iletisim', [KlinikProfil
 
 // Hiyerarşik Dizin Rotaları (Nested SEO Directory)
 // Constraint: il_slug must not match reserved route prefixes
-$reservedSlugs = '^(?!yonetim|hekim|giris|kayit-ol|profil|cikis|paketler|doktorlar|egitimler|blog|iller|up|api|personel|klinik|hekim-randevu-yazilimi|hekimler-icin)[\w-]+$';
+// Girissiz yorum daveti — e-postadaki kisa baglanti: /y/{token}
+// Yetki oturumdan degil token'dan gelir; asagidaki yakala-tumu il_slug
+// rotasindan ONCE tanimlanmali (ve "y" ayrilmis slug listesinde olmali).
+Route::get('/y/{token}', [\App\Http\Controllers\Frontend\YorumDavetController::class, 'form'])
+    ->where('token', '[A-Za-z0-9]{8,64}')
+    ->middleware('throttle:30,1')
+    ->name('yorum.davet');
+Route::post('/y/{token}', [\App\Http\Controllers\Frontend\YorumDavetController::class, 'kaydet'])
+    ->where('token', '[A-Za-z0-9]{8,64}')
+    ->middleware('throttle:10,1')
+    ->name('yorum.davet.kaydet');
+
+$reservedSlugs = '^(?!yonetim|hekim|giris|kayit-ol|profil|cikis|paketler|doktorlar|egitimler|blog|iller|up|api|personel|klinik|y|hekim-randevu-yazilimi|hekimler-icin)[\w-]+$';
 
 Route::get('/{il_slug}', [HekimController::class, 'doktorlarListesi'])->name('frontend.il.liste')->where('il_slug', $reservedSlugs);
 Route::get('/{il_slug}/{ilce_slug}', [HekimController::class, 'doktorlarListesi'])->name('frontend.ilce.liste')->where('il_slug', $reservedSlugs);

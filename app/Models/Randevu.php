@@ -148,4 +148,13 @@ class Randevu extends Model
     {
         return $this->hasOne(Yorum::class, 'randevu_id');
     }
+
+    /**
+     * Girişsiz yorum daveti (varsa). Randevu başına tek kayıt tutulur;
+     * varlığı "davet gönderildi" anlamına gelir.
+     */
+    public function yorumDaveti(): HasOne
+    {
+        return $this->hasOne(YorumDaveti::class, 'randevu_id');
+    }
 }
