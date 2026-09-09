@@ -1168,36 +1168,36 @@ class HekimRandevuController extends Controller
             return response()->json(['results' => []]);
         }
 
-        $hastaIds = $doktor->randevular()
-            ->whereNotNull('hasta_id')
-            ->distinct()
-            ->pluck('hasta_id');
+        $applyFilter = function ($query) use ($q) {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('hastalar.ad', 'like', "%{$q}%")
+                    ->orWhere('hastalar.soyad', 'like', "%{$q}%")
+                    ->orWhere('hastalar.telefon', 'like', "%{$q}%")
+                    ->orWhere('hastalar.e_posta', 'like', "%{$q}%");
+            });
+        };
 
-        if ($doktor->klinik_id) {
-            $klinikHastaIds = $doktor->klinik?->hastalar()->pluck('hastalar.id') ?? collect();
-            $hastaIds = $hastaIds->merge($klinikHastaIds)->unique()->values();
-        }
-
-        if ($hastaIds->isEmpty()) {
-            return response()->json(['results' => []]);
-        }
-
-        $hastalar = Hasta::query()
-            ->whereIn('id', $hastaIds)
-            ->where(function ($query) use ($q) {
-                $query->where('ad', 'like', "%{$q}%")
-                    ->orWhere('soyad', 'like', "%{$q}%")
-                    ->orWhere('telefon', 'like', "%{$q}%")
-                    ->orWhere('e_posta', 'like', "%{$q}%");
-            })
+        // Hekimin havuzu (hastalar sayfasıyla aynı kaynak: import + manuel + randevu-otomatik)
+        $hastalar = $doktor->hastalar()
+            ->tap($applyFilter)
             ->limit(20)
-            ->get(['id', 'ad', 'soyad', 'e_posta']);
+            ->get(['hastalar.id', 'hastalar.ad', 'hastalar.soyad', 'hastalar.e_posta']);
+
+        // Klinik havuzundakiler (henüz gelmediyse)
+        if ($doktor->klinik_id && $doktor->klinik) {
+            $klinikHastalar = $doktor->klinik->hastalar()
+                ->whereNotIn('hastalar.id', $hastalar->pluck('id')->all())
+                ->tap($applyFilter)
+                ->limit(20)
+                ->get(['hastalar.id', 'hastalar.ad', 'hastalar.soyad', 'hastalar.e_posta']);
+            $hastalar = $hastalar->merge($klinikHastalar);
+        }
 
         $results = [];
         foreach ($hastalar as $hasta) {
             $results[] = [
                 'id' => $hasta->id,
-                'text' => $hasta->ad.' '.$hasta->soyad.' ('.$hasta->e_posta.')',
+                'text' => trim($hasta->ad.' '.$hasta->soyad).' ('.($hasta->e_posta ?: 'e-posta yok').')',
             ];
         }
 
