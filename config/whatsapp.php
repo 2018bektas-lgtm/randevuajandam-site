@@ -68,4 +68,13 @@ return [
     | Meta hesap/onay hazir degilse false birakin; Job kota yerine SMS'e dusurur.
     */
     'enabled' => (bool) env('WHATSAPP_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | SSL peer verification
+    |--------------------------------------------------------------------------
+    | Varsayilan TRUE. Sadece cURL/OpenSSL CA bundle sorunlu Windows/XAMPP
+    | dev makinelerinde .env'de WHATSAPP_VERIFY_SSL=false yapin. Uretim asla false.
+    */
+    'verify_ssl' => (bool) env('WHATSAPP_VERIFY_SSL', true),
 ];

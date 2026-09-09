@@ -72,6 +72,7 @@ class WhatsAppService
         }
 
         $response = Http::withToken($token)
+            ->withOptions(['verify' => (bool) config('whatsapp.verify_ssl', true)])
             ->timeout(20)
             ->retry(2, 500, throw: false)
             ->acceptJson()
