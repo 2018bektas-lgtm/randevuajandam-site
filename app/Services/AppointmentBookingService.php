@@ -9,6 +9,7 @@ use App\Models\Hizmet;
 use App\Models\Randevu;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -345,6 +346,17 @@ class AppointmentBookingService
                         ]);
                     } catch (\Illuminate\Database\QueryException $e) {
                         if (str_contains($e->getMessage(), 'slot_token') || str_contains(strtolower($e->getMessage()), 'unique')) {
+                            $token = $doktor->id.'|'.$tarih.'|'.substr($saat, 0, 5);
+                            $blockingRow = DB::table('randevular')
+                                ->where('slot_token', $token)
+                                ->first(['id', 'doktor_id', 'tarih', 'saat', 'durum', 'deleted_at']);
+                            Log::warning('Randevu slot_token unique cakismasi', [
+                                'doktor_id' => $doktor->id,
+                                'tarih' => $tarih,
+                                'saat' => $saat,
+                                'token' => $token,
+                                'blocking_row' => $blockingRow,
+                            ]);
                             throw new InvalidArgumentException('Seçtiğiniz randevu saati maalesef doludur. Lütfen başka bir saat seçin.');
                         }
                         throw $e;

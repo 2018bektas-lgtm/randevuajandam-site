@@ -8,6 +8,7 @@ use App\Models\DoktorGoogleBlok;
 use App\Models\DoktorIzin;
 use App\Models\Randevu;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Validates appointment booking requests against doctor's schedule,
@@ -62,8 +63,23 @@ class RandevuDogrulamaService
         }
 
         // 2. Double booking — hizmet süresiyle çakışan slotlar da dolu (site + hekim sitesi).
-        if ($this->slotService->existsOverlappingAppointment($doktor, $tarih, $saat, $sureDakika, $haricRandevuId)) {
-            return 'Seçtiğiniz randevu saati maalesef doludur. Lütfen başka bir saat seçin.';
+        $cakisan = $this->slotService->findOverlappingAppointment($doktor, $tarih, $saat, $sureDakika, $haricRandevuId);
+        if ($cakisan) {
+            Log::warning('Randevu cakismasi', [
+                'doktor_id' => $doktor->id,
+                'istenen_tarih' => $tarih,
+                'istenen_saat' => $saat,
+                'istenen_sure' => $sureDakika,
+                'cakisan_id' => $cakisan->id,
+                'cakisan_tarih' => (string) $cakisan->tarih,
+                'cakisan_saat' => (string) $cakisan->saat,
+                'cakisan_durum' => $cakisan->durum,
+                'cakisan_hizmet_sure' => data_get($cakisan, 'hizmet.sure'),
+            ]);
+
+            $cakisanSaat = substr((string) $cakisan->saat, 0, 5);
+
+            return 'Seçtiğiniz saat, mevcut '.$cakisanSaat.' randevusuyla çakışıyor. Lütfen başka bir saat seçin.';
         }
 
         // 3. Doctor leaves/blocks check

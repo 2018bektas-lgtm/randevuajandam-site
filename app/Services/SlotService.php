@@ -434,6 +434,20 @@ class SlotService
         ?int $haricRandevuId = null,
         bool $lock = false,
     ): bool {
+        return $this->findOverlappingAppointment($doktor, $tarih, $saat, $sureDakika, $haricRandevuId, $lock) !== null;
+    }
+
+    /**
+     * Çakışan randevuyu bul; yoksa null. Teşhis/log için kullanışlı.
+     */
+    public function findOverlappingAppointment(
+        Doktor $doktor,
+        string $tarih,
+        string $saat,
+        int $sureDakika,
+        ?int $haricRandevuId = null,
+        bool $lock = false,
+    ): ?\App\Models\Randevu {
         $saat = substr($saat, 0, 5);
         $periyot = $this->getPeriyot($doktor);
         $sure = max(1, $sureDakika > 0 ? $sureDakika : $periyot);
@@ -460,11 +474,11 @@ class SlotService
             $itemSure = (int) (ceil($itemSure / max(1, $periyot)) * max(1, $periyot));
             $itemEnd = $this->addMinutesHi($itemStart, $itemSure);
             if ($this->hiOverlap($saat, $bitis, $itemStart, $itemEnd)) {
-                return true;
+                return $item;
             }
         }
 
-        return false;
+        return null;
     }
 
     /**
