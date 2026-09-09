@@ -45,7 +45,8 @@ class Randevu extends Model
     protected static function booted(): void
     {
         static::saving(function (Randevu $randevu) {
-            $aktif = in_array($randevu->durum, ['beklemede', 'onaylandi', 'tamamlandi'], true);
+            $aktif = in_array($randevu->durum, ['beklemede', 'onaylandi', 'tamamlandi'], true)
+                && $randevu->deleted_at === null;
             if ($aktif && $randevu->doktor_id && $randevu->tarih && $randevu->saat) {
                 $tarih = $randevu->tarih instanceof \DateTimeInterface
                     ? $randevu->tarih->format('Y-m-d')
@@ -53,7 +54,18 @@ class Randevu extends Model
                 $saat = substr((string) $randevu->saat, 0, 5);
                 $randevu->slot_token = $randevu->doktor_id.'|'.$tarih.'|'.$saat;
             } else {
-                // Cancelled / soft states release the unique slot
+                // Cancelled / soft-deleted states release the unique slot
+                $randevu->slot_token = null;
+            }
+        });
+
+        // SoftDeletes runs raw UPDATE, so `saving` is not fired on delete().
+        // Release the slot token here so the same slot becomes bookable again.
+        static::deleted(function (Randevu $randevu) {
+            if ($randevu->trashed() && $randevu->slot_token !== null) {
+                \Illuminate\Support\Facades\DB::table('randevular')
+                    ->where('id', $randevu->id)
+                    ->update(['slot_token' => null]);
                 $randevu->slot_token = null;
             }
         });
