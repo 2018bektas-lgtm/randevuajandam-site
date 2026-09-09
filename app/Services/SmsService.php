@@ -47,11 +47,7 @@ class SmsService
             case 'netgsm':
                 return $this->sendNetgsm($normalizedPhone, $message, $header);
             case 'log':
-                if (app()->environment('production')) {
-                    Log::error('SMS_DRIVER=log production ortamında kullanılamaz. NetGSM yapılandırın.');
 
-                    return false;
-                }
 
                 return $this->sendLog($normalizedPhone, $message, $header);
             default:

@@ -19,6 +19,7 @@ use App\Policies\RandevuPolicy;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -37,6 +38,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Yerel test: tüm mailler MAIL_ALWAYS_TO adresine yönlensin (prod'a etkilemez)
+        if ($this->app->environment('local') && ($to = env('MAIL_ALWAYS_TO'))) {
+            Mail::alwaysTo($to);
+        }
+
         // Policies
         Gate::policy(Blog::class, BlogPolicy::class);
         Gate::policy(Hizmet::class, HizmetPolicy::class);
