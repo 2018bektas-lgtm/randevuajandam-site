@@ -136,9 +136,7 @@ class AppServiceProvider extends ServiceProvider
             if ($paytrId === '' || $paytrKey === '' || $paytrSalt === '') {
                 \Illuminate\Support\Facades\Log::critical('PAYTR merchant bilgileri production ortamında eksik.');
             }
-            if (config('sms.driver') === 'log') {
-                \Illuminate\Support\Facades\Log::critical('SMS_DRIVER=log production ortamında — gerçek SMS sürücüsü ayarlayın.');
-            }
+
             if ((bool) config('services.iyzico.enabled', false)) {
                 \Illuminate\Support\Facades\Log::warning('IYZICO_ENABLED=true — platform PayTR-only; iyzico kapatılmalı.');
             }
