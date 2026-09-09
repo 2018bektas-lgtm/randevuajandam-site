@@ -16,9 +16,11 @@ use App\Policies\BlogPolicy;
 use App\Policies\HizmetPolicy;
 use App\Policies\KlinikPolicy;
 use App\Policies\RandevuPolicy;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -41,6 +43,14 @@ class AppServiceProvider extends ServiceProvider
         // Yerel test: tüm mailler MAIL_ALWAYS_TO adresine yönlensin (prod'a etkilemez)
         if ($this->app->environment('local') && ($to = env('MAIL_ALWAYS_TO'))) {
             Mail::alwaysTo($to);
+
+            Event::listen(MessageSending::class, function (MessageSending $event) {
+                $tos = collect($event->message->getTo())->map(fn ($a) => $a->getAddress())->all();
+                Log::info('MAIL GONDERILIYOR', [
+                    'to' => $tos,
+                    'subject' => $event->message->getSubject(),
+                ]);
+            });
         }
 
         // Policies
