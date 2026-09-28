@@ -1,6 +1,7 @@
 @extends('hekim.layout')
 @section('baslik', 'Randevu Takvimi - Hekim Paneli')
-@section('sayfa_baslik', 'Haftalık Randevu Takvimi')
+@section('sayfa_baslik', 'Randevu Takvimi')
+@section('main_class', 'takvim-sayfa')
 @section('icerik')
 
 @php
@@ -68,6 +69,9 @@
     /* FullCalendar Premium Custom Styling */
     .fc {
         font-family: 'Inter', sans-serif;
+        --fc-border-color: #F3F4F6;
+        --fc-page-bg-color: #ffffff;
+        --fc-today-bg-color: rgba(201, 106, 43, 0.03);
     }
     .fc-toolbar-title {
         font-family: 'Outfit', sans-serif !important;
@@ -83,7 +87,8 @@
         font-weight: 600 !important;
         font-family: 'Outfit', sans-serif !important;
         font-size: 0.75rem !important;
-        padding: 8px 16px !important;
+        padding: 8px 14px !important;
+        min-height: 40px !important;
         transition: all 0.2s ease-in-out !important;
         text-transform: capitalize !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
@@ -118,7 +123,7 @@
     }
     .fc-col-header-cell {
         background-color: #FAFAFA !important;
-        padding: 12px 0 !important;
+        padding: 10px 0 !important;
         border-bottom: 2px solid #E5E7EB !important;
     }
     .fc-col-header-cell-cushion {
@@ -129,12 +134,18 @@
         text-decoration: none !important;
     }
 
-    /* Clickable working hours */
     .fc-daygrid-day, .fc-timegrid-col {
         background-color: #ffffff;
     }
 
-    /* Distinguish Non-business hours */
+    /* Boş mesai slotları tıklanabilir görünsün */
+    .fc-timegrid-slot-lane {
+        cursor: pointer;
+    }
+    .fc-timegrid-slot-lane:hover {
+        background-color: rgba(201, 106, 43, 0.04);
+    }
+
     .fc-non-business {
         background-color: #FAFAFA !important;
         background-image: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(243, 244, 246, 0.6) 8px, rgba(243, 244, 246, 0.6) 16px) !important;
@@ -150,9 +161,8 @@
         font-weight: 700 !important;
     }
 
-    /* Layout period slots height & separation */
     .fc-timegrid-slot {
-        height: 55px !important; /* Premium luxury spacing */
+        height: 52px !important;
         border-bottom: 1px solid #F9FAFB !important;
     }
     .fc-timegrid-slot-minor {
@@ -165,8 +175,10 @@
         font-weight: 600 !important;
         color: #4B5563 !important;
     }
+    .fc-timegrid-axis {
+        width: 52px !important;
+    }
 
-    /* Events visual styling */
     .fc-event {
         border-radius: 10px !important;
         cursor: pointer;
@@ -198,10 +210,10 @@
         cursor: pointer !important;
     }
 
-    /* Responsive toolbar: dar ekranda başlık ve butonlar alt alta */
     .fc .fc-header-toolbar {
         flex-wrap: wrap;
         gap: 10px;
+        margin-bottom: 1rem !important;
     }
     .fc .fc-toolbar-chunk {
         display: flex;
@@ -220,26 +232,117 @@
         border-top-right-radius: 12px !important;
         border-bottom-right-radius: 12px !important;
     }
-    @media (max-width: 767px) {
+
+    /* Tablet */
+    @media (max-width: 1279px) {
         .fc .fc-header-toolbar {
-            flex-direction: column;
-            align-items: stretch;
+            gap: 8px;
         }
-        .fc .fc-toolbar-chunk {
-            justify-content: center;
-        }
-        .fc .fc-toolbar-title {
-            font-size: 1.05rem !important;
-            text-align: center;
+        .fc-toolbar-title {
+            font-size: 1.1rem !important;
         }
         .fc-button-primary {
             padding: 7px 11px !important;
+            font-size: 0.7rem !important;
+        }
+        .fc-col-header-cell {
+            padding: 8px 0 !important;
+        }
+        .fc-col-header-cell-cushion {
+            font-size: 12px !important;
+        }
+        .fc-timegrid-slot {
+            height: 46px !important;
+        }
+    }
+
+    /* Telefon */
+    @media (max-width: 767px) {
+        .takvim-sayfa {
+            padding-bottom: 5rem !important;
+        }
+        .fc .fc-header-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            margin-bottom: 0.75rem !important;
+        }
+        .fc .fc-toolbar-chunk {
+            justify-content: center;
+            width: 100%;
+        }
+        .fc .fc-toolbar-title {
+            font-size: 1rem !important;
+            text-align: center;
+            line-height: 1.3;
+        }
+        .fc-button-primary {
+            padding: 8px 10px !important;
+            font-size: 0.68rem !important;
+            min-height: 38px !important;
+            flex: 1 1 auto;
+            white-space: nowrap !important;
+        }
+        .fc .fc-button-group {
+            display: flex;
+            width: 100%;
+            flex-wrap: nowrap;
+        }
+        .fc .fc-button-group > .fc-button {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        .fc-col-header-cell {
+            padding: 8px 2px !important;
         }
         .fc-col-header-cell-cushion {
             font-size: 11px !important;
+            white-space: normal !important;
+            line-height: 1.25;
+            text-align: center;
         }
         .fc-timegrid-slot {
-            height: 44px !important;
+            height: 48px !important;
+        }
+        .fc-timegrid-slot-label-cushion {
+            font-size: 10px !important;
+            padding: 0 2px !important;
+        }
+        .fc-timegrid-axis {
+            width: 42px !important;
+        }
+        .fc-event-time {
+            font-size: 10px !important;
+        }
+        .fc-event-title {
+            font-size: 12px !important;
+        }
+        .fc-v-event .fc-event-main {
+            padding: 5px 6px !important;
+        }
+        .fc-scroller {
+            -webkit-overflow-scrolling: touch;
+        }
+        .fc-timegrid-body,
+        .fc-timegrid-slots,
+        .fc-timegrid-cols {
+            min-width: 0 !important;
+        }
+        /* Mobil modal: alttan sheet benzeri */
+        #appointmentFormModal,
+        #appointmentDetailModal,
+        #newClientModal {
+            align-items: flex-end !important;
+            padding: 0 !important;
+        }
+        #appointmentFormContainer,
+        #appointmentDetailContainer,
+        #newClientContainer {
+            max-width: 100% !important;
+            width: 100% !important;
+            border-radius: 24px 24px 0 0 !important;
+            max-height: 92vh;
+            overflow-y: auto;
         }
     }
 
@@ -282,53 +385,58 @@
     }
 </style>
 
-<div class="space-y-6">
+<div class="space-y-3 sm:space-y-5">
     <!-- Visual Legend (Takvim Rehberi) & Slot Selector -->
-    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.02)] flex flex-col xl:flex-row xl:items-center justify-between gap-4 text-xs text-[#4B5563]">
-        <div class="flex flex-wrap items-center gap-x-5 gap-y-2.5">
-            <span class="font-bold text-[#111827] font-display">Takvim Rehberi:</span>
-            <span class="flex items-center gap-2">
-                <span class="w-4 h-4 rounded bg-white border border-[#E5E7EB] block"></span>
-                Eklenebilir (Mesai Saatleri)
-            </span>
-            <span class="flex items-center gap-2">
-                <span class="w-4 h-4 rounded block" style="background-color: #F8F8F7; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(229, 231, 235, 0.4) 5px, rgba(229, 231, 235, 0.4) 10px); border: 1px solid #E5E7EB;"></span>
-                Eklenemez (Mesai Dışı)
-            </span>
-            <span class="flex items-center gap-2">
-                <span class="w-4 h-4 rounded block bg-[#FEF3C7] border border-[#FCD34D]"></span>
-                Öğle Arası
-            </span>
-            <span class="flex items-center gap-2">
-                <span class="w-4 h-4 rounded block bg-[#EF4444]"></span>
-                İzin / Tatil
-            </span>
-            <span class="flex items-center gap-2">
-                <span class="w-4 h-4 rounded block bg-[#F5F5F4]" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(229, 231, 235, 0.3) 4px, rgba(229, 231, 235, 0.3) 8px); border: 1px solid #E5E7EB;"></span>
-                Geçmiş Zaman (Eklenemez)
-            </span>
+    <div class="bg-white p-3 sm:p-5 rounded-2xl border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.02)] flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 text-xs text-[#4B5563]">
+        <div class="min-w-0">
+            <div class="flex items-center justify-between gap-2 mb-2 sm:mb-0">
+                <span class="font-bold text-[#111827] font-display">Takvim Rehberi</span>
+                <p class="text-[10px] sm:hidden text-[#C96A2B] font-semibold">Boş saate dokunun → randevu</p>
+            </div>
+            <div class="flex gap-x-4 gap-y-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap scrollbar-thin -mx-0.5 px-0.5">
+                <span class="flex items-center gap-1.5 shrink-0">
+                    <span class="w-3.5 h-3.5 rounded bg-white border border-[#E5E7EB] block"></span>
+                    Eklenebilir
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0">
+                    <span class="w-3.5 h-3.5 rounded block" style="background-color: #F8F8F7; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(229, 231, 235, 0.4) 5px, rgba(229, 231, 235, 0.4) 10px); border: 1px solid #E5E7EB;"></span>
+                    Mesai dışı
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0">
+                    <span class="w-3.5 h-3.5 rounded block bg-[#FEF3C7] border border-[#FCD34D]"></span>
+                    Öğle
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0">
+                    <span class="w-3.5 h-3.5 rounded block bg-[#EF4444]"></span>
+                    İzin
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0">
+                    <span class="w-3.5 h-3.5 rounded block bg-[#F5F5F4]" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(229, 231, 235, 0.3) 4px, rgba(229, 231, 235, 0.3) 8px); border: 1px solid #E5E7EB;"></span>
+                    Geçmiş
+                </span>
+            </div>
+            <p class="hidden sm:block mt-2 text-[11px] text-[#9CA3AF]">Boş bir mesai saatine tıklayın / dokunun; randevu formu açılır.</p>
         </div>
         <div class="flex items-center gap-2 border-t xl:border-t-0 pt-3 xl:pt-0 border-slate-100 shrink-0 flex-wrap">
-            <span class="font-bold text-[#111827] font-display flex items-center gap-1">⏱️ Zaman Dilimi (Periyot):</span>
-            <select id="calendarSlotDurationSelect" onchange="changeCalendarSlotDuration(this.value)" class="no-select2 px-3 py-1.5 rounded-xl border border-[#E5E7EB] bg-white font-semibold text-[#4B5563] focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none cursor-pointer text-xs">
-                <option value="00:15:00" {{ (isset($periyot) && $periyot == 15) ? 'selected' : '' }}>15 Dakika</option>
-                <option value="00:20:00" {{ (isset($periyot) && $periyot == 20) ? 'selected' : '' }}>20 Dakika</option>
-                <option value="00:30:00" {{ (!isset($periyot) || $periyot == 30) ? 'selected' : '' }}>30 Dakika</option>
-                <option value="00:45:00" {{ (isset($periyot) && $periyot == 45) ? 'selected' : '' }}>45 Dakika</option>
-                <option value="01:00:00" {{ (isset($periyot) && $periyot == 60) ? 'selected' : '' }}>60 Dakika</option>
+            <label for="calendarSlotDurationSelect" class="font-bold text-[#111827] font-display flex items-center gap-1 whitespace-nowrap">⏱️ Periyot</label>
+            <select id="calendarSlotDurationSelect" onchange="changeCalendarSlotDuration(this.value)" class="no-select2 px-3 py-2 rounded-xl border border-[#E5E7EB] bg-white font-semibold text-[#4B5563] focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none cursor-pointer text-xs min-h-[40px]">
+                <option value="00:15:00" {{ (isset($periyot) && $periyot == 15) ? 'selected' : '' }}>15 dk</option>
+                <option value="00:20:00" {{ (isset($periyot) && $periyot == 20) ? 'selected' : '' }}>20 dk</option>
+                <option value="00:30:00" {{ (!isset($periyot) || $periyot == 30) ? 'selected' : '' }}>30 dk</option>
+                <option value="00:45:00" {{ (isset($periyot) && $periyot == 45) ? 'selected' : '' }}>45 dk</option>
+                <option value="01:00:00" {{ (isset($periyot) && $periyot == 60) ? 'selected' : '' }}>60 dk</option>
             </select>
             <a href="{{ route('hekim.randevu.ical') }}"
-               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E5E7EB] bg-white text-xs font-bold text-[#4B5563] hover:border-[#C96A2B] hover:text-[#C96A2B] transition"
+               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#E5E7EB] bg-white text-xs font-bold text-[#4B5563] hover:border-[#C96A2B] hover:text-[#C96A2B] transition min-h-[40px]"
                title="Google / Outlook takvimine aktar (.ics)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-                iCal indir
+                <span class="hidden xs:inline sm:inline">iCal</span>
             </a>
         </div>
     </div>
 
-    <!-- Calendar Container matching panel style -->
-    <div class="bg-white rounded-2xl p-3 sm:p-6 border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.04)]">
-        <!-- FullCalendar Hook -->
+    <!-- Calendar Container -->
+    <div class="bg-white rounded-2xl p-2 sm:p-4 md:p-6 border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.04)] overflow-hidden">
         <div id="calendar" class="w-full"></div>
     </div>
 </div>
@@ -723,14 +831,15 @@
         }
         return {
             gorunum: 'timeGridWeek',
-            yukseklik: null, // FullCalendar varsayılanı (aspectRatio)
+            yukseklik: null,
             izinliGorunumler: ['dayGridMonth', 'timeGridWeek', 'timeGridDay', 'listWeek'],
             toolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' }
         };
     }
 
+    var sonSlotAcilisMs = 0;
+
     // Tıklanan saate randevu eklenemiyorsa sebebini döndürür, uygunsa null.
-    // (selectable kapalı olduğu için mesai/öğle/izin kısıtları burada kontrol edilir)
     function slotUygunlukHatasi(tarih, mesaiListesi) {
         if (tarih < new Date()) {
             return 'Geçmiş bir tarihe veya saate randevu eklenemez.';
@@ -765,6 +874,26 @@
         return null;
     }
 
+    function bosSlotaRandevuAc(tarih, startStr, viewType) {
+        var simdi = Date.now();
+        if (simdi - sonSlotAcilisMs < 450) return;
+        sonSlotAcilisMs = simdi;
+
+        if (viewType === 'dayGridMonth') {
+            calendar.changeView('timeGridDay', startStr.substring(0, 10));
+            return;
+        }
+
+        var hata = slotUygunlukHatasi(tarih, businessHoursDataGlobal);
+        if (hata) {
+            toastAc(hata, 'uyari');
+            return;
+        }
+        createNewAppointment(startStr);
+    }
+
+    var businessHoursDataGlobal = [];
+
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
 
@@ -774,10 +903,13 @@
         var slotDurationString = '{{ $slotDurationString }}';
 
         var businessHoursData = {!! json_encode($businessHours) !!};
+        businessHoursDataGlobal = businessHoursData;
 
         // Ekran genişliğine göre görünüm/araç çubuğu (telefon: gün, tablet: 3 gün, masaüstü: hafta)
         var ekranTipi = takvimEkranTipi();
         var ekranAyari = takvimEkranAyari(ekranTipi);
+        // Yalnızca gerçek dokunmatik birincil işaretçi (laptop'ta touch + mouse karışmasın)
+        var dokunmatikMi = window.matchMedia('(pointer: coarse)').matches;
 
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: ekranAyari.gorunum,
@@ -797,22 +929,31 @@
                 ekranTipi = yeniTip;
                 var ayar = takvimEkranAyari(yeniTip);
                 calendar.setOption('headerToolbar', ayar.toolbar);
-                if (ayar.yukseklik) calendar.setOption('height', ayar.yukseklik);
+                calendar.setOption('buttonText', {
+                    today: 'Bugün',
+                    month: yeniTip === 'telefon' ? 'Ay' : 'Aylık',
+                    week: yeniTip === 'telefon' ? 'Hafta' : 'Haftalık',
+                    day: yeniTip === 'telefon' ? 'Gün' : 'Günlük',
+                    list: yeniTip === 'telefon' ? 'Liste' : 'Ajanda'
+                });
+                if (ayar.yukseklik) {
+                    calendar.setOption('height', ayar.yukseklik);
+                } else {
+                    calendar.setOption('height', null);
+                }
                 if (ayar.izinliGorunumler.indexOf(calendar.view.type) === -1) {
                     calendar.changeView(ayar.gorunum);
                 }
             },
 
-            // Turkish button overrides for premium feel
             buttonText: {
                 today: 'Bugün',
-                month: 'Aylık',
-                week: 'Haftalık',
-                day: 'Günlük',
-                list: 'Ajanda'
+                month: ekranTipi === 'telefon' ? 'Ay' : 'Aylık',
+                week: ekranTipi === 'telefon' ? 'Hafta' : 'Haftalık',
+                day: ekranTipi === 'telefon' ? 'Gün' : 'Günlük',
+                list: ekranTipi === 'telefon' ? 'Liste' : 'Ajanda'
             },
 
-            // Active & Blocked constraints configuration
             businessHours: businessHoursData,
             eventConstraint: 'businessHours',
             eventOverlap: function(stillEvent, movingEvent) {
@@ -832,9 +973,11 @@
             slotMaxTime: maxTime,
             allDaySlot: false,
             editable: true,
-            // Boş alana tıklama dateClick ile yakalanır: "select" dokunmatik ekranda
-            // uzun basma istediği için mobil/tablette tek dokunuşla modal açılmıyordu.
+            // selectable=true dokunmatikte uzun basma ister; boş slot için dateClick + özel dokunma kullanılır
             selectable: false,
+            // Randevu sürükleme: dokunmatikte kısa basılı tutma (kaydırma ile karışmasın)
+            longPressDelay: dokunmatikMi ? 450 : 0,
+            eventLongPressDelay: dokunmatikMi ? 450 : 0,
             eventDurationEditable: false,
             eventSources: [
                 {
@@ -947,23 +1090,11 @@
                 }
             },
 
-            // Boş alana tıklama / dokunma (Create New Appointment)
+            // Tek tıklama / tek dokunuş — boş slot randevu
             dateClick: function(info) {
-                // Aylık görünümde gün hücresi saat taşımaz: o günün saat görünümüne geç
-                if (info.view.type === 'dayGridMonth') {
-                    calendar.changeView('timeGridDay', info.dateStr);
-                    return;
-                }
-
-                var hata = slotUygunlukHatasi(info.date, businessHoursData);
-                if (hata) {
-                    toastAc(hata, 'uyari');
-                    return;
-                }
-                createNewAppointment(info.dateStr);
+                bosSlotaRandevuAc(info.date, info.dateStr, info.view.type);
             },
 
-            // Event Drop (Drag and Drop Reschedule Handler)
             eventDrop: function(info) {
                 rescheduleAppointment(info);
             }
@@ -972,6 +1103,83 @@
         // Dar ekranda iç içe kaydırma olmasın diye takvim tam yükseklikte çizilir
         if (ekranAyari.yukseklik) calendar.setOption('height', ekranAyari.yukseklik);
         calendar.render();
+
+        // Dokunmatik yedek: bazı cihazlarda arka plan event'leri dateClick'i yutabiliyor.
+        // Kısa dokunuşta DOM'dan tarih/saat okuyup aynı modal akışını tetikler.
+        (function takvimDokunmaYedegi() {
+            var baslangic = null;
+
+            function nokadanSlot(clientX, clientY) {
+                var el = document.elementFromPoint(clientX, clientY);
+                if (!el || !calendarEl.contains(el)) return null;
+                if (el.closest('.fc-event:not(.fc-bg-event), .fc-button, a, button, select, input, textarea')) {
+                    return null;
+                }
+
+                // Slot satırları ile gün sütunları ayrı tabloda: tarihi X konumundan bul
+                var tarih = null;
+                var gunEl = el.closest('[data-date]');
+                if (gunEl) {
+                    tarih = gunEl.getAttribute('data-date');
+                } else {
+                    var kolonlar = calendarEl.querySelectorAll('.fc-timegrid-col[data-date], .fc-daygrid-day[data-date]');
+                    for (var k = 0; k < kolonlar.length; k++) {
+                        var kr = kolonlar[k].getBoundingClientRect();
+                        if (clientX >= kr.left && clientX <= kr.right) {
+                            tarih = kolonlar[k].getAttribute('data-date');
+                            break;
+                        }
+                    }
+                }
+                if (!tarih) return null;
+
+                if (calendar.view.type === 'dayGridMonth') {
+                    return { date: new Date(tarih + 'T00:00:00'), startStr: tarih, viewType: 'dayGridMonth' };
+                }
+
+                var saat = '09:00:00';
+                var slotEl = el.closest('.fc-timegrid-slot[data-time]');
+                if (slotEl) {
+                    saat = slotEl.getAttribute('data-time') || saat;
+                } else {
+                    var adaylar = calendarEl.querySelectorAll('.fc-timegrid-slot[data-time]');
+                    for (var i = 0; i < adaylar.length; i++) {
+                        var r = adaylar[i].getBoundingClientRect();
+                        if (clientY >= r.top && clientY <= r.bottom) {
+                            saat = adaylar[i].getAttribute('data-time') || saat;
+                            break;
+                        }
+                    }
+                }
+
+                if (saat.length === 5) saat += ':00';
+                var startStr = tarih + 'T' + saat;
+                return { date: new Date(startStr), startStr: startStr, viewType: calendar.view.type };
+            }
+
+            calendarEl.addEventListener('pointerdown', function(e) {
+                if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+                baslangic = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId };
+            }, { capture: true, passive: true });
+
+            calendarEl.addEventListener('pointerup', function(e) {
+                if (!baslangic || baslangic.id !== e.pointerId) return;
+                var dx = Math.abs(e.clientX - baslangic.x);
+                var dy = Math.abs(e.clientY - baslangic.y);
+                var dt = Date.now() - baslangic.t;
+                baslangic = null;
+                // Kaydırma veya uzun basma (sürükleme) değilse kısa dokunuş kabul et
+                if (dx > 14 || dy > 14 || dt > 650) return;
+
+                var slot = nokadanSlot(e.clientX, e.clientY);
+                if (!slot) return;
+                bosSlotaRandevuAc(slot.date, slot.startStr, slot.viewType);
+            }, { capture: true, passive: true });
+
+            calendarEl.addEventListener('pointercancel', function() {
+                baslangic = null;
+            }, { capture: true, passive: true });
+        })();
 
         // Initialize Select2 Patient search
         $('#formDanisanSelect').select2({

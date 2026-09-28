@@ -438,19 +438,21 @@
     </div>
 
     <!-- Mobile Header -->
-    <header class="md:hidden w-full h-16 bg-white border-b border-[#E5E7EB] flex items-center justify-between px-6 z-30 relative overflow-hidden">
-        <div class="flex items-center gap-2.5 relative">
-            <!-- Animated R Logo for Mobile Header -->
-            <div class="relative w-9 h-9 select-none flex-shrink-0 logo-breathing-small-animate">
+    <header class="md:hidden w-full min-h-14 bg-white border-b border-[#E5E7EB] flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 z-30 relative">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+            <div class="relative w-8 h-8 select-none shrink-0 logo-breathing-small-animate">
                 <img src="{{ asset('assets/images/logo.png') }}" alt="Randevu Ajandam"
                      style="mix-blend-mode: multiply;"
                      class="w-full h-full object-contain">
                 <div class="shimmer-overlay-small"></div>
             </div>
-            <span class="font-bold font-display tracking-tight text-base brand-text-shimmer select-none ml-0.5">Randevu Ajandam</span>
+            <div class="min-w-0 leading-tight">
+                <div class="font-bold font-display text-[13px] sm:text-sm text-[#111827] truncate">@yield('sayfa_baslik', 'Panel Özeti')</div>
+                <div class="text-[10px] text-[#9CA3AF] font-medium truncate">Randevu Ajandam</div>
+            </div>
         </div>
-        <div class="flex items-center gap-2">
-            <button onclick="hizliKapatModalAc()" class="p-2 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 cursor-pointer" title="Hızlı Saat Kapat">
+        <div class="flex items-center gap-1.5 shrink-0">
+            <button onclick="hizliKapatModalAc()" class="p-2 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 cursor-pointer" title="Hızlı Saat Kapat" aria-label="Hızlı Saat Kapat">
                 ⚡
             </button>
             @if(auth('doktor')->check())
@@ -465,7 +467,7 @@
                 @endphp
                 <a href="{{ route('hekim.bildirimler') }}"
                    class="relative p-2 rounded-lg bg-[#FFF7ED] text-[#C96A2B] border border-[#FED7AA] hover:bg-[#FFEDD5]"
-                   title="Bildirimler">
+                   title="Bildirimler" aria-label="Bildirimler">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
                     </svg>
@@ -476,7 +478,7 @@
                     @endif
                 </a>
             @endif
-            <button id="menuToggle" class="p-2 rounded-lg hover:bg-slate-50 border border-slate-100 text-[#111827] cursor-pointer">
+            <button id="menuToggle" class="p-2 rounded-lg hover:bg-slate-50 border border-slate-100 text-[#111827] cursor-pointer" aria-label="Menü">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
@@ -733,7 +735,7 @@
         </header>
 
         <!-- Main Dashboard Page Content -->
-        <main class="flex-1 p-6 md:p-10 overflow-y-auto">
+        <main class="flex-1 p-3 sm:p-6 md:p-8 lg:p-10 overflow-y-auto overflow-x-hidden @yield('main_class')">
             @yield('icerik')
         </main>
     </div>
