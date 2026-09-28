@@ -553,15 +553,15 @@
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden md:h-screen">
 
         <!-- Top Header for Page Title & Profile Dropdown -->
-        <header class="hidden md:flex items-center justify-between px-10 h-18 bg-white border-b border-[#E5E7EB] shrink-0">
-            <div>
-                <h1 class="text-lg font-bold font-display text-[#111827]">@yield('sayfa_baslik', 'Panel Özeti')</h1>
+        <header class="hidden md:flex items-center justify-between gap-4 px-6 lg:px-10 h-18 bg-white border-b border-[#E5E7EB] shrink-0">
+            <div class="min-w-0">
+                <h1 class="text-lg font-bold font-display text-[#111827] truncate">@yield('sayfa_baslik', 'Panel Özeti')</h1>
             </div>
 
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3 lg:gap-6 shrink-0">
                 <!-- Hızlı Saat Kapat Butonu -->
-                <button onclick="hizliKapatModalAc()" class="flex items-center gap-2 text-xs bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 px-4 py-2 rounded-full font-bold font-display transition-all cursor-pointer">
-                    <span>⚡ Hızlı Saat Kapat</span>
+                <button onclick="hizliKapatModalAc()" title="Hızlı Saat Kapat" class="flex items-center gap-2 text-xs bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 px-3 lg:px-4 py-2 rounded-full font-bold font-display whitespace-nowrap transition-all cursor-pointer">
+                    <span>⚡<span class="hidden lg:inline"> Hızlı Saat Kapat</span></span>
                 </button>
 
                 <!-- Bildirim Bell Dropdown -->
@@ -664,13 +664,13 @@
                     }
                 @endphp
                 <!-- Badge in Light Copper & Copper Text -->
-                <div class="flex items-center gap-2 text-xs bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 px-3.5 py-1.5 rounded-full font-semibold font-display">
+                <div class="hidden xl:flex items-center gap-2 text-xs bg-[#FFF7ED] text-[#C96A2B] border border-[#E7B58A]/30 px-3.5 py-1.5 rounded-full font-semibold font-display whitespace-nowrap">
                     <span class="w-1.5 h-1.5 rounded-full bg-[#C96A2B] animate-pulse"></span>
                     <span>{{ $paketAdi }}{{ $kalanGunText }}</span>
                 </div>
 
                 <!-- Vertical Divider -->
-                <span class="h-6 w-px bg-slate-200"></span>
+                <span class="hidden xl:block h-6 w-px bg-slate-200"></span>
 
                 <!-- Profile Dropdown -->
                 <div class="relative" id="profileDropdownContainer">
@@ -682,7 +682,7 @@
                                 {{ $kisaAd }}
                             </div>
                         @endif
-                        <span class="text-xs font-bold text-[#111827] font-display group-hover:text-[#C96A2B] transition-colors max-w-[120px] truncate">
+                        <span class="hidden lg:inline text-xs font-bold text-[#111827] font-display group-hover:text-[#C96A2B] transition-colors max-w-[120px] truncate">
                             {{ $doktorUser->ad_soyad }}
                         </span>
                         <svg class="w-4 h-4 text-[#6B7280] group-hover:text-[#C96A2B] transition-all" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

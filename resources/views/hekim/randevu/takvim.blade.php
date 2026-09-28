@@ -3,9 +3,6 @@
 @section('sayfa_baslik', 'Haftalık Randevu Takvimi')
 @section('icerik')
 
-<!-- FullCalendar & Select2 CDN -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
 @php
     $minHour = '08:00:00';
     $maxHour = '20:00:00';
@@ -201,6 +198,51 @@
         cursor: pointer !important;
     }
 
+    /* Responsive toolbar: dar ekranda başlık ve butonlar alt alta */
+    .fc .fc-header-toolbar {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .fc .fc-toolbar-chunk {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+    .fc .fc-button-group > .fc-button {
+        border-radius: 0 !important;
+    }
+    .fc .fc-button-group > .fc-button:first-child {
+        border-top-left-radius: 12px !important;
+        border-bottom-left-radius: 12px !important;
+    }
+    .fc .fc-button-group > .fc-button:last-child {
+        border-top-right-radius: 12px !important;
+        border-bottom-right-radius: 12px !important;
+    }
+    @media (max-width: 767px) {
+        .fc .fc-header-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .fc .fc-toolbar-chunk {
+            justify-content: center;
+        }
+        .fc .fc-toolbar-title {
+            font-size: 1.05rem !important;
+            text-align: center;
+        }
+        .fc-button-primary {
+            padding: 7px 11px !important;
+        }
+        .fc-col-header-cell-cushion {
+            font-size: 11px !important;
+        }
+        .fc-timegrid-slot {
+            height: 44px !important;
+        }
+    }
+
     /* Select2 Premium Override */
     .select2-container--default .select2-selection--single {
         height: 44px !important;
@@ -242,8 +284,8 @@
 
 <div class="space-y-6">
     <!-- Visual Legend (Takvim Rehberi) & Slot Selector -->
-    <div class="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.02)] flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs text-[#4B5563]">
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.02)] flex flex-col xl:flex-row xl:items-center justify-between gap-4 text-xs text-[#4B5563]">
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2.5">
             <span class="font-bold text-[#111827] font-display">Takvim Rehberi:</span>
             <span class="flex items-center gap-2">
                 <span class="w-4 h-4 rounded bg-white border border-[#E5E7EB] block"></span>
@@ -266,9 +308,9 @@
                 Geçmiş Zaman (Eklenemez)
             </span>
         </div>
-        <div class="flex items-center gap-2 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100 shrink-0 flex-wrap">
+        <div class="flex items-center gap-2 border-t xl:border-t-0 pt-3 xl:pt-0 border-slate-100 shrink-0 flex-wrap">
             <span class="font-bold text-[#111827] font-display flex items-center gap-1">⏱️ Zaman Dilimi (Periyot):</span>
-            <select id="calendarSlotDurationSelect" onchange="changeCalendarSlotDuration(this.value)" class="px-3 py-1.5 rounded-xl border border-[#E5E7EB] bg-white font-semibold text-[#4B5563] focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none cursor-pointer text-xs">
+            <select id="calendarSlotDurationSelect" onchange="changeCalendarSlotDuration(this.value)" class="no-select2 px-3 py-1.5 rounded-xl border border-[#E5E7EB] bg-white font-semibold text-[#4B5563] focus:border-[#C96A2B] focus:ring-1 focus:ring-[#C96A2B] outline-none cursor-pointer text-xs">
                 <option value="00:15:00" {{ (isset($periyot) && $periyot == 15) ? 'selected' : '' }}>15 Dakika</option>
                 <option value="00:20:00" {{ (isset($periyot) && $periyot == 20) ? 'selected' : '' }}>20 Dakika</option>
                 <option value="00:30:00" {{ (!isset($periyot) || $periyot == 30) ? 'selected' : '' }}>30 Dakika</option>
@@ -285,7 +327,7 @@
     </div>
 
     <!-- Calendar Container matching panel style -->
-    <div class="bg-white rounded-2xl p-6 border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.04)]">
+    <div class="bg-white rounded-2xl p-3 sm:p-6 border border-[#E5E7EB] shadow-[0_4px_24px_rgba(31,41,55,0.04)]">
         <!-- FullCalendar Hook -->
         <div id="calendar" class="w-full"></div>
     </div>
@@ -580,8 +622,7 @@
 </div>
 
 <!-- Scripts -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- jQuery + Select2 layout sonunda yükleniyor; burada tekrar yüklenmez -->
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/locales/tr.global.min.js"></script>
 
@@ -656,6 +697,74 @@
         }
     }
 
+    function takvimEkranTipi() {
+        var genislik = window.innerWidth;
+        if (genislik < 768) return 'telefon';
+        if (genislik < 1280) return 'tablet';
+        return 'masaustu';
+    }
+
+    function takvimEkranAyari(tip) {
+        if (tip === 'telefon') {
+            return {
+                gorunum: 'timeGridDay',
+                yukseklik: 'auto',
+                izinliGorunumler: ['timeGridDay', 'timeGrid3Day', 'listWeek'],
+                toolbar: { left: 'prev,next today', center: 'title', right: 'timeGridDay,timeGrid3Day,listWeek' }
+            };
+        }
+        if (tip === 'tablet') {
+            return {
+                gorunum: 'timeGrid3Day',
+                yukseklik: 'auto',
+                izinliGorunumler: ['dayGridMonth', 'timeGrid3Day', 'timeGridDay', 'listWeek'],
+                toolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGrid3Day,timeGridDay,listWeek' }
+            };
+        }
+        return {
+            gorunum: 'timeGridWeek',
+            yukseklik: null, // FullCalendar varsayılanı (aspectRatio)
+            izinliGorunumler: ['dayGridMonth', 'timeGridWeek', 'timeGridDay', 'listWeek'],
+            toolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' }
+        };
+    }
+
+    // Tıklanan saate randevu eklenemiyorsa sebebini döndürür, uygunsa null.
+    // (selectable kapalı olduğu için mesai/öğle/izin kısıtları burada kontrol edilir)
+    function slotUygunlukHatasi(tarih, mesaiListesi) {
+        if (tarih < new Date()) {
+            return 'Geçmiş bir tarihe veya saate randevu eklenemez.';
+        }
+
+        var gun = tarih.getDay();
+        var dakika = tarih.getHours() * 60 + tarih.getMinutes();
+        var saatDakika = function(hhmm) {
+            var p = String(hhmm).split(':');
+            return parseInt(p[0], 10) * 60 + parseInt(p[1] || '0', 10);
+        };
+        var mesaideMi = (mesaiListesi || []).some(function(bh) {
+            return bh.daysOfWeek.indexOf(gun) !== -1
+                && dakika >= saatDakika(bh.startTime)
+                && dakika < saatDakika(bh.endTime);
+        });
+        if (!mesaideMi) {
+            return 'Seçtiğiniz saat mesai saatleri dışında.';
+        }
+
+        var kapali = calendar.getEvents().find(function(ev) {
+            var tip = ev.extendedProps.type;
+            return (tip === 'ogle' || tip === 'izin')
+                && ev.start && ev.end
+                && tarih >= ev.start && tarih < ev.end;
+        });
+        if (kapali) {
+            return kapali.extendedProps.type === 'ogle'
+                ? 'Bu saat öğle arasına denk geliyor.'
+                : 'Bu saat izin / kapalı zaman aralığında.';
+        }
+        return null;
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
 
@@ -666,14 +775,32 @@
 
         var businessHoursData = {!! json_encode($businessHours) !!};
 
+        // Ekran genişliğine göre görünüm/araç çubuğu (telefon: gün, tablet: 3 gün, masaüstü: hafta)
+        var ekranTipi = takvimEkranTipi();
+        var ekranAyari = takvimEkranAyari(ekranTipi);
+
         calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
+            initialView: ekranAyari.gorunum,
             locale: 'tr',
             firstDay: 1, // Pazartesi
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            headerToolbar: ekranAyari.toolbar,
+            views: {
+                timeGrid3Day: {
+                    type: 'timeGrid',
+                    duration: { days: 3 },
+                    buttonText: '3 Gün'
+                }
+            },
+            windowResize: function() {
+                var yeniTip = takvimEkranTipi();
+                if (yeniTip === ekranTipi) return;
+                ekranTipi = yeniTip;
+                var ayar = takvimEkranAyari(yeniTip);
+                calendar.setOption('headerToolbar', ayar.toolbar);
+                if (ayar.yukseklik) calendar.setOption('height', ayar.yukseklik);
+                if (ayar.izinliGorunumler.indexOf(calendar.view.type) === -1) {
+                    calendar.changeView(ayar.gorunum);
+                }
             },
 
             // Turkish button overrides for premium feel
@@ -687,11 +814,7 @@
 
             // Active & Blocked constraints configuration
             businessHours: businessHoursData,
-            selectConstraint: 'businessHours',
             eventConstraint: 'businessHours',
-            selectOverlap: function(event) {
-                return event.display !== 'background';
-            },
             eventOverlap: function(stillEvent, movingEvent) {
                 return stillEvent.display !== 'background';
             },
@@ -709,8 +832,9 @@
             slotMaxTime: maxTime,
             allDaySlot: false,
             editable: true,
-            selectable: true,
-            selectMirror: true,
+            // Boş alana tıklama dateClick ile yakalanır: "select" dokunmatik ekranda
+            // uzun basma istediği için mobil/tablette tek dokunuşla modal açılmıyordu.
+            selectable: false,
             eventDurationEditable: false,
             eventSources: [
                 {
@@ -823,14 +947,20 @@
                 }
             },
 
-            // Date Select Handler (Create New Appointment)
-            select: function(info) {
-                if (new Date(info.start) < new Date()) {
-                    mesajModalAc('Geçmiş bir tarihe veya saate randevu eklenemez.', 'uyari');
-                    calendar.unselect();
+            // Boş alana tıklama / dokunma (Create New Appointment)
+            dateClick: function(info) {
+                // Aylık görünümde gün hücresi saat taşımaz: o günün saat görünümüne geç
+                if (info.view.type === 'dayGridMonth') {
+                    calendar.changeView('timeGridDay', info.dateStr);
                     return;
                 }
-                createNewAppointment(info.startStr, info.endStr);
+
+                var hata = slotUygunlukHatasi(info.date, businessHoursData);
+                if (hata) {
+                    toastAc(hata, 'uyari');
+                    return;
+                }
+                createNewAppointment(info.dateStr);
             },
 
             // Event Drop (Drag and Drop Reschedule Handler)
@@ -839,6 +969,8 @@
             }
         });
 
+        // Dar ekranda iç içe kaydırma olmasın diye takvim tam yükseklikte çizilir
+        if (ekranAyari.yukseklik) calendar.setOption('height', ekranAyari.yukseklik);
         calendar.render();
 
         // Initialize Select2 Patient search
